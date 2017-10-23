@@ -60,7 +60,7 @@ models trained on all previous years and on only the most recent previous year.
 # Deliverables
 
 Our goal is to use our model to understand how the field of cognitive science
-has changed over time, as attempted with traditional topic models by Cohen,
+has changed over time, as attempted with traditional topic models by Cohen
 Priva & Austerweil (2015) for the journal Cognition (which focuses more squarely
 on cognitive psychology). To achieve this, we plan to visualize the models’
 topics and their change over time in an understandable manner. Building off the
@@ -77,7 +77,7 @@ Trends uncovered by the DTM in Blei and Lafferty (2006).
 
 # Acknowledgements
 
-We were granted an exception to form a team of 3 (instead of 2) students by Joan after the lecture on Oct 16, 2017.
+We were granted an exception to form a team of 3 (instead of 2) students by Joan after the lecture on Oct 16.
 
 # References
 
