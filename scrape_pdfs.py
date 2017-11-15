@@ -3,13 +3,7 @@ import time
 import requests
 import string
 from bs4 import BeautifulSoup
-valid_chars = "-_.() {}{}".format(string.ascii_letters, string.digits)
-
-# get proceedings before 2000
-for v in range(3, 22):
-    response = requests.get('https://mindmodeling.org/cogscihistorical/cogsci_' + str(v) + '.pdf')
-    with open('pdfs/cogsci_' + str(v) + '.pdf', 'wb') as f:
-        f.write(response.content)
+valid_chars = "-_() {}{}".format(string.ascii_letters, string.digits)
 
 # get proceedings 2000 to 2014
 for v in range(22, 37):
@@ -18,7 +12,7 @@ for v in range(22, 37):
         os.makedirs(directory)
     volume_response = requests.get('https://escholarship.org/uc/cognitivesciencesociety/' + str(v) + '/' + str(v))
     volume_soup = BeautifulSoup(volume_response.text, 'html.parser')
-    section_heads = soup.find_all('h3', {'class': 'o-heading1a'})
+    section_heads = volume_soup.find_all('h3', {'class': 'o-heading1a'})
     for h in section_heads:
         if h.text in ['Papers', 'Posters']:
             paperdiv = h
@@ -35,3 +29,34 @@ for v in range(22, 37):
                 pdf_response = requests.get('https://escholarship.org' + pdf_href)
                 with open(directory + '/' + title + '.pdf', 'wb') as f:
                     f.write(pdf_response.content)
+
+
+# get proceedings 2015 to 2017
+for v in range(37, 40):
+    y = v - 37 + 2015
+    directory = 'pdfs/volume_' + str(v)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    len_until_number = len('https://mindmodeling.org/cogsci201x/papers/')
+    volume_response = requests.get('https://mindmodeling.org/cogsci' + str(y) + '/')
+    volume_soup = BeautifulSoup(volume_response.text, 'html.parser')
+    section_heads = volume_soup.find_all('li', {'id': 'session'})
+    for h in section_heads:
+        if h.text in ['Papers', 'Talks: Papers', 'Posters: Papers']:
+            papers = h.next_sibling.next_sibling
+            papers = papers.find_all('a')
+            for p in papers:
+                href = p['href']
+                title = p.text
+                num = href[len_until_number:len_until_number+4]
+                time.sleep(1)
+                pdf_response = requests.get('https://mindmodeling.org/cogsci{}/papers/{}/paper{}.pdf'.format(
+                    str(y), num, num))
+                with open(directory + '/' + title + '.pdf', 'wb') as f:
+                    f.write(pdf_response.content)
+
+# get proceedings before 2000
+for v in range(3, 22):
+    response = requests.get('https://mindmodeling.org/cogscihistorical/cogsci_' + str(v) + '.pdf')
+    with open('pdfs/cogsci_' + str(v) + '.pdf', 'wb') as f:
+        f.write(response.content)
