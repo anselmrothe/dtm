@@ -1,3 +1,14 @@
+# Workflow
+Download PDFs
+
+→ convert to txt 
+
+→ convert to bag of words 
+
+→ ... 
+
+→ train DTM
+
 # work log:
 # Nov 16
 
