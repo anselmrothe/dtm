@@ -4,7 +4,7 @@ Download PDFs
 → convert to txt 
 
 → convert to bag of words 
-
+- data pruning (stemming/Lemmatisation, removing stop words, remove punctuations, connect words split by line breaks)
 → ... 
 
 → train DTM
