@@ -1,6 +1,8 @@
 # Nov 16
 
-- Using 
+- Throw some raw-processed papers into simple topic models and see how well it works; then decide how much more data cleaning is needed
+
+- Maybe read the Blei paper and see how they pre-processed the data.
 
 # Nov 15 
 
