@@ -41,8 +41,12 @@ pdf_extract_text_file <- function(filename) {
 }
 
 pdf_extract_text <- function() {
+  if (!dir.exists("pdf")) stop("Need 'pdf' subfolder")
+  if (!dir.exists("txt")) stop("Need 'txt' subfolder")
+  if (!dir.exists("json")) stop("Need 'json' subfolder")
   filenames <- list.files("pdf/")
   filenames %>% lapply(pdf_extract_text_file) %>% unlist
 }
 
+setwd(".../pdf_extract_text")  # update this
 pdf_extract_text()
