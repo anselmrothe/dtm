@@ -14,7 +14,8 @@ Download PDFs
 
 - Text reading and cleaning procedure (using the 3 months' news data as testing data). --zhiwei
 - Feed the cleaned text into dtm and plot the topic drifting over time. --zhiwei
-**TODO**  
+## TODO
+
 - transform current code from jupyter notebook into .py
 - my computer can't even run the full news data -- must parallelize the dtm and put them onto cluster when we deal with real data
 - clearning parameters to be adjusted based on real data. current parameters could give weird results (e.g. too many non-informative words. maybe not a big problem with bigger dataset).
