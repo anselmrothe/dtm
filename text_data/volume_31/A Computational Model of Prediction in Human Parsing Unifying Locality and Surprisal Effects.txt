@@ -1,0 +1,456 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+A Computational Model of Prediction in Human Parsing: Unifying Locality and Surprisal
+Effects
+Permalink
+https://escholarship.org/uc/item/3js6s1zh
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 31(31)
+Authors
+Demberg, Vera
+Keller, Frank
+Publication Date
+2009-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+                        A Computational Model of Prediction in Human Parsing:
+                                         Unifying Locality and Surprisal Effects
+                                                   Vera Demberg (v.demberg@ed.ac.uk) and
+                                                        Frank Keller (keller@inf.ed.ac.uk)
+                                                  School of Informatics, University of Edinburgh
+                                                   10 Crichton Street, Edinburgh EH8 9AB, UK
+                                Abstract                                    necessary to build phrases whose lexical anchors (the words
+    There is strong evidence that human sentence processing is in-
+                                                                            that they relate to) have not been encountered yet. Full con-
+    cremental, i.e., that structures are built word by word. Recent         nectedness ensures that a fully interpretable structure is avail-
+    experiments show that the processor also predicts upcoming              able at any point during incremental sentence processing.
+    linguistic material on the basis of previous input. We present a           In this paper, we explore how these key psycholinguistic
+    computational model of human parsing that is based on a vari-           concepts (incrementality, connectedness, and prediction) can
+    ant of tree-adjoining grammar and includes an explicit mecha-
+    nism for generating and verifying predictions, while respecting         be realized within a new version of tree-adjoining grammar,
+    incrementality and connectedness. An algorithm for deriving             which we call Psycholinguistically Motivated TAG (PLTAG).
+    a lexicon from a treebank, a fully implemented parser, and a            We propose a formalization of PLTAG and a linking theory
+    probability model for this formalism are also presented. We             that derives predictions of processing difficulty from it. We
+    devise a linking function that explains processing difficulty as
+    a combination of prefix probability (surprisal) and verification        then present an implementation of this model and evaluate it
+    cost. The resulting model captures locality effects such as the         against key experimental data relating to incrementality and
+    subject/object relative clause asymmetry, as well as surprisal          prediction. The resulting model is shown to offer a unified
+    effects such as prediction in either . . . or constructions.            framework that captures both locality effects and surprisal ef-
+    Keywords: Sentence Processing; Incrementality; Prediction;              fects in sentence processing.
+    Surprisal; Locality Effects; Tree-adjoining Grammar.
+                                                                                                     Background
+                            Introduction
+                                                                            Among existing models of sentence processing, two stand out
+Evidence from psycholinguistic research suggests that lan-                  as potential candidates for accounting for prediction effects.
+guage comprehension is largely incremental, i.e., that com-                 One of them is Dependency Locality Theory (DLT), proposed
+prehenders build an interpretation of a sentence on a word-                 by Gibson (1998). A central notion in DLT is integration cost,
+by-word basis. Evidence for incrementality comes from                       a distance-based measure of the amount of processing effort
+speech shadowing, self-paced reading, and eye-tracking stud-                required when the head of a phrase is integrated with its syn-
+ies (Marslen-Wilson, 1973; Konieczny, 2000; Tanenhaus                       tactic dependents. In other words, dependents in DLT predict
+et al., 1995): as soon as readers or listeners perceive a word in           the existence of a subsequent head, and the verification of
+a sentence, they integrate it as fully as possible into a repre-            these predictions causes processing cost at the head, based on
+sentation of the sentence thus far. They experience differential            its distance from the dependents.
+processing difficulty during this integration process, depend-
+                                                                               A key experimental result captured by DLT is the fact that
+ing on the properties of the word and its relationship to the
+                                                                            subject relative clauses (SRCs) as in (1a) are easier to process
+preceding context.
+                                                                            than object relative clauses (ORCs) as in (1b). Shorter reading
+   There is also evidence for full connectivity in human lan-
+                                                                            times are observed on the verb attacked for SRCs compared
+guage processing (Sturt & Lombardo, 2005). Full connec-
+                                                                            to ORCs (King & Just, 1991).
+tivity means that all words are connected by a single syn-
+tactic structure; the parser builds no unconnected tree frag-               (1)      a.   The reporter that attacked the senator admitted
+ments, even for the incomplete sentences (sentence prefixes)                              the error.
+that arise during incremental processing.                                            b.   The reporter that the senator attacked admitted
+   Furthermore, there is evidence that readers or listeners                               the error.
+make predictions about upcoming material on the basis of
+sentence prefixes. Listeners can predict an upcoming post-                  At the relative clause verb attacked, a dependency to the rel-
+verbal element, based on the semantics of the preceding verb                ative pronoun that is constructed; in the SRC, this involves
+(Kamide et al., 2003). Prediction effects can also be observed              a distance of one, while in the ORC, the subject the senator
+in reading. Staub & Clifton (2006) showed that following the                intervenes, resulting in a distance of two, thus explaining the
+word either readers predict or and the complement that fol-                 higher processing cost in DLT terms.
+lows it; processing was facilitated compared to structures that                DLT has been shown to also capture a range of other
+include or without either. In an ERP study, van Berkum et al.               complexity results, including processing overload phenom-
+(1999) found that listeners use contextual information to pre-              ena such as center embedding and cross-serial dependencies
+dict specific lexical items and experience processing difficulty            (Gibson, 1998). However, DLT is not a broad coverage the-
+if the input is incompatible with the prediction.                           ory: it captures the integration costs at main verbs and nouns,
+   The concepts of incrementality, connectedness, and predic-               but makes no predictions for any other syntactic categories.
+tion are closely related: in order to guarantee that the syntac-            This limits its usefulness in accounting for corpus data (Dem-
+tic structure of a sentence prefix is fully connected, it may be            berg & Keller, 2008a).
+                                                                        1888
+
+   Hale (2001) proposed surprisal as an alternative measure of       require an incremental parser that is capable of building fully
+processing difficulty, based on ideas from probabilistic pars-       connected structures and generating explicit predictions from
+ing. When a new word is processed during incremental inter-          which we can then derive a measure of processing difficulty.
+pretation, the probability of the sentence up to the new word is     Existing parsers and grammar formalisms do not meet this
+compared to the probability of the sentence up to the previous       specification. While there is substantial previous work on in-
+word. The amount of change in the probability distribution           cremental parsing, none of the existing models observes full
+that occurs (the relative entropy of the two distributions) cor-     connectivity. One likely reason for this is that full connectiv-
+responds to the processing difficulty experienced at the new         ity cannot be achieved using canonical linguistic structures
+word. This means that words that are highly predictable (low         as assumed in standard grammar formalisms such as CFG,
+relative entropy) incur low processing difficulty, while sur-        CCG, TAG, LFG, or HPSG. Instead, a stack has to be used to
+prising words incur high processing difficulty.                      store partial structures and retrieve them later when it has be-
+   As an example, consider the sentence in (2). Here, Staub &        come clear (through additional input) how to combine them.
+Clifton (2006) found that an essay is processed more quickly            Here, we therefore use a new variant of the tree-adjoining
+in (2a) than in (2b). This is captured straightforwardly by sur-     grammar (TAG) formalism which realizes full connectedness.
+prisal: either . . . or is highly likely to be followed by an NP,    The key idea is that in cases where new input cannot be com-
+while or without either can be followed by a wide range of           bined immediately with the existing structure, we need to pre-
+phrases (including S), encountering an NP is thus more sur-          dict additional syntactic material, which needs to be verified
+prising in this case, resulting in elevated reading times.           against future input later on. Our variant of TAG is called
+                                                                     Psycholinguistically Motivated TAG (PLTAG). It is outlined
+(2)      a.   Peter read either a book or an essay in the school     below and described in more detail in Demberg & Keller
+              magazine.                                              (2008b).
+         b.   Peter read a book or an essay in the school mag-
+              azine.                                                         Incremental Processing with PLTAG
+Surprisal captures a range of sentence processing effects, in-       Tree-Adjoining Grammar
+cluding certain garden path effects, speed-up effects in verb-       Tree-adjoining grammar (TAG) was developed by Joshi et al.
+final contexts, and word order asymmetries (Hale, 2001;              (1975) as a linguistically inspired grammar formalism. It
+Levy, 2008). It is not capable, however, to account for the          makes a fundamental distinction between initial trees and
+SRC/ORC asymmetry, as Levy (2008) shows.                             auxiliary trees. Initial trees are non-recursive and are used
+   DLT and surprisal therefore model complementary aspects           in substitution operations, as illustrated by the tree with the
+of sentence processing. While DLT can be regarded as a               lexical anchor the in Figure 1a, and the trees for senator and
+backward-looking measure that focuses on integrating pre-            attacked in Figure 1b. Auxiliary trees are recursive structures
+vious information with new information, surprisal can be             and are integrated into a derivation with the adjunction op-
+seen as forward-looking, measuring whether the new input             eration; examples are the trees with lexical anchor or in Fig-
+meets the comprehender’s expectations. Recently, Demberg             ure 2d and the tree for that in Figure 1a. Both initial and auxil-
+& Keller (2008a) conducted a broad-coverage evaluation of            iary trees can have zero or more substitution nodes, i.e., nodes
+DLT and surprisal (on the Dundee Corpus, a collection of             that another tree must substitute into; substitution nodes are
+newspaper text annotated with eye-movements), and found              marked with ↓. Auxiliary trees furthermore have exactly one
+that the predictions of the two theories are uncorrelated and        foot node marked with *, which always has the same cat-
+account for complementary parts of the variance in the corpus        egory as the tree’s root node (rendering it recursive). Most
+reading times.                                                       TAG grammars are assumed to be lexicalized (LTAG); lex-
+   The challenge, therefore, is to develop a model of sentence       icalization of a grammar means that all trees have a lexical
+processing that not only captures the properties of incremen-        anchor, i.e., they are associated with a lexical item.
+tality, connectivity, and prediction, but is also capable of ex-
+plaining the complementary processing effects explained by           Psycholinguistically Motivated TAG
+DLT and surprisal.                                                   PLTAG extends normal LTAG in that it specifies not only
+                                                                     the canonical lexicon containing lexicalized initial and auxil-
+             Modeling Explicit Prediction                            iary trees, but also a predictive lexicon which contains poten-
+We propose a theory of sentence processing guided by the             tially unlexicalized trees, which we will call prediction trees.
+principles of incrementality, connectedness, and prediction.         Each node in a prediction tree is annotated with indices of
+                                                                                s
+The core assumption of our proposal is that a sentence pro-          the form s jj , where inner nodes have two identical indices,
+cessor that maintains explicit predictions about the upcoming        root nodes only have a lower index and foot and substitution
+structure has to validate these predictions against the input        nodes only have an upper index. The reason for only having
+it encounters. Using this assumption, we can naturally com-          half of the indices is that these nodes (root, foot, and substitu-
+bine the forward-looking aspect of surprisal (sentence struc-        tion nodes) still need to combine with another tree in order to
+tures are computed incrementally and unexpected continu-             build a full node. If an initial tree substitutes into a substitu-
+ations cause difficulty) with the backward-looking integra-          tion node, the node where they are integrated becomes a full
+tion view of DLT (previously predicted structures are veri-          node, with the upper half contributed by the substitution node
+fied against new evidence, leading to processing difficulty as       and the lower half contributed by the root node.
+predictions decay with time).                                           Prediction trees have the same shape as trees from the nor-
+   In order to build a model that implements this theory, we         mal lexicon, with the difference that they do not contain sub-
+                                                                 1889
+
+                                                                                       (a)
+stitution nodes to the right of their spine (the spine is the path                               NP
+                                                                                                                                 predicted structure
+from the root node to the anchor), and that their spine does
+not have to end with a lexical item. The reason for the missing                           NP*        RC        substitution               SS1
+right side of the spine and the missing lexical item are con-
+                                                                                            WHNP            S                    NP S1         VP S1
+siderations regarding the granularity of prediction. This way,                                                                      S2             S1
+for example, we avoid predicting verbs with specific subcate-                                                      DT
+                                                                                              that                           DTS2   NNS2
+gorization frames (or even a specific verb) at the point of en-                                                     the                  S2
+countering the determiner of an ORC subject (as in Figure 1,
+discussed in more detail below). In general, we only predict                                                       substitution
+                                                                                       (b)
+upcoming structure as far as we need it, i.e., as required by                                    NP
+connectivity or subcategorization. (However, this is a prelim-
+inary assumption, the optimal prediction grain size remains                                NP*        RC            verification           S
+an open research question.)
+                                                                                            WHNP             SS1
+   PLTAG allows the same basic operations (substitution and                                                                       NP            VP
+adjunction) as normal LTAG, the only difference is that these                                  that
+                                                                                                    NP S1         VP S1                     V         NP
+operations can also be applied to prediction trees. In addition,                                        S2             S1
+we assume a verification operation, which is needed to val-                                      S2                                      attacked
+                                                                                              DT        NNS2            NP
+idate previously integrated prediction trees. The tree against                                              S2
+which verification happens has to always match the predicted                                   the
+                                                                                                                   DT       NN
+tree in shape (i.e., the verification tree must contain all the
+nodes with a unique, identical index that were present in the                                      verification           senator
+prediction tree, and in the same order; any additional nodes
+present in the verification tree must be below the prediction                                  Figure 1: Prediction and Verification
+tree anchor or to the right of its spine). This means that the
+verification operation does not introduce any tree configura-                 Prediction through Subcategorization Another source of
+tions that would not be allowed by normal LTAG. (Due to                       predictions are the lexicon entries themselves via their sub-
+space restrictions, we cannot provide a formal equivalence                    categorization frames. Subcategorization in TAG is expressed
+proof of PLTAG and LTAG here.) Note that substitution or                      through substitution nodes, which have to be filled with an
+adjunction with a predictive tree and the verification of that                argument in order to construct a valid sentence. Each substi-
+tree always occur pairwise, since each predicted node has to                  tution node that is to the right of the tree’s anchor naturally
+be verified. A valid parse for a sentence must not contain any                becomes a prediction during the parsing process. Modifiers
+nodes that are still annotated as being predictive – all of them              are generally not predicted in our framework, unless they are
+have to be validated through verification by the end of the                   needed for connectivity.3
+sentence.                                                                          We also exploit TAG’s extended domain of locality in or-
+   In PLTAG, prediction occurs in two cases: when required                    der to construct lexicon entries such that they encode lexi-
+by connectivity, and when required by subcategorization.                      cal entries together even if they occur as two separate words.
+                                                                              We can use this to explain predictive facilitation for either
+Prediction through Connectivity As briefly mentioned                          . . . or and related constructions (Staub & Clifton 2006; see
+above, canonical elementary trees can not always be con-                      Background section above). For the either . . . or case, we as-
+nected directly to a previously built syntactic structure. Ex-                sign a lexicon entry to either which predicts the occurrence of
+amples are situations when two dependents precede a head,                     the conjunction or, as well as predicting a coordinate struc-
+or when a grandparent and a child have been encountered,                      ture that combines two entities of the same category, see Fig-
+but the head of the parent node has not. This happens, for                    ure 2a.
+instance, at the integration of the second determiner in the
+                                                                                   When processing an either . . . or disjunction in PLTAG,
+ORC in (1b), as illustrated in Figure 1. The elementary tree
+                                                                              processing at or will be facilitated compared to a simple
+for the cannot directly be combined with the preceding rela-
+                                                                              or construction. For the sequence Peter read a book or, the
+tive clause structure. The intervening structure will only later
+                                                                              or occurs unexpectedly, and can be attached either at the
+be provided by the trees for the noun senator and the verb at-
+                                                                              NP level or at the S level (see Figure 2), leading to an am-
+tacked (see Figure 3). If we want to maintain connectivity at
+                                                                              biguity which will have to be resolved later on. In contrast,
+this point, we therefore need to predict this intervening struc-
+                                                                              or was predicted already at either for the sequence Peter read
+ture (see the right hand side tree in Figure 1). 1 Predicted struc-
+                                                                              either a book or, and will therefore be less costly to integrate:
+tures are marked with unique indices, indicating which tree
+                                                                              the probability of or given the predicted either structure is
+they originally came from. In our example, the nodes origi-
+                                                                              higher than the probability of or given the structure without
+nating from the tree structure of senator have index S2, and
+                                                                              either. In addition, there is no NP/S-coordination ambiguity,
+nodes from the tree for attacked have index S1.2
+                                                                              see Figure 2b.
+    1 Because of the recursivity of natural language, it is possible that
+there are infinitely many ways to connect two trees. Although em-             parsing algorithm to integrate prediction trees which it then does not
+bedding depth can be infinite in theory, we assume that it is finite          use.
+and indeed very small due to limitations of human memory.                           3 Whether or not modifiers are predicted syntactically is a subject
+    2 For efficiency reasons during parsing, we pre-combine predic-           for further research. Preliminary evidence suggests that modifiers
+tion trees that we find in the training data, and later do not allow the      are predicted when they are required by the discourse context.
+                                                                          1890
+
+         (a) lexicon entry for "either"   (b) derivation at "or" in either−case                                                  S7
+                                                      S
+                       NP
+                                                NP       VP                                                    NP37                           VP 77
+            DT      NP     CC S1 NP           Peter V        NP
+                                                   read                                               NP32                RC 33                       NP 79
+          either           or S1
+                              S1
+                                                     DT NP CC NP                                                                        V77
+                                                                                                    2
+                                                  either a book or                              DT1       NN22 WHNP33           S 36 admitted77 DT9
+                                                                                                                                                    8     NN99
+         (c) ambiguity at "or"             (d) lexicon entries for "or"                         the11 reporter 22 that 33
+                                                                                                                                                the88   error 99
+                                 adjunction               S                                                            NP 65          VP 66
+                  S
+                                                 S*      CC       S
+             NP      VP                                   or                                                     DT45                  V66       NP 6*
+                                                         NP                                                                NN55
+           Peter V       NP
+                 read  a book                    NP*     CC     NP                                                the44 senator 55 attacked 66 trace**
+                                                          or
+Figure 2: Extended domain of locality for expressions that                          Figure 3: Generating lexicon entries from the Penn Treebank
+trigger predictions.                                                                for an example sentence.
+                      The Incremental Parser
+                                                                                       For our lexicon induced from the Penn Treebank, we found
+In order to obtain a computational model that implements the
+                                                                                    that the average ambiguity per lexical item is 4.5 trees (the
+prediction processes defined by PLTAG we require an incre-
+                                                                                    distribution is Zipfian, meaning that there are a few words
+mental probabilistic parsing algorithm, which in turn requires
+                                                                                    with very high ambiguity, and many words with very low
+a lexicon and a training set from which we can estimate the
+                                                                                    ambiguity, or just one lexicon entry). Among the derivations
+probabilistic model for the parser. We describe these compo-
+                                                                                    where predictive trees were needed in order to achieve con-
+nents in turn.
+                                                                                    nectivity, 96.15% of cases used one prediction tree, in 3.55%
+Lexicon Induction and Treebank Transformation                                       of cases, two prediction trees had to be combined before con-
+                                                                                    nectivity was achieved (as in our ORC example case dis-
+We induce the lexicon needed for our incremental version of                         cussed above); in less than 0.4% of cases were three to six
+TAG from the Penn Treebank, complemented by noun phrase                             trees needed, and never more than seven.
+annotation (Vadas & Curran, 2007), Propbank (Palmer et al.,
+2003), and an adapted version of Magerman’s (1994) head                             Parsing Algorithm
+percolation table. These additional resources help determine                        The parsing algorithm is strictly incremental and only allows
+the elementary trees using procedures proposed by Xia et al.                        operations that maintain the full connectivity of the partial
+(2000) and allow us to distinguish arguments (for which we                          trees that cover words w1 . . . wi . The algorithm processes al-
+generate an initial tree, and a substitution node in the parent                     ternative analyses in parallel and does not do any kind of
+tree) from modifiers (for which we generate auxiliary trees).                       backtracking.
+   Figure 3 shows how a syntactic tree in the Treebank is cut                          When a new word wi+1 is encountered, the algorithm re-
+up into elementary trees by the lexicon induction process.                          trieves the elementary trees for this word from the lexicon,
+Each node is indexed with the number of the word that is its                        and tries to integrate each of them with previous analyses,
+lexical anchor. So the tree for the includes the the node and                       while making sure that only correct PLTAG trees are derived
+the DT node as the tree’s root node, while the tree for that                        at each step. The parser can also use trees from the predictive
+contains all the nodes with index 3, i.e., the lexical anchor,                      lexicon after each new word that was read in. The operations
+the inner nodes WHNP and RC, the substitution node S, the                           in the parsing algorithm are substitution, adjunction and ver-
+root node NP and the foot node NP.                                                  ification, as outlined in the description of PLTAG above.
+   Once the trees have been segmented into elementary trees,                           For illustration, assume we are parsing the sentence The
+we calculate the connection path for each prefix, as proposed                       reporter that the senator attacked admitted his error. We first
+by Lombardo & Sturt (2002). A connection path for words                             retrieve trees for the lexeme the from the lexicon, and one of
+w1 . . . wn is the minimal structure that is needed to connect                      those entries is the tree for the shown in Figure 1. Next the
+all words w1 . . . wn into the same syntactic tree. The structure                   algorithm predicts a number of structures that are compatible
+needed for each of the first five words in Figure 3 is indicated                    with the current structure and then reads in the next word, re-
+by the circles enclosing the connection path at each stage.                         porter. One of the trees for reporter has the structure shown
+   We then use the connection paths and the canonical ele-                          in Figure 1 for the word senator, and the prefix tree can be in-
+mentary trees to determine which parts of the structure are                         tegrated with the new tree by substituting the tree for the into
+included in the connection path for words w1 . . . wn , but are                     the tree for reporter (without using any predictions). Next,
+not part of any of the elementary trees with feet w1 . . . wn . In                  prediction trees are generated and attached, and we then en-
+Figure 3, this occurs for the first time at word w4 : its connec-                   counter the word that, retrieve its tree structure and adjoin it
+tion path contains nodes with indices 5 and 6. This means that                      into the NP of the prefix tree the senator. When we try to
+parts of the structure from lexical items w5 and w6 have to be                      attach the next round of prediction trees, one of them is the
+predicted at w4 , and two prediction trees are generated (they                      prediction tree shown at the right hand side of Figure 1a. This
+can be pre-combined, for the result see the predicted structure                     prediction tree is substituted into the open substitution node
+in Figure 1a).                                                                      with category S in the prefix tree, and the tree structure for
+                                                                                1891
+
+the following word the can then be substituted into the open           predicted trees π). Each of these predicted trees π has a time-
+predictive substitution node with category DT. Again, more             stamp t that encodes when it was first predicted, or last acti-
+prediction trees will then be generated and integrated with the        vated (i.e., accessed). Based on the timestamp, a tree’s nodes’
+prefix, but they are not needed at encountering the next word,         decay d at verification time is calculated, under the assump-
+senator. Here, the first verification operation takes place. The       tion that recently-accessed structures are easier to integrate.
+tree for senator can validate all nodes with index S2, and also           In our model, processing difficulty D is thus incurred dur-
+introduces the lexicalized node senator. Another verification          ing the construction of the syntactic analyses, as calculated
+takes place at the word attacked, and this time, all nodes with        from the probabilities of the elementary trees (this directly
+index S1 can be validated, and the V node and the attacked             corresponds to Haleian surprisal calculated over PLTAG
+node, as well as the right NP substitution node, are also added        structures instead of over CFG structures, see the first line of
+to the structure.                                                      Equation (4) below). In addition to this, D has a second com-
+                                                                       ponent, the cost of verifying earlier predictions, which subject
+Probability Model                                                      to a decay d (see the second line of Equation (4)). The overall
+The probabilities of the analyses are calculated incrementally         processing difficulty D at word wi is therefore:
+during the parsing process. When a new tree ε is integrated
+into the partial derivation β, we retrieve the probability (a
+                                                                       (4)    Dwi    = − log      ∑      P(β1...wi ) + log    ∑      P(β1...wi−1 )
+                                                                                                 β1...wi                   β1...wi−1
+maximum likelihood estimate from the Penn Treebank) of ε
+                                                                                           − log ∑ P(π)(1−d
+                                                                                                                tπ )
+conditional on the integration point ηβ (a substitution node
+for the substitution operation or an adjunction node for the                                      π
+adjunction operation, or the prediction tree πβ it is verify-          Note that the prefix probabilities ∑β1...w P(β1...wi ), which are
+ing in the case of the verification operation). To reduce data                                                         i
+                                                                       needed to calculate surprisal, fall out of the parsing process
+sparseness, we estimate the probability of ε as its unlexical-
+                                                                       naturally, because of strict incrementality.
+ized tree structure τε multiplied with the probability of the
+anchor λε given the unlexicalized tree structure. The integra-            The verification cost component of D bears similarities to
+tion point ηβ is characterized by its category cβ , its prediction     DLT integration costs, but we do not calculate distance in
+status φβ (prediction tree or not) and, in the adjunction oper-        terms of number of discourse referents intervening between a
+ation, its position pβ among competing adjunction sites. The           dependent and its head. Rather verification cost is determined
+                                                                       by the number of words intervening between a prediction and
+anchor λβ of a tree depends on its prediction status. It is either
+                                                                       its verification, subject to decay. This captures the intuition
+the lexeme w and the part-of-speech tag t for full elementary
+                                                                       that a prediction becomes less and less useful the longer ago
+trees, or its leaf category for prediction trees. We smooth the
+                                                                       it was made, as it decays from memory with increasing dis-
+probabilities to alleviate data sparseness problems using the
+                                                                       tance.
+smoothing algorithm proposed by Brants (2000).
+(1)      Substitution:                                                                 Experiments and Results
+         ∑ε Ps (ε|ηβ ) = 1                                             We tested our model on the SRC/ORC asymmetry and on
+         where P(ε|ηβ ) = Ps (τε |cβ , φβ )P(λε |τε , λβ )             the 48 either . . . or sentences from Staub & Clifton’s (2006)
+(2)      Adjunction:                                                   experiment. The modeling results reported here are based on
+                                                                       a decay factor of d = 0.8, and the number of timesteps was
+         ∑ε Pa (ε|ηβ ) + Pa (NONE|ηβ ) = 1
+                                                                       set to the number of intervening words. The probabilities for
+         where P(ε|ηβ ) = Pa (τε |cβ , pβ , φβ )P(λε |τε , λβ )        the PLTAG grammar were derived from the Penn Treebank
+         and P(NONE|ηβ ) = Pa (NONE|cβ , pβ , φβ )                     using maximum likelihood estimation.
+(3)      Verification:                                                    Figure 4 shows the model predictions for the SRC and
+                                                                       ORC sentences in (1). Model predictions and reading times
+         ∑ε Pv (ε|πβ ) = 1
+                                                                       are very similar for both sentences in the main clause re-
+         where P(ε|πβ ) = Pv (τε |πβ )P(wε |τε )                       gions, so we focus on the relative clause regions. As detailed
+                                                                       in the Background section, experimental evidence indicates
+             Modeling Processing Difficulty                            that processing time is higher at the ORC verb compared to
+The PLTAG formalism proposed in the previous sections is               the SRC verb. The graph in Figure 4a shows that we correctly
+designed to implement a specific set of assumptions about              predict this fact for the full version of the model, i.e., the
+human language processing (strong incrementality with full             version that includes both the surprisal component and the
+connectedness, prediction, ranked parallel processing). The            verification component in Equation (4). In a baseline model
+formalism forms the basis for the processing theory, which             that only includes surprisal, but no verification, we incorrectly
+uses the parser states to derive estimates of processing diffi-        predict that the ORC verb is read faster than the SRC verb.
+culty. We now need a linking theory that specifies the mathe-          This is consistent with Levy’s (2008) observation that a prob-
+matical relationship between parser states and processing dif-         abilistic context-free grammar derived from the Penn Tree-
+ficulty in our model.                                                  bank, combined with the surprisal linking hypothesis, is un-
+   During processing, the elementary tree of each new word             able to predict the ORC/SRC asymmetry correctly. In both
+εwi is integrated with any previous structure (βw1 ...wi−1 ), and      version of our model, predicted reading time for the relative
+a set of syntactic expectations is generated (these expecta-           clause NP (see Figure 4b) is slightly higher for the ORC than
+tions can be easily read off the generated tree in the form of         the SRC. The version with surprisal and verification predicts
+                                                                   1892
+
+                                                                       imental results from the literature, and can explain both lo-
+                                                                       cality and prediction effects, which standard models of sen-
+                                                                       tence processing like DLT and surprisal are unable to account
+                                                                       for simultaneously. Our model therefore constitutes an impor-
+                                                                       tant step towards a unified theory of human parsing. In future
+                                                                       work, we will evaluate our model against a broader range of
+                                                                       data, both from experiments and from eye-tracking corpora.
+                                                                                                   References
+                                                                       Brants, T. (2000). TnT: A statistical part-of-speech tagger. In Pro-
+                                                                          ceedings of the 6th Conference on Applied Natural Language
+     (a) verb region: attacked       (b) NP region: the senator           Processing, Seattle.
+                                                                       Demberg, V., & Keller, F. (2008a). Data from eye-tracking corpora
+Figure 4: PLTAG predictions for the verb region and the NP                as evidence for theories of syntactic processing complexity. Cog-
+region for subject and object relative clauses.                           nition, 109, 193–210.
+                                                                       Demberg, V., & Keller, F. (2008b). A psycholinguistically motivated
+                                                                          version of TAG. In Proceedings of the 9th International Workshop
+                                                                          on Tree Adjoining Grammars and Related Formalisms (TAG+9),
+                                                                          Tübingen, Germany.
+                                                                       Gibson, E. (1998). Linguistic complexity: locality of syntactic de-
+                                                                          pendencies. Cognition 68, (pp. 1–76).
+                                                                       Hale, J. (2001). A probabilistic Earley parser as a psycholinguistic
+                                                                          model. In Proceedings of the 2nd Conference of the North Amer-
+                                                                          ican Chapter of the Association for Computational Linguistics,
+                                                                          Pittsburgh, PA.
+                                                                       Joshi, A., Levy, L., & Takahashi, M. (1975). Tree adjunct grammars.
+                                                                          Journal of the Computer and System Sciences, 10.
+                                                                       Kamide, Y., Scheepers, C., & Altmann, G. T. M. (2003). Integration
+                                                                          of syntactic and semantic information in predictive processing:
+Figure 5: Mean fist pass time and mean PLTAG prediction for               Cross-linguistic evidence from german and english. Journal of
+                                                                          Psycholinguistic Research, 32, 37–55.
+the post-or for the sentences used by Staub & Clifton (2006).          King, J., & Just, M. A. (1991). Individual differences in syntactic
+                                                                          processing: The role of working memory. Journal of Memory and
+higher costs across the board, due to the fact that it has to pre-        Language, 30, 580–602.
+dict and later verify a noun when integrating the determiner.          Konieczny, L. (2000). Locality and parsing complexity. Journal of
+                                                                          Psycholinguistic Research, 29, 627–645.
+   Figure 5 graphs the predictions for the full model (surprisal       Levy, R. (2008). Expectation-based syntactic comprehension. Cog-
+and verification components) for the either . . . or sentences of         nition, 106, 1126–1177.
+Staub & Clifton (2006). The graph shows the first pass read-           Lombardo, V., & Sturt, P. (2002). Incrementality and lexicalism.
+ing times found experimentally for the NP following or. Dif-              In Lexical Representations in Sentence Processing, John Ben-
+ferences between the either and the no-either conditions were             jamins: Computational Psycholinguistics Series, (pp. 137– 155).
+                                                                          S. Stevenson and P. Merlo.
+significant according to a paired t-test. Our model was run on         Magerman, D. M. (1994). Natural language parsing as statistical
+the exact same sentences and replicates this pattern very well:           pattern recognition. Ph.D. thesis, Stanford University.
+the presence of either facilitates reading at the post-or NP in        Marslen-Wilson, W. D. (1973). Linguistic structure and speech
+both the NP coordination and the S coordination condition.                shadowing at very short latencies. Nature, (pp. 522–523).
+(The graph shows the model run with the same parameters                Palmer, M., Gildea, D., & Kingsbury, P. (2003). The proposition
+                                                                          bank: An annotated corpus of semantic roles. Computational Lin-
+as in the surprisal and verification condition in the RC exper-           guistics, 31, 71–106.
+iment. A surprisal-only version of our model would predict             Staub, A., & Clifton, C. (2006). Syntactic prediction in language
+the same pattern, but with lower difficulty predictions for the           comprehension: Evidence from either . . . or. Journal of Experi-
+either-conditions.) This results demonstrate that our PLTAG               mental Psychology: Learning, Memory, and Cognition, 32, 425–
+model is also able to capture effects that can be explained by            436.
+                                                                       Sturt, P., & Lombardo, V. (2005). Processing coordinate structures:
+surprisal, but not by DLT.                                                Incrementality and connectedness. Cognitive Science, 29, 291–
+                                                                          305.
+                          Conclusions                                  Tanenhaus, M. K., Spivey-Knowlton, M. J., Eberhard, K. M., & Se-
+                                                                          divy, J. C. (1995). Integration of visual and linguistic information
+We presented a computational model of human parsing based                 in spoken language comprehension. Science, 268, 1632–1634.
+on PLTAG, a psycholinguistically motivated version of tree-            Vadas, D., & Curran, J. (2007). Adding noun phrase structure to the
+adjoining grammar. The design of PLTAG was guided by the                  Penn treebank. In Proceedings of the 45th Annual Meeting of the
+principles of incrementality and connectedness and includes               Association of Computational Linguistics, (pp. 240–247), Prague,
+                                                                          Czech Republic.
+an explicit mechanism for generating and verifying syntactic           van Berkum, J. J. A., Brown, C. M., & Hagoort, P. (1999). Early
+predictions. An algorithm for deriving a lexicon from a tree-             referential context effects in sentence processing: Evidence from
+bank, a fully implemented parser, and a probability model for             event-related brain potentials. Journal of Memory and Language,
+PLTAG were also presented. This was complemented by a                     41, 147–182.
+linking function that explains processing difficult as a combi-        Xia, F., Palmer, M., & Joshi, A. (2000). A uniform method of gram-
+                                                                          mar extraction and its applications. In Proceedings of the Joint
+nation of prefix probability (surprisal) and verification cost.           SIGDAT Conference on Empirical Methods in Natural Language
+   We demonstrated that the resulting model captures exper-               Processing and Very Large Corpora, (pp. 53–62).
+                                                                   1893
+

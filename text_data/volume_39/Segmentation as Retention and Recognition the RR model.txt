@@ -1,0 +1,390 @@
+                     Segmentation as Retention and Recognition: the R&R model
+                                               Raquel G. Alhama (rgalhama@uva.nl)
+                                                 Willem Zuidema (zuidema@uva.nl)
+                                    Institute for Logic, Language and Computation, Science Park 107
+                                                   Amsterdam, 1098XG, The Netherlands
+                               Abstract                                (2010). In that study, the authors evaluate a range of mod-
+                                                                       els based on their goodness of fit to three segmentation ex-
+   We present the Retention and Recognition model (R&R), a             periments that involve a great number of different conditions
+   probabilistic exemplar model that accounts for segmentation
+   in Artificial Language Learning experiments. We show that           –thus providing a rich dataset for comparing the models.
+   R&R provides an excellent fit to human responses in three              In this paper we present one model for to account for seg-
+   segmentation experiments with adults (Frank et al., 2010),          mentation experiments in ALL. Our model, called the Reten-
+   outperforming existing models. Additionally, we analyze the
+   results of the simulations and propose alternative explanations     tion & Recognition model (henceforth R&R), is a novel pro-
+   for the experimental findings.                                      cessing model that explains segmentation based on the reten-
+                                                                       tion and recognition of subsequences of the input. Follow-
+   Keywords: artificial language learning;          segmentation;
+   statistical learning; cognitive modelling                           ing Frank et al., we test our model against the experimental
+                                                                       data from their study, and compare the goodness of fit of our
+                                                                       model with those reported in previous studies.
+                           Introduction
+A crucial step in the acquisition of a spoken language is to                                         The R&R Model
+discover what the building blocks of a speech stream are.              The model we propose, which we call the Retention-
+Children perform such segmentation by exploiting a variety             Recognition Model (R&R), takes a sequence of syllables X =
+of statistical and prosodic cues in the input. Understanding           hxo , x1 , x2 , . . . , xm i as input, and considers all subsequences of
+the unique ability of humans to acquire speech requires an             length l = 1, 2, . . . , lmax as potential segments to be memo-
+understanding of the nature of this learning mechanism.                rized.
+   Artificial Language Learning (ALL henceforth) has, over                The model maintains a memory M, which is a set of
+the last 20 years, become a key paradigm to study the nature           segment types and their associated counts. The memory is
+of learning biases in speech segmentation and rule general-            initially empty (M0 = 0)           / and it changes with update steps
+ization. In experiments in this paradigm, participants are ex-         that either add an entry (with count 1) or increase the count
+posed to artificial stimuli designed to incorporate particular         of an existing entry:
+aspects of speech and language, and they are subsequently
+tested on whether and under which conditions they discover             ADD: Mt+1 ← Mt ∪ { x j , . . . , xk , 1 }
+the regularities in such artificial language.
+   A key result in this tradition is the demonstration that 8          INCREMENT:
+month old infants are sensitive to transition probabilities be-        Mt+1 ← Mt − { x j , . . . , xk , c } ∪ { x j , . . . , xk , c + 1 }
+tween syllables, and can segment a speech stream based on
+these probabilities alone (Saffran, Aslin, and Newport (1996),         For any candidate segment s ∈ S (with segments pro-
+Aslin, Saffran, and Newport (1998)). This ability to track             cessed in the order they are encountered in the stream), the
+statistics over concrete fragments of the input, known in the          model checks whether it is stored in memory and, if so,
+literature as statistical learning, has also been demonstrated         what the count of that segment in memory is (its ‘subjective
+in adults (Saffran, Newport, & Aslin, 1996).                           frequency’). The model may (with a probability p1 that
+   However, these experiments do not reveal whether the un-            increases with that count) recognize it (i.e., match it with a
+derlying cognitive mechanism does operate over transitional            segment in memory). If it succeeds, the count is incremented
+probabilities or, instead, it performs computations of an en-          with 1. If it fails to recognize the segment, the model might
+tirely different nature but which can be described as transi-          (with a probability p2 that decreases with the length of the
+tional probabilities. In order to reveal the precise underpin-         segment) still retain it (i.e., add it to memory with initial
+nings of such cognitive mechanism, a useful methodology is             count of 1 if it was not stored, or in the event that a previously
+computational modeling.                                                stored segment was not recognized and is retained –very
+   There exist several segmentation models in the literature,          rare in practise– increase the count by 1 as a form of ’late
+offering alternative accounts of the nature of this process.           recognition’). In this way, the model builds a memory of
+Thus, these models need to be compared and analyzed against            segments that have different degrees of familiarity depending
+empirical data to validate their predictions. Possibly the             on their distribution in the stream. R&R’s flowchart is given
+most comprehensive study for the evaluation of computa-                in Figure 2.
+tional models in segmentation is presented in Frank et al.                The key components of the model are the equations for
+                                                                   1531
+
+computing the recognition probability (p1 ) and retention
+                                                                            Input: Stream X, and empty memory M0 ← 0.        /
+probability (p2 ). Recognition should become more proba-                    Output: Memory Mn+1 .
+ble the more often a segment has been recognized, but de-                   /∗ Compute candidate segments: ∗/
+crease with the number of segment types in memory (|M|).                    S ← hs0 , s1 , . . . , sn i
+Hence, we define p1 as follows, with B and D free parame-                   /∗ Process each segment: ∗/
+ters (0 6 B, D 6 1) that can be fitted to the data:                         for i = 0 to n:
+                                                                                /∗ Compute the recognition probability: ∗/
+                                                                                p1 = p1 (si , Mi )
+               p1 (s, M) = (1 − BCOUNT(s,M) ) · D|M|                (1)         /∗ Compute the retention probability: ∗/
+   If a segment is not recognized, the model considers retain-                  p2 = p2 (si , Mi )
+                                                                                /∗ Draw two random numbers ∗/
+ing it with a probability that decreases with the length of the                 r1 ∼ U (0, 1)
+segment (l(s)), and which can be boosted if there are addi-                     r2 ∼ U (0, 1)
+tional cues favoring this segment (e.g., a pause preceding it).                 /∗ Recognize, retain or ignore: ∗/
+Hence, we define p2 as follows, with A and µ free parameters                    IF (r1 < p1 )
+(0 6 A 6 1; 0 6 µ) that can be fitted to the data:                                 Mi+1 ← increment(si , Mi )
+                                                                                ELSE IF (r2 < p2 )
+                                                                                  Mi+1 ← add(si , Mi )
+                                            µwp after a pause                   ELSE
+  p2 (s) = Alength(s)·µ     , where µ =                             (2)            Mi+1 ← Mi
+                                            µnp otherwise
+   The A parameter thus describes how quickly the retention
+probability decreases with the length of a segment. The prob-                      Figure 1: Pseudocode describing the R&R model.
+ability is also affected by the presence of additional cues; in
+this paper, we consider only the pauses between sentences as
+additional cues. 1                                                          relative probability for a new word type in the ith position
+   Putting everything together, the model can be described in               is inversely correlated with the total number of word tokens,
+pseudocode as in Figure 1. As can be seen, R&R is a simple                  and (iii) a new word type is more probable if it is shorter.
+model, but it gives a surprisingly accurate match with empiri-              Assumption (ii) does not allow for direct comparison, since
+cal data, as we will explore in the next sections, without even             R&R is not a generative model, and therefore it does not pro-
+taking processes such as forgetting, priming, interference and              vide a probability for new types —rather, the incorporation
+generalization into account.                                                of new types to the memory of the model depends on the re-
+                                                                            tention probability, and it is based on a preference for shorter
+                                                                            sequences (an intuition encoded also in assumption (iii) of the
+                         Related Models                                     Bayesian model). As for assumption (i), the same principle
+There exist several models of segmentation in the literature.               is incorporated in the recognition process in R&R; however,
+We do not have the space to address them all here, but we                   in our model, the counts of the number of occurrences of a
+discuss how our model relates to those to which it has more                 word is based on the subjective frequencies resulting from
+similarities.                                                               memorization, while in the BLM, these counts are based on
+   The recognition component of our model yields rich-get-                  absolute frequencies of the current hypothesis. This reflects
+richer dynamics (and thus consistently produces very skewed                 a fundamental difference between the two approaches, which
+count distributions over segments in memory) similar to that                concerns their level of analysis (Marr, 1982). The Bayesian
+of non-parametric Bayesian models, such as the Bayesian                     model is framed at Marr’s computational level, and thus, it
+Lexical Model (BLM henceforth) in Goldwater, Griffiths, and                 operates over the whole stimuli, since it does not incorporate
+Johnson (2009) (adapted for ALL in Frank et al. (2010)). The                perceptual or memory constraints (although some of the ex-
+BLM implements such dynamics with a Dirichlet process.                      tensions in Frank et al. (2010) experiment with limitations on
+The main assumptions of this process are: (i) the probabil-                 memory capacity, leading to a somewhat hybrid model; we
+ity of a word in the ith position is proportional to the num-               return to this point later). In other words, the BLM is not pro-
+ber of occurrences of this word in previous positions; (ii) the             posed as a mechanistic explanation of the cognitive processes
+                                                                            involved in the experiment; on the contrary, R&R is a pro-
+    1 An earlier version of R&R (Alhama, Scha, and Zuidema (2016),
+                                                                            cessing model, which postulates that cognitive processes of
+Alhama and Zuidema (2016)) features a different probability for re-
+tention, with a binary switch over an attenuation parameter. This           retention and recognition, and psychological representations
+design was inspired by experimental studies in which the stimuli            of exemplar segments are responsible for segmentation.
+eventually contained 25ms pauses, a duration that is supposed to be            An existing model that is also pitched at Marr’s process-
+perceived by humans only subliminally. The stimuli we plan to use
+for our simulations, based on Frank et al. (2010), differ significantly     ing level is PARSER (Perruchet & Vinter, 1998). PARSER
+in the use of pauses, which have a duration of 500ms (and therefore         is a symbolic model, built around basic principles of associa-
+should be clearly perceived). The retention probability we present          tive learning and chunking, that shares many similarities with
+here is more general, since the effect of pause length could be ac-
+counted for with different values of µ.                                     R&R. Both PARSER and R&R are exemplar-based models
+                                                                            that build a lexicon of segments (exemplars), and use this
+                                                                        1532
+
+                 STREAM:
+                  pulikiberagatafodupurakibefogatalidu ...
+                 SEGMENTS (for max. length 4):
+                   pu
+                                     segment s
+                   puli                                      RECOGNITION
+                   puliki                                        p1(s)
+                   pulikibe
+                                                                      RECOGNIZED               Increment subjective
+                   li
+                                                NOT RECOGNIZED                                    frequency of s
+                   liki
+                   likibe
+                   likibera                                                         NE
+                                                                                       D
+                   ki
+                   kibe
+                                                              RETENTION         RE
+                                                                                  TA
+                                                                                     I
+                   kibera                                        p2(s)
+                   kiberaga                                                         NOT RETAINED
+                   ...                                                                                Ignore s
+                                             Figure 2: R&R:The Retention-Recognition Model
+lexicon of already-memorized segments to decide on further            tion of subsequences. TRACX is an autoencoder model that
+segments to memorize. Each segment in the lexicon is stored           learns a representation for the input data. The error of the out-
+together with a score that determines the impact of this seg-         put layer is computed by comparing it with the input, and it
+ment in the next steps of the segmentation process. Thus, the         serves as an indication of the degree of recognition of the in-
+models are similar in their procedure, but there are notable          put. The model processes the input stream sequentially, main-
+differences between them. One of them is the probabilistic            taining a context window. After successful recognition of a
+nature of their components. For PARSER, the stochasticity is          segment, the internal representation learned by the network
+limited to the random selection of the size of the next segment       is used as the context for the next segment to be presented.
+to read from the stream. In contrast, R&R considers all pos-          In this way, contiguous segments that are successfully recog-
+sible subsequences of the stream (up to a maximum length),            nized are gradually represented as a single chunk, and there-
+as inspired by research in Data-Oriented Parsing tradition            fore can be recognized as a unit. This approach shares with
+(Scha (1990), Zuidema (2006)). Additionally, the model is             R&R the intuition that words are consolidated in memory af-
+inherently probabilistic in its basic processes of retention and      ter repeated recognition; however, like PARSER, TRACX is
+recognition.                                                          a chunking model, that is, it is oriented to the integration of
+   There exist other differences in the procedure of these ap-        syllables in order to build larger fragments. In contrast, in
+proaches. To begin with, the process of retention in R&R              R&R, words emerge in a process that actually penalizes larger
+penalizes longest segments, on the basis that they would re-          fragments, as a consequence of consolidated memorization of
+quire more working memory. However, PARSER is a chunk-                statistically salient segments.
+ing model, so it implements the opposite principle: whenever             To sum up, R&R constitutes a new approach to modelling
+several segment candidates are possible, it selects those that        segmentation that offers a processing level explanation of the
+are built of the longest units, creating in this way a bias for       identification of words in a speech stream, which emerges as
+larger units. As for the process of recognition, it is implicitly     a result of the interplay between probabilistic memory pro-
+implemented in PARSER when it maps the next segment to                cesses. We now proceed to validate this model against empir-
+be read against the units in memory. This process involves a          ical data.
+binary threshold: only units with weight above the threshold
+can be recognized as components of the segment (but those                     Fitting R&R to Experimental Data
+below the threshold are retained). In contrast, the interac-
+                                                                      Experimental Results
+tion between recognition and retention in R&R is based on a
+graded probabilistic choice. Finally, an important difference         Frank et al. investigate how distributional aspects of an arti-
+between the models is that R&R does not implement any form            ficial language have an effect on the performance of human
+of forgetting. Although we do not claim that humans are en-           adults in segmentation. Each of their three experiments in-
+dowed with perfect memory, our results suggest that forget-           volves a range of conditions that vary in one particular dimen-
+ting does not seem to play a key role in the timecourse of the        sion: (i) sentence length, (ii) amount of exposure (number of
+experiments.                                                          tokens) and (iii) vocabulary size (number of word types).
+   On the other extreme, at Marr’s implementational level, we            The stimuli consists of an auditory sequence of sentences,
+find TRACX (French et al., 2011; French & Cottrell, 2014),            each of which is created from a sample of artificial (unexist-
+a connectionist proposal that is also based on the recogni-           ing) words. The sentences are separated with a silence gap
+                                                                   1533
+
+of 500 ms, while there is no acoustic nor prosodic cue indi-                                                             Experiment 1
+                                                                                    100
+cating the separation between words within a sentence. After
+the participants have been exposed to a sample of sentences                             90
+thus constructed, they participate in a 2-Alternative-Forced-
+                                                                          Performance
+Choice test (2AFC). The two alternatives in the test consist on                         80
+one word from the artificial language (a correctly segmented
+sequence), and one “part-word” (a sequence resulting from                               70
+incorrect segmentation).
+                                                                                        60
+   To analyze the results, the mean number of correct choices                                                                       r=0.98
+is computed across participants in each condition. The curves                           50
+                                                                                                 0             5         10             15         20                   25
+formed by these datapoints (ordered by condition value) is                                                                    R&R: A=0.008 B=0.923 D=0.866
+                                                                                                         humans               munp=1.000 muwp=0.234
+taken as indication of how segmentation performance is af-
+fected by the varied dimension. These curves (which are                                 (a) Varying sentence length (experiment 1).
+shown in the continuous line in Figure 3) show that: (i) hu-
+man adults have more difficulty in segmenting words when
+                                                                                    100
+                                                                                                                         Experiment 2
+sentences are longer, presumably because they do not benefit
+from the extra cue provided by the silence gaps; (ii) when the
+                                                                                        90
+amount of word tokens is varied, more occurrences of words
+                                                                          Performance
+facilitate the identification of such words, and (iii) the size                         80
+of the vocabulary seems to cause lower performance in the
+experiment, with an almost-linear inverse relation.                                     70
+Goodness of fit                                                                         60
+                                                                                                                                   r=0.94
+The study by Frank et al. evaluates a number of segmen-                                 50
+                                                                                             0           200       400            600        800            1000             1200
+tation models in terms of their goodness of fit to the curve                                             humans               R&R: A=0.008 B=0.923 D=0.866
+                                                                                                                              munp=1.000 muwp=0.234
+that describes the average performance of the human subjects.
+The evaluated models include the ones previously described                      (b) Varying the number of tokens (experiment 2).
+(BLM, PARSER, and later, also TRACX, reported in French
+et al. (2011)), and four additional approaches, all of them con-                                                         Experiment 3
+                                                                                    100
+sisting on normative models: Transitional Probabilities (TP),
+a Bayesian version of TP (by Frank et al.), Mutual Informa-                             90
+tion (MI), and a version of MI model that identifies words
+                                                                          Performance
+when they exceed a threshold both on MI and raw frequency                               80
+counts (MI Clustering, Swingley (2005)).
+                                                                                        70
+   In order to compare the models, Frank and colleagues con-
+vert the output of each model to a metric that can be inter-
+                                                                                        60
+preted as behavioural predictions for the 2AFC task. To do                                                               r=0.98
+so, they employ the Luce Rule (Luce, 1963). Given a pair of                             50
+                                                                                             2       3         4    5         6         7     8         9          10         11
+sequences s1 and s2 in test, the Luce Rule defines the proba-                                                                 R&R: A=0.008 B=0.923 D=0.866
+                                                                                                         humans               munp=1.000 muwp=0.234
+bility of choosing s1 as can be seen in Equation 3:
+                                                                                   (c) Varying the vocabulary size (experiment 3).
+                              Sub jFreq(s1 )
+           P(s1 ) =                                         (3)
+                      Sub jFreq(s1 ) + Sub jFreq(s2 )                 Figure 3: Curve of performance for all conditions in the ex-
+   Once the scores have been transformed to probabilities, the        periments in Frank et al. (2010).
+performance of the models is computed as the mean proba-
+bility of choosing the correct item, averaged over participants
+and test trials. These datapoints are arranged in a curve in the      best correlation with human performance2 3 . The best results
+same way as with human participants, and the correlation in           are shown in Table 1. As it can be seen, our model outper-
+the shape of these curves —measured with Pearson’s r— is                 2 The only parameter that we keep fixed in our search is µ =
+                                                                                                                                        np
+taken as an indication of good fit.                                   1.0, since the interpretation of the relative importance of pauses is
+   Likewise, we run simulations of the three experiments with         clearer if only one of the µ parameter is varied.
+                                                                         3 We optimize our parameters on the same data we evaluate the
+R&R, transforming its output (the subjective frequencies)
+                                                                      model on, as seems to have been the case for the models we compare
+into test trials with the Luce Rule. We run a search over             with. This brings the risk of overfitting, so in the discussion section
+the parameter space, in order to find which parameters yield          we briefly discuss better ways of evaluating models.
+                                                                   1534
+
+Table 1: Comparison of model results to human performance. The reported metric is Pearson’s r. ∗ Experiment 2 was not
+reported in French et al. (2011). Therefore, the mean can be taken to be 0.63 (for a Pearson’s r of 0.0 in experiment 2) or 0.945
+(averaging only over experiments 1 and 3).
+                                                           Exp. 1:                 Exp. 2:              Exp. 3:
+                                                     Sentence Length         Amount of tokens         Word types      Mean
+               1   Transitional Probabilities               0.84                     0.43                 -0.99         0.09
+               2   Mutual Information                       0.83                    -0.32                 -0.99        -0.16
+               3   MI Clustering                            0.11                    -0.81                  0.29        -0.13
+               4   PARSER                                   0.00                     0.86                  0.00         0.28
+               5   TRACX                                    0.92                      —                    0.97         —∗
+               6   BLM                                      0.94                     0.89                 -0.98         0.28
+               7   Bayesian TPs 4% data                     0.82                     0.92                  0.96         0.90
+               8   BLM 4% data                              0.88                     0.85                  0.90         0.87
+               9   BLM Uniform forgetting (types)           0.95                     0.92                  0.73         0.86
+              10   BLM Prop. forgetting (types)             0.88                     0.87                  0.88         0.87
+              11   BLM Uniform forgetting (tokens)          0.86                     0.82                  0.97         0.88
+              12   R&R                                      0.98                     0.94                  0.98         0.97
+forms all the other models in the three experiments, with a          PARSER offers a more intuitive account of forgetting, with
+parameter setting that is common to the three experiments            modest correlation with human data; however, this model
+(A = 0.008, B = 0.923, D = 0.866, µnp = 1.0, µwp = 0.234).           has zero correlation in the other experiments. So this pat-
+The curves of the performance of both human adults and               tern of results suggests that a rich-get-richer form of recogni-
+R&R can be see in Figure 3.                                          tion combined with a process of retention as defined in R&R
+   When it comes to experiment 1, one possible explanation           seems a more compelling explanation than a process of recog-
+for this result is that R&R is the only model that explic-           nition with forgetting.
+itly models the effect of the silence gaps. By increasing the           Also on experiment 3, the R&R model exhibits the best
+length of sentences while keeping the number of types and            correlation with human data, followed closely by TRACX.
+tokens constant, the stimuli necessarily consists of fewer sen-      Again, normative models show the opposite trend from hu-
+tences when those are made longer; therefore, the number of          mans (rows 1, 2, 3, 6 on table 1), since they do not have any
+silence gaps also decreases. For this reason, the performance        memory limitations, and thus the effect of increasing vocab-
+of R&R declines with longer sentences, since it cannot obtain        ulary size only has an effect in the distributional properties
+the same benefit from exploiting silence gaps. This explana-         of the stream, which result in less statistically coherent part-
+tion for the superior performance can be supported by looking        words. This is the case also for PARSER and the BLM. Frank
+at the values of the µwp parameter: the best fit of the model        et al. attribute this failure to the lack of forgetting in the mod-
+requires a low value for this parameter (µwp = 0.234)), so in        els, but the same issues we have discussed above apply to
+the presence of a pause it substantially boosts the otherwise        this experiment. Therefore, the more convincing approaches
+very small (Aµnp = 0.008) retention probability.                     are TRACX and R&R. But although TRACX naturally re-
+                                                                     produces the human results without forgetting, it is difficult
+   In the second experiment, normative models based on point         to interpret what is the component of the model that is re-
+estimates (those based on TP and MI) do not offer a good fit         sponsible for its success in this experiment. Conversely, R&R
+with the data, since those metrics do not benefit from the ac-       explicitly incorporates a parameter that penalizes recognition
+cumulation of evidence offered by the increased number of            based on the number of memorized types. In line with our
+tokens (contrary to humans). Frank et al. suggest that humans        intuitions, the corresponding parameter value for the best fit
+may be forgetting much of what they hear, which would ex-            amounts to D = 0.86, which results in a relatively large pe-
+plain the increased performance with the number of tokens.           nalization for recognition4 . Therefore, in conditions of high
+However, the extended versions of the BLM that incorporate           number of types, humans have an increased difficulty in rec-
+some form of evidence limitation (with input data restricted         ognizing sequences, most likely originating from the process
+to a random 4% sample) or forgetting exhibit mixed results           of matching the input segment to one of the many segments
+(rows 8, 9, 10, 11 on table 1). Moreover, these extensions ap-       stored in memory.
+pear unrealistic from a cognitive perspective (e.g. one of the
+extensions forgets a random token when the memory capacity               4 Even though the values that parameter D can take range from
+is full), and additionally, the resulting models are somewhat        0.0 to 1.0, the number of types stored by R&R grow very rapidly
+                                                                     in our model due to the memorization segments of any length. For
+difficult to interpret, since after incorporating memory limita-     this reason, small values are impracticable, since the probability of
+tions, they are not computational level approaches anymore.          recognizing a segment quickly drops close to zero.
+                                                                 1535
+
+                         Discussion                                   Alhama, R. G., Scha, R., & Zuidema, W. (2016). Memo-
+With our model, R&R, we provide a theory of the process of              rization of sequence-segments by humans and non-human
+segmentation based on the interaction of two cognitive mech-            animals: the Retention-Recognition model. ILLC Prepub-
+anisms of memorization. We believe that one of the best fea-            lications, PP-2016-08.
+tures of our model is its transparency: pitched at the process-       Alhama, R. G., & Zuidema, W. (2016). Generalization in
+ing level, and with a very simple formalization that involves           Artificial Language Learning: Modelling the propensity to
+clearly identified components, R&R allows for straightfor-              generalize. In Proceedings of the 7th workshop on Cog-
+ward interpretation of the results. Even though, for reasons            nitive Aspects of Computational Language Learning (pp.
+of space, we have not been able to report a thorough analy-             64–72). Berlin: Association for Computational Linguis-
+sis of the behaviour of the model under different parameter             tics.
+settings, we have shown a glimpse on how these parameters             Aslin, R. N., Saffran, J. R., & Newport, E. L. (1998). Compu-
+allow for the identification of the relative importance of each         tation of conditional probability statistics by 8-month-old
+component.                                                              infants. Psychological Science, 9(4), 321–324.
+   This study shows that our model can fit 2AFC data on hu-           Frank, M. C., Goldwater, S., Griffiths, T. L., & Tenenbaum,
+man adults with a correlation that is at least on par with that         J. B. (2010). Modeling human performance in statistical
+of other models. Even though we consider that the evalua-               word segmentation. Cognition, 117(2), 107–125.
+tion data and procedure initiated by Frank et al. is one of the       French, R. M., Addyman, C., & Mareschal, D. (2011).
+most thorough in the ALL modelling literature, in Alhama et             TRACX: A recognition-based connectionist framework for
+al. (2015) we argue that averaging the responses over stimuli           sequence segmentation and chunk extraction. Psychologi-
+classes is likely to mask important differences between other-          cal Review, 118(4), 614.
+wise seemingly equivalent models. The work reported in this           French, R. M., & Cottrell, G. W. (2014). TRACX 2.0: A
+paper is a necessary first step to confirm that R&R is com-             memory-based, biologically-plausible model of sequence
+parable to other models, but for future work it is important            segmentation and chunk extraction. In Proceedings of the
+to move to evaluating models based on response distributions            36th annual conference of the cognitive science society.
+over individual test items (albeit our first attempts to evaluate     Goldwater, S., Griffiths, T. L., & Johnson, M. (2009). A
+our model with this procedure are inconclusive), and replace            bayesian framework for word segmentation: Exploring the
+the Luce choice rule and correlation metric with a more cog-            effects of context. Cognition, 112, 21-54.
+nitively realistic response model.                                    Luce, R. D. (1963). Detection and recognition. In Handbook
+                                                                        of mathematical psychology. New York: Wiley.
+   Finally, segmentation is a fundamental ability for language
+                                                                      Marr, D. (1982). Vision. A computational investigation into
+learners, but any segmentation model must at some point be
+                                                                        the human representation and processing of visual infor-
+related to other cognitive mechanisms that operate in natu-
+                                                                        mation. New York: W. H. Freeman.
+ral and artificial language learning. In Alhama and Zuidema
+                                                                      Perruchet, P., & Vinter, A. (1998). PARSER: A model for
+(2016) we show that the subjective frequencies computed by
+                                                                        word segmentation. Journal of Memory and Language,
+R&R have the necessary distributional properties to explain
+                                                                        39(2), 246–263.
+some of the main results in rule learning in ALL. Future work
+                                                                      Saffran, J. R., Aslin, R. N., & Newport, E. L. (1996). Statis-
+may explore how the model relates to other linguistic pro-
+                                                                        tical learning by 8-month-old infants. Science, 274(5294),
+cesses (e.g. word learning), so that we can eventually achieve
+                                                                        1926–1928.
+a complete understanding of how segmentation relates to the
+                                                                      Saffran, J. R., Newport, E. L., & Aslin, R. N. (1996). Word
+complete picture of language learning.
+                                                                        segmentation: the role of distributional cues. Journal of
+                     Acknowledgments                                    Memory and Language, 35(4), 606–621.
+                                                                      Scha, R. (1990). Taaltheorie en taaltechnologie; com-
+This work was developed with Remko Scha, who sadly                      petence en performance. In R. de Kort & G. Leerdam
+passed away before the finalization of this paper. We are               (Eds.), Computertoepassingen in de neerlandistiek (pp. 7–
+grateful to Andreea Geambasu, Clara Levelt, Michelle Spier-             22). Almere, the Netherlands: LVVN. (English translation
+ings, Carel ten Cate and Padraic Monaghan for their feed-               at http://iaaa.nl/rs/LeerdamE.html.)
+back. This research was funded by a grant from the Nether-            Swingley, D. (2005). Statistical clustering and the contents of
+lands Organisation for Scientific Research (NWO), Division              infant vocabulary. Cognitive Psychology, 50(1), 86–132.
+of Humanities, to Levelt, ten Cate and Zuidema (360-70-               Zuidema, W. (2006). What are the productive units of natu-
+450).                                                                   ral language grammar?: a DOP approach to the automatic
+                                                                        identification of constructions. In Proceedings of the Tenth
+                         References                                     Conference on Computational Natural Language Learning
+Alhama, R. G., Scha, R., & Zuidema, W. (2015). How should               (pp. 29–36).
+   we evaluate models of segmentation in artificial language
+   learning? In Proceedings of 13th International Conference
+   on Cognitive Modeling.
+                                                                  1536
+

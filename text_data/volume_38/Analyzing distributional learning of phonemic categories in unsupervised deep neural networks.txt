@@ -1,0 +1,433 @@
+    Analyzing Distributional Learning of Phonemic Categories in Unsupervised Deep
+                                                          Neural Networks
+               Okko Räsänen                                   Tasha Nagamine                              Nima Mesgarani
+          (okko.rasanen@aalto.fi)                    (tasha.nagamine@columbia.edu)                     (nima@ee.columbia.edu)
+    Department of Signal Processing and                    Department of Electrical                     Department of Electrical
+         Acoustics, Aalto University,                Engineering, Columbia University,            Engineering, Columbia University,
+                PO Box 13000,                            500 W. 120th St., New York,                 500 W. 120th St., New York,
+             Aalto 00076, Finland                               NY 10027 USA                                NY 10027 USA
+                              Abstract                                   & Mazuka, 2010). These studies have typically limited their
+   Infants’ speech perception adapts to the phonemic categories
+                                                                         analysis to pre-segmented or otherwise carefully selected
+   of their native language, a process assumed to be driven by           subsets of speech tokens and/or phone categories. In
+   the distributional properties of speech. This study investigates      addition, they have enforced an explicit clustering procedure
+   whether deep neural networks (DNNs), the current state-of-            of potentially infinitely many different acoustic tokens into
+   the-art in distributional feature learning, are capable of            a finite number of discrete and disjoint phone classes. The
+   learning phoneme-like representations of speech in an                 general finding has been that these acoustic clusters tend to
+   unsupervised manner. We trained DNNs with unlabeled and               be selective towards specific phones but are far from a
+   labeled speech and analyzed the activations of each layer with
+   respect to the phones in the input segments. The analyses             representational system that would be invariant to non-
+   reveal that the emergence of phonemic invariance in DNNs is           phonological acoustic variability across talkers, speaking
+   dependent on the availability of phonemic labeling of the             styles, and other factors. Due to the challenges in bottom-up
+   input during the training. No increased phonemic selectivity          clustering speech directly into phonemic categories, a
+   of the hidden layers was observed in the purely unsupervised          number of computational models (e.g., Feldman et al. 2013;
+   networks despite successful learning of low-dimensional               Elsner et al., 2012) and theoretical frameworks (e.g., Werker
+   representations for speech. This suggests that additional
+                                                                         & Curtin, 2005; Räsänen & Rasilo, 2015) propose that
+   learning constraints or more sophisticated models are needed
+   to account for the emergence of phone-like categories in              phonemic learning is inherently tied to concurrently
+   distributional learning operating on natural speech.                  emerging lexical knowledge and should not be considered
+                                                                         as an isolated process strictly preceding word learning.
+   Keywords: statistical learning; distributional learning;
+                                                                            Despite the emerging view that phonemic learning cannot
+   language acquisition; phonemic categories; speech
+   perception; categorical perception; connectionism                     be addressed in isolation from lexical learning, it is still
+                                                                         important to understand how different aspects of language
+                          Introduction                                   experience affect the development of speech perception
+                                                                         capabilities. One of these aspects is the question of how
+Acquisition of the native language phonemic system is an                 much of early adaptation to one’s native language can still
+important step in early language acquisition, enabling a                 be driven by purely auditory statistics. In the present study,
+transition from generic auditory perception towards                      we investigated whether deep neural networks (DNNs), a set
+symbolic and generative representation of words and                      of powerful machine learning techniques for feature
+subword units. Although it is known that infants adapt to the            learning, are capable of extracting phoneme-like
+distributional characteristics of their native language sound            representations from continuous speech similarly to their
+system during their first year of life (Werker & Tees, 1984),            capability of learning mammalian-like visual receptive
+it is less obvious whether early perceptual representations of           fields from image data. More specifically, we asked whether
+speech actually consist of sequential invariant atomic units             the     representations     resulting    from     unsupervised
+such as phones or phonemes before lexical learning, or                   distributional learning of speech reflect phonemic contrasts
+whether adult-like phonemic system emerges only through                  of the language when the network is forced to discover low-
+extensive experience and learning at multiple levels of                  dimensional re-presentations of the initially high-
+language representations (c.f., Werker & Curtin, 2005; see               dimensional acoustic space, i.e., whether phonemic
+also Räsänen & Rasilo, 2015, for a recent overview).                     variation dominates other distributional properties of natural
+   Since distributional learning can be framed as                        continuous speech.
+unsupervised machine learning from speech data, a number
+of computational studies have investigated how phone                     Deep neural networks and phonemic learning
+categories could be clustered from acoustic speech input
+only and how selective these automatically discovered                    Deep neural networks, which are artificial neural networks
+sound categories are (e.g., de Boer & Kuhl, 2003; Vallabha,              with two or more hidden layers, are the current state-of-the-
+McLelland, Pons, Werker, & Amano, 2007; Kouki, Kikuchi                   art in the discovery of non-linear structure (or features) from
+                                                                    1757
+
+stochastic data (Hinton, 2014). They have also been shown         work (Nagamine et al., 2015). The input signal was
+to provide good approximations for the emergence of               converted to 10-ms feature frames xt using a sliding 25-ms
+increasingly abstract visual features in mammalian visual         window and computing 24-band log-Mel-spectrum from
+pathway (e.g., Cichy et al., 2016). In the context of speech,     each window. The features were Z-score normalized across
+DNNs have become the state-of-the-art acoustic models in          each utterance to ensure proper scaling for neural network
+standard automatic speech recognition (ASR) systems due           input. The final inputs to the networks were formed by
+to their scalability and representational power in comparison     concatenating 11 subsequent Mel-spectrum frames xt to a
+to the previously used shallow models such as Gaussian-           single input vector ft = [xt-5, xt-4, …, xt+5]T. Unlike Nagamine
+mixture models. In addition, purely unsupervised deep             et al. (2015), we decided to leave out the first and second
+autoencoder networks (see Methods) have been shown to be          derivatives of the Mel-spectra since the resulting time-
+effective for learning low-dimensional representations from       frequency patches already contain local temporal dynamics
+high-dimensional acoustic input in the absence of any             of the input (as confirmed by the replication of the earlier
+supporting linguistic information (e.g., Deng et al., 2010).      findings; see the Experiments section).
+   In the previous work, Nagamine, Seltzer, and Mesgarani            Three standard DNN architectures were investigated in
+(2015) showed that hidden layers of a feedforward neural          the present work: 1) a supervised deep multilayer perceptron
+network become increasingly selective to phone categories         (MLP) for classification of speech to phone labels
+and phonetic features when trained on continuous speech.          (replication of the previous work by Nagamine et al., 2015),
+The selectivity observed in the DNN was also found to be          2) a stack of unsupervised restricted Boltzmann-machines
+similar to the phonemic selectivity observed in the human         (RBMs) that learn a generative model over the input data,
+superior temporal gyrus (Mesgarani et al., 2014). However,        the entire stack referred to as a deep belief network (DBN),
+Nagamine et al. trained their network in a supervised             and 3) an unsupervised deep feed-forward autoencoder
+manner using phonetic labels of the input acoustic vectors as     network (AEN) that learns to map input speech into a low-
+targets for the DNN output layer. This means that the entire      dimensional bottleneck-layer and then expand (decode) that
+network was optimized to perform discrimination of the            representation back to a reconstruction of the original input.
+acoustic input in terms of the given phonetic categories–the         The use of DBNs and AENs to study distributional
+standard approach taken in ASR.                                   phonetic learning was motivated by the finding that DBNs
+   In contrast to supervised learning, concurrent phonetic        are capable of learning increasingly abstract visual features
+labeling of speech input is not available to infants learning     from image data (Hinton & Salakhutdinov, 2006) and
+their native language. The previous study therefore leaves        achieve superior dimensionality reduction performance in
+open whether similar increasingly abstract phonemic               comparison to linear models such as PCA in many tasks.
+structure can also emerge from purely auditory learning           The assumption in the present study is that the phonemic
+when the neural network attempts to find a low-dimensional        identity of the speech segments might require fewer bits to
+but high-fidelity code for the incoming acoustic input. If so,    encode than the details of the acoustic input itself, and
+this would provide evidence for how much of the native            therefore a generative network with a decreasing number of
+phonemic invariance properties can be acquired simply by          nodes in the higher and narrower layers should become
+listening to speech in the absence of any further constraints     more “phonemic” in its representation when dimensionality
+and give insight to the type of “receptive fields” that           reduction is imposed on the data. This is, of course, only if
+become responsible for phonemic perception. On the other          the variance in the acoustic input is best explained across
+hand, a failure to learn increasingly invariant phonemic          dimensions correlated with phonemic identities instead of
+representations from acoustic input would suggest that local      some other low-dimensional description of the input, and
+short-term dependencies of speech, as captured by the             that the learning algorithms used to estimate DNN
+feedforward networks, would be insufficient for the               parameters are capable of finding this manifold.
+emergence of phonemic categories and that additional                 In our experiments, the MLP was trained in the standard
+constraints from concurrently emerging knowledge at               way using acoustic feature vectors ft as input to the network
+different levels (e.g., Feldman et al., 2013; Räsänen &           with H hidden layers, computing the activation of the output
+Rasilo, 2015) or different network topologies are needed in       layer hout,t given the input, and then calculating the error of
+the learning process (see, e.g., Synnaeve et al., 2014).          the activation with respect to a target vector gt denoting the
+   In order to investigate whether DNNs as hierarchical           phonemic identity of the input vector. The weights of the
+generative models of speech are capable of acquiring some         network were then tuned using backpropagation (BP)
+type of invariance properties with respect to phonetic or         algorithm in order to minimize the error of the output layer
+phonemic representations of the input speech, we conducted        (Rumelhart, Hinton & Williams, 1986).
+a number of learning simulations using the existing standard         DBNs were obtained by first training a three-layered stack
+unsupervised DNN architectures.                                   of RBMs incrementally layer-by-layer, always fully training
+                                                                  the parameters of an RBM with one hidden layer at a time
+                           Methods                                (Fig. 1), then freezing those parameters and using the
+Speech input to the DNNs was represented using                    probabilities of the hidden unit activations given the training
+logarithmic Mel-spectral features similarly to the earlier        data as the “visible layer” input to the next hidden layer. As
+                                                              1758
+
+                    speech reconstruction
+                           264
+                                           speech reconstruction
+                                                 264
+                                                                    phone targets
+                                                                         40
+                                                                                             that represent arbitrary distributions of phones, and, in
+                              W1T                    W1T ! W6               W6               general, provides opportunities to incorporate structured
+                                                                        256          L5#
+                           256
+                              W2T
+                                                 256
+                                                     W2T ! W5               W5 ! W’5
+                                                                                             target representations using fixed-dimensional outputs (see
+                           128                    128                   256          L4#     Gallant & Okaywe, 2013). DBNs always utilized a Gaussian
+                              W3T                    W3T ! W4               W4 ! W’4
+     RBM
+           32               32                     32                   256          L3#
+                                                                                             input layer to accommodate the z-score-normalized input.
+   RBM       W3               W3                      W3 ! W’3              W3 ! W’3            For the baseline MLPs, we used the same network
+          128              128                    128                                L2#
+  RBM        W2               W2                     W2 ! W’2
+                                                                        256
+                                                                            W2 ! W’2
+                                                                                             configuration as in Nagamine et al. (2015) by using five
+          256              256                    256                   256          L1#     hidden layers, each consisting of 256 nodes (Fig. 1, right).
+             W1               W1                     W1 ! W’1              W1! W’2
+          264              264                   264                    264
+                                                                                             As for the DBNs and AENs, we initially experimented with
+       speech input     speech input          speech input           speech input            a number of different network layouts and layer sizes using
+  layer-wise RBM
+ pre-training only
+                      RBM-stack
+                     after unrolling
+                                          DBN + fine-tuning
+                                               with BP
+                                                                 RBM pre-training
+                                                                 + supervised BP
+                                                                                             a subset of the training data, including bottleneck-
+                         ! DBN                 ! AEN                 ! MLP                   architectures with gradually decreasing number of nodes in
+Figure 1: A schematic description of how pre-trained RBMs                                    deeper layers, bottlenecks with different numbers of nodes,
+are “unrolled” to five-layer feedforward DBN and AEN                                         and even expanding networks with an increasingly many
+networks used in the present study. Weights after layer-by-                                  nodes at higher layers (see Table 1 for a summary). Since
+layer RBM pre-training are shown with black W and                                            there were no major qualitative differences in the findings,
+weights after error backpropagation (BP) are shown with                                      one basic bottleneck layout of d = [256, 128, 32, 128, 256]
+blue W. The baseline supervised MLP topology is shown on                                     nodes per layer for the DBN and AEN was chosen for more
+the right (adapted from Hinton & Salakhutdinov, 2006).                                       detailed analysis.
+                                                                                                The dimension of the input layer for all networks and of
+a result, the stack becomes a hierarchical generative model                                  the output layer for the AENs and DBNs was always 264
+P(f | h) over the training data with higher hidden layer                                     (11 frames x 24 frequency bands). In order to ensure that the
+activations h representing increasingly complex features of                                  training of the networks was successful, we always
+the input data (see Hinton & Salakhutdinov, 2006).                                           manually verified that the reconstruction or classification
+    In order to obtain five-layered DBNs (as defined in the                                  error decreased monotonically as a function of the epoch
+present study), the stack of RBMs was “unrolled” (Fig. 1) to                                 number during BP, and that the generative networks were
+a feed-forward network by mirroring the structure of the                                     capable of performing sensible reconstructions from the
+network on top of the low-dimensional bottleneck-layer with                                  input Mel-spectrograms.
+the output layer corresponding to a reconstruction of the
+input speech (see Hinton & Salakhutdinov, 2006). In this                                                                  Data
+case, the three first layers correspond to the standard feed-                                Two qualitatively different corpora were used in the
+forward activations of the original stacked RBM while the                                    experiments in order to get a comprehensive picture of the
+last two layers are identical to the top-down reconstructions                                learning process. The TIMIT corpus of American English
+of the same model.                                                                           read speech (Garofolo et al., 1993) was used as the primary
+    Finally, AENs were obtained by fine-tuning the DBN                                       dataset since the earlier work was evaluated on the same
+weights using BP in order to minimize the Mel-spectrogram                                    data and since TIMIT represents natural variation of speech
+reconstruction error at the output of the network, therefore                                 across multiple talkers and dialects. The full training set of
+breaking the weight symmetry of the DBN.                                                     4620 sentences was used to train the DNNs and the test set
+    All networks used sigmoid activation functions except for                                of 1620 sentences was used in the phonemic invariance
+the output layer, which was always linear. In the case of                                    analyses. Both sections contain speech from male and
+MLP, instead of using the typical softmax output layer with                                  female talkers and the data is hand-labeled for phone
+multinomial labels, we experimented with distributed target                                  segments.
+representation by first assigning each of the unique phones c                                   In addition, we used enacted child-directed speech from
+with a random vector sampled uniformly from vc ~[0,1] ∈                                      the Caregiver (CG) Y2 UK corpus (Altosaar et al., 2010) to
+Rd (d = 40). Then the distribution of phones within the input                                investigate whether results differ for limited-variability
+time window (W = 11 frames) was encoded to a target                                          speech from a small vocabulary of approx. 80 words, each
+vector gt as a weighted mean of the random vectors                                           word repeated multiple times in the training set, and when
+corresponding to the phone labels of the frames within the                                   all speech comes from a single talker (“a caregiver”). For
+window:                                                                                      this purpose, 1600 utterances from Talker-01 of the corpus
+                                1 t+(W −1)/2                                                 were used to train the DNNs and a remaining set of 797
+                        gt = ∑                     v t+i                       (1)
+                                K i=t−(W −1)/2                                               utterances were used to probe the phonemic selectivity of
+Since this type of random mapping preserves the                                              different layers. The CG UK Y2 corpus comes with a phone
+approximate mutual distances between representations                                         annotation created by forced-alignment from text to speech
+(Johnson & Lindenstrauss theorem) while the sum of high                                      using an automatic speech recognizer. Due to the simplicity
+dimensional random vectors preserves information                                             of the material, this reference can also be considered as
+regarding the individual components (e.g., Kanerva, 2009),                                   highly reliable at the level of individual phones.
+the approach enables creation of fully dense target vectors
+                                                                                         1759
+
+   The data were randomly divided into a set of minibatches         shows the corresponding results for the single-talker IDS
+for training, each minibatch consisting of 100 samples for          speech from the CG corpus. Table 1 shows a summary of
+each RBM parameter update and 1000 samples for each BP              KNN-based phonetic discriminability of layer activations
+update. In all simulations, BP was always run for 25 epochs         for alternative network topologies tested on TIMIT.
+similarly to Nagamine et al. (2015) whereas DBN-                       The first finding is that the supervised MLP replicates the
+pretraining consisted of 15 epochs per layer.                       earlier results of Nagamine et al. (2015) with increasing
+                                                                    network layers showing higher selectivity towards phone
+     Methods for network selectivity analysis                       classes (max. improvement of 11%) and less sensitivity to
+Activations of the networks were analyzed in the context of         talker identity (gender), as measured by F-ratio or KNN
+the underlying phone annotation. Original 61 phone classes          classification performance. In contrast, no such invariance
+of TIMIT annotation were first mapped to the reduced set of         properties are observed for the unsupervised networks.
+39 phones and with silences and closures excluded (Lee &            Although F-ratio of the bottleneck-versions of the AEN and
+Hon, 1989). The set of 38 unique phones in the original CG          DBN increases during the reconstruction of the input, the
+annotation was used in its original form. In order to study         activations are not more informative regarding the
+phone-specific activations of the networks, only the test data      corresponding phone identity as revealed by decreasing
+input frames consisting of at least 90.9% of a single phone         KNN performance. With a fixed or expanding number of
+segment were included in the analysis, corresponding to             nodes in the hidden layers (Table 1), very minor
+19706 samples on TIMIT test set and 4749 samples on the             improvements in phone selectivity (max. 2.7%) are
+CG Talker-01 data.                                                  observed in comparison to input features but without any
+   Similarly to Nagamine et al. (2015), the activation of each      abstraction from gender-specific patterns.
+layer in the context of different phone classes was analyzed           In addition, the MI between individual node activations
+using the F-ratio. First, the activation vectors consisting of      and phone labels is not positively correlated with the
+all nodes within a layer of interest were grouped according         discriminability of the overall pattern of activation across all
+to the phone labels associated with the inputs. The cross-          nodes–not even in the supervised case (Figs. 2 and 3). A
+phone variance of the node activations was then compared            closer analysis of the distributions of node-specific MI-
+to the intra-phone variance, revealing whether the node             values in case of the MLP revealed that the MIs become
+activations for different realizations of the same phone are        more tightly concentrated towards small values with an
+more similar than activations for two any arbitrary phone           increasing layer number. Simultaneously, the number of
+segments. By measuring the average F-ratio across layers,           highly informative individual nodes decreases. This
+we can probe whether the activations for different                  suggests that the representations at higher layers are
+allophones of the same phone class are more consistent in           inherently distributed and the same nodes contribute to
+some layers than others. In addition to the F-ratio, we             encoding of multiple different phone classes. When
+measured the mean mutual information (MI) between node              analyzed individually, each node will naturally show
+activations and corresponding phone labels to see how many          increased selectivity towards an internally coherent subset
+bits of information does each individual node, on average,          of all possible speech inputs, but this should not be confused
+contain regarding the phone classes of the input vectors.           with overall capability of the individual nodes to represent
+   Finally, k-Nearest Neighbor (KNN) classification of the          abstracted categorical knowledge.
+layer-specific activations into phone categories was                   In order to ensure that the results were not affected by
+performed in order to evaluate how well the full pattern of         overfitting of the model to the data, we also conducted the
+activation in a layer discriminates between phone classes.          same set of analyses for the activations on the training data.
+More specifically, every activation hi,t of layer i for input ft    No qualitative differences were observed in the results in
+was used as a single feature vector for classification (e.g.,       this case. In addition, we re-ran the experiments using a
+dim(hi) = 256 in all hidden layers i of the MLP). Four-fold         shorter input window length (5 frames ≈ 50 ms) to ensure
+cross-validation performance with 75% of the vectors as             that the phonemic structure was not lost due to the inclusion
+training data and 25% of vectors as testing data was then           of the neighboring temporal context in the acoustic
+computed. The parameter k was always varied between [1,             representations during the training stage. Again, the results
+10] and the best result across this range was chosen as the         were qualitatively similar to those reported with a longer
+classification accuracy for each fold before averaging the          input window.
+results across all folds. In addition to analyzing phone               Finally, since the KNN performance was always higher
+selectivity, we also included analyses of selectivity towards       for a BP-fine-tuned autoencoder in comparison to the pre-
+manner of articulation (MOA) and talker gender using the            training only, we also ran further 100 iterations of the BP-
+TIMIT data and the same set of measures.                            algorithm to see whether the KNN performance of the AEN
+                                                                    layers would increase above the original input Mel-spectrum
+                           Results                                  selectivity with the help of extra training. However, the
+Fig. 2 shows the overall analysis results from the three            KNN-based selectivity measure flattened out around the
+different networks (supervised MLP, unsupervised DBN                level observed in Figs. 2 and 3 and then started to decrease
+and AEN) for the TIMIT data with multiple talkers. Fig. 3           with more training epochs, likely due to overfitting.
+                                                                1760
+
+                                                     MLP KNN                                          DBN KNN                              Autoencoder KNN
+                                       80                                       80                                               80
+        TIMIT (multi-talker)
+                                %
+                                       60                                       60                                               60
+                                                                                                                                                                             input
+                                             phone     MOA         gender             phone            MOA      gender                  phone     MOA         gender         layer 1
+                                                     MLP F-ratio                                  DBN F-ratio                             Autoencoder F-ratio                layer 2
+                               value
+                                                                                                                                                                             layer 3
+                                       102                                     102                                               102                                         layer 4
+                                       100                                     100                                               100                                         layer 5
+                                             phone     MOA         gender             phone            MOA      gender                  phone     MOA         gender         output
+                                                       MLP MI                                          DBN MI                               Autoencoder MI
+                                         1                                        1                                                1
+                               bits    0.5                                      0.5                                              0.5
+                                         0                                        0                                                0
+                                             phone     MOA         gender             phone            MOA      gender                  phone     MOA         gender
+Figure 2: Network invariance with respect to phones, manner of articulation (MOA), and speaker gender for multi-talker
+training. The supervised MLP network is shown on left, followed by the unsupervised pre-trained DBN (center), and the fine-
+tuned autoencoder (right). Top: KNN classification performance using layer activations as features. Middle: F-ratio of node
+activations w.r.t. sample classes of interest. Bottom: mutual information (MI) between classes and node activations. DBN and
+AEN shown for d = [256, 128, 64, 128, 256].
+Table 1: KNN performance (% correct) for phone and
+                                                                                                                                                                                       input
+                                                                                                                                                KNN performance                        layer 1
+                                                                                                                            90                                                         layer 2
+gender classification in TIMIT data for different hidden
+                                                                                                                                                                                       layer 3
+                                                                                                                            80                                                         layer 4
+                                                                                                                     %      70                                                         layer 5
+layers (L) in other tested unsupervised network topologies.
+                                                                                                                                                                                       output
+                                                                                                                            60
+                                                                                                                                  MLP                DBN               AEN
+         topology                                      L1       L2     L3     L4      L5                                   300
+                                                                                                                                                    F-ratio
+ DBN [256 256 256 256 256]                            62.0      59.0   56.7   55.2    54.6
+                                                                                               	                  value
+                                                                                                                           200
+                                                                                                                           100
+ AEN [256 256 256 256 256]                            64.0      59.9   64.2   65.0    64.6
+                                                                                              phones
+                                                                                                                                  MLP                DBN               AEN
+ DBN [256 512 1024 512 256]                           61.4      60.2   58.2   57.0    56.0                                                            MI
+                                                                                                                             1
+ AEN [256 512 1024 512 256]                           62.4      61.5   64.9   65.7    65.5
+                                                                                                                    bits   0.5
+   DBN [128 64 8 64 128]                              59.4      56.8   38.5   38.5    38.2
+                                                                                                                             0
+   AEN [128 64 8 64 128]                              60.6      57.4   55.6   55.5    55.5                                        MLP                DBN               AEN
+ AEN [256 256 256 256 256]                            84.7      82.2   84.7   84.9    84.9
+                                                                                              gender
+ AEN [256 512 1024 512 256]                           84.6      83.7   85.5   86.5    86.0                   Figure 3: DNN phone invariance measures for the CG
+   AEN [128 64 8 64 128]                              79.0      75.5   71.4   71.2    70.7                   single-talker data for different network types and layers.
+                                                                                                             DBN and AEN shown for d = [256, 128, 64, 128, 256].
+   Overall, it seems that the DBN is simply smoothing the                                                    do not force division of the data samples into a finite
+input data (lower KNN-performance and more uniform                                                           number of categories similarly to standard clustering
+activations in terms of F-ratio at deeper layers) whereas                                                    algorithms, but learn distributed representations of the
+fine-tuning of the AEN leads to low-dimensional but                                                          statistical structure of the data. In addition, our input data to
+detailed representations that encode both suprasegmental                                                     the learning process was not carefully chosen to represent
+and segmental acoustic details. Unlike the supervised MLP,                                                   stable parts of vowel sounds but contained continuously
+neither the DBN nor AEN exhibit increased phonemic                                                           extracted slices of the speech input – a situation that the
+invariance in comparison to the original input features.                                                     auditory system has to also face unless further temporal
+                                                                                                             constraints such as syllabic (Räsänen, Frank & Doyle, 2015)
+                                Discussion and conclusions                                                   or phonetic (e.g., Räsänen, 2014) boundary cues are
+                                                                                                             included in the process. This leaves open whether the
+The present experiments investigated the emergence of
+                                                                                                             phonemic structure in DNNs would become more explicit
+phonemic representations in unsupervised deep neural
+                                                                                                             under more constrained but ecologically plausible learning
+networks using adult-directed speech from multiple talkers
+                                                                                                             settings. Another possibility is that the use of recurrent
+similarly to the supervised counterpart performed earlier
+                                                                                                             neural network architectures could learn better context-
+(Nagamine et al., 2015) and on single-talker data of child-
+                                                                                                             dependent models for speech patterns as they do not assume
+directed speech. The central finding is that the studied deep
+                                                                                                             independence of the neighboring speech frames similarly to
+feedforward networks did not show similar increased
+                                                                                                             the currently studied networks. Although such units would
+selectivity towards phonemic structure that was observed in
+                                                                                                             conflict with the idea of a phone or phoneme as a context-
+the networks trained in a supervised manner (Nagamine et
+                                                                                                             independent cluster of spectral properties, a simplification
+al., 2015) or in the auditory neurons of the superior temporal
+                                                                                                             often assumed in early language acquisition research, it is
+gyrus as analyzed by Mesgarani et al. (2014).
+                                                                                                             well known that human speech perception also operates on
+   The results are also qualitatively different from the earlier
+                                                                                                             longer time-spans than individual segments.
+clustering studies that have reported above-chance grouping
+                                                                                                                Results from the supervised paradigm clearly indicate that
+of acoustic spectra or formants frequencies to disjoint
+                                                                                                             the selectivity of the internal representations become more
+phone-like categories (e.g., de Boer & Kuhl, 2003; Vallabha
+                                                                                                             phonemic when the target output is also phonemic in nature.
+et al., 2007; Kouki et al., 2010). However, a major
+                                                                                                             In the context of modeling early language acquisition, the
+difference to the earlier clustering studies is that the DNNs
+                                                                                                             targets cannot be discrete phone labels as such. However,
+                                                                                                       1761
+
+the precise labels could be substituted to other available and        Gallant, S., & Okaywe, W. (2013). Representing objects,
+correlating information such as larger structural units the             relations, and sequences. Neural Computation, 25, 2038–
+input frames belong to (e.g., Elsner et al., 2012; Feldman et           2078.
+al., 2013; Synnaeve et al., 2014) or even the cross-                  Garofolo, J., Lamel, L., Fisher, W., Fiscus, J., Pallet, D.,
+situational referential context in which the speech is                  Dahlgren, N., & Zue, V. (1993). TIMIT acoustic-phonetic
+observed (Räsänen & Rasilo, 2015). This could lead to                   continuous speech corpus. Philadelphia: LDC.
+similar, albeit slower, learning of representations showing           Hinton, G. E. (2014). Where do features come from? Cognitive
+phonemic invariance.                                                    Science, 38, 1078–1101.
+                                                                      Hinton, G. E., & Salakhutdinov, R. R. (2006). Reducing the
+   Interestingly, despite the absence of increased phonemic
+                                                                        dimensionality of data with neural networks. Science, 313,
+invariance in the unsupervised networks, the findings should
+                                                                        504–507.
+still be compatible with the basic idea of distributional             Kanerva, P. (2009). Hyperdimensional Computing: An
+adaptation to the native language phonetic system (e.g.,                introduction to computing in distributed representation with
+Kuhl et al., 2008) since the studied networks learn a                   high-dimensional random vectors. Cogn. Comp., 1, 139–159.
+generative statistical model over the training input. The             Kouki, M., Kikuchi, H., & Mazuka, R. (2010). Unsupervised
+input speech reconstructions from the network will depend               Learning of Vowels from Continuous Speech Based on Self-
+on the familiarity with the input and are biased towards the            Organized Phoneme Acquisition Model. Proc. Interspeech–
+statistical patterns of the training data. As long as the               2010, Makuhari, Japan, pp. 2914–2917.
+perceptual representations for speech input are assumed to            Kuhl, P. K., Conboy, B. T., Padden, D., Rivera-Gaxiola, M., &
+correspond to the activations of the hidden layers or the               Nelson, T. (2008). Phonetic learning as a pathway to
+reconstruction itself, the system is less sensitive to phonetic         language: new data and native language magnet theory
+details of “non-native” speech patterns the more it is trained          expanded (NLM-e). Philosophical Transactions B of the
+with one language only. This provides an analogy between                Royal Society, 363, 979–1000.
+human distributional learning and overfitting of statistical          Lee, K.-F., & Hon, H.-W. (1989). Speaker-independent phone
+models to a certain set of training data. However,                      recognition using hidden-Markov models. IEEE Trans.
+computational verification and implications of this idea are            Acoustics, Speech and Signal Processing, 37, 1641–1648.
+out of the scope of the present study and should be                   Mesgarani, N., Cheung, C., Johnson, K., & Chang, E. F.
+addressed in the future work.                                           (2014). Phonetic feature encoding in human superior
+                                                                        temporal gyrus. Science, 343, 1006–1010.
+                                                                      Nagamine, T., Seltzer, M. L., & Mesgarani, N. (2015).
+                     Acknowledgments                                    Exploring how deep neural networks form phonemic
+This study was funded by the Academy of Finland project                 categories. Proc. Interspeech-2015, Dresden, Germany, pp.
+no. 274479 and a grant from National Institute of Health,               1912–1916.
+NIDCD, DC014279 and the Pew Charitable Trusts, Pew                    Rumelhart, D. E., Hinton, G. E., & Williams, R. J. (1986).
+Biomedical Scholars Program. Tasha Nagamine was funded                  Learning representations by back-propagating errors. Nature,
+by the From Data to Solutions NSF IGERT grant.                          323, 533–536.
+                                                                      Räsänen, O. (2014). Basic cuts revisited: Temporal
+                          References                                    segmentation of speech into phone-like units with statistical
+                                                                        learning at a pre-linguistic level. Proc. CogSci-2014,
+Altosaar et al. (2010). A Speech Corpus for Modeling                    Quebec, Canada, pp. 2817–2822.
+   Language Acquisition: CAREGIVER. Proc. LREC-2010,                  Räsänen, O., & Rasilo, H. (2015). A joint model of word
+   Malta, pp. 1062– 1068.                                               segmentation and meaning acquisition through cross-
+Cichy, R. M., Khosla, A., Pantazis, D., Torralba, A., Oliva, A.         situational learning. Psychological Review, 122, 792–829.
+   (2016). Deep Neural Networks predict Hierarchical Spatio-          Räsänen, O., Doyle, G., & Frank, M. C. (2015). Unsupervised
+   temporal Cortical Dynamics of Human Visual Object                    word discovery from speech using automatic segmentation
+   Recognition. arXiv:1601.02970.                                       into syllable-like units. Proc. Interspeech-2015, Dresden,
+de Boer, B., & Kuhl, P., (2003). Investigating the role of infant-      Germany, pp. 3204–3208.
+   directed speech with a computer model. Acoustics Research          Synnaeve, G., Schatz, T., & Dupoux, E. (2014). Phonetics
+   Letters Online, 4, 129–134.                                          embedding learning with side information. Proc. IEEE SLT
+Deng, L., Seltzer, M., Yu, D., Acero, A., Mohamed, A., &                Workshop, South Lake Tahoe, NV, pp. 106–111.
+   Hinton, G. (2010). Binary coding of speech spectrograms            Vallabha, G. K., McLelland, J. L., Pons, F., Werker, J. F., &
+   using a deep auto-encoder. Proc. Interspeech-2010,                   Amano, S. (2007). Unsupervised learning of vowel
+   Makuhari, Japan, 26–30 Sept., pp. 1692–1695.                         categories from infant-directed speech. Proceedings of
+Elsner, M., Goldwater, S., & Eisenstein, J. (2012).                     National Academy of Sciences, 104, 13273–13278.
+   Bootstrapping a unified model of lexical and phonetic              Werker, J. F., & Tees, R. C. (1984). Cross-language speech
+   acquisition. Proc. ACL-2012, Jeju, Republic of Korea, pp.            perception: Evidence from perceptual reorganization during
+   184–193.                                                             the first year of life. Infant Behavior and Devel., 7, 49–63.
+Feldman, N. H., Griffiths, T. L., Goldwater, S., & Morgan, J.         Werker, J. F., & Curtin, S. (2005). PRIMIR: A developmental
+   L. (2013). A role for developing lexicon in phonetic category        framework of infant speech processing. Language Learning
+   acquisition. Psychological Review, 120, 751–778.                     and Development, 1, 197–234.
+                                                                  1762
+

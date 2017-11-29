@@ -1,0 +1,404 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Deconstructing Episodic Memory and Learning in Sigma
+Permalink
+https://escholarship.org/uc/item/1tt4x02k
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 36(36)
+Author
+Rosenbloom, Paul
+Publication Date
+2014-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+                        Deconstructing Episodic Memory and Learning in Sigma
+                                          Paul S. Rosenbloom (Rosenbloom@USC.Edu)
+            Institute for Creative Technologies & Department of Computer Science, University of Southern California
+                                                          12015 Waterfront Dr.
+                                                       Playa Vista, CA 90094 USA
+                              Abstract                                 very general mechanisms, and thus to yield a deeper theory
+   In an experiment in functional elegance, episodic memory
+                                                                       with broader explanatory reach (Deutsch, 2012).
+   and learning have been deconstructed in the Sigma cognitive            More recently, functional elegance has been guiding the
+   architecture in terms of pre-existing memory and learning           addition of learning to Sigma, with the most significant
+   mechanisms plus a template-based structure generator. As a          piece being a gradient-descent mechanism for learning the
+   side effect, base-level activation also becomes deconstructed       parameters in factor nodes (Rosenbloom et al., 2013).
+   in terms of a learned temporal prior.                               Given appropriate conditionals, this has proven sufficient
+   Keywords: Cognitive architecture;          episodic  memory;        for both supervised and unsupervised classifier learning, the
+   learning; base-level activation.                                    acquisition of maps (in SLAM), and reinforcement learning
+                                                                       (along with the acquisition of action models).
+   Episodic memory is a core competency in human                          The work reported here combines the earlier ideas for
+cognition (Tulving, 1983), but not yet a pervasive capability          functionally elegant representation with the newer ideas for
+in cognitive architectures. It is relevant in both modeling            functionally elegant learning, plus one additional idea –
+human cognition and in creating artificial intelligence. Its           automatic template-driven structure creation – to yield
+core functionality includes the ability to store the history of        automated episodic learning and retrieval.             Episodic
+what has been experienced (autobiographical/temporal) and              learning was actually one of the earliest forms implemented
+to retrieve and reuse information from relevant past                   in Sigma, but via an isolated special purpose module. The
+episodes given appropriate cues. It may also support replay            current work shows how such learning can instead be
+of fragments of history given a starting location in it.               deconstructed in terms of a combination of more general
+   One of the earliest implementations of episodic memory              components that already exist in Sigma plus a template-
+was in the Basic Agent (Vere & Bickford, 1990). More                   driven structure generator for episodic memory. The
+recently, episodic memories have been added to Soar                    contributions of this work concern these architectural results
+(Nuxoll & Laird, 2012) and Icarus (Stracuzzi et al., 2009).            rather than specific matches to human data.
+ACT-R’s declarative memory is also relevant (Anderson et                  This work also demonstrates how base-level activation, as
+al., 2004); however, as with most forms of instance-based              pioneered in ACT-R (Anderson et al., 2004) and later
+learning, it does not explicitly represent time or adjacency           reimplemented in Soar, can be deconstructed in terms of a
+(but see Altmann & Gray, 1998). Episodic memory also                   learned temporal prior that forms the backbone of episodic
+relates to case-based reasoning (Kolodner, 1993), but it is            memory (biasing retrieval towards more recently learned
+task independent and not solution oriented.                            episodes, as well as ones that have been more recently and
+   Sigma (Rosenbloom, 2013) – a new cognitive architecture             frequently accessed). Rather than a planned part of the
+built around the state-of-the-art generality and efficiency of         architecture, it was a true discovery that gradient-descent
+graphical models (Koller & Friedman, 2009) – also                      learning mimics base-level activation in episodic memory.
+embodies an episodic memory, inspired primarily by Soar,               Several additional, albeit smaller, such discoveries are also
+but also making contact with ACT-R. The initial focus was              covered in the body of this article.
+on episodic storage and retrieval via the same memory                     These two deconstructions – with a particular focus on
+structures – conditionals – that also yield a concept-based            episodic learning – are at the heart of the contribution of this
+semantic memory and a rule-based procedural memory                     paper. They reveal how such capabilities can be supported
+(Rosenbloom, 2010). Conditionals provide a deep blending               in a relatively uniform non-modular manner within a
+of the conditionality found in both rule-based systems and             cognitive architecture.      This in turn yields a deeper
+probabilistic networks, all grounded in message passing –              understanding of these capabilities in an architectural
+via a variant of the summary-product algorithm – in factor             context, and more generally of how to approach the
+graphs (Kschischang, Frey & Loeliger, 2001).                           development of functionally elegant architectures.
+   This early work on memory illustrated, and was driven
+by, a key desideratum in Sigma’s overall development –                                             Sigma
+functional elegance – which focuses on architectures that              Sigma is composed of two layers: the cognitive architecture
+are broadly capable yet simple and theoretically elegant. In           plus a graphical architecture beneath it. The cognitive
+other words, the goal is to generate the wealth of requisite           architecture is based on predicates and conditionals. A
+functionality through the interactions among a small set of            predicate represents a relation – such as the number of legs
+                                                                   1317
+
+– via a name and a set of typed arguments. Each predicate           represented discretely, and incremented once per cycle. Its
+is allocated a distinct segment of the cognitive architecture’s     value is accessible via a temporal predicate with a single
+working memory that encodes the predicate’s status in terms         discrete argument: Time(value: [0:999998]).
+of a function over its arguments.                                      Sigma’s graphical architecture supports factor graphs;
+   The types used in predicate arguments may be discrete –          i.e., undirected graphical models constructed from variable
+symbolic or numeric – or continuous, and may vary in size.          and factor nodes. Factor nodes encode functions, and are
+For example, a concept label can be represented as a                linked to the variable nodes with which they share variables.
+predicate        with      one       symbolic        argument:      A factor graph implicitly represents the function defined by
+Concept(value:{walker table dog human}).                            multiplying together the functions in its factor nodes. Or,
+Or, the state of the board in the Eight Puzzle can be               equivalently, a factor graph decomposes a single complex
+represented as a predicate with one discrete argument (for          multivariate function into a product of simpler factors.
+the tile) and two continuous arguments (for x and y):                  The summary-product algorithm computes messages at
+Board(x,y:[0-3) tile:[0:8]). At base, all types                     nodes and passes them along links. An output along a link
+are continuous in Sigma, but discrete types fragment the            from a variable node is the product of the inputs along its
+number line into unit-length regions, and symbolic types            other links. An output along a link from a factor node is the
+associate symbols with these regions.            Similarly, all     product of the node’s function times the inputs along its
+functions over predicates are at base piecewise linear              other links, with the variables not in the target variable node
+(Figure 1), enabling approximation of arbitrary continuous          then summarized out, either by integrating them out to yield
+functions, but with discrete functions reducing to piecewise        marginals or maximizing them out to yield maximum a
+constant. Symbolic function ranges are restricted to {0, 1},        posteriori (MAP) estimates.
+for {false, true}.                                                     The cognitive architecture’s working memory compiles
+   A conditional represents a                                       into a subregion of the graphical architecture’s factor graph,
+fragment       of      generalized                                  with its contents represented via factor functions.
+conditional knowledge via a set                                     Conditionals compile into more complex graphs, with their
+of predicate patterns plus an                                       functions stored in their own factor nodes. Memory access
+optional function over variables                                    in the cognitive architecture maps onto message passing in
+in the patterns (Figure 2).                                         the induced factor graph, with gradient descent occurring
+Predicate patterns may act as Figure 1: 1D piecewise-               locally at the relevant factor nodes based on the messages
+conditions or actions, as in             linear function.           they receive (Russell et al., 1995; Rosenbloom et al., 2013).
+standard rules; however, they may also act as condacts – a
+composite bidirectional form that supports the conditionality                           Episodic Memory
+found in probabilistic networks when conjoined with                 In cognition, episodic memory is generally considered to be
+functions for the distributions. Conditionals are the basis         one part of a more comprehensive declarative memory that
+for Sigma’s long-term memory, with gradient descent                 stores facts of all sorts. However, there is less of a
+modifying the functions within them. Parameter tying – a            consensus concerning whether declarative memory is a
+technique from HMMs – enables multiple conditionals to              single uniform structure, as in ACT-R, or whether there are
+share, and even learn, the same function (Figure 3).                distinct modules for past history (episodic memory) versus
+       CONDITIONAL Legs-Time*Learn                                  world knowledge (semantic memory), as in Soar. Sigma
+          Conditions: Time(value:t)                                 occupies a middle ground, with all declarative memories
+                             Legs(value:l)                          structured as classifiers within a common factor graph, and
+          Function(t,l): <…>                                        with the same architectural processes operating on these
+                                                                    classifiers, but with some details of the classifiers varying
+       Figure 2: Conditional for learning Legs given Time.          across types of knowledge (Rosenbloom, 2010).
+                                                                       Sigma’s declarative memories are currently naïve Bayes
+       CONDITIONAL Legs-Time*Select                                 classifiers – combining prior probabilities of concepts
+          Conditions: Legs(value:l)                                 multiplicatively with conditional probabilities of features
+          Condacts: Time*Episodic(value:t)                          given concepts – that support the three central processes of
+          Function(t,l): Legs-Time*Learn                            declarative memory: (1) learning a new fact (moving it into
+                                                                    long-term memory); (2) selecting an old fact (choosing
+    Figure 3: Conditional for rating previous episodes based        which is best to retrieve); and (3) retrieving the selected fact
+           on number of Legs (with parameter tying).                (moving its aspects into working memory). For episodic
+                                                                    memory, this maps onto: (1) learning a new episode, by
+Processing in Sigma proceeds through a sequence of
+                                                                    storing into long-term memory an association between the
+cognitive/decision cycles; each of which involves accessing
+                                                                    current time and the features of the current situation; (2)
+long-term memory and then deciding what changes to make             selecting an old episode, by choosing the “best” previous
+in working memory – including selection of operators to be          episode given the current situation; and (3) retrieving an old
+applied in problem solving – and adjustment (via gradient           episode, by accessing the features associated with it.
+descent) of the values in conditional functions. Time is
+                                                                1318
+
+  As an example, first consider Sigma’s semantic memory,
+which is simpler in detail than its episodic memory.
+Semantic memory represents concepts and their attributes
+via a prior distribution over the concept plus conditional
+distributions over the attributes given the concept (Figure
+4). A simple structure is sufficient for this in long-term
+memory, with one conditional per attribute (as in Figure 5)
+plus one for the
+concept prior.
+Via            the
+summary-
+product
+algorithm,                                                           Figure 7: Learned exponential temporal function (and its
+messages from                                                                      modulation by episodic access).
+the      attribute     Figure 4: Semantic memory classifier.
+                                                                    the past and the present: episodic learning depends on what
+variables – each
+                                                                    is true now; episodic selection depends on matching what is
+of which is based on the evidence for the attribute times the
+                                                                    true now to what was true in the past; and episodic retrieval
+conditional distribution of the attribute given the concept –
+                                                                    depends on what was true in the past.
+are multiplied together, along with a message from the
+                                                                       In working memory this temporal distinction is
+concept’s prior distribution, to yield a posterior distribution
+                                                                    instantiated via a pair of implicitly defined working-memory
+over the concept. Semantic selection is based on this
+                                                                    buffers, each of which comprises its own set of predicates.
+distribution. Semantic retrieval is based on messages back
+                                                                    The current-state buffer contains the core predicates that
+to the attributes from the concept – leveraging the
+                                                                    represent the state of the problem to be solved, such as
+bidirectionality provided by condacts – to yield attribute
+                                                                    board for the Eight Puzzle, plus the architecturally
+predictions. Although retrieval here could in principle be
+                                                                    generated Time predicate. The past-state – or episodic –
+based on just the attribute values associated with the
+                                                                    buffer1 has automatically generated predicates that mirror
+selected concept, it actually leverages the full concept
+posterior to generate more accurate predictions. Semantic           these – e.g., Board*Episodic mirrors Board – plus
+learning is driven by the messages arriving at the factor           Time*Episodic for past times. The current-state buffer
+nodes that store the distributions.           These messages        existed prior to this work, but the episodic buffer is new.
+implicitly define the local gradient at these nodes.                   As with semantic memory, the early work on episodic
+                                                                    memory and learning required only one conditional per
+        CONDITIONAL Legs-Concept                                    attribute, plus one for the prior. However, in a full
+          Condacts: Concept(value:c)                                integration, the temporal distinction dictates mapping these
+                         Legs (value:l)                             three processes onto distinct conditionals that operate on the
+          Function(c,l): <…>
+                                                                    appropriate buffers.2 For each feature, its trio of conditionals
+      Figure 5: Conditional for Legs given Concept.                                                                    shares      one
+                                                                                                                       function – via
+  In contrast with semantic memory, time is at the heart of
+                                                                                                                             parameter
+episodic memory. Episodes occur in the past, and their ages
+                                                                                                                       tying – to link
+influence selection, typically via a function that tails off
+                                                                                                                       what          is
+exponentially into the past. In Sigma, an exponential
+                                                                                                                       learned       to
+function over time is learned, rather than prespecified, via
+                                                                                                                       what          is
+gradient descent over a conditional function (Figure 6). On
+                                                                                                                       selected and
+each cycle, the current time is increased and then the whole
+                                                                         Figure 8: Episodic memory classifier.         retrieved. A
+function is normalized. An exponential results (Figure 7)
+                                                                                                                       pair          of
+because earlier times have been normalized more often.
+                                                                    conditionals for time – based on Time and
+       CONDITIONAL Time*Learn                                       Time*Episodic – also share a single function, with the
+          Conditions: Time(value:t)                                 former (Figure 6) used in learning the exponential temporal
+          Function(t): <…>                                          prior and the latter (Figure 9) used in accessing it during
+           Figure 6: Conditional for temporal learning.             episodic selection and retrieval.
+  Although both semantic and episodic memory are naïve
+Bayes structures, episodic memory is instance-based rather
+                                                                       1
+than summative, with time replacing the concept and feature              A concept related, but not identical, to the episodic buffer
+values at specific times replacing concept attributes (Figure       proposed in (Baddeley, 2000).
+                                                                       2
+8). The detailed structure of episodic memory also turns out             At a level of detail beyond the scope of this paper, selection
+                                                                    exploits a next-state buffer, previously developed for action
+to be more complex due to the need to distinguish between           modeling (Rosenbloom, 2012), rather than the current-state buffer.
+                                                                1319
+
+                                                                   approach also lends itself to potential incorporation of other
+       CONDITIONAL Time*Access
+         Condacts: Time*Episodic(value:t)                          factors into the temporal prior, taking it further and further
+         Function(t): Time*Learn                                   from the simple exponential yielded by time of learning.
+                                                                      Beyond learning a distribution over past times, episodic
+            Figure 9: Conditional for temporal access.             learning also must acquire distributions over episodic
+                                                                   features given time. This occurs via gradient descent at the
+  The Time predicate is automatically initialized when
+                                                                   function factor nodes in the learning conditionals (Figure 2),
+Sigma starts up. If episodic memory is enabled, template-
+                                                                   based on messages from the current-state buffer to them.
+based structure creation kicks in to initialize the
+Time*Episodic predicate and the two temporal
+conditionals. Each core state predicate also then becomes
+                                                                                               Results
+an episodic feature, leading to the template-driven creation       To illustrate the behavior of episodic memory in Sigma, a
+of the corresponding episodic predicate plus the three             simple artificial task has been implemented that uses the
+conditionals that support its role in episodic learning,           same features as earlier work in semantic memory: Concept
+selection, and retrieval.                                          in {walker, table, dog, human}, Color in {silver, brown,
+  Episodic processing aligns with semantic processing, but         white}, Alive in {false, true}, Mobile in {false, true}, Legs
+again with more complexity. Episodic selection occurs via          discrete in [0,4], and Weight continuous in [0,500). The
+selection conditionals (Figure 3) that combine feature             system first experiences, and learns from, the four full
+evidence from the current-state buffer with learned                instances in Table 1. It then experiences the seven partial
+distributions for features given time to yield messages that       instances in Table 2. These latter serve as queries, although
+rate episodic times.       These messages are combined             they are learned as well – there is no real difference between
+multiplicatively in the episodic buffer with each other, and       a learning situation and a retrieval situation in Sigma, since
+with a message that encodes the temporal prior, to yield a         both activities occur every cycle. Table 2 also shows which
+full temporal posterior that is used in two distinct ways.         prior episode is selected for each of these queries.
+  First, the temporal posterior supports selection of the best
+previous time, enabling episodic retrieval of its instance-                    Table 1: Sequence of four full instances.
+based features via retrieval conditionals that consider both
+the episodic time and the learned distributions for past                   Concept      Color     Alive  Mobile     Legs    Wgt.
+features given the time in retrieving episodic feature values        T1     walker      silver    false    true       4      10
+(Figure 10). This contrasts with the summative retrieval in          T2     human       white     true     true       2     150
+semantic memory, where the best attribute predictions are            T3     human       brown     true     true       2     125
+based on the full posterior concept distribution rather than         T4       dog       silver    true     true       4      50
+just the single best concept. This difference is implemented
+by summarizing out the concept in semantic memory via                  Table 2: Sequence of seven partially specified queries.
+integration, while using maximum in episodic memory. The
+choice of summarization operation can be per conditional,                                      Queries                      Best
+enabling local choice of whether to use the sum-product or           T5       Concept=walker                                 T1
+max-product variants of the summary-product algorithm.               T6       Color=silver                                   T4
+     CONDITIONAL Legs-Time*Retrieve                                  T7       Alive=false, Legs=4                            T1
+        Conditions: Time*Episodic(value:t)                           T8       Alive=false, Legs=2                            T3
+        Condacts: Legs*Episodic(value:l)                             T9       Concept=dog, Color=brown                       T4
+        Function(t,l): Legs-Time*Learn                               T10      Concept=walker, Color=silver, Alive=true       T1
+                                                                     T11      Alive=false                                    T8
+   Figure 10: Conditional for retrieving number of Legs.
+  Second, because messages pass in both directions                    Episode selection is based on the full temporal posteriors
+between the learned temporal prior and the episodic buffer –       found in Figure 11. Each curve in the figure shows the
+due to the condact in Figure 9 – the temporal posterior also       posterior over the previous episodes for one query episode.
+yields a message back to the stored temporal function,             Because one cycle is needed to learn an episode, the last
+causing gradient descent to modify the temporal prior              point in each curve is for two episodes prior to it. For each
+during access. As learning proceeds, the temporal prior thus       query, the highest valued episode on its curve is selected.
+not only reflects the primary exponential effects of learning         Figure 7 showed the temporal prior for these eleven
+from the current time, but it also exhibits secondary recency      episodes, both when only updated as episodes are learned
+and frequency effects due to learning from the temporal            and when access also contributes. The most frequently
+posterior during access (Figure 7). These secondary effects        retrieved episode is T1, which also yields the largest
+contribute to mimic base-level activation, even though: (1)        upwards deviation from an exponential. T4 is the next most
+they occur via learning, and (2) the temporal posterior from       frequent, and shows the next largest bump. The overall
+which this learning occurs reflects the full distribution over     result is retrieval behavior that mimics base-level activation.
+the time, rather than just the selected time. This general
+                                                               1320
+
+                                                                   dominates T2 because it is more recent while including the
+                                                                   same cue. T3 also dominates T1, but for a less obvious
+                                                                   reason. Given the details of the gradient descent algorithm,
+                                                                   correct values for large argument domains yield higher
+                                                                   ratings than do correct values for smaller domains; and here
+                                                                   Legs has four possible values and Alive only two. Thus a
+                                                                   complex tradeoff occurs, where episode T1 is preferred
+                                                                   because of the match of Alive and a higher temporal prior –
+                                                                   even though T1 occurred earlier, its prior is higher because
+                                                                   it has been accessed repeatedly – but the preference yielded
+                                                                   for T3 by the match to Legs overwhelms this combination.
+                                                                      Skipping over time 9, where a similar effect occurs, at
+                                                                   time 10 there are partial matches to T1-T6 – including two
+                                                                   “retrieval” episodes – but no complete match to any
+                                                                   episode. Here, the match of two large-domain features to
+     Figure 11: Temporal posterior for the seven queries.          T1, along with its stronger temporal prior, lead to preferring
+                                                                   it versus the more recent episodes.
+   After learning the four instances in Table 1, the six              At time 11, a “retrieval” episode (T8) is selected, as it is
+episodic functions, one per feature, record the histories of       the matching episode with the highest temporal prior.
+their features. For example, Table 3 displays the function         However, the features retrieved here are a composite across
+for Concept. The correct values at each time step are              multiple stored episodes, something that can happen
+learned with much higher ratings than the incorrect values.        whenever the retrieved episode has unspecified features.
+Episodes T2 and T3 are combined into a single column here          The value of 2 for Legs is retrieved from T8, but an
+due to Sigma’s elimination of function-spanning boundaries         automatic fallback also occurs, with T8’s unspecified
+when the corresponding pairs of regions across them have           features retrieved from the best episode(s) having values for
+equivalent functions. This directly yields the episodic            them (T1). This was not a planned feature of episodic
+memory optimization of only recording feature changes.             memory, but a discovery about how this approach works.
+                                                                      An experiment was also performed with this domain on
+ Table 3: Episodic function learned for the Concept feature.       episodic replay given a retrieved starting point. Such replay
+                                                                   is controlled rather than automatic in Sigma, involving the
+                     T1            T2–T3             T4            repeated selection and application of replay operators that
+  walker             .85            .05              .05           increment Time*Episodic to prompt successive
+  table              .05            .05              .05           episodes. This works because the deliberate incrementing
+  dog                .05            .05              .85           of Time*Episodic overwhelms the normal input from
+  human              .05            .85              .05           episodic selection. One oddity though is that, because
+                                                                   incrementing here occurs via the general mental imagery
+   Let’s now examine the sequence of retrievals in Table 2,        operation of translation (Rosenbloom, 2011) – Sigma’s
+focusing first on times 5-7. At time 5, the only episode that      native form of addition – it could as easily replay a
+matches the cue – T1 – is retrieved. At time 6, two episodes       sequence backwards, or even replay every third episode.
+match – T1 and T4 – but the more recent one (T4) is                   Sigma’s episodic learning also works directly for less
+retrieved. At time 7, two episodes match at least one of the       artificial pre-existing programs. For example, enabling it in
+cued features – T1 and T4 – but the retrieved episode (T1)         the Eight Puzzle automatically tracks the state of the board,
+matches both, and so is better despite being learned earlier.      the goal (although it does not actually change), and the
+   These three initial retrievals demonstrate how selection        selected operator. This last bit enables automatically
+occurs via partial match, preferring episodes that match           suggesting operators that might be useful in future
+cued features, with further preferences for matching               situations. These results also illustrate how episodic
+multiple features and for more recent learning. When these         learning works as well for complex relations as for simple
+latter preferences conflict, as at time 7, match quality           feature-value pairs, and for continuous features as well as
+trumps recency. All of this falls out of the multiplicative        discrete (or symbolic) ones. The board predicate, for
+integration of feature matches and the temporal prior that is      example, has three arguments, with each episode involving
+dictated by the naïve Bayes structure of the classifier.           a distribution over the tile given continuous 2D locations.
+   At time 8, no stored episode matches both cues – the first         The biggest issue with this overall approach to episodic
+matches T1 and the second matches T2 and T3 – requiring a          memory is scalability. Focusing on changes helps, but even
+more sophisticated form of partial match, where not all            so, each update yields new messages that embody the entire
+features in evidence need be matched by stored episodes.           memory. The resulting recomputations get expensive as the
+This is, however, still computed as before, via multiplicative     memory grows (Figure 12). A more scalable approach
+integration across features. In this particular case, T3           would leverage incremental message passing, where only
+                                                               1321
+
+regions that have changed – i.e., just those for the most                                     References
+recent time – are processed each cycle. This is an important
+future direction for Sigma’s message passing algorithm.
+                                                                     Altmann, E. M. & Gray, W. D. (1998). Pervasive episodic
+                                                                       memory: Evidence from a control-of-attention paradigm.
+                                                                       In Proceedings of the 20thAnnual Conference of the
+                                                                       Cognitive Science Society (pp. 42-47). Erlbaum.
+                                                                     Anderson, J. R., Bothell, D., Byrne, M. D., Douglass, S.,
+                                                                       Lebiere, C. & Qin, Y. (2004). An integrated theory of the
+                                                                       mind. Psychological Review, 111, 1036-1060.
+                                                                     Baddeley, A. (2000). The episodic buffer: a new component
+                                                                       of working memory? Trends in Cognitive Science, 4, 417-
+      Figure 12: Time (msec) per decision across 100
+                                                                       423.
+   decisions over a set of randomly generated predicates.
+                                                                     Deutsch, D. (2011). The Beginning of Infinity: Explanations
+   A smaller issue is the need to tweak several learning               that Transform the World. London, UK: Penguin Books.
+settings for episodic memory: the learning rate is set higher        Koller, D. & Friedman, N. (2009). Probabilistic Graphical
+than normal for episodic features (to facilitate one-shot              Models: Principles and Techniques. Cambridge, MA:
+learning) and lower than normal for time (to handle its huge           MIT Press.
+domain); and normalization during gradient descent here is           Kolodner, J. (1993). Case-Based Reasoning. San Mateo,
+divisive rather than Sigma’s more typical subtractive (to              CA: Morgan Kaufmann.
+learn an exponential temporal prior).                                Kschischang, F. R., Frey, B. J. & Loeliger, H.-A. (2001).
+                                                                       Factor graphs and the sum-product algorithm. IEEE
+                         Conclusion                                    Transactions on Information Theory, 47, 498-519.
+Episodic memory and learning has been implemented in a               Nuxoll, A. M. & Laird, J. E. (2012). Enhancing Intelligent
+functionally elegant manner within Sigma; in particular, it            Agents with Episodic Memory. Cognitive Systems
+has been deconstructed largely in terms of preexisting                 Research, 17-18, 34-48.
+mechanisms. Added was a template-based generator for the             Rosenbloom, P. S. (2010). Combining procedural and
+predicates that form the episodic buffer in working memory             declarative knowledge in a graphical architecture.
+and the conditionals that structure episodic long-term                 Proceedings of the 10th International Conference on
+memory. Two settings in learning were adjusted as well.                Cognitive Modeling (pp. 205-210).
+But with these modifications, automated episodic learning,           Rosenbloom, P. S. (2011). Mental imagery in a graphical
+selection and retrieval occurs each cognitive cycle.                   cognitive architecture.       Proceedings of the 2nd
+   The result is a compact episodic memory that records                International Conference on Biologically Inspired
+changes to state features, and a partial-match-based retrieval         Cognitive Architectures (pp. 314-323). IOS Press.
+that prefers episodes as a function of both their matches to         Rosenbloom, P. S. (2012). Deconstructing reinforcement
+cues and a complex temporal prior. Retrieval can support               learning in Sigma. Proceedings of the 5th Conference on
+simple replay, or specific aspects – such as operators – can           Artificial General Intelligence (pp. 262-271). Springer.
+be used more selectively in aiding decision-making.                  Rosenbloom, P. S. (2013). The Sigma cognitive architecture
+   Discoveries during this investigation include that: (1) the         and system. AISB Quarterly, 136, 4-13.
+learned temporal prior naturally mimics base-level                   Rosenbloom, P. S., Demski, A., Han, T. & Ustun, V.
+activation; (2) retrieval of partially specified episodes yields       (2013).     Learning via gradient descent in Sigma.
+an automatic fall back to the best prior episode(s) with               Proceedings of the 12th International Conference on
+values for the missing features; and (3) the relative sizes of         Cognitive Modeling (pp. 35-40).
+feature domains have an impact on the degree of match.               Russell, S., Binder, J., Koller, D. & Kanazawa, K. (1995).
+   The two biggest items for future work are: incremental              Local learning in probabilistic networks with hidden
+message passing for scaling of episodic memory; and                    variables. Proceedings of the 14th International Joint
+exploring whether the combination here of template-driven              Conference on AI (pp. 1146-1152). San Mateo, CA:
+structure generation plus gradient-descent learning can yield          Morgan Kaufmann.
+additional forms of learning that are essential to cognition.        Stracuzzi, D.J., Li, N., Cleveland, G. & Langley, P. (2009).
+                                                                       Representing and reasoning over time in a unified
+                                                                       cognitive architecture. Proceedings of the 31st Annual
+                    Acknowledgments
+                                                                       Meeting of the Cognitive Science Society.
+This work was sponsored by the U.S. Army. Statements and             Tulving, E. (1983). Elements of episodic memory. Oxford:
+opinions expressed may not reflect the position or policy of           Clarendon Press.
+the United States Government, and no official endorsement            Vere, S., & Bickmore, T. (1990). A basic agent.
+should be inferred. Abram Demski suggested that fall back              Computational Intelligence, 6, 41–60.
+may be occurring during retrieval of partial episodes.
+                                                                 1322
+

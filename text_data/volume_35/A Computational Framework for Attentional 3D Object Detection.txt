@@ -1,0 +1,368 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+A Computational Framework for Attentional 3D Object Detection
+Permalink
+https://escholarship.org/uc/item/9s6251xc
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 35(35)
+Authors
+Garcia, German Martin
+Frintrop, Simone
+Publication Date
+2013-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+               A Computational Framework for Attentional 3D Object Detection
+                                             Germán Martı́n Garcı́a and Simone Frintrop
+                                                 {martin,frintrop}@iai.uni-bonn.de
+                              Institute of Computer Science III, Universität Bonn, 53117 Bonn, Germany
+                              Abstract                                    bottom-up visual attention system (Klein & Frintrop, 2012)
+   We present a computational framework for the detection of un-          and improves their shape by iterative segmentation steps. In
+   known objects in a 3D environment. It is based on a visual             contrast to other attention models, we operate on 3D data
+   attention system that detects proto-objects which are improved         from a depth camera and are thus able to obtain 3D object
+   by iterative segmentation steps. At the same time a 3D scene
+   model is built from measurements of a depth camera. The de-            models in space, which are incrementally updated by inte-
+   tected proto-objects are projected into the 3D scene, resulting        grating new perceptual data.
+   in 3D object models which are incrementally updated. Finally,             In computational systems based on bottom-up visual at-
+   environment- and object-based inhibition of return enables to
+   withdraw the attention from one object and switch to the next.         tention, the focus of attention is directed to the most salient
+   We show that the system works well in cluttered natural scenes         region in the scene. In order to scan the whole scene, this
+   and can find and segment objects without prior knowledge.              requires a way to withdraw attention from that region and
+                                                                          switch to the next. In human vision, this is performed by in-
+                      INTRODUCTION                                        hibition of return mechanisms (IOR) that inhibit the currently
+Object detection is one of the tasks which are easy to solve for          attended region (Tipper et al., 1994).
+humans but hard for machines. Especially unsupervised ob-                    In most computational systems, IOR is implemented by ze-
+ject detection, i.e., finding all objects in a scene without pre-         roing values in the saliency map (Itti et al., 1998). This is
+vious learning, is largely unsolved in machine vision.1 How-              sufficient in static images, but when acting in a 3D world, the
+ever, a system that is able to localize unknown objects in un-            correspondence between spatial locations and image regions
+known environments is tremendously useful for robotics. For               is required. This affects also the IOR mechanism, since when
+example, a future robot that shall assist in a household must             the perspective of the observer changes or objects are mov-
+be able to operate autonomously in a new house and is per-                ing, inhibition has to move with them, preventing attention
+manently faced with new, unknown objects. Since humans                    to re-visit the objects directly. This motivates the use of a
+are able to solve such tasks easily, a promising approach for             3D map that grounds the perceptions in space and enables to
+technical systems is to mimic the human visual system.2                   maintain a coherent IOR representation over space and time.
+   In humans as in machines, one of the challenges is to                  Corresponding to human vision (Tipper et al., 1994), our IOR
+deal with the huge amount of perceptual input. Despite the                mechanism is both object- and environment-based.
+parallelity of the brain, its capacity is not sufficient to deal             The contributions of this paper are threefold. First, instead
+with all sensory data in detail and a selection has to take               of operating on 2D images, we perform attention-based ob-
+place. Neisser (1967) was the first who proposed a two-                   ject detection on 3D data; this enables us to situate the at-
+stage processing of perception that solves this task: first,              tention system in a 3D environment, resulting in a coherent
+a pre-attentive process selects regions of interest in paral-             representation of objects over time. Secondly, it allows for
+lel, and, second, an attentive process investigates these re-             performing not only an environment-based but also an object-
+gions sequentially in more detail. This view has since then               based inhibition of return mechanism that operates in space
+widely spread and many psychological theories and models                  and time. Finally, the use of salient blobs instead of only fix-
+build upon this dichotomy (e.g. Treisman & Gelade, 1980;                  ation points for initializing the segmentation process lets us
+Wolfe, 1994). Rensink (2000) has further developed this                   bound the amount of perceptual data to be processed.
+idea with his coherence theory of attention. It states that the
+pre-attentive processing determines structures, which he calls                                    Related Work
+proto-objects, that describe the local scene structure of a spa-          Many computational attention systems have been built dur-
+tially limited region. After that, focused attention selects a            ing the last two decades, first for the purpose of mimicking
+small number of proto-objects which form a coherence field                and understanding the human visual system (survey in Heinke
+representing a specific object.                                           & Humphreys, 2004), and second to improve technical sys-
+   Here, we present a computational framework that follows                tems in terms of speed and quality (survey in Frintrop et al.,
+Rensink’s idea of proto-objects as pre-processing step for ob-            2010). The general structure of attention systems is based on
+ject detection. Our approach generates proto-objects with a               psychological models such as the Feature Integration Theory
+    1 The winner of the latest Semantic Robot Vision Challenge            (Treisman & Gelade, 1980) and states that features are com-
+(http://www.semantic-robot-vision-challenge.org) was only able to         puted in parallel before they are fused to a saliency map.
+detect 13 out of 20 objects (Meger et al., 2010), although in this
+challenge, the target objects were known in advance.                         One component of attention systems is the inhibition of re-
+    2 However, note that our intention is to obtain an improved tech-     turn mechanism. While IOR is simple on static images, image
+nical system rather than to mimic the HVS as closely as possible.         sequences introduce the challenge of establishing correspon-
+                                                                      2984
+
+Figure 1: System Overview. The RGB-D camera provides color and depth streams that are processed to obtain proto-objects
+and a 3D representation of the scene. Here, one proto-object is fixated (1), segmented (2), and projected to the 3D scene (3).
+The inhibition (5) did not yet take place.
+dences between objects over time. In this context, Backer             ior and the fixate behavior. When the system starts, it first
+et al. (2001) perform object-centered IOR. However, their             finds the most salient proto-object (1. in Fig. 1), which is then
+approach operates on simple artificially rendered scenes in-          attended for several frames (fixate behavior), allowing other
+stead of real world data and on 2D images instead of 3D               modules to improve the shape of the attended proto-object by
+data as we do. Additionally, we combine object-centered and           segmentation (2.) and project it to the 3D scene (3.). Af-
+environment-centered IOR to enable both types of inhibition.          ter fixating an object for a while, the saccade behavior takes
+   Walther and Koch (2006) use an attention system to obtain          over to determine the next focus of attention. This is enabled
+saliency maps and generate proto-objects inside this map by           by object-based and environment-based inhibition of return
+thresholding. Unsupervised object detection was also tackled          mechanisms (4.), that inhibit the region of the segmented ob-
+by Kootstra and Kragic (2011) who produce saliency maps               ject O and the surrounding region A. To maintain a coher-
+with a symmetry-based attention system. They use the most             ent inhibition of return representation, even when moving the
+salient points as hypothetical centers of objects; these are then     camera, the inhibition values are stored within the 3D map
+provided as seeds to the segmentation process. The figural            data. From its 3D representation, the data can be projected to
+goodness of the segmentations is evaluated by Gestalt prin-           produce a 2D IOR map (5.), that is used for inhibiting proto-
+ciples. In a robotics context, Meger et al. (2010) search for         objects in the saliency map. When the attended object is in-
+objects with the mobile robot “Curious George”. The robot             hibited, a saccade to the next salient proto-object is generated.
+used a peripheral vision system to identify object candidates
+with help of a visual attention module. Then, close-up views                           Proto-Object Detection
+of these candidates were recorded with a foveal vision sys-           We perform object detection in two steps: first, we detect
+tem and investigated by a recognition module to identify the          proto-objects in each frame with a visual attention system
+object.                                                               and second, the extend of the proto-objects is improved by
+                                                                      a segmentation step.
+                    General Structure
+A general overview of the system is depicted in Figure 1. We          Attention System: Generation of Proto-Objects
+acquire data with a depth camera that provides color as well          The first step of object detection is the generation of proto-
+as depth information, and is moved around the scene to obtain         objects with a visual attention system that mimics the pre-
+different viewpoints. The color and the depth information are         attentive processing stage of the human visual system. Such
+investigated in two separate processing streams. The color            systems usually investigate several feature channels such as
+stream determines proto-objects with help of a bottom-up vi-          color and orientation in parallel and finally fuse the result-
+sual attention system (Fig. 1, top), while the depth stream           ing conspicuities in a single saliency map (Frintrop et al.,
+generates a 3D map of the scene (Fig. 1, bottom). The two             2010). The peaks in the saliency map can be interpreted as
+streams are combined by projecting the proto-objects into the         proto-objects (e.g. Walther & Koch, 2006). While in human
+3D scene. This results in 3D object models that are incremen-         attention, top-down factors also play an important role, such
+tally updated when new camera frames are available.                   information is not always available in robotics. Therefore, we
+   The system operates in two behaviors: the saccade behav-           compute here only the bottom-up attention.
+                                                                  2985
+
+                                                                       fixation as well as the size of the region to use for further
+                                                                       investigation. Too small or too big blobs are discarded. If in-
+                                                                       formation for the inhibition of objects is already available in
+                                                                       terms of a 2D IOR map I (see below), it is used to inhibit al-
+                                                                       ready visited regions. This is done by computing the overlap
+                                                                       o between each blob and I. Finally, the proto-object with the
+                                                                       highest value sal ∗ (1 − o) is attended.
+                                                                          Thus, the computational attention system fulfills its two
+                                                                       main purposes: first, it directs attention to a region of interest
+                                                                       and, second, it bounds the amount of perceptual data to be
+                                                                       processed afterwards while ignoring the rest.
+                                                                       Improving Proto-Objects by Segmentation
+Figure 2: Top left to bottom right: original RGB image; its            After finding proto-objects, we improve their shape by a seg-
+corresponding saliency map SM; saliency map after adaptive             mentation step that bundles parts of the image data. This has
+thresholding SM 0 ; the SM 00 map after the final thresholding.        a similar effect as grouping mechanisms in human percep-
+                                                                       tion that facilitate figure-ground segregation (Wagemans et
+                                                                       al., 2012). Such segmentation steps are likely to exist at all
+   In this work, we use the CoDi system to compute saliency            levels of human visual processing (Scholl, 2001).
+maps (Klein & Frintrop, 2012). The structure follows the                  Here, we use the approved GrabCut segmentation (Rother
+standard architecture of Itti et al. (1998), consisting of in-         et al., 2004) that was originally proposed for segmenting
+tensity, color, and orientation feature channels which belong          objects in images with help of user interaction. It takes a
+to the most important features in the human visual system              rectangle as input, as well as an initialization of pixels with
+(Wolfe & Horowitz, 2004). In contrast to other saliency sys-           their likelihoods of being object or background. Segmenta-
+tems, the center-surround contrast is computed with respect to         tion is based on the color similarity of neighboring pixels,
+feature distributions; these are approximated by Normal dis-           thus regarding two of the most important factors of percep-
+tributions and their distance is quickly computed by the W2 -          tual grouping (similarity and proximity). GrabCut performs
+distance (Wasserstein metric based on the Euclidean norm).             foreground/background segmentation by iteratively minimiz-
+   To allow the detection of arbitrarily sized salient regions,        ing an energy function. The energy function measures how
+we perform the computations on 8 different scales. The color           different each pixel is from the foreground/background model
+channel consists of a red-green and a blue-yellow channel,             to which it is assigned, as well as from its direct neighbors.
+following the opponent-process theory of human color vision            It penalizes pixels different from the foreground model to be
+(Hurvich & Jameson, 1957). The orientation channel com-                labeled as foreground as well as labeling pixels as foreground
+putes center surround differences of Gabor filters of four dif-        when all its neighbors are background.
+ferent orientations: 0◦ , 45◦ , 90◦ , 135◦ . The saliency map SM          The rectangle required for initialization is determined au-
+is the result of fusing the color and orientation channels.            tomatically with help of the proto-objects and the information
+   To generate the image blobs that correspond to proto-               about already detected objects. The pixels of the currently at-
+objects, two thresholding operations are performed: first an           tended proto-object are merged with the information of this
+adaptive thresholding using a Gaussian kernel3                         object from previous frames (if available). This information
+                                                                      can be gathered from the 3D scene representation raycasted
+            0             SM(x, y) : SM(x, y) > T (x, y)
+          SM (x, y) =                                          (1)     to a 2D object map that will be explained later on (cf. Fig. 1).
+                          0           : otherwise
+                                                                       Now, the smallest rectangle r containing all merged pixels is
+where T (x, y) is the weighted mean of the neighborhood of             determined (cf. Fig. 4, top), as well as a rectangle r0 , obtained
+(x, y). Finally, a binary thresholding is performed on SM 0 at a       by expanding r’s dimensions by 10%.
+percentage of the global maximum saliency value MAX:                      For initializing segmentation, GrabCut requires four pos-
+                                                                       sible pixel likelihood values: FG (foreground), BG (back-
+                     SM 0 (x, y) : SM 0 (x, y) > 0.3 × MAX
+                  
+       00
+   SM (x, y) =                                                 (2)     ground), PR FG (probably foreground) and PR BG (proba-
+                     0           : otherwise                           bly background). These are obtained by defining three inter-
+                                                                       vals between 0 and the saliency maximum max in R:
+Fig. 2 shows the saliency map SM and the thresholded maps
+SM 0 and SM 00 for an example image. On SM 00 we find the con-                      
+                                                                                       FG        : SM 00 (x, y) ∈ [v3 , max], (x, y) ∈ R
+nected components (proto-objects) and compute their average                         
+                                                                                    
+                                                                                        PR FG : SM 00 (x, y) ∈ [v1 , v3 ], (x, y) ∈ R
+saliency sal. This method provides us with salient blobs in-             L(x, y) =
+                                                                                       PR BG : SM 00 (x, y) ∈ [0, v1 ], (x, y) ∈ R
+stead of only fixation points which determines the center of                        
+                                                                                    
+                                                                                        BG        : (x, y) ∈ R0 \ R,
+    3 We use the adaptiveThreshold function of the OpenCV library:                                                                        (3)
+http://opencv.org/                                                     where R and R0 are the sets of pixels contained in rectangles r
+                                                                   2986
+
+                                                                           later on. The 3D information from the voxel grid can at any
+                                                                           time be projected to produce a 2D image containing IOR or
+                                                                           object label information (details follow).5
+                                                                           Generating 3D Object Models
+                                                                           Now, the 3D object models are created and updated using the
+                                                                           binary object mask O from the segmentation stage. Let us
+Figure 3: Top: a book as example object. Middle: initializa-               denote the function that maps pixels in the image to voxels in
+tion of GrabCut, the grayscale values correspond to the four               the grid as map : p ∈ Z2 , T ∈ R4 , D ∈ Zm×n → c ∈ Z3 , where
+possible likelihoods FG (white), PR FG (light gray), PR BG                 p is a pixel, T the camera pose, and D a depth image with
+(dark gray), and BG (black). Bottom: the segmentation result.              dimensions m × n. The pixels in the object mask are mapped
+                                                                           to their corresponding voxels in the grid:
+and r0 respectively, and vi = i · max                                                   map(O, Tg,k , Dk ) → O0 = {c : c ∈ Z3 },           (5)
+                                      4 defines each of the interval
+limits. The likelihoods are corrected by incorporating the in-
+                                                                           where g is the global frame of reference.
+formation about the current and all other objects. This is done
+                                                                              Now it has to be decided which label to assign to the vox-
+by setting the pixels that correspond to the current object in
+                                                                           els in O0 . There are two mechanisms corresponding to the
+the 2D object map as PR FG, and the ones corresponding to
+                                                                           fixate and saccade behaviors of the system. During the fixate
+other objects as BG. An example of the initialization values
+                                                                           behavior, the label of the currently attended object is used.
+is displayed in Fig. 3. Five iterations of GrabCut produce a
+                                                                           When the saccade behavior selects a new focus of attention,
+binary object mask O for the attended blob.
+                                                                           it performs as follows. On the set of voxels O0 correspond-
+                 Creating a 3D Scene Map                                   ing to the new proto-object, we extract the current labels > 0:
+                                                                           Lab = {Lk [c] : Lk [c] > 0, c ∈ O0 }. We find the most frequently
+While the color image was used to detect proto-objects, the
+                                                                           occurring label l in Lab. If less than 5% of the voxels are
+depth data is used to build a 3D map of the scene. This is
+                                                                           labeled, we assign l a new value corresponding to a newly
+done with the KinectFusion algorithm4 (Newcombe et al.,
+                                                                           detected object. The value of l is now used to update the
+2011), which builds a 3D map of the environment by integrat-
+                                                                           voxels contained in O0 . This simple scheme lets us integrate
+ing multiple range scans from a moving depth camera such as
+                                                                           the overlapping segmentations of different views of the same
+Kinect. It performs two processes in parallel, namely, track-
+                                                                           objects in the 3D map.
+ing of the pose of the camera, and registration of the depth
+                                                                              To be flexible against wrong segmentations or overlapping
+scans into a complete scene representation. The result is a 3D
+                                                                           objects, weights are assigned to the labels. Every time the
+scene map consisting of voxels (cf. Fig. 5, right).
+                                                                           same label is assigned to a voxel, its label weight LWk is in-
+   To represent the scene at time k, a global truncated signed
+                                                                           cremented. If a voxel is updated with a different label, the
+distance function (TSDF) Sk (p) → [Fk (p),Wk (p)] is com-
+                                                                           weight is decremented. Eventually it could reach 0, result-
+puted by integrating the depth measurements, where p ∈ R3
+                                                                           ing in an unlabeled voxel. This mechanism lets us incremen-
+is a point in space, Fk (p) the TSDF value and Wk (p) a weight.
+                                                                           tally build the object representations with a certain tolerance
+The function is discretized in a voxel grid; its zero crossings
+                                                                           to failure; furthermore, by thresholding the label weight we
+are points that lie on surfaces. Thus, from the voxel grid, a
+                                                                           can specify the degree of confidence in our object represen-
+point cloud can be rendered by choosing the voxels contain-
+                                                                           tations that we want for rendering the labeled point cloud. In
+ing zero TSDF values.
+                                                                           our experiments, we used LWk = 5, meaning that a voxel has
+                  Extended 3D Scene Map                                    to be assigned to a specific object at least 5 times to be con-
+                                                                           sidered for this object.
+Our system stores all object information in a 3D structure. It
+is an extended version of the voxel grid defined in the previ-             3D IOR Map
+ous section. For convenience, we will refer to the new voxel               After fixating an object for several frames, the object must
+grid as Sk [c], where voxel c = (x, y, z), x, y, z ∈ [1..Vol] and Vol      be inhibited to enable the next saccade. To allow a coherent
+is the number of cells into which the grid is discretized. We              IOR over time, we store the inhibition values within the 3D
+extend the Sk function to                                                  voxel grid: Ik [c] is a binary flag denoting whether that voxel
+                                                                           shall be inhibited and IWk [c] is a weight that determines how
+        Sk [c] → {Fk [c],Wk [c], Lk [c], LWk [c], Ik [c], IWk [c]}, (4)    long the effect shall take place. Having IOR information in
+                                                                           3D coordinates lets us generate 2D IOR maps Ik from the
+where Fk [c] and Wk [c] are the values defined before,
+                                                                           required camera poses throughout the sequence.
+Lk [c], LWk [c] are variables that contain object label informa-
+tion, and Ik [c], IWk [c] are IOR related and will be explained                5 In (Newcombe et al., 2011), the T SDF function is raycasted,
+                                                                           given a camera pose, to generate a depth map prediction. Using this
+    4 We use the open source implementation available in the Point         method in our extended T SDF function means we can generate 2D
+Cloud Library (http://pointclouds.org/)                                    IOR or object label maps for every new pose of the camera.
+                                                                       2987
+
+Figure 4: Table Top sequence at different points in time (columns). From top to bottom: (i) image of the scene with currently
+attended object (blue rectangle); (ii) the saliency map and the segmented part from the currently attended object; (iii) inhibition
+of return maps; white: object-based IOR, gray: environment-based IOR; (iv) the 3D scene map including detected objects
+   According to human vision, we use two types of IOR                  After fixating it for several frames, the region is inhibited (3rd
+mechanisms: environment-based and object-based IOR                     row) and the attention switches to the next proto-object (sac-
+(Tipper et al., 1994). The latter comes intuitively from the           cade behavior). This proto-object consists of two real objects
+segmented object mask O. The environment-based IOR is                  (cup and tea box) since these objects are overlapping from
+initialized by the regions close to the object but not on the ob-      this point of view and have similar saliency. The procedure
+ject, i.e., from a so called attended mask A = R0 \ O. The two         continues, until all objects on the table have been detected.
+masks are mapped as in the previous section to obtain their re-           For the second sequence, we present for space reasons only
+spective voxel sets O0 and A0 . For every voxel c in O0 and A0 ,       the resulting 3D map with detected objects (Fig. 5, right).
+its weight IWk [c] is incremented. When it reaches a certain           Here, the approach finds 19 objects after 438 frames (∼13
+threshold, the IOR flag Ik [c] is activated. The weight of all         sec). More objects could be found by longer observing the
+not considered voxels is decremented. If a weight eventually           sequence, but some would be missed, e.g., due to high simi-
+reaches 0, the IOR flag is reset to 0 as well.                         larity to the background, and no current computer vision sys-
+                                                                       tem would be able to find all objects without pre-knowledge
+                           Evaluation                                  in such a complex setting. Note that several of the “objects”
+To evaluate our system we recorded two video sequences in              still have proto-object characteristics, meaning that they show
+an office environment with an RGB-D camera that provides               parts of objects (handle of dishwashing brush (6), bottom of
+depth as well as color information. The first sequence shows a         coffee machine (18)) or clusters of objects (tea boxes (11)).
+setting of objects on a table top (cf. Fig. 4). The complexity of      Such semantic ambiguities could only be resolved by a recog-
+this setting corresponds to the complexity of scenes in current        nition system that investigates the attended regions in more
+state of the art benchmarks and papers on unsupervised object          detail, or by a robot that interacts with objects and decides on
+detection in machine vision (cf. Meger et al., 2010; Kootstra          objectness depending on the connectivity of object parts.
+& Kragic, 2011). However, the real world can be much more                 To evaluate our system quantitatively, we measure how
+complex. Therefore, we recorded a second sequence, that                precisely the detected objects were segmented. For this, the
+shows a very cluttered setting (Fig. 5). Both settings were            points in the 3D map corresponding to objects were manu-
+recorded turning the camera so that the scene was observed             ally labeled to serve as ground truth. We generally denote the
+from different viewpoints (cf. Fig. 1).6                               ground truth of each object as G, and the 3D points of the
+   Fig. 4 illustrates several steps of our approach at different       object detected by our system as S. We measure the preci-
+time points. First, the book was attended (fixate behavior).           sion p and recall r of the detected objects with respect to the
+    6 Videos of the complete sequences as well as the resulting 3D     ground truth as p = (S ∩ G)/S, and r = (S ∩ G)/G. The
+representations can be found at http://vimeo.com/cogbonn/              values are shown in Tab. 1 and Fig. 5. It can be seen that the
+                                                                   2988
+
+                                                                                               References
+                                                                     Backer, G., Mertsching, B., & Bollmann, M. (2001). Data-
+                                                                        and model-driven gaze control for an active-vision system.
+                                                                        IEEE Trans. on PAMI, 23(12).
+                                                                     Frintrop, S., Rome, E., & Christensen, H. I. (2010). Compu-
+                                                                        tational visual attention systems and their cognitive founda-
+                                                                        tions: A survey. ACM Trans. on Applied Perception, 7(1).
+                                                                     Heinke, D., & Humphreys, G. W. (2004). Computational
+                                                                        models of visual selective attention. A review. In Connec-
+                                                                        tionist models in psychology. Psychology Press.
+  object      1    2     3    4      5   6     7     8   9    10
+                                                                     Hurvich, L., & Jameson, D. (1957). An opponent-process
+  precision   93   69    92   99     62  52    90    60  100  99        theory of color vision. Psychological review, 64(6).
+  recall      40   43    28   40     61  28    36    36  21   37
+                                                                     Itti, L., Koch, C., & Niebur, E. (1998, Nov). A model
+  object      11   12    13   14     15  16    17    18  19
+                                                                        of saliency-based visual attention for rapid scene analysis.
+  precision   23   90    83   98     91  99    100   89  100
+                                                                        IEEE Transactions on PAMI, 20(11).
+  recall      47   40    35   39     31  30    8     1   3
+                                                                     Klein, D. A., & Frintrop, S. (2012). Salient pattern detection
+Figure 5: Coffee Machine sequence. Left: color image.                   using W2 on multivariate normal distributions. In Proc. of
+Right: 3D scene map with detected objects (numbers denote               DAGM-OAGM. Springer.
+labels). Bottom: precision/recall values in %                        Kootstra, G., & Kragic, D. (2011). Fast and bottom-up object
+                                                                        detection, segmentation, and evaluation using Gestalt prin-
+  object      Book    Cup    Cereals Box   Car    Sponge  Pot           ciples. In IEEE Int’l Conf. on Robotics and Automation.
+  precision   99      55     98            99     97      94         Meger, D., Muja, M., Helmer, S., Gupta, A., Gamroth, C.,
+  recall      64      62     53            54     56      9
+                                                                        Hoffman, T., et al. (2010). Curious george: An integrated
+                                                                        visual search platform. In Canadian conference on com-
+Table 1: Table Top sequence: precision/recall values in %
+                                                                        puter and robot vision.
+(cf. Fig. 4).
+                                                                     Neisser, U. (1967). Cognitive psychology. New York:
+                                                                        Appleton-Century-Crofts.
+precision values are mostly very good (more than 90% for 17          Newcombe, R. A., Izadi, S., Hilliges, O., Molyneaux, D.,
+out of 25 objects), that means that only few voxels were acci-          Kim, D., Davison, A. J., et al. (2011). KinectFusion: Real-
+dentally assigned to an object. A bad value usually indicates           time dense surface mapping and tracking. In Proc. of IEEE
+that a cluster of objects was detected and compared with sep-           Int’l Symposium on Mixed and Augmented Reality.
+arate objects in the ground truth (e.g. objects 5 and 11). The       Rensink, R. A. (2000). The dynamic representation of scenes.
+recall values are lower, meaning that often not all of the vox-         Visual Cognition, 7, 17-42.
+els that belong to an object were detected. In the future, this      Rother, C., Kolmogorov, V., & Blake, A. (2004). GrabCut:
+can be improved by additional post-processing steps based on            Interactive foreground extraction using iterated graph cuts.
+grouping mechanisms for figure-ground segregation.                      ACM Trans. Graph., 23, 309-314.
+                                                                     Scholl, B. J. (2001). Objects and attention: the state of the
+                            Conclusion                                  art. Cognition, 80, 1-46.
+                                                                     Tipper, S. P., Weaver, B., Jerreat, L. M., & Burak, A. L.
+We have presented a flexible framework for the detection of             (1994). Object-based and environment-based inhibition of
+unknown objects in a 3D scene. Unlike other approaches, the             return of visual attention. J. of Experimental Psychology.
+system uses depth values additionally to a color image of a          Treisman, A. M., & Gelade, G. (1980). A feature integration
+scene and is thus able to generate 3D object models that are            theory of attention. Cognitive Psychology, 12, 97-136.
+incrementally updated when new information is available. All         Wagemans, J., Elder, J. H., Kubovy, M., Palmer, S. E., Peter-
+perceptual data is spatially grounded and thus consistent over          son, M. A., Singh, M., et al. (2012). A century of Gestalt
+different viewpoints. The results show that the algorithm is            psychology in visual perception: I. perceptual grouping
+able to detect many objects in scenes with high clutter, with-          and figure-ground organization. Psychological Bulletin.
+out using any prior knowledge about the type of objects.             Walther, D., & Koch, C. (2006). Modeling attention to salient
+                                                                        proto-objects. Neural Networks, 19(9), 1395 - 1407.
+   Applying attention mechanisms in space and time intro-            Wolfe, J. M. (1994). Guided search 2.0: A revised model of
+duces new challenges, for example the question of how and               visual search. Psychonomic Bulletin and Review, 1(2).
+when to switch attention between salient regions. We intro-          Wolfe, J. M., & Horowitz, T. S. (2004). What attributes guide
+duced an environment- and object-based inhibition of return             the deployment of visual attention and how do they do it?
+mechanism that addresses this problem by using the informa-             Nature Reviews Neuroscience, 5, 1-7.
+tion from the 3D environment and object models for inhibi-
+tion.
+                                                                 2989
+

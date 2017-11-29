@@ -1,0 +1,409 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Representing and Reasoning over Time in a Unified Cognitive Architecture
+Permalink
+https://escholarship.org/uc/item/4cg6m5mw
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 31(31)
+Authors
+Cleveland, Gary
+Langley, Pat
+Li, Nan
+et al.
+Publication Date
+2009-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+       Representing and Reasoning over Time in a Unified Cognitive Architecture
+                                            David J. Stracuzzi (david.stracuzzi@asu.edu)
+                                                       Nan Li (nan.li.3@asu.edu)
+                                              Gary Cleveland (gary.cleveland@asu.edu)
+                                                     Pat Langley (langley@asu.edu)
+                                                  School of Computing and Informatics
+                                                          Arizona State University
+                                                      Tempe, AZ 85287 - 8809 USA
+                              Abstract                                  to be similar in their focus on storing, retrieving, and using
+                                                                        entire episodes in support of cognitive tasks.
+   Most cognitive architectures have an implicit representation of
+   time. As a result, reasoning about specific temporal relation-          None of the aforementioned systems provide an explicit
+   ships among events is typically beyond their capability. In this     language or inference mechanism that lets them reason about
+   paper, we describe an extension of the I CARUS architecture to       temporal relationships among individual events or entities. In
+   include an episodic belief memory, an explicit representation
+   of temporal relationships, and associated reasoning processes.       this paper, we extend the I CARUS architecture (Langley &
+   We then demonstrate the ensuing reasoning capabilities on a          Choi, 2006) to (1) represent and retain beliefs about past ex-
+   task that involves recognizing football plays. Finally, we dis-      periences, (2) encode general temporal relationships in long-
+   cuss the implications of our temporal representation and rea-
+   soning mechanisms for the larger architecture.                       term conceptual memory, and (3) reason about temporal re-
+   Keywords: cognitive architectures; episodic memory; tempo-           lationships based on past and present beliefs. Moreover, we
+   ral logic; event recognition                                         show that these extensions fit naturally into the existing ar-
+                                                                        chitecture, and that they expand its capabilities substantially
+                          Introduction                                  without the addition of new or sophisticated modules. We be-
+The ability to remember and reason about events over time               gin our discussion with a brief review of I CARUS, after which
+is fundamental to human cognition. Tulving (1983, 2002)                 we describe our changes to the architecture, demonstrate their
+describes episodic memory as a temporal or contextual store             effects, and discuss their implications.
+that captures an individual’s experiences. This history can
+then be used to improve decision making by forming part                                  A Brief Review of I CARUS
+of an internal model of the environment, by keeping track               The objective of the I CARUS architecture is to qualitatively
+of long-term goals, or by improving behavior through learn-             model results on human cognition. It incorporates many
+ing. Many cognitive tasks, such as problem solving (Howes,              ideas from traditional work on cognitive modeling, and main-
+1993) and discourse comprehension (Kintsch, 1998), also de-             tains that cognition is closely tied to perception and action so
+pend on storing and recalling information about the past.               that a model must be linked to some external environment.
+   In spite of the broad applicability of episodic memory and           Like Soar (Laird, Rosenbloom, & Newell, 1986) and ACT-R
+temporal reasoning, few efforts at constructing computational           (Anderson, 1993), I CARUS makes theoretical commitments
+models of such capabilities have been made. Kolodner’s                  to formalisms for memories, knowledge representation, and
+(1993) early work on case-based reasoning is particularly rel-          cognitive processes. For example, I CARUS shares the distinc-
+evant to episodic memory. Here, a case typically describes              tion between short-term and long-term memories, and goal-
+the solution to a previously encountered problem which the              driven but reactive execution with several other architectures,
+system can then retrieve and adapt to new problems. How-                but also includes many novel features such as a commitment
+ever, case structures typically do not generalize well and are          to separate storage for conceptual and skill knowledge, and
+usually hand-crafted for specific tasks.                                indexing skills by the goals they achieve.
+   In the context of cognitive architectures, Altmann and John             In this section we briefly review representation, inference,
+(1999) added an episodic memory to Soar, although it was                and execution in I CARUS to provide a basis for our discus-
+task specific and was not integrated into the larger architec-          sion of temporal representation and reasoning. In particular,
+ture. More recently, Nuxoll and Laird (2007) integrated a               I CARUS maintains a tight integration between inference and
+general-purpose episodic memory module into Soar, and then              execution processes,1 thus qualifying it as an instance of a
+implemented cognitive capabilities such as learning from past           unified cognitive architecture (Newell, 1990). As we will see,
+successes and failures on top of the new module. ACT-R                  this helps to expand the power of the temporal representa-
+(Anderson & Lebiere, 1998) also supports a limited form of              tion beyond the conceptual memory and the inference mech-
+episodic memory. The architecture’s chunking mechanism                  anisms without requiring substantial modification to other
+stores partial copies of working memory for subsequent re-              modules in the architecture, such as execution or learning.
+trieval, but does not support retrieval of temporally related
+items, and does not distinguish between memories of prior                   1 This tight integration also holds for problem solving and learn-
+events and beliefs about the present. Systems like these tend           ing in I CARUS, though we do not discuss these here.
+                                                                    2986
+
+  Table 1: Non-temporal concepts from the football domain.           Table 2: Sample percepts with inferred non-temporal beliefs
+; Convert player activity perception into a belief                   for the concepts shown in Table 1.
+((agent-action ?agent ?action)                                       Percepts (cycle 1):
+  :percepts ((agent ?agent team OFFENSE action ?action)))
+                                                                         (agent QB team OFFENSE action WAIT direction 0)
+; Convert player direction of motion into a belief                   Beliefs:
+((agent-direction ?agent ?dir)                                           (AGENT-ACTION QB WAIT)
+  :percepts ((agent ?agent direction ?dir team OFFENSE)))                (AGENT-DIRECTION QB 0)
+; ?agent moved in direction ?dir                                     Percepts (cycle 2):
+((moved ?agent ?dir)
+  :relations ((agent-action ?agent MOVE)                                 (agent QB team OFFENSE action MOVE direction S)
+               (agent-direction ?agent ?dir)))                       Beliefs:
+                                                                         (AGENT-ACTION QB MOVE)
+                                                                         (AGENT-DIRECTION QB S)
+                                                                         (MOVED QB S)
+    Like other architectures, I CARUS operates in cognitive cy-
+cles. A cycle begins when the agent perceives objects in the
+environment and places their descriptions into a short-term
+perceptual buffer. This initiates the inference process, which       body, which states the environmental conditions required to
+matches percepts against the structures stored in long-term          initiate the skill, and the ordered actions or subgoals needed
+conceptual memory, which contains a set of hierarchically            to achieve the skill’s goal. After it finds an appropriate skill,
+organized logical rules. Each conceptual clause describes a          the architecture must find a path through the subgoal hierar-
+class of environmental situations using a relational language        chy down to an executable action (atomic subgoal), ensuring
+similar to P ROLOG; it includes a head, with the concept name        that all of the intervening subgoals are applicable. If no such
+and arguments, and a body that describes the conditions under        path exists, then I CARUS falls back on problem solving. We
+which the concept applies.                                           do not consider this case here, but Langley and Choi (2006)
+    The result of matching the percepts with concepts is a set       discuss problem solving in detail.
+of beliefs, which represent specific relational properties that         In the context of football, a skill with the head (moved
+hold in the current environment. The beliefs are stored in           ?agent ?dir) for achieving goals like (MOVED QB S) would
+a short-term belief memory and then matched against other            refer directly to an executable action. More complex skills,
+concept definitions in a bottom-up manner to produce new,            such as those for running crossing receiver patterns (run n
+higher-level (more abstract) beliefs. This process continues         yards down field, then turn hard left or right), would use
+in a bottom-up manner until the architecture deduces all pos-        moved as a subgoal, thereby building complex behaviors from
+sible beliefs for the current environment state.                     simpler ones.
+    Table 1 shows three non-temporal concept definitions for            Note the close correspondence between concepts and
+football, which we use for illustration throughout the remain-       skills, as well as between beliefs and goals. This relation-
+der of the paper. Symbols preceded by question marks in-             ship figures centrally in the architecture’s performance and
+dicate variables. The first two concepts extract information         learning mechanisms, and makes its various processes highly
+from the agent’s perceptions of the current state, converting        interdependent. For example, execution relies on inference to
+these into beliefs as shown in Table 2. For football, percepts       produce the beliefs that are matched against goals and skill
+include the identity, activity, and direction of each player on      preconditions. Thus, if I CARUS cannot infer that a specific
+the field. The third concept recognizes the condition in which       temporal condition has been achieved, then it cannot deter-
+a given player is moving in a specific direction on the field by     mine whether a skill for achieving that temporal condition ap-
+matching against lower-level beliefs about actions and direc-        plies or has executed successfully. In the following section,
+tions. I CARUS does not maintain percepts and beliefs across         we discuss an expansion of I CARUS’ reasoning capabilities
+cognitive cycles, which prevents it from reasoning about tem-        that begins to address this limitation.
+poral events and relationships among players on the field.
+    After deducing the set of beliefs about the current state,            Temporal Representation and Reasoning
+I CARUS then uses its beliefs, combined with its goals and           Representing and reasoning over time plays an important role
+the structures contained in its long-term skill memory to de-        in a variety of cognitive tasks. For example, recognizing re-
+termine which skills to apply in the environment to achieve          ceiver patterns in football requires the ability to determine
+these goals. Execution begins with a goal, which is a belief         that certain events occurred in a specific order. However, past
+that the architecture wants to make true. Given a goal, the ar-      efforts at integrating episodic memories into cognitive archi-
+chitecture finds a skill in long-term memory that both applies       tectures tended to result in either substantial modification of
+in the current state and achieves the goal.                          the existing modules or in the addition of entirely new mod-
+    Like conceptual memory, skill memory is organized hier-          ules (e.g. Nuxoll & Laird, 2007). Here, we outline a set of
+archically. Skills take a form similar to conceptual clauses;        extensions that provide I CARUS with the ability to reason and
+they have a head, which states the skill’s objective, and a          execute over temporal structures. In particular, we draw at-
+                                                                 2987
+
+      Table 3: Temporal concepts for the football domain.            Table 4: Percepts and corresponding temporal belief memory
+; ?agent carried ?ball in the current time step                      for concepts shown in Table 3.
+((possession ?agent ?ball)                                               ···
+  :percepts ((ball ?ball carriedby ?agent)))
+                                                                     Percepts (cycle 124:
+; ?agent caught ?ball                                                    (ball BALL1 carriedby AIR)
+((caught-ball ?agent ?ball)                                              (agent RB direction E team OFFENSE action MOVE)
+  :relations (((possession AIR ?ball) ?air-start ?air-end)           Beliefs:
+                ((possession ?agent ?ball) ?pos-start ?pos-end))
+  :constraints ((eq ?air-end (- ?pos-end 1))))                           (POSSESSION QB BALL1)                       1      98
+                                                                         (POSSESSION AIR BALL1)                      98     NOW
+                                                                     Percepts (cycle 125):
+tention to the ways in which the existing architecture provides          (ball BALL1 carriedby RB)
+a basis for temporal reasoning with only minor changes.                  (agent RB direction E team OFFENSE action MOVE)
+                                                                     Beliefs:
+    The first architectural modification focuses on encoding
+                                                                         (POSSESSION QB BALL1)                       1      98
+temporal information with beliefs. The representation of be-             (POSSESSION AIR BALL1)                      98     124
+liefs expands to include start time stamps, which indicate the           (POSSESSION RB BALL1)                       125    NOW
+first time at which a belief held, and end time stamps, which            (CAUGHT-BALL RB BALL1)                      125    NOW
+indicates the last time at which it held. I CARUS already main-          ···
+tains an internal notion of time, based on cognitive cycles,
+that may be used to set these time stamps. A special sym-
+bol, NOW, indicates the current time and distinguishes beliefs
+about the present from beliefs about the past. Thus, when a          must be matched in addition to the percepts and relations
+new belief is inferred, it receives a start time corresponding       fields. No new specialized control is required.
+to the current cycle number and an end time of NOW until the            Table 3 shows the temporal concept caught-ball, which
+first cycle in which the belief no longer holds. At that time,       holds if the ball is in the AIR (thrown by the passer) during
+the end time stamp reverts to a specific cycle number. Per-          one cycle, and then in the possession of a player during the
+cepts are not similarly time stamped, as perceptual memory           next cycle. Here, the :constraints field relates the end time
+continues to represent perceptions on the current cycle.             stamps of the two subconcepts (relations). Note that this defi-
+    This augmented belief representation lets I CARUS distin-        nition of caught-ball only holds for the one cycle in which the
+guish beliefs about past events from ones about the present.         receiver first gains possession of the ball (end times differ by
+The next extension is then to expand the temporal scope of be-       one). An alternative definition could relate the end time stamp
+lief memory by retaining all of the beliefs held throughout an       of the ball in the AIR with the start time of the receiver’s pos-
+episode. This is equivalent to providing the architecture with       session, thereby letting the concept match on every cycle after
+an episodic belief memory, whereas previously belief mem-            the initial catch. Preference in definition depends on how the
+ory included only those beliefs that held on the current cycle.      concept will be used by higher-level concepts.
+All beliefs contained in the episodic memory are generated              Table 4 shows the results of inference over the temporal
+through inference, which is based on the agent’s percepts, so        concepts for two cycles, including the beliefs inferred during
+belief memory maintains a record of experiences in the envi-         previous cycles. Notice the compact and temporally descrip-
+ronment from the agent’s perspective.                                tive form of the beliefs. Three beliefs describe the history of
+    The importance of episodic memory is well established,           ball possession over 125 cognitive cycles. In general, a single
+but the memory alone provides little improvement to an ar-           temporal belief state is sufficient to describe an entire episode
+chitecture’s capabilities. To exploit this memory, two mi-           up to that point. Also note the transition of the end time from
+nor changes to the concept language are required. First,             NOW to a cycle number for (POSSESSION AIR BALL1). The
+the :relations field, which lists the lower-level concepts           end time for (CAUGHT-BALL RB BALL1) will similarly re-
+that support a higher-level definition, expands to reference         vert to 125 in the next cycle.
+the time stamps assigned to beliefs. Second, we add a new               Looking beyond inference, execution also requires only
+:constraints field that represents simple arithmetic tests           minor changes to support the new temporal representation.
+over time values referenced in the :relations field. Thus,           Skill syntax requires no changes, but we add the assumption
+this field lets I CARUS use temporal constraints as antecedents      that preconditions (beliefs) required for a skill to either start
+to concepts.                                                         or continue execution must hold in the current time step (end
+    The architecture’s inference process also expands to sup-        time stamp equal to NOW). No further changes to skills are
+port the changes in belief and conceptual memories. The fun-         necessary because skill heads (goals) correspond to the heads
+damental mechanism, which computes in a bottom-up man-               of defined concepts. The concept definitions therefore con-
+ner the deductive closure of conceptual memory with the be-          tain the temporal constraints needed to determine whether a
+lief and perceptual memories, remains unchanged. The only            skill executed successfully. This is a key benefit of the close
+difference is that the time stamps and temporal constraints          relationship between inference and execution in I CARUS.
+                                                                 2988
+
+Figure 1: The pass play observed by I CARUS with annota-                                                                    Figure 2: Diagram of observed play with annotations indicat-
+tions indicating actions taken by individual players.                                                                       ing higher-level goals of individual players and player units.
+               run E                                                                    E                                               screen−receiver−routes                                                                E
+                                                                                ru                                                                                                                                            N
+                                                                                  nN                run E                                                   d E                                                                                   10yd E
+                                                                                                              ith−ba                      cross−pattern 10y                                                           yd
+                                                                                                                    ll
+                                                                                                                                                                                                           slant−pattern 15
+                                                                                                                                                                                                                                  cross−pattern
+       run N                                                                                                run−w
+                                                                                run N       run N
+line of
+scrimmage
+                        LG             C         RG
+                 LT                                                RT                                                           line of
+                                                                                 RTE        RWR                                                    form−pocket
+                          block
+       LWR
+                                                   block
+                                                                                                                                scrimmage
+                                                                   block
+                block
+                                       QB                                                                                                                             C
+                                                                                                                                                    LT    LG                                RG      RT
+                                                                                                                                       LWR                                                                    RTE                  RWR
+                                        run S
+                                                                                                                                                                   QB
+                                                                           run E
+                                                           block
+                                                                                                        catch
+                                                                                                                                                                      drop−scramble−pass
+                                                                                                                                                                                                           short−receiver−pattern
+                            c
+                        blo                       RB
+                          k
+                                  RB
+                                                scramble                                                                                                     s−                              RB
+                                                                                                                                                         paslock
+                                                                        throw                                                                             b
+                                                                                                                                                                 RB                        5yd RB
+                                                                                                                                screen−pass−play
+   The representation of temporal beliefs in I CARUS is con-
+sistent with recent studies which suggest that neurogenesis                                                                 note the coordinated aspects of the play, such as between the
+in the hippocampus plays a role in encoding temporal infor-                                                                 quarterback (QB) and the running back, who perform very
+mation as a form of time stamp (Aimone, Wiles, & Gage,                                                                      different activities, but time their activities such that the ball
+2009). The extensions also increase the correspondence of                                                                   is caught as the running back completes his run to the east.
+I CARUS’ belief memory with the notion of working mem-                                                                      Figure 2 shows a higher-level view of player behavior, and il-
+ory, which typically includes items from the past and present                                                               lustrates the type of interpretation that I CARUS must produce.
+that are currently being manipulated. Although the detailed                                                                    I CARUS assumes that low-level perceptual information,
+mechanisms that we use to represent time in I CARUS are not                                                                 such as pixel-based video footage, has already been processed
+psychologically plausible, they are consistent with our ob-                                                                 into a symbolic format. All domain objects must be described
+jective of qualitatively modeling human cognitive abilities.                                                                by some combination of symbolic and numeric attributes. We
+Specifically, our implementation of time stamps provides a                                                                  therefore rely on the results of video post-processing proce-
+more precise temporal reasoning ability, but it does not pro-                                                               dures (Hess & Fern, 2007; Hess, Fern, & Mortenson, 2007) to
+vide representational power beyond that of humans.                                                                          serve as the percepts. In this case, I CARUS perceives the iden-
+   We have implemented the above modifications to the ar-                                                                   tity, role (such as quarterback or running back), team (offense
+chitecture and tested them extensively in the football setting.                                                             or defense), location, direction and current activity (such as
+The problem solving and learning modules have not yet been                                                                  moving or blocking) of each of the 22 players on the field
+fully revised to support temporal concepts and beliefs, so we                                                               in each video frame (1/30th second), along with information
+do not focus on them here. However, we summarize the is-                                                                    about the ball carrier.
+sues that arise in the discussion section. In the next section,                                                                We provided I CARUS with a set of 67 temporal concept
+we demonstrate the use of temporal concepts, beliefs, and in-                                                               definitions sufficient for interpreting the observed plays. Ta-
+ference in I CARUS by applying them to recognize football                                                                   ble 5 shows the results of applying I CARUS to the three plays.
+plays observed from video footage.                                                                                          In all three cases, the architecture produced a set of beliefs
+                                                                                                                            consistent with the play, including the top-level classification
+                    An Illustrative Example                                                                                 of the entire coordinated sequence, such as screen-pass-play
+                                                                                                                            in Figure 2. The processing times are clearly slower than hu-
+The ability to remember past experiences and to relate them
+                                                                                                                            mans, although even human performance in this task is highly
+temporally to other experiences is critical in recognizing com-
+                                                                                                                            variable. Coaches and broadcast announcers can often inter-
+plex behaviors. Here we demonstrate I CARUS’ ability to rec-
+                                                                                                                            pret plays in real time, but most viewers rely on help from
+ognize such behaviors as they unfold over time. Specifically,
+                                                                                                                            announcers and instant replay to see the details of a given
+we apply the architecture to interpret three football plays as
+                                                                                                                            play. We revisit the question of efficiency in the next section.
+observed in video footage from a college football game. The
+goal is for I CARUS to interpret the behavior of the players,
+both individually and as a team.                                                                                                Table 5: Temporal inference results for three football plays.
+   Figure 1 shows a play diagram of one of the offensive pass-
+                                                                                                                                      Play         Frames             Duration                           Beliefs                        CPU
+ing plays presented to I CARUS. Notice the sequential nature
+                                                                                                                                      1              149               4.97 s                             619                          321.46 s
+of the individual player behaviors, such as the running back
+                                                                                                                                      2              200               6.67 s                             624                          539.23 s
+(RB, right side) who first blocks, then runs east, catches the
+                                                                                                                                      3              202               6.73 s                             661                          484.20 s
+ball, and finally runs north with the ball until tackled. Also
+                                                                                                                         2989
+
+                          Discussion                                  order in which subgoals should be considered (problem solv-
+                                                                      ing) or stored (skill learning). Aspects of problem solving and
+Our use of numeric time stamps on beliefs has several bene-
+                                                                      learning that depend on skills should not require substantial
+fits for I CARUS. First, it provides a unique form of episodic
+                                                                      change. Further research is needed to determine the details of
+memory based on individual temporal beliefs instead of entire
+                                                                      the integration, but we do not anticipate any major changes to
+episodes. Second, time stamped beliefs support retrieval of
+                                                                      the content of the architecture.
+temporally related items, rather than entire episodes. Third,
+the approach provides an explicit mechanism for reasoning                The relatively uncomplicated integration of temporal rep-
+about temporal relationships among individual beliefs. Fi-            resentation and reasoning capabilities into I CARUS suggests
+nally, these capabilities allow for recognition and execution         that some of the architecture’s other assumptions and com-
+of event sequences not previously possible. For example, the          mitments are also beneficial. In particular, the distinction be-
+patterns run by pass receivers in football require execution of       tween conceptual and skill memories substantially simplifies
+a sequence of simpler motions with specific temporal rela-            the integration by separating the potentially complex tempo-
+tions among them. Previously, even if I CARUS executed such           ral constraints and associated reasoning issues from the skill
+a sequence, it could not evaluate whether it had done so suc-         knowledge that uses the inferred beliefs. Likewise, the close
+cessfully either during or after execution. The revised concept       relationship between the two types of knowledge, and the
+language and belief memory provides support for both.                 strong interdependence between inference and execution al-
+   Numeric time stamps on beliefs also has implications for           lows both modules to exploit the temporal information.
+the representational power of I CARUS’ concept language and              A noted earlier, one temporal belief state is sufficient to re-
+inferred beliefs. First, they let the architecture avoid distin-      construct the sequence of events that led to that state within
+guishing between instantaneous and extended events, while             the limits of the concept hierarchy. This is consistent with
+still allowing agents to make such determinations. For exam-          Bartlett’s (1932) theory of reconstructive memory, which
+ple, an agent can have a concept that tests the equality of two       states that only some information about the past is avail-
+time stamps to determine whether some belief held for only            able in memory and the mind reconstructs the missing parts.
+one cycle. Likewise, the architecture does not distinguish be-        I CARUS’ ability to remember perfectly all beliefs is not psy-
+tween ongoing and completed events, but an agent can do so            chologically plausible, and one area of future work is to add a
+simply by testing the value of a belief’s end time stamp.             mechanism for forgetting. Bartlett’s theory suggests that de-
+   This approach is a strict departure from past work on time         tailed beliefs (lower-level in the context of I CARUS) tend to
+in agent architectures. For example, Allen (1984) relies on           be lost and reconstructed while the more abstract, big-picture
+temporal intervals that are compared relationally, but does           beliefs that form the core of an experience are retained. Such
+not specify specific times as end points. He maintains that           a process in I CARUS would let symbols in the arguments of
+this is important because it supports the notion that intervals       high-level beliefs flow down through the hierarchy toward the
+and events are infinitely decomposable. While mathemati-              lower-levels. However, this may not bind symbols to all low-
+cally true, this idea is cognitively implausible. Limits on hu-       level concept arguments, so additional reasoning would be
+man perception imply that support for such capabilities at the        required.
+architectural level is unnecessary. I CARUS’ use of the cogni-           A second avenue for future work relates to the intentions of
+tive cycle to determine time stamp values implements exactly          an agent with respect to execution. Currently, the inference
+this restriction in a qualitative manner.                             process does not have access to current goals or to those that
+   Providing architectural support for time in I CARUS has so         were achieved or abandoned in the past. Generating new tem-
+far been about generalizing the existing architecture, rather         poral beliefs that represent the intentions would let I CARUS
+than about adding new modules and mechanisms. The knowl-              reason about past goals and current goals. The addition of
+edge representation expanded to accommodate temporal in-              time-stamped intentions to belief memory would make a new
+formation in beliefs and concepts, and the belief memory ex-          class of goals available to the architecture. For example, the
+panded to include beliefs about the past, but no new struc-           goal work on homework until dinner is ready states that the
+tures or memories were required. Likewise, the revised infer-         agent should maintain the intention to complete homework
+ence process performs additional steps, but relies on the same        (which implies execution of skills for completing homework)
+fundamental procedures. The execution module requires no              until a specific event is satisfied. This is distinctly less restric-
+modification, relying instead on information passed through           tive of an agent’s behavior than a goal of complete homework
+concepts and beliefs to achieve temporal goals.                       before dinner.
+   Looking deeper into the architecture, the next steps of inte-         The retrieval of beliefs from the episodic memory is
+grating temporal capacity into the learning and problem solv-         another possible line for future development. Currently,
+ing modules should similarly be matters of generalization.            I CARUS uses the same pattern-matching process that it uses
+Each module depends on both concepts and skills, so the               for temporal beliefs. In practice, the temporal belief mem-
+parts of the modules that depend on concepts must be mod-             ory holds far more information than in earlier versions. As a
+ified to use the information contained in the temporal con-           result, the cost of matching (inferring) concepts grows with
+straints. Specifically, these constraints will inform the partial     the number of temporally distinct beliefs added to the mem-
+                                                                  2990
+
+ory, although this is far less than the cross-product of beliefs      Allen, J. F. (1984). Towards a general theory of action and
+with states. Soar reduces the computation required to deter-            time. Artificial Intelligence, 23, 123–154.
+mine the relevance of an episode by focusing first on its most        Altmann, E. M., & John, B. (1999). Episodic indexing: A
+recent experiences (Nuxoll & Laird, 2007). A similar mech-              model of memory for attention events. Cognitive Science,
+anism may be beneficial for I CARUS, although the matching              23, 117–156.
+details would be different since it would retrieves individual        Anderson, J. R. (1993). Rules of the mind. Hillsdale, NJ:
+beliefs rather than entire episodes.                                    Lawrence Erlbaum.
+   Finally, a related issue concerns the architecture’s approach      Anderson, J. R., & Lebiere, C. (1998). The atomic compo-
+of processing each perceptual state in its entirety, regardless         nents of thought. Mahwah, NJ: Erlbaum.
+of the amount of processing time available. In the case of            Bartlett, F. C. (1932). Remembering: A study in experimental
+play recognition, even coaches may be unable to recognize all           and social psychology. Cambridge, UK: Cambridge Uni-
+details of a play in real time. Instead, they process the most          versity Press.
+salient features of the play during the initial viewing, and then     Hess, R., & Fern, A. (2007). Improved video registration
+focus on finding more detailed behaviors during subsequent              using non-distinctive local image features. In Proceedings
+reviews. Time-sensitive application of conceptual knowledge             of the IEEE Conference on Computer Vision and Pattern
+and inference is particularly important in the context of a tem-        Recogntion. Minneapolis, MN: IEEE Press.
+poral belief memory, as the volume of information available           Hess, R., Fern, A., & Mortenson, E. (2007). Mixture-of-
+is large. This suggests that we incorporate a utility-based in-         parts pictorial structures for objects with variable part sets.
+ference process that focuses on concepts with higher utility            In Proceedings of the Eleventh IEEE International Confer-
+first, while low utility concepts receive attention only if time        ence on Computer Vision. Rio de Janeiro, Brazil: IEEE
+permits.                                                                Press.
+                                                                      Howes, A. (1993). Recognition-based problem solving. In
+                   Concluding Remarks                                   Proceedings of the 15th Annual Meeting of the Cognitive
+Remembering past experiences and reasoning about relation-              Science Society (pp. 551–556). Hillsdale, NJ: Erlbaum.
+ships over time are a fundamental cognitive abilities that hu-        Kintsch, W. (1998). Comprehension: A paradigm for cogni-
+mans rely on for a variety of tasks. However, very few cog-             tion. New York: Cambridge University Press.
+nitive models or intelligent systems have been developed to           Kolodner, J. (1993). Case-based reasoning. San Mateo, CA:
+model this capability. In this paper, we showed how to inte-            Morgan Kaufmann.
+grate an explicit representation of time and a temporal reason-       Laird, J. E., Rosenbloom, P. S., & Newell, A. (1986). Chunk-
+ing mechanism into the I CARUS architecture. The resulting              ing in Soar: The anatomy of a general learning mechanism.
+temporal belief memory serves as an episodic store, and the             Machine Learning, 1, 11–46.
+architecture’s ability to refer to past beliefs individually sup-     Langley, P., & Choi, D. (2006). A unified cognitive architec-
+ports a finer-grained episodic memory than other accounts.              ture for physical agents. In Proceedings of the Twenty-First
+   We also argued that our approach is functionally adequate,           National Conference on Artificial Intelligence. Boston:
+and that the relatively simple integration of temporal reason-          AAAI Press.
+ing into I CARUS suggests that other aspects of the architec-         Newell, A. (1990). Unified theories of cognition. Cambridge,
+ture are also beneficial. Substantial evaluation will be re-            MA: Harvard University Press.
+quired to confirm these points, but our initial tests and demon-      Nuxoll, A., & Laird, J. E. (2007). Extending cognitive ar-
+strations have been encouraging. Finally, the integration of            chitecture with episodic memory. In Proceedings of the
+temporal reasoning capabilities into I CARUS opens a wide va-           Twenty-Second Conference on Artificial Intelligence (pp.
+riety directions for future research on the architecture.               1560–1565). Vancouver, Canada: AAAI Press.
+                                                                      Tulving, E. (1983). Elements of episodic memory. Oxford:
+                     Acknowledgments                                    Clarendon Press.
+This material is based on research sponsored by DARPA un-             Tulving, E. (2002). Episodic memory: From mind to brain.
+der agreement FA8750-05-2-0283. The U. S. Government                    Annual Review of Psychology, 53, 1–25.
+is authorized to reproduce and distribute reprints for Gov-
+ernmental purposes notwithstanding any copyright notation
+thereon. The views and conclusions contained herein are
+those of the authors and should not be interpreted as repre-
+senting the official policies or endorsements, either expressed
+on implied, of DARPA or the U. S. Government.
+                          References
+Aimone, J. B., Wiles, J., & Gage, F. H. (2009). Computa-
+   tional influence of adult neurogenesis on memory encod-
+   ing. Neuron, 61(2), 187–202.
+                                                                  2991
+

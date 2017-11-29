@@ -1,0 +1,401 @@
+                       A Spiking Neural Bayesian Model of Life Span Inference
+                                           Sugandha Sharma (s72sharm@uwaterloo.ca)
+                                            Aaron R. Voelker (arvoelke@uwaterloo.ca)
+                                            Chris Eliasmith (celiasmith@uwaterloo.ca)
+                                      Centre for Theoretical Neuroscience, University of Waterloo
+                                                      Waterloo, ON, Canada, N2L 3G1
+                              Abstract                                  can point the way towards approximate Bayesian algorithms
+                                                                        that are efficiently implemented in a neural substrate.
+   In this paper, we present a spiking neural model of life span
+   inference. Through this model, we explore the biological                Griffiths, Chater, Norris, and Pouget (2012) conclude that
+   plausibility of performing Bayesian computations in the brain.       different theoretical frameworks, such as Bayesian model-
+   Specifically, we address the issue of representing probabil-
+   ity distributions using neural circuits and combining them in        ing and connectionism, have different insights to offer about
+   meaningful ways to perform inference. We show that applying          human cognition, distributed across different levels of anal-
+   these methods to the life span inference task matches human          ysis. Here we make an initial attempt towards integrating
+   performance on this task better than an ideal Bayesian model
+   due to the use of neuron tuning curves. We also describe po-         these frameworks. We explore the biological plausibility of
+   tential ways in which humans might be generating the priors          Bayesian inference by implementing a neural model of a life
+   needed for this inference. This provides an initial step towards     span prediction task using the Neural Engineering Frame-
+   better understanding how Bayesian computations may be im-
+   plemented in a biologically plausible neural network.                work (NEF; Eliasmith & Anderson, 2003). We answer ques-
+                                                                        tions about how probability distributions can be represented
+   Keywords: Neural Engineering Framework; biologically
+   plausible inference; neural bayesian model; expectation maxi-        in a connectionist framework using spiking neurons, and how
+   mization                                                             the neural representations of these probability distributions
+                                                                        can be used in meaningful ways. The next section describes
+                          Introduction                                  the life span prediction task which we use.
+Computations performed by the nervous system are subject
+to uncertainty because of the influence of sensory, cellular,                            Life span prediction task
+and synaptic noise. At the level of cognition, the models that
+                                                                        Griffiths and Tenenbaum (2006) evaluate how cognitive judg-
+the brain uses to interact with its environment must neces-
+                                                                        ments compare with optimal statistical inference by asking
+sarily cope with missing and imperfect information about the
+                                                                        people to predict human life spans. A group of 208 people
+world. Behavioral studies have confirmed that humans often
+                                                                        were asked to predict human life spans, after being presented
+account for uncertainty in a way that is nearly optimal in the
+                                                                        by a question in survey format as given below:
+Bayesian sense (i.e., “Bayes optimal”) (Ma, Beck, Latham,
+& Pouget, 2006)). This implies that (1) neural circuits must,              “Insurance agencies employ actuaries to make predictions
+at least implicitly, represent probability distributions, and (2)       about people’s life spans – the age at which they will die
+neural circuits must be able to effectively compute with these          based upon demographic information. If you were assessing
+probability distributions in order to perform Bayesian infer-           an insurance case for an 18-year-old man, what would you
+ence near-optimally.                                                    predict for his life span?”
+   Probabilistic models based on Bayes’ rule have been                     The responses were recorded and compared with the pre-
+widely used for understanding human cognition including                 dictions made by a Bayesian model.
+inference, parameter and structure learning (Jacobs & Kr-
+uschke, 2011), and word learning (Xu & Tenenbaum, 2007).                Bayesian model
+However, most Bayesian models lack biological plausibility              If ttotal indicates the total amount of time the person will live
+because it is unclear how these computations might be real-             and t indicates his current age, the task is to estimate ttotal
+ized in the brain. In particular, these models rely on sophis-          from t. The Bayesian model computes a probability distribu-
+ticated computations including high-dimensional integration,            tion over ttotal given t, by applying Bayes’ rule:
+precise multiplication, and large-scale structure representa-
+tion, without the use of spiking neuron models to implement                             p(ttotal |t) = p(t|ttotal )p(ttotal )/p(t),    (1)
+these necessary computations.
+   A biologically plausible Bayesian approach can provide               where:
+us insights into the working of the brain at multiple levels                                      Z ∞
+of analysis (Eliasmith, 2013). Moreover, it can also help in                            p(t) =        p(t|ttotal )p(ttotal ) dttotal . (2)
+                                                                                                   0
+making more accurate normative predictions about how the
+perceptual system combines prior knowledge with sensory                    We assume that the maximum age is 120 years. Thus,
+observations, enabling more accurate interpretations of data            when calculating p(t) in practice, the integral may be com-
+from psychological experiments (Doya, 2007). And finally, it            puted from 0 to 120.
+                                                                    3131
+
+Prior Griffiths and Tenenbaum (2006) use publicly avail-                 which are used to construct large-scale neural models. The
+able real-world data to identify the true prior distribution             first two principles are described in the following sections.
+p(ttotal ) over life spans (shown in Figure 1A).                         The principle of representation also describes how probability
+                                                                         distributions can be represented using spiking neurons. The
+Likelihood The likelihood p(t|ttotal ) is the probability of             third principle is not required for this paper, and its details
+encountering a person at age t given that their total life span is       can be found elsewhere (Eliasmith & Anderson, 2003).
+ttotal . Griffiths and Tenenbaum (2006) assume for simplicity
+                                                                         Principle 1 – Representation
+that we are equally likely to meet a person at any point in his
+or her life. As a result, this probability is uniform, p(t|ttotal ) =    In the NEF, information is represented as time-varying vec-
+1/ttotal , for all t < ttotal (and 0 for t ≥ ttotal ).                   tors of real numbers by populations of neurons. We say that a
+                                                                         population of neurons has activities ai (x), which encode an n-
+                                                                         dimensional stimulus vector, x = [x1 , x2 , . . . , xn ], by defining
+Prediction function Combining the prior with the likeli-
+                                                                         the encoding:
+hood according to Equation 1 yields a probability distribu-
+                                                                                                   ai (x) = Gi [Ji (x)] ,                  (3)
+tion p(ttotal |t) over all possible life spans ttotal for a person
+encountered at age t. As is standard in Bayesian predic-                 where Gi [·] is the nonlinear transfer function describing the
+tion, Griffiths and Tenenbaum (2006) use the median of this              neuron’s spiking response, and Ji (x) is the current entering
+distribution—the point at which it is equally likely that the            the soma of the neuron. For the purpose of our model, we
+true life span is either longer or shorter—as the estimate for           have chosen Gi [·] to be the leaky integrate-and-fire (LIF) neu-
+ttotal . This identifies a prediction function that specifies a pre-     ron model. The soma current is defined by:
+dicted value of ttotal for each observed value of t.
+                                                                                              Ji (x) = αi hei , xin + Jibias ,             (4)
+Results Results obtained by Griffiths and Tenenbaum
+                                                                         where Ji (x) is the current in the soma, αi is a gain and con-
+(2006) through this Bayesian model are shown in Figure 1B.
+                                                                         version factor, x is the stimulus vector to be encoded, ei
+                                                                         is the encoding vector which corresponds to the “preferred
+    (A)                           (B)                                    stimulus” of the neuron—consistent with the standard idea
+                                                                         of a preferred direction vector (Schwartz, Kettner, & Geor-
+                                                                         gopoulos, 1988)—and Jibias is a bias current that accounts
+                                                                         for background activity. The notation h·, ·in indicates an n-
+                                                                         dimensional dot-product.
+                                                                            Given this encoding, the original stimulus vector can be
+                                                                         estimated by decoding those activities as follows:
+                                                                                                     x̂ = ∑ ai (x)di .                     (5)
+                                                                                                           i
+                                                                            The decoding vectors di (also known as “representational
+                                                                         decoders”) are typically found in the NEF by least-squares
+                                                                         optimization, which we use here (Eliasmith & Anderson,
+                                                                         2003). Thus, the decoders resulting from this optimization
+                                                                         complete the definition of a population code over a set of neu-
+Figure 1: (A) Empirical distribution of the total life span              rons i for the representation of x. The code is defined by the
+ttotal . (B) Participants’ predicted values of ttotal for a single       combination of nonlinear encoding in Eq. 3 and weighted lin-
+observed sample t. Black dots show the participants’ median              ear decoding in Eq. 5.
+predictions for ttotal . Solid line shows the optimal Bayesian
+predictions based on the empirical prior distribution shown in           Temporal representation The population code does not
+A. Dotted lines show predictions based on a fixed uninforma-             explicitly address the issue of how information is encoded
+tive prior. Note: the fit between the human predictions (black           over time. To do so, we can begin by considering the tem-
+dots) and Bayesian predictions (solid line) looks spot on in             poral code for each neuron in isolation by taking the neural
+this figure due to the compressed y-axis, but Figure 4b shows            activities to be filtered spike trains as shown in Eq. 6:
+a zoomed version revealing that this is not the case. Adapted
+from Griffiths and Tenenbaum (2006).                                                ai (t) = ∑ hi (t) ∗ δ(t − tm ) = ∑ hi (t − tm ),       (6)
+                                                                                              m                         m
+                                                                         where δi (·) are the spikes at time tm for a given neuron i,
+             Neural Engineering Framework                                generated by Gi [·] and hi (t) are the linear decoding filters.
+The Neural Engineering Framework (NEF) is based on three                 We can compute the optimal filters for decoding using the
+principles—representation, transformation, and dynamics—                 NEF, however to make our model biologically plausible, we
+                                                                     3132
+
+have chosen these filters (hi (t)) to be the postsynaptic currents        the encoding and decoding functions in φ(υ) basis for each
+(PSCs) induced in subsequent neuron by the arrival of a spike.            neuron. We now substitute these into Eq 10:
+Eliasmith and Anderson (2003) have shown that this assump-                                       "                                             #
+tion causes minimal information loss which can be further
+                                                                              ai (x(υ; k)) = Gi αi      ∑ kn φn (υ)eim φm (υ)           + Jibias
+reduced by increasing the population size.                                                              m,n
+   This temporal code can be combined with the population                                        "                                  #
+code defined before (Eqs. 3, 4, 5), to provide a general popu-                               = Gi αi ∑ kn eim δmn + Ji           bias
+lation temporal code for vectors. The encoding and decoding                                             m,n                                        (14)
+equations for such a code are given by Eq. 7 and Eq. 8:                                                                      
+                                                                                                                           bias
+                                    h                  i                                     = Gi αi ∑ kn ein + Ji
+                δ(t − tim ) = Gi αi hei , xin + Jibias            (7)                            h
+                                                                                                         n
+                                                                                                                         i
+                                                                                             = Gi αi hei , kin + Jibias .
+                         x̂ = ∑ hi (t − tm )di .                  (8)
+                                i,m
+                                                                              This way, function encoding is expressed as vector encod-
+Representing probability distributions Probability distri-                ing identical to Eq. 7. Similarly, function decoding can also
+butions are essentially functions of some parameters. Having              be expressed as vector decoding as follows:
+described how to represent vectors using the NEF, we con-
+sider the relationship between vector and function representa-                                        k̂ = ∑ ai (k)di .                            (15)
+tion. For any representation, we need to specify the domain of                                                i
+that representation. In case of vectors, the domain is the sub-               To summarize, we have shown that it is mathematically
+space of the vector space that is represented by the neurons              equivalent to talk in terms of (finite-dimensional) function
+(e.g., the x vector). We define the relevant function domain              spaces or (finite-dimensional) vector spaces. Since probabil-
+by parameterizing the set of represented functions by an n-               ity distributions are most generally functions, we can approx-
+dimensional vector of coefficients k = [k1 , k2 , . . . , kn ]. These     imate them as high-dimensional vectors over a fixed set of
+define any function of interest over a fixed set of basis func-           basis functions using the NEF.
+tions φ(υ) as follows:
+                                                                          Principle 2 – Transformation
+                         n
+             x(υ; k) =  ∑ k j φ j (υ),     for k ∼ p(k).          (9)     Transformations of neural representations are functions of the
+                        j=1                                               vector variables represented by neural populations.
+                                                                              To perform a transformation f (x) in the NEF, instead of
+Thus we define a particular probability distribution p(k) by              finding the representational decoders di to extract the orig-
+limiting the space spanned by the basis φ(υ) to some sub-                 inally encoded variable x, we can re-weight the decoding
+space of interest depending on the application. This is also              to specify some function f (x) other than identity. In other
+the domain over which the optimization to find the decoders                                                          f (x)
+                                                                          words, we can find the decoders di (also known as “trans-
+in Eq. 5 is performed.
+                                                                          formational decoders”) by using least-squares optimization
+   Next, we define population encoding and decoding analo-
+                                                                          to minimize the difference between the decoded estimate of
+gous to that in Eqs 3 and 5 for functions:
+                                                                           f (x) and the actual f (x), which results in the transformation:
+                                  h                            i
+   ai (x(υ; k)) = ai (k) = Gi αi hei (υ), x(υ; k)in + Jibias (10)                                                      f (x)
+                                                                                                    x̂ = ∑ ai (x)di          .                     (16)
+                x̂(υ; k) = ∑ ai (k)di (υ),                       (11)                                       i
+                              i
+                                                                              Both linear and nonlinear functions of the encoded vector
+where ei (υ) and di (υ) are the encoding and decoding func-               variable can be computed in this manner (Eliasmith & An-
+tions of the neurons. We project these functions onto the same            derson, 2003). In the NEF, connection weights between neu-
+basis φ(υ) used to identify the function space. For simplic-              rons can be defined in terms of encoders and decoders as:
+                                                                                           f (x)
+ity, we assume that φ(υ) is an orthonormal basis – an anal-               ωi j = α j e j di , where i indexes the presynaptic population,
+ogous derivation for a bi-orthonormal set can be found else-                                                                        f (x)
+                                                                           j indexes the postsynaptic population, and di are represen-
+where (Eliasmith & Martens, 2011). Hence, we get the fol-                 tational or transformational decoders.
+lowing encoding and decoding functions:
+                                     n                                              Neural model of life span prediction
+                        ei (υ) =    ∑ ei j φ j (υ)               (12)     Figure 2 shows the architecture of the neural model for
+                                    j=1                                   life span inference built using the NEF. All neural ensem-
+                                     n
+                                                                          bles (populations of neurons; symbolically represented by
+                       di (υ) =     ∑ di j φ j (υ),              (13)
+                                                                          five circles) are 20 dimensional and contain 200 LIF neu-
+                                    j=1
+                                                                          rons each, except the Normalized Posterior ensemble which
+ where ei j and di j identify the n coefficients that represent           is 120 dimensional and contains 800 LIF neurons. The
+                                                                      3133
+
+                                                                                     105
+                                                                                             Human predictions
+                                                                                     100     Direct mode (no neurons)
+                                                                      Predicted ttotal
+                                                                                      95     Neural model predictions
+                                                                                      90
+                                                                                      85
+                                                                                      80
+Figure 2: A schematic diagram of the neural model. Here                               75
+“Likelihood” and “Prior” contain 200 neurons each, “Prod-                             70
+uct” network contains 4000 neurons and “Normalized Poste-
+rior” contains 800 neurons.                                                           65
+                                                                                         0   20       40      60        80   100
+                                                                                                      t values
+product network computes an element-wise product of its
+inputs. Though multiplication is nonlinear, it has a well-         Figure 3: Inference results from neural model (95% con-
+characterized implementation in neurons that does not require      fidence intervals), compared to humans and Direct mode -
+nonlinear interactions, and can be implemented accurately          our model with computations in low-dimensional (20 dimen-
+with the NEF (Gosmann, 2015). The product network makes            sional basis) space, but without neurons.
+use of this characterization. It has 40 neural ensembles of 100
+neurons each for a total of 4,000 neurons. The entire model
+contains 5,200 neurons.                                            approach the Direct mode results (800 neurons provide the
+   To represent the probability distributions (prior and likeli-   best fit to human data). Thus, neural results match the human
+hood) needed to perform the task, we define a basis φ20 (υ) to     data better due to the approximate representation of the nor-
+span the space of each distribution. To compute the basis we       malized posterior by the neurons in the Normalized Posterior
+sample from a family of 120 dimensional distributions and do       ensemble. The tuning curves of the neurons in this ensemble
+Singular Value Decomposition to obtain a 20 dimensional ba-        were fit to a function space consisting of a family of distribu-
+sis. This basis is used to determine the encoders (as given by     tions which have three parameters (similar to the parameters
+Eq. 12) used in the NEF simulation. The same basis is used         in the prior) and also depend on the current age (t) (similar to
+for the optimization to find the neuron decoders (as given by      the likelihood function). The three parameters: a - the skew-
+Eq. 13) that are needed to perform the desired computations.       ness parameter was varied from -7 to -4, scale - used to scale
+Similar to the encoding and decoding functions, the 120 di-        the distribution was varied from 26 to 29 and loc - used to
+mensional prior and likelihood functions are also projected        shift the distribution was varied between 49 to 101. The cur-
+to the 20 dimensional space through weights over the basis.        rent age (t) was varied in the range of +/-5 for a given age in a
+Refer to the supplemental material for details.                    trial except ages below 5 for which the range was taken to be
+   The likelihood input and prior input are nodes that pro-        from [1, 10]. This provides the function space that was used
+vide the named 20 dimensional inputs to the neural ensem-          to sample the encoders for Normalized Posterior ensemble.
+bles Likelihood and Prior respectively. The product network           We use the Kolmogorov-Smirnov (K-S) test to examine
+receives input from these ensembles and computes the pos-          the goodness of fit of the neural model predictions relative
+terior distribution (in the 20 dimensional space). The out-        to the Griffiths and Tenenbaum (2006) model. The data
+put connection from product network to Normalized Poste-           used for the K-S test are shown in Figure 4b. The dissimi-
+rior reconstructs the posterior back to 120 dimensional space      larity of the Griffiths and Tenenbaum (2006) model relative
+and computes the normalization function using principle 2          to human predictions is 9.628, while that of the neural model
+of the NEF. Thus, the Normalized Posterior ensemble rep-           is 1.959, indicating the much closer fit of the neural model
+resents the normalized posterior distribution. Next we ap-         to the human data. Figure 4a shows a comparison between
+proximate the median of this distribution on the connection        the Griffiths and Tenenbaum (2006) model, the computational
+between the Normalized Posterior ensemble and the Predic-          model (our replication of their model), and direct mode (our
+tion node (again using principle 2). We read out the model         model with computations in a compressed 20 dimensional
+prediction from the Prediction node.                               space, but without neurons). Since the results obtained from
+   Figure 3 shows the inference results obtained from the          the direct mode are the same as the computational model,
+spiking neural network run in the Nengo (Bekolay et al.,           the low dimensional embedding is not losing any informa-
+2014) software package. Model predictions are plotted for          tion. However, we expect some error due to this constraint
+current ages (t) from 1 to 100. The difference between the         for more complex priors (though we have not explored the
+results in Direct mode and Neuron mode is due to the limited       minimum dimensionality for this prior).
+number of neurons in the Normalized Posterior ensemble. As            Overall, our results suggest that the closer fit of the neu-
+the number of neurons in this ensemble increases, the results      ral data can be solely attributed to fitting the neuron tuning
+                                                               3134
+
+                       105                                                                       100
+                                     Computational model                                                         Human predictions
+                       100           Direct mode (no neurons)                                        95          Tenenbaum el al. predictions
+        Predicted ttotal                                                          Predicted ttotal
+                        95           Tenenbaum et al. model                                                      Neural model predictions
+                                                                                                     90
+                        90
+                                                                                                     85
+                        85
+                        80                                                                           80
+                        75                                                                           75
+                        70                                                                           70
+                           0         20        40       60       80         100                        10 20 30 40 50 60 70 80 90 100
+                                               t values                                                                      t values
+                           (a) No error due to low dimensional embedding.                                 (b) Data used for the goodness of fit test.
+Figure 4: (a) Results from Griffiths and Tenenbaum (2006) model (only data corresponding to human data), Computational
+model i.e., our replication of their model, and Direct mode i.e., our model with computations in low-dimensional space, but
+without neurons. (b) Kolmogorov-Smirnov (K-S) test results. Dissimilarity relative to human predictions - Griffiths and Tenen-
+baum (2006) model: 9.628, neural model: 1.959. Neural model and human data are median predictions. Note: Griffiths and
+Tenenbaum (2006) model data and human data were obtained from Figure 1B through a web plot digitizer.
+curves in the Normalized Posterior ensemble, where 800 neu-                              lihood of the observed data, L(α; X) (or equivalently the log-
+rons provide the best match to human performance. Since                                  likelihood for numerical stability):
+the low-dimensional neural implementation can be made to                                                                                       n
+match the human data, this is some evidence in support of                                            α̂ = argmaxα L(α; X) = argmaxα ∑ log ∑ p(xi , zi |α).
+the hypothesis that human brains represent low-dimensional                                                                                   i=1       zi
+state spaces (low-dimensional parameterizations of high-                                                                                              (17)
+dimensional distributions fit using neural tuning curves).                               In general, however, the procedure described above is in-
+                                                                                         tractable, since it requires that we iterate over all combina-
+                Generalized life span inference                                          tions of α and Z. This motivates near-optimal iterative proce-
+                                                                                         dures such as the widely-used expectation maximization al-
+In our neural model, we use the prior obtained empirically                               gorithm (EM; Dempster, Laird, & Rubin, 1977). Below we
+by Griffiths and Tenenbaum (2006). However, our neural                                   work out the details of the EM procedure for the case where
+modeling methods can further be used to explore how this                                 the hyperparameters are α = (µ, σ2 ), i.e., the prior is assumed
+prior might be learned in the human brain. Here, we lay some                             to be normally distributed with unknown moments. We begin
+theoretical ground work for addressing this question, while                              by simplifying the expectation function using independence
+building the complete neural model remains for future work.                              and other known facts about the model:
+   We assume that priors that humans have about life spans
+are a result of their experiences encountering people of dif-                                               Q(α|α(t) ) = EZ|X,α(t) [log L(α; X, Z)]
+ferent ages in their daily lives. Thus the prior will be inferred                                                           n
+from the data that comes from daily experience. We further                                                              = ∑ Ezi |xi ,α(t) [log L(α; xi , zi )]
+                                                                                                                           i=1                                    (18)
+assume that the prior is parameterized by some unknown hy-                                                                  n
+perparameters (α) which are to be estimated from the ob-                                                                = ∑ ∑ T (xi , zi ) log (p(zi |α)/zi ) ,
+served ages of n distinct people, given by X = {x1 , . . . , xn }.                                                         i=1 zi
+Here, each random variable xi corresponds to a separate t
+                                                                                         where we have defined T (xi , zi ) := p(zi |xi , α(t) ) to be some
+from the previous model. Likewise, we model each element
+                                                                                         fixed function with respect to α(t) . Next, we simplify the log
+of X as being drawn independently from each element of
+                                                                                         expression using our model of the prior:
+Z = {z1 , . . . , zn } corresponding to the (unknown or hidden)                                                                           !
+life spans of these same n people. Each random variable                                                                   1       (z −µ)2
+                                                                                                                                − i 2
+zi corresponds to a separate ttotal from the previous model,                                 log (p(zi |α)/zi ) = log √        e 2σ         − log zi
+                                                                                                                         2σ2 π                          (19)
+which in turn is drawn from the unknown prior. We now de-
+scribe two standard methods for determining a prior by ob-                                       1           2   2       2
+                                                                                                                                                   
+                                                                                             = − (zi − µ) /σ + log σ + log (2π) + 2 log zi ,
+taining an estimate α̂ of the hyperparameters.                                                   2
+   If we do not know the actual prior, then the optimal so-                              and then differentiate this with respect to µ:
+lution can be found by trying them all. That is, we directly                                                      ∂ log (p(zi |α)/zi )
+find the hyperparameters α̂ that maximize the marginal like-                                                                           = (zi − µ)σ2 ,             (20)
+                                                                                                                          ∂µ
+                                                                             3135
+
+and with respect to σ2 :                                                            computation. We constructed the network using the NEF to
+                                                                                    map function spaces into vector spaces and approximate the
+           ∂ log (p(zi |α)/zi ) 1                                                   necessary computations. We suggested a means of estimating
+                                             (zi − µ)2 − σ2 /σ4 .
+                                                                  
+                                     =                                     (21)
+                           2             2
+                     ∂σ                                                             the prior for the life span task that can be implemented using
+By linearity of differentiation, we then know that the deriva-                      these same methods.
+tives of Q(·) are zero when:                                                        Notes Supplemental material (scripts and derivations) can
+                                                                                    be found at https://github.com/ctn-waterloo/cogsci17-infer.
+                            n
+    ∂Q(α|α(t) )
+                    = ∑ ∑ T (xi , zi )(zi − µ)σ2 = 0                                                     Acknowledgments
+          dµ              i=1 zi
+                                                                           (22)     This work was supported by CFI and OIT infrastructure fund-
+                           ∑ni=1 ∑zi zi T (xi , zi )
+       ⇐⇒         µ=                                 , and similarly:               ing, the Canada Research Chairs program, NSERC Discov-
+                            ∑ni=1 ∑zi T (xi , zi )                                  ery grant 261453, ONR grant N000141310419, AFOSR grant
+                           n
+                                                                                    FA8655-13-1-3084, OGS, and NSERC CGS-D.
+    ∂Q(α|α(t) )                             1
+                    = ∑ ∑ T (xi , zi ) (zi − µ)2 − σ2 /σ4 = 0
+                                                                      
+            2
+        dσ               i=1 zi             2                                                                 References
+                          ∑ni=1 ∑zi (zi − µ)2 T (xi , zi )                          Bekolay, T., Bergstra, J., Hunsberger, E., DeWolf, T., Stewart,
+     ⇐⇒        σ2 =                                           .                       T. C., Rasmussen, D., . . . Eliasmith, C. (2014). Nengo: a
+                               ∑ni=1 ∑zi T (xi , zi )
+                                                                           (23)       Python tool for building large-scale functional brain mod-
+Finally, by the generalized Bayes’ rule, we know:                                     els. Frontiers in neuroinformatics, 7, 48.
+                                                                                    Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Max-
+                                                      p(zi , xi |α(t) )               imum likelihood from incomplete data via the EM algo-
+           T (xi , zi ) = p(zi |xi , α(t) ) =                            ,
+                                                   ∑zi p(zi , xi |α(t) )              rithm. Journal of the royal statistical society. Series B
+                                                                                      (methodological), 1–38.
+which we may compute via Eq. 1. We also note that since                             Doya, K. (2007). Bayesian brain: Probabilistic approaches
+T (·) is a probability density function over zi , that:                               to neural coding. MIT press.
+                                                                                    Eliasmith, C. (2013). How to build a brain: A neural archi-
+                          n                       n
+                                                                                      tecture for biological cognition. Oxford University Press.
+                        ∑ ∑ T (xi , zi ) = ∑ 1 = n.                                 Eliasmith, C., & Anderson, C. H. (2003). Neural engineer-
+                        i=1 zi                  i=1
+                                                                                      ing: Computation, representation, and dynamics in neuro-
+Therefore, each EM iteration must make the update α(t+1) =                            biological systems. MIT press.
+(µ(t+1) , σ(t+1) ), where:                                                          Eliasmith, C., & Martens, J. (2011). Normalization for prob-
+                                                                                      abilistic inference with neurons. Biological cybernetics,
+                   1 n ∑zi zi p(zi , xi |α(t) )                                       104(4), 251–262.
+       µ(t+1) =        ∑ ∑ p(zi , xi |α(t) )
+                   n i=1        zi                                                  Gosmann, J.          (2015).     Precise multiplications with
+                   s                                                       (24)       the NEF [Technical Report].            University of Water-
+                       1 n ∑zi (zi − µ(t+1) )2 p(zi , xi |α(t) )                      loo, Waterloo, Ontario, Canada.              Retrieved from
+       σ(t+1) =             ∑                                            .
+                       n i=1            ∑zi p(zi , xi |α(t) )                         http://dx.doi.org/10.5281/zenodo.35680
+                                                                                    Griffiths, T. L., Chater, N., Norris, D., & Pouget, A. (2012).
+This converges to some locally optimal estimate of the hyper-                         How the Bayesians got their beliefs (and what those beliefs
+parameters. For initial α(0) chosen sufficiently close to global                      actually are): comment on bowers and davis (2012).
+optimum α̂ given by Eq. 17, this converges to the optimum.                          Griffiths, T. L., & Tenenbaum, J. B. (2006). Optimal predic-
+   This provides a tractable procedure for updating the prior.                        tions in everyday cognition. Psychological science, 17(9),
+In particular, we begin with some initial guess at the hyper-                         767–773.
+parameters, and then update them iteratively to better explain                      Jacobs, R. A., & Kruschke, J. K. (2011). Bayesian learning
+the observed data. In practice only a few iterations are re-                          theory applied to human cognition. Wiley Interdisciplinary
+quired (results not shown). Once we have an estimate of the                           Reviews: Cognitive Science, 2(1), 8–21.
+hyperparameters (α̂), we then know the prior p(ttotal |α̂). This                    Ma, W. J., Beck, J. M., Latham, P. E., & Pouget, A. (2006).
+prior can be used directly by the previously described model                          Bayesian inference with probabilistic population codes.
+to provide a good prediction. In fact, it is possible to run both                     Nature neuroscience, 9(11), 1432–1438.
+the prior optimization and inference at the same time, and                          Schwartz, A. B., Kettner, R. E., & Georgopoulos, A. P.
+both will become progressively more accurate over time.                               (1988). Primate motor cortex and free arm movements to
+                                                                                      visual targets in three-dimensional space. I. Relations be-
+                                Conclusions                                           tween single cell discharge and direction of movement. The
+We have presented a spiking neural network able to effec-                             Journal of Neuroscience, 8(8), 2913–2927.
+tively perform Bayesian inference in a manner that more                             Xu, F., & Tenenbaum, J. B. (2007). Word learning as
+accurately matches human behavior than an ideal Bayesian                              Bayesian inference. Psychological review, 114(2), 245.
+                                                                                3136
+

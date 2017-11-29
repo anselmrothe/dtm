@@ -1,0 +1,439 @@
+          Episodic memory as a prerequisite for online updates of model structure
+                                                   David G. Nagy1,2 , Gergo Orban 1
+                                               {nagy.g.david, orban.gergo}@wigner.mta.hu
+               1 Computational   Systems Neuroscience Lab, Wigner Research Centre for Physics, Budapest, Hungary
+                                  2 Institute of Physics, Eotvos Lorand University, Budapest, Hungary
+                              Abstract                                   currently tracked models, but the initial guess for which mod-
+                                                                         els these should be is likely to be wrong because the initial
+   Human learning in complex environments critically depends             data will only warrant an overly simple model and because
+   on the ability to perform model selection, that is to assess com-
+   peting hypotheses about the structure of the environment. Im-         it might be misleading about the correct structure and form.
+   portantly, information is accumulated continuously, which ne-         Introducing such a bias in the interpretation of new experi-
+   cessitates an online process for model selection. While model         ences towards the wrong models means that statistical power
+   selection in human learning has been explored extensively, it is
+   unclear how memory systems support learning in an online set-         required for model updating cannot accumulate, since the ev-
+   ting. We formulate a semantic learner and demonstrate that on-        idence for alternative models and the information needed for
+   line learning on open model spaces results in a delicate choice       fitting those models will often be deemed irrelevant and dis-
+   between either tracking a possibly infinite number of compet-
+   ing models or retaining experiences in an intact form. Since          carded, preventing the discovery of the correct representation.
+   none of these choices is feasible for a bounded-resource mem-             We propose that an episodic memory can alleviate the fun-
+   ory system, we propose an episodic learner that retains an op-        damental problem of online learning described above, by re-
+   timised subset of experiences in addition to semantic memory.
+   On a simple model system we demonstrate that this norma-              taining a selected subset of samples. This mini-batch allows
+   tive theory of episodic memory can effectively circumvent the         evidence for a novel model to accumulate by retaining the
+   challenge of online model selection.                                  contingent details of observations irrespective of how rele-
+   Keywords: episodic memory; semantic memory; online                    vant they appear under the current model. We also argue that
+   model selection; Bayesian modeling; bounded-resource-
+   rationality                                                           to take full advantage of episodic memory, its contents should
+                                                                         be chosen selectively, so that the combination of episodic and
+                                                                         semantic memories provide an efficient representation of the
+                           Introduction                                  observations.
+In a complex, structured environment that is capable of pro-                 We are aware of two prior attempts to provide a normative
+viding a practically infinite variety of possible experiences,           explanation for an episodic memory based on computational
+storing them in all their detail would take a prohibitive                principles. The complementary learning systems account of
+amount of memory and would be useless in responding to                   (McClelland, McNaughton, & O’Reilly, 1995) suggests that
+novel situations. It is more beneficial for an learning agent to         a hippocampal learning system is required in order to avoid
+extract the structure of the world into a concise model, which           interference with knowledge stored in a neocortical system
+enables both compression and generalisation, and store this              where learning occurs via slow changes of synaptic connec-
+model instead of the observations. But then what is the ben-             tivity in a network of neurons. Catastrophic interference can
+efit of devoting precious mental resources to encoding incon-            be seen as a special case of the detrimental consequences of
+sequential contingencies by storing rich snapshots of actual             an inability to maintain a lossless representation of observa-
+experience, that is, what use is episodic memory?                        tions during learning, but in contrast to our treatment, the
+   We argue that online learning in open-ended hypothesis                complementary learning systems approach lacks a normative
+spaces under realistic resource constraints — similar to what            framework and only concerns parameter estimation within a
+the human brain faces — presents a computational challenge               single model. Lengyel & Dayan (2009) argue that using the
+that makes such a memory system necessary. In an online                  data samples directly for control is advantageous at the early
+learning scenario, observations arrive sequentially and pre-             stages of learning in a new environment. A different but re-
+dictions have to be continuously updated. Iterative updates              lated question about how the combination of semantic and
+of a particular model’s parameters do not require storing the            episodic memories can be used to optimize reconstruction is
+data, since it is sufficient to retain only the information rel-         explored by (Hemmer & Steyvers, 2009).
+evant to the specification of the parameters. However, if the                While this paper is intended primarily as a normative ar-
+structural form of the model is a priori unknown (Kemp &                 gument for the existence of a cognitive system, the prob-
+Tenenbaum, 2008), then only a subset of candidate models                 lem explored here is intimately related to the efforts in ma-
+can be tracked at any given time, since the memory cost of re-           chine learning to handle the problem of online Bayesian
+taining even such compressed statistics becomes prohibitive              model selection in arbitrarily complex model spaces. There
+for an infinite set of models. The inevitable information loss           are numerous proposals for methods that deal with on-
+resulting from this restriction presents the brain with a deli-          line model selection or model selection in infinite model-
+cate problem: relevance judgements, that is, decisions about             spaces (Grosse, Salakhutdinov, Freeman, & Tenenbaum,
+what to forget and what to remember can only be based on the             2012; Hjort, Holmes, Müller, & Walker, 2010) separately.
+                                                                     2699
+
+Recently, there have been attempts to tackle both challenges          2006). We use a version where model selection corresponds
+at once in a similar setting, but these are concerned with a          to determining the correct number of mixture components
+restricted hypothesis space over possible model forms, such           based solely on the data; parameter learning consists of find-
+as mixture models (Sato, 2001; Fearnhead, 2004; Gomes,                ing the means for the components; while mixture weights and
+Welling, & Perona, 2008). Methods that are specific to a              variance of mixture components are assumed to be fixed and
+given model form have the potential to be vastly more effi-           known. Although a more flexible model would provide richer
+cient within their domain, but we are striving to find the prin-      dynamics, the main challenges stated earlier can be clearly
+ciples for a general purpose computational architecture that is       demonstrated on this simplified model.
+flexible enough to accommodate uncertainty in the structural             The rest of the paper is structured as follows: first, we show
+form of the model (Kemp & Tenenbaum, 2008). To the best               how incremental Bayesian inference works in a setting with-
+of our knowledge, such a scenario has not yet been explored.          out resource constraints; next, we introduce a learning agent
+                                                                      that only has access to a semantic memory and demonstrate
+                    Learning paradigm                                 that it has a propensity to discard the information that would
+                                                                      enable model change; finally, we show that the introduction
+In this paper we aim to study how the computational prob-
+                                                                      of an episodic memory substantially mitigates this problem.
+lem of learning shapes the architecture and dynamics of long-
+term memory. We assume that the main goal of human learn-                     Learning in an unconstrained setting
+ing is the acquisition of a suitable representation of the world
+                                                                      Bayesian inference provides a consistent framework for
+and propose that this learning process is characterised by the
+                                                                      learning the form, the structure and the parameters of the
+following fundamental properties: i) it is incremental; ii) it
+                                                                      model estimating the probability distribution of data. Learn-
+requires an open-ended hypothesis space which incorporates
+                                                                      ing entails the estimation of the posterior probability of pa-
+not only an arbitrary amount of complexity but also enables
+                                                                      rameters (θ) in a given model and/or that of the model (m)
+the discovery of the appropriate model form; and iii) it is
+                                                                      itself:
+subject to computational constraints, most notably a limited
+                                                                                    P(θ | D , m) ∝ P(D | θ, m) P(θ, m)               (1)
+amount of memory.
+                                                                                      P(m | D ) ∝      P(D | m) P(m)                 (2)
+   Our main argument is agnostic to the choice of learning
+method, but we are adopting the Bayesian inference frame-
+                                                                      Posterior probabilities for alternative model structures, and/or
+work. This framework provides us with a consistent, gen-
+                                                                      forms need to be assessed individually and the marginal like-
+eral and arguably elegant solution for dealing with uncer-
+                                                                      lihood (mLLH),
+tainty during learning and is central to many state-of-the-art                                  Z
+advances in machine learning (Ghahramani, 2015) while si-                          P (D | m) =     dθ P (D | θ, m) P (θ | m) ,       (3)
+multaneously being able to capture a large body of knowledge
+concerning the acquisition of abstract knowledge in humans            plays a critical role in comparing these models: even with a
+(Tenenbaum, Kemp, Griffiths, & Goodman, 2011; Orbán,                 uniform prior probability distribution over alternative models,
+Fiser, Aslin, & Lengyel, 2008). In this framework the prob-           the mLLH function implements the automatic Occam’s razor
+lem of learning can be formalised as the continual refinement         principle, which ensures that the simplest model that can ac-
+and updating of a probabilistic generative model, where in-           count for the observed variance in the data has the highest
+formation about unobservable or currently not observed vari-          posterior probability. Even when the model prior is flat, the
+ables, parameters and candidate world structures can all be           evaluation of mLLH is sufficient to compare the models.
+expressed as probability distributions over latent variables.            In the analytic treatment of MoG, the posterior over the
+   In our treatment the memory constraints are formalised             means µ is a MoG again, in which the number of mixture
+such that after the model has been updated, the observation           components grows exponentially with the number of obser-
+is discarded and only the sufficient statistics for the best per-     vations T . Whether learning is performed on the whole batch
+forming model is kept. The two main challenges introduced             of data at once or is done in an online manner, Bayesian in-
+by these constraints are that the learner needs to both: i) as-       ference yields the posterior distribution of parameters for any
+sess the plausibility and ii) approximate the right parameter         particular model structure at any particular time (Fig. 1a-d).
+settings of alternative models based solely on the sufficient         This posterior distribution can be used to make predictions
+statistics of the tracked model, without having access to the         on upcoming data and learning helps to disentangle the pre-
+data.                                                                 dictions of different models. While early in the training a
+   We set out with an example learning problem that can               complex model that reflects the actual statistics of the data
+demonstrate both the challenges and the power of the pro-             adequately might be discounted because of lack of sufficient
+posed approach: a mixture of Gaussians model (MoG) has                evidence, after extended experience the marginal likelihood
+the benefit of showing non-trivial model-learning dynamics            of the simpler model will be overcome by the model of right
+while also providing an opportunity for analytical treatment.         complexity (Fig. 1a-d). Switching time in model selection is
+Mixture models are also frequently used as cognitive models           determined by the actual data samples and is defined by the
+of human category learning (Sanborn, Griffiths, & Navarro,            evolution of the mLLH (Fig. 1e,f). The Automatic Occam’s
+                                                                  2700
+
+a                                                                                                   b
+       0.2                                                              8                                      0.2                                                              8                        effect of the earlier data points is summarized in the poste-
+                                                                µ2                                                                                                    µ2                                 rior calculated for D T −1 . As a consequence, online learning
+P( x | D , k )                                                          0
+                                                                            0      µ1      8            P( x | D , k )                                                          0
+                                                                                                                                                                                    0   µ1   8           liberates us from the need to retain the whole data set: once
+                                                                            0                                                                                                       0
+                                                                                                                                                                                                         the posterior has been updated the data can be discarded. As
+                                                                 mLLH                                                                                                 mLLH                               long as both parameters and models are updated, this proce-
+           0                  * **                 *                                                               0              ** * ** *       * * **
+                     -4       0            4           8                    50                                           -4       0           4            8                    50
+                                       x                                                                                              x                                                                  dure provides a consistent method to update and compare al-
+c                                                                                                   d                                                                                                    ternative hypotheses on how the model was generated without
+                                                           P( µ | D , k )                                                                                      P( µ | D , k )
+                                                                     1                                                                                                   1
+       0.3                                                                                                    0.3
+                                                                                                                                                                                                         needing to keep a growing data set in memory. In contrast, if
+P( x | D , k )                                                                                          P( x | D , k )
+                                                                     0                                                                                                   0
+                                                                      -4               µ       10                                                                        -4             µ        10      we track only a limited number of models (one model being
+                                                                             0                                                                                                      0
+                                                                                                                                                                                                         an extreme but valid approach), discarding data prevents the
+                                                                 mLLH                                                                                                 mLLH                               consistent assessment of alternative models.
+           0              *       **               *                                                              0               ** * ** *       * * **
+            -4            0                4           8                    50                                           -4       0           4            8                    50
+                                       x                                                                                              x                                                                     The unavailability of the original data leads to an uncer-
+e           0
+                                                                                                    f             0                                                                                      tainty as to the possible past data sets that could lead to the
+                                                                                 k=1
+                                                                                 k=2                                                                                                                     same available statistics. An ideal learner represents this un-
+log P( D | k)                                                                                           log P( D | k)
+                                                                                 k=3
+                                                                                                                                                                                                         certainty by means of a probability distribution over possible
+                                                                                                                                                                                                         past data sets. The learner needs a method for constructing
+       -50                                                                                                    -40                                                                                        such a distribution based solely on the posterior of the cur-
+                 0                             5                                   10                                         2                     6                                   10
+                                               T                                                                                                  T                                                      rent model, since this contains all the information that it has
+                                                                                                                                                                                                         retained. Given such a distribution, a method is required to
+Figure 1: Illustration of model learning on a MoG model. a,                                                                                                                                              compare alternative models (i.e. estimate the mLLHs, Eq.
+The goal of learning is the estimation of the probability distri-                                                                                                                                        3) and to assess what the parameters of the alternative mod-
+bution of the data (left panel, dashed grey line) from a limited                                                                                                                                         els would have been had those been tracked from the begin-
+sample (asterisks, n = 4). Inference in a given model yields a                                                                                                                                           ning (i.e. estimate parameter posteriors of novel models Eq.
+posterior probability distribution over model parameters (up-                                                                                                                                            1). We propose that a natural approximation of the current
+per right panel). The model assumes two mixture compo-                                                                                                                                                   model’s estimate of the distribution of possible past data sets
+nents (k = 2). Based on the posterior, the predictive posterior                                                                                                                                          can be obtained by the assessment       of the posterior predic-
+                                                                                                                                                                                                         tive distribution, P(x | D , m) = dθ P(x | θ, m) P(θ | D , m), of
+                                                                                                                                                                                                                                           R
+distribution (solid black line) provides our estimate on how
+data points are distributed. Marginal likelihood assesses the                                                                                                                                            the tracked model. This choice is conceptually related to us-
+statistical power of the model (lower right panel). b, Same as                                                                                                                                           ing “pseudopatterns” to transfer knowledge between different
+a but using a larger data set (n = 10). Tighter posterior results                                                                                                                                        models (French, 1999). It has the benefit that while the pa-
+in a tighter and more accurate predictive probability distribu-                                                                                                                                          rameter posteriors of different models in general span very
+tion and higher average marginal likelihood. c, d, Same as a                                                                                                                                             different spaces and are thus not comparable, all models give
+and b but for a k = 1 model. e, Evolution of mLLH as more                                                                                                                                                predictions over the same data space (Fig. 1a-d). Another
+data is accumulated from a k = 2 model. Colours show mod-                                                                                                                                                benefit is that the predictive distribution is presumably avail-
+els with different number of mixture components. Equality                                                                                                                                                able for the learner in any case, since it is a fundamental com-
+of mLLH at T = 1 is a consequence of learning limited to the                                                                                                                                             ponent of numerous other cognitive computations as well.
+means. f, Same as e but for a data set from a k = 3 mixture.
+                                                                                                                                                                                                         Inferring the posterior of a novel model
+                                                                                                                                                                                                         In a given model, the posterior distribution of parameters
+razor that is implemented by the mLLH function ensures that
+                                                                                                                                                                                                         summarises the model’s knowledge about the statistics of the
+no overfitting happens: the learner discovers more complex
+                                                                                                                                                                                                         data. Since the predictive distribution of the tracked model
+structures if data statistics justifies such a model but keeps
+                                                                                                                                                                                                         carries information about the uncertainty of the parameters
+the model as simple as possible.
+                                                                                                                                                                                                         this can be used to approximate the posterior of the parame-
+                 Semantic-only learner under constraints                                                                                                                                                 ters in a novel model by minimising the dissimilarity of the
+                                                                                                                                                                                                         predictive posterior distributions. Minimising the KL diver-
+While Eq. 1 provides a general recipe for adjusting the
+                                                                                                                                                                                                         gence solves exactly this problem:
+model parameters to data, learning can be formulated in two
+markedly different ways. i), In order to obtain a posterior at
+                                                                                                                                                                                                             P θ | D , m0 ≈ argmin KL P(x | D , m) || P x | D , m0 . (5)
+                                                                                                                                                                                                                                                                
+a particular time T , the whole data set D T is evaluated ac-                                                                                                                                                              P(θ|D ,m0 )
+cording to Eq. 1. ii), Online learning relies on a parameter
+posterior obtained at an earlier time point T − 1 to provide a                                                                                                                                           Calculating the KL divergence analytically is in most cases
+prior for the evaluation of novel data:                                                                                                                                                                  unfeasible, therefore two approximations have been made.
+                                                                                                                                                                                                         First, inspired by Snelson and Ghahramani (2005) we were
+           P θ | D T , m ∝ P xT | θ, m P θ | D T −1 , m
+                                                      
+                                                           (4)
+                                                                                                                                                                                                         looking for a compact representation of the predictive poste-
+While online learning has the same power as batch learning,                                                                                                                                              rior, but instead of achieving this by simply taking a likely set
+it has the benefit that it is explicitly formulated such that the                                                                                                                                        of parameter settings, we’ve assumed that the posterior comes
+                                                                                                                                                                                                      2701
+
+a   4                4
+                                               b                                                                   -5
+                                                         0.2
+µ2
+    -6               -6                        P( x | D , k )
+                                                                                                          log P(D | k)
+    - -6         4    -   6            4                 0.1                                                                 8
+     4               4
+µ2                                                                                                              -30
+                                                                                                                             0
+                                                                                                                                 0    7
+    -6            -6                                                                                                     2                      7
+     -6
+        -
+            µ1   4 -6         µ1       4                        -6   -2
+                                                                          x
+                                                                              2    6                                                  T
+                                                                                          Figure 3: Inability of the memory-constrained learner to in-
+Figure 2: Reconstruction of the parameter posterior from the                              crease model complexity. Evolution of the true mLLH (ana-
+predictive posterior distribution. a, Posterior distribution of                           lytic batch learner) of different models (continuous lines) and
+the component means in a k = 2 model after observing n = 10                               the mLLH of a constrained semantic learner (dashed lines).
+data points. Black contour plot: posterior obtained by analyt-                            Inset:the data set used.
+ical calculation; coloured contour plots: posterior reconstruc-
+tions. b, Comparison of the true predictive posterior distribu-
+tion (black line) and its approximations. Colours are matched                             data sets. This can be achieved by calculating the expected
+across panels, dashed line: data distribution.                                            value of the marginal likelihood over the predictive posterior:
+                                                                                                            P D ∗ | m0 D ∗ ∼P(D ∗ | D ,m) ,
+                                                                                                                       
+                                                                                                                                                      (9)
+from a simple parametric distribution family:
+                                                                                          where D ∗ denotes fake data sets obtained from the predictive
+                P θ | D , m0 → P θ|η, m0 ,
+                                        
+                                                                                  (6)     posterior distribution. This expected value can be evaluated
+                                                                                          by Monte Carlo sampling. Upon the arrival of a novel data
+where η provides a parametrisation of the approximate poste-                              point xT , fake data sets are sampled from the predictive dis-
+rior. As a result, the former functional optimization problem                             tribution. The novel data point is then appended to the fake
+in (Eq. 5) reduces to                                                                     dataset and the marginal likelihoods are calculated and aver-
+                                                                                          aged. In general, a single experience does not constitute ade-
+          η̂ = argmin KL P(x|D , m) || P x|η, m0 ,
+                                                
+                                                           (7)                            quate evidence for switching to an alternative model, since it
+                              η
+                                                                                          lacks sufficient statistical power (Fig. 3). Note, that this claim
+where P(x|η, m0 ) = dθ P(x|θ, m0 ) P(θ|η, m0 ) is the approxi-
+                                   R
+                                                                                          is not true in extreme cases: there always exist outliers such
+mate predictive posterior distribution. Eq. 7 is equivalent to                            that the marginal likelihood’s automatic Occam’s Razor ef-
+minimising the cross entropy, which can be approximated us-                               fect will be overpowered by the unlikeliness of the new data
+ing a Monte Carlo integral. After sampling x̂i ∼ P(x | D , m)                             (data not shown). If the present model estimate is correct,
+we have to choose the η for which the expected value of                                   and the observed data corroborates this model then it can be
+log (P(x|η, m0 )) is maximal, concluding to a maximum likeli-                             integrated without information loss. We argue however, that
+hood estimation over the generated ’fake data’                                            models of differing form and complexity have different kinds
+                                                                                          of regularities that they can capture, and it is exactly the recur-
+                η̂ = argmax ∑ log P x̂i |η, m0
+                                               
+                                                           (8)                            ring appearance of features of the data that the current model
+                                           η                    i                         is unable to represent that necessitates model change. Con-
+The resulting P(θ|η̂, m0 ) is our estimate of the parameter pos-                          sequently, when a novel data point arrives which pushes the
+terior on the original data. The parameter posterior in our                               learner toward a change of model form but is insufficient in
+implementation of MoG is a MoG again, hence a convenient                                  itself to force a switch, then the information loss prevents any
+and effective parametrisation of the posterior uses a single                              subsequent model change (Fig. 3). This results in an inabil-
+mixture component. This approximate posterior effectively                                 ity to switch models for the memory-constrained learner even
+reproduces both the true posterior and the true predictive pos-                           after observing arbitrary amount of evidence that supports a
+terior distribution of the model (Fig. 2).                                                different one.
+Model comparison in constrained learners                                                                                     Episodic learner
+Model comparison requires the assessment of the mLLH                                      The episodic learner differs from the semantic learner only in
+function for alternative models (Eq. 3). However, even if we                              an additional limited capacity storage for observations. Since
+have access to the marginal likelihood of the tracked model,                              the semantic learner’s inability to change models is a result of
+discarding the original data points renders the construction of                           loss of information about past data, it is reasonable to expect
+the mLLH for the novel model impossible. Again, the pos-                                  that providing a buffer for data points is bound to help. How-
+terior of the tracked model summarises our knowledge of the                               ever, we also require that the capacity of episodic memory
+data and and therefore we rely on the predictions that can be                             necessary to enable model change should be small relative to
+drawn from the model posterior in order to assess the possible                            the memory demands of a batch learner. Simply using this
+                                                                                       2702
+
+a                                                    b
+                                                                                                        - 10
+              -5                                         0                                                        change the learner’s beliefs about the parameters the most.
+                                                                                                        - 20
+                                                                                                                  A large change in the parameter posterior signifies a diffi-
+    log P( D | k)                                                                                                 culty in explaining the new observations and previously seen
+                                                                                                        - 30
+                        8                                    10
+                                                                                                        - 40
+                                                                                                                  data under the current model which suggests that a change
+            -25                                       -40
+                                                                                                                  of models might be appropriate. Another insight can shed
+                        0
+                            0         7
+                                                                0
+                                                                    0               8                             further light on the motivation behind our choice of selection
+                    1           3         5      7                      2       4           6       8
+                                                                                                        - 60      criterion. Adopting the perspective that the memory trace is
+c                                                    d -5                                                         a lossily compressed form of the data, it should be optimised
+              -5
+                                                                                                        - 70
+                                                                                                                  so that the distribution over past data – used in approximating
+    log P( D | k)
+                                                                                                                  the mLLH and alternative posteriors – is going to be as ac-
+                        6                                       6                                                 curate as possible. We can view the combination of episodic
+                                                                                                                  and semantic memories as jointly providing a representation
+             -25        0
+                            0         7               -25       0
+                                                                    0                   7                         of the agent’s past experiences PSM (x|η) + ∑xm ∈EM δ(x − xm ).
+                    1           3         5      7          1               3                   5          7      In order to achieve the best compression the learner needs
+                                      T                                                 T
+                                                                                                                  to use each kind of memory system to store the information
+                                                                                                                  it is most suited to reconstruct. Performing such an optimi-
+Figure 4: Effect of introducing episodic memory. mLLHs of
+                                                                                                                  sation would be relatively straightforward by comparing the
+the analytic batch learners (solid lines) approximate learners
+                                                                                                                  combined representation with the data, but the data was pre-
+(dashed lines). a, b, Using ordered data and retaining the last
+                                                                                                                  viously discarded. The learner can, however, select the data
+two data points, the more complex model can obtain sufficient
+                                                                                                                  points that would change the reconstruction to a large extent,
+statistical power to overcome the Occam’s razor effect at tran-
+                                                                                                                  by seeing how much the posterior would change if the given
+sitions k = 1 → 2 and k = 2 → 3, respectively. c, For sampled
+                                                                                                                  experience was stored in semantic memory. Taken together,
+data (unordered) a sliding window for two data points is in-
+                                                                                                                  we formulated the criterion for selecting a data point for stor-
+sufficient to induce model switch. d, Episodic memory effec-
+                                                                                                                  ing in episodic memory by assessing whether the dissimilar-
+tively rearranges data points (compare with panel c) such that
+                                                                                                                  ity of posteriors with the novel data exceeds a fixed threshold:
+the arrival of a subsequent data point(s) incompatible with the
+simple model induces model switch.                                                                                              KL(P(µ|xT , η, k)||P(µ|η, k)) > τ.           (11)
+                                                                                                                  Threshold τ is measured in units of surprise and its value
+storage indiscriminately as a sliding window is inefficient for                                                   was determined empirically, but performance is relatively ro-
+enabling model change (Fig. 4) since the experiences that                                                         bust to its choice. At low threshold values the learner be-
+taken together would provide the necessary statistical power                                                      comes non-selective, which results in accumulating sequen-
+for model change might not arrive consecutively. Taking full                                                      tial mini-batches. On the other hand, at high threshold lev-
+advantage of episodic storage requires the learner to optimise                                                    els the learner will be reluctant to store anything in episodic
+its contents and use it selectively. Thus, given a bounded                                                        memory and is thus asymptotically equivalent to the seman-
+capacity, the selection criterion for determining which data                                                      tic learner. When episodic memory is saturated the learner
+points to store in episodic and which in semantic memory                                                          “consolidates” the episodes by performing batch learning on
+is expected to be optimised to support the learner in dealing                                                     its content. Upon triggering a model change the episodes
+with online model selection.                                                                                      also serve to find the parameter posterior of the novel model.
+   In order to retain statistics necessary for model transitions,                                                 For demonstration we have set the maximal size of episodic
+an episodic learner needs to identify points that have a large                                                    memory to one and used it to show that the problems of a con-
+information content with respect to fitting the models. The                                                       strained semantic learner can be effectively alleviated (Fig.4).
+Shannon definition of surprise −log(P(D |m)) has been crit-                                                          We have directly contrasted the performance of learning
+icised as being unfit for this purpose because low predictive                                                     models in the model selection task on random data sets of
+probably does not guarantee that the observation is informa-                                                      length T = 12 where the generating distribution had k = 2
+tive with respect to the appropriateness of the model. There-                                                     or k = 3 components (Fig. 5). Besides the unconstrained
+fore we adopt the Bayesian definition of surprise (Itti & Baldi,                                                  learner and the semantic learner, we set up models for an
+2005), which characterises the extent to which the posterior                                                      episodic learner with a memory capacity of one and two
+is different from the prior expectations                                                                          items, and also a pseudo-episodic learner that does not per-
+                                    S(D , m) = KL(P(m|D )||P(m)).                                   (10)          form optimisation on the items to be stored in episodic mem-
+                                                                                                                  ory. The episodic learner can demonstrate a remarkable in-
+Ideally, episodes that are maximally informative regarding                                                        crease in performance even with an extremely limited capac-
+the model form would be sought but that would require eval-                                                       ity. In order to make a fair comparison between k = 1 → 2
+uating the model posterior, P(m|DT −1 ), which is not accessi-                                                    and k = 2 → 3 switches we balanced the difficulty of model
+ble, since the learner doesn’t necessarily evaluate the same set                                                  switch. Our analysis on k = 2 → 3 switch revealed an even
+of models at different steps. Instead, we use the surprise in the                                                 more pronounced advantage of the episodic learner over the
+model parameters as a proxy: this selects observations that                                                       semantic learner, doubling the probability of a correct switch.
+                                                                                                               2703
+
+          1.0
+                                                                    predictions and human performance will require the analysis
+          0.8                                                       of model classes that can be related to available human data.
+          0.6                                                       Acknowledgements.
+          0.4
+                                                                    We thank Zoubin Ghahramani and Szabolcs Káli for discus-
+                                                                    sions and Máté Lengyel and Balázs Ujfalussy for comments
+          0.2                                                       on earlier versions of the manuscript. We thank the anony-
+                                                                    mous reviewers for useful suggestions. This work was sup-
+            0
+                UL EL2 EL1 ELb SL    UL EL2 EL1 ELb SL              ported by an MTA Lendület Fellowship.
+                       k=2                  k=3
+Figure 5: Comparison of model learning in different learn-                                     References
+ers. UL:unconstrained; EL2: episodic with capacity 2; EL1:          Fearnhead, P. (2004). Particle filters for mixture models with
+episodic with capacity 1; ELb: pseudo episodic with no selec-          an unknown number of components. Stat Comput.
+tivity; SL: semantic. Probability of k = 1 → 2 and k = 2 → 3        French, R. M. (1999). Catastrophic forgetting in connection-
+model switch when data comes from a MoG with k = 2 and                 ist networks. Trends in cognitive sciences, 3(4), 128–135.
+k = 3 (left and right panels, respectively) estimated from a        Ghahramani, Z. (2015). Probabilistic machine learning and
+thousand model runs each.                                              artificial intelligence. Nature, 521, 452–459.
+                                                                    Gomes, R., Welling, M., & Perona, P. (2008). Incremental
+                                                                       learning of nonparametric Bayesian mixture models. 2008
+                            Discussion                                 IEEE Conf on Comput Vis and Pattern Recogn.
+We have offered a normative argument for the existence of           Grosse, R. B., Salakhutdinov, R., Freeman, W. T., & Tenen-
+episodic memory by analysing a computational problem that              baum, J. B. (2012). Exploiting compositionality to explore
+the brain has to solve, namely online model selection in an            a large space of model structures. Conference on Uncer-
+open-ended model space. We used a simple minimal model to              tainty in Artificial Intelligence.
+demonstrate that the introduction of memory constraints has         Hemmer, P., & Steyvers, M. (2009). Integrating episodic and
+dire consequences for a semantic-only learner and showed               semantic information in memory for natural scenes. Proc
+that these problems are substantially mitigated by an episodic         31st Ann Conf of the Cogn Sci Soc, 1557–1562.
+memory, the contents of which are selected based on the             Hjort, N. L., Holmes, C., Müller, P., & Walker, S. G. (2010).
+Bayesian formalisation of surprise.                                    Bayesian nonparametrics (Vol. 28). Cambridge Univ.
+   Our choice of model was motivated by analytical tractabil-          Press.
+ity which helped us to set a benchmark to model learning.           Itti, L., & Baldi, P. F. (2005). Bayesian surprise attracts
+While this choice constrained the form of the model and the            human attention. In Adv neur inf proc sys (pp. 547–554).
+size of the data set, the demonstrated problem is fundamen-         Kemp, C., & Tenenbaum, J. B. (2008). The discovery of
+tal. These restrictions can be lifted by allowing the iterative        structural form. Proc Natl Acad Sci, 105, 10687–92.
+posterior updates to be approximate, for example by using           Lengyel, M., & Dayan, P. (2009). Hippocampal contributions
+particle filters. Importantly, we strove to only use principles        to control: The third way. Adv Neur Inf Proc Sys.
+and approximations that are agnostic to the model class, so         McClelland, J. L., McNaughton, B. L., & O’Reilly, R. C.
+that the episodic learner can straightforwardly be extended to         (1995). Why there are complementary learning systems
+richer hypothesis spaces.                                              in the hippocampus and neocortex: insights from the suc-
+   The overall goal of our normative account is to shed light          cesses and failures of connectionist models of learning and
+on the dynamics underlying the organisation of long-term               memory. Psych Rev, 102(3), 419–57.
+memory: from a continuous stream of experience, how does            Orbán, G., Fiser, J., Aslin, R. N., & Lengyel, M. (2008).
+the human brain determine what parts to remember and what              Bayesian learning of visual chunks by human observers.
+to forget? It is extensively documented that humans are prone          Proc Natl Acad Sci, 105, 2745–50.
+to systematic biases in these decisions. We share the widely-       Sanborn, A. N., Griffiths, T. L., & Navarro, D. J. (2006).
+held belief that these systematic memory errors reflect ratio-         A More Rational Model of Categorization. Proc 28th Ann
+nal adaptations to computational resource constraints. In our          Conf of the Cogn Sci Soc, 1–6.
+assessment, a comprehensive explanation and detailed pre-           Sato, M.-a. (2001). Online Model Selection Based on the
+dictions on how these processes work requires an understand-           Variational Bayes. Neural Comput, 13, 1649–81.
+ing of both the computational function and the constraints that     Snelson, E., & Ghahramani, Z. (2005). Compact approxi-
+shape the dynamics of long-term memory. In this paper, we              mations to Bayesian predictive distributions. Proc 22nd Int
+aimed to provide the computational backbone for such a nor-            Conf on Machine Learning.
+mative understanding: although some aspects of the current          Tenenbaum, J. B., Kemp, C., Griffiths, T. L., & Goodman,
+treatment are reminiscent of the characteristics of the dynam-         N. D. (2011). How to grow a mind: statistics, structure,
+ics of human memory (e.g. storing detailed representations of          and abstraction. Science, 331, 1279–85.
+surprising events), a more direct comparison between model
+                                                                2704
+

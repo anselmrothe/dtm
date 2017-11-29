@@ -1,0 +1,340 @@
+                    Evaluating Vector-Space Models of Word Representation, or,
+           The Unreasonable Effectiveness of Counting Words Near Other Words
+                                Aida Nematzadeh, Stephan C. Meylan, and Thomas L. Griffiths
+                                                     University of California, Berkeley
+                                            {nematzadeh, smeylan, tom griffiths}@berkeley.edu
+                                Abstract                                angle between word vectors (e.g., Mikolov et al., 2013b; Pen-
+   Vector-space models of semantics represent words as
+                                                                        nington et al., 2014).
+   continuously-valued vectors and measure similarity based on             In this paper, we examine whether these constraints im-
+   the distance or angle between those vectors. Such representa-        ply that Word2Vec and GloVe representations suffer from the
+   tions have become increasingly popular due to the recent de-         same difficulty as previous vector-space models in capturing
+   velopment of methods that allow them to be efficiently esti-
+   mated from very large amounts of data. However, the idea             human similarity judgments. To this end, we evaluate these
+   of relating similarity to distance in a spatial representation       representations on a set of tasks adopted from Griffiths et al.
+   has been criticized by cognitive scientists, as human similar-       (2007) in which the authors showed that the representations
+   ity judgments have many properties that are inconsistent with
+   the geometric constraints that a distance metric must obey. We       learned by another well-known vector-space model, Latent
+   show that two popular vector-space models, Word2Vec and              Semantic Analysis (Landauer and Dumais, 1997), were in-
+   GloVe, are unable to capture certain critical aspects of human       consistent with patterns of semantic similarity demonstrated
+   word association data as a consequence of these constraints.
+   However, a probabilistic topic model estimated from a rela-          in human word association data. We show that Word2Vec and
+   tively small curated corpus qualitatively reproduces the asym-       GloVe suffer from similar problems. Recent probabilistic in-
+   metric patterns seen in the human data. We also demonstrate          terpretations of Word2Vec (Levy and Goldberg, 2014; Arora
+   that a simple co-occurrence frequency performs similarly to
+   reduced-dimensionality vector-space models on medium-size            et al., 2015) provide a way to construct a conditional prob-
+   corpora, at least for relatively frequent words.                     ability from vector-space representations, although we show
+   Keywords: word representations; vector-space models; word            that this does not result in a significant improvement in per-
+   associations                                                         formance over cosine similarity.
+                                                                           A probabilistic topic model performs less well than these
+                           Introduction                                 vector-space models in predicting overall associations, but
+Finding good representations of the meaning of words is a               provides a better fit to human data on tasks where vector-
+fundamental problem in cognitive science and related disci-             spaced models are subject to geometric constraints. However,
+plines. Vector-space models of semantics represent words as             two advantages of the recent models are that they can produce
+points in an N -dimensional Euclidean space where words                 word representations for very large vocabularies (millions of
+with similar meanings are expected to be close together.                types) and can be trained on very large corpora (hundreds
+These models have been successful in both modeling human                of billions of tokens). We investigate whether the perfor-
+semantic processing (e.g., Landauer and Dumais, 1997) and               mance of co-occurrence frequency—easily obtainable from
+natural language processing applications (for a review, see             large corpora—is comparable to the recent models. We find
+Turney and Pantel, 2010). However, relating the similarity              that vectors of simple co-occurrence frequency provide com-
+between words to their distance in a vector space means that            parable performance to the above models, suggesting that di-
+these representations are subject to certain geometric con-             mensionality reduction may not be necessary feature for ma-
+straints. Previous research has criticized this property of spa-        chine representations of words.
+tial representations because aspects of human semantic pro-
+cessing do not conform to these same constraints (e.g., Tver-                             Vector-Space Models
+sky, 1977). For example, people’s interpretation of semantic            We first provide high-level descriptions of two recent vector-
+similarity does not always obey the triangle inequality, i.e.,          space models that have received significant attention in the
+the words w1 and w3 are not necessarily similar when both               machine learning, natural language processing, information
+pairs of (w1 , w2 ) and (w2 , w3 ) are similar. While “asteroid”        retrieval, and cognitive science communities.
+is very similar to “belt” and “belt” is very similar to “buckle”,
+“asteroid” and “buckle” are not similar (Griffiths et al., 2007).       Word2Vec
+   Recent work has resulted in significant advances in vector-          Word2Vec (Mikolov et al., 2013b) is a shallow neural net-
+space models of semantics, making it possible to train mod-             work model with a single hidden layer that learns similar vec-
+els on extremely large datasets (Mikolov et al., 2013a; Pen-            tor representations for words with similar distributional prop-
+nington et al., 2014). The resulting vector-space models—               erties. They present two variants: continuous bag of words
+Word2Vec and GloVe—achieve state-of-the-art results for a               or CBOW, in which a word token is predicted from its un-
+wide range of tasks requiring machine representations of                ordered context, and skipgram, in which a given word token
+word meanings. However, the similarity between words in                 is used to predict words in its context. Both variants perform
+these models is typically measured using the cosine of the              well predicting associations, analogies, and can be used to
+                                                                    859
+
+identify idiomatic multi-word phrases. We focus here on the            In GloVe, the best word representations W and W         f are
+skipgram formulation given its higher obtained performance          found by minimizing a least squares objective:
+in a variety of natural language processing tasks.                                XV
+   The objective of a Word2Vec model is to maximize the av-                 J=         f (Xij )(wiT w
+                                                                                                    ej + bi + ebj − log Xij )2   (3)
+erage log probability of each word’s context following                           i,j=1
+                  1X
+                     T       X                                      where V is the vocabulary, i and j pick out words in the vo-
+             J=                      log p(wt+j |wt ),      (1)     cabulary, f(Xij ) is a weighting term (explicated below), wi
+                  T t=1
+                         −c≤j≤c,j6=0                                is the representation of the ith word, w e is the representation
+                                                                    of the jth word, bi and ebj are bias terms, and logXij is the
+where T is the number of training words and c is the number
+                                                                    co-occurrence count of words i and j. If X is symmetric, W
+of context words. p(wt+j |wt ) is given by the softmax func-
+tion,                                                               and W f are equivalent (differing only according to their ran-
+                                                                    dom initialization). GloVe additionally introduces a weight-
+                                       0
+                                exp(vw>o vwi )                      ing into the cost function of the model to avoid log 0 errors
+               p(wo |wi ) = PW             0>
+                                                  ,         (2)     and to dampen the effect of high frequency co-occurrences:
+                               w=1 exp(vw vwi )                                           (
+                                                                                            (x/xmax )α if x < xmax
+where W is the number of unique words (type) in the corpus                       f (x) =                                         (4)
+                            0                                                               1 otherwise
+w1 . . . wT , and vw and vw    are the input and output vector
+representations of word w.                                          where x is the co-occurrence count, and α allows for an expo-
+   Computing the normalizing term in the softmax is pro-            nential weighting of for counts between 0 and the threshold
+hibitively expensive for large datasets in that the cost of the     Xmax . The performance of a GloVe model thus depends on
+computation is proportional to W (which may be in millions),        the dimensionality of the word vector (typically 50 - 300),
+thus an approximation is obtained through hierarchical soft-        Xmax , α , and the size of the window used to compute co-
+max (Morin and Bengio, 2005), Noise Contrastive Estima-             occurrence statistics around each word.
+tion (Gutmann and Hyvärinen, 2012), or a related novel tech-
+nique they introduce, negative sampling. In negative sam-           Co-occurrence Frequency
+pling, the model updates the representations of a small num-        We also consider a baseline model that simply uses normal-
+ber of words such that the network predicts an observed “pos-       ized co-occurrence frequencies of words to measure their
+itive” word pair (e.g., chicken salad), and does not predict        similarity. In other words, given sufficient data, is a term-by-
+any of a number of “negative” pairs that are unlikely to be         term matrix sufficient to predict human association norms?
+observed in the text (e.g. chicken battleship or chicken advan-     We note that this baseline is used by previous work to model
+tageously). The negative pairs are drawn from an explicitly         human semantic and syntactic processing, as well as in in-
+specified noise distribution, typically a unigram model. Be-        fomration retrieval (e.g., Burgess and Lund, 1997; Azzopardi,
+cause a small number of negative samples are used—usually           2005).
+fewer than 20—a relatively small number of weights need to
+be adjusted each time the model updates the representation of                   Shortcomings of Spatial Models
+a word. Mikolov et al. find additional performance gains by         Similarity between two words in a vector-space model is usu-
+sampling less from high frequency words.                            ally computed using the cosine of the angle or the Euclidean
+   Performance of Word2Vec model thus depends on the                distance between the vectors representing the words. While
+number of hidden units (typically 50-600), the size of the con-     intuitive, this approach has at least one significant shortcom-
+text window, the degree to which frequent words are under-          ing: cosine and Euclidean distance cannot capture the ob-
+sampled, and the choice of approximation to the full softmax;       served asymmetries in human similarity judgments because
+if negative sampling is used then the number of negative sam-       they are inherently symmetric measures. Tversky (1977) fa-
+ples can have a significant effect on performance.                  mously argued that spatial representations cannot capture hu-
+                                                                    man similarity judgments because the latter often violate the
+GloVe                                                               metric axioms. For example, elicited word (or phrase) sim-
+GloVe (Pennington et al., 2014) is a weighted bilinear regres-      ilarity is asymmetric: when queried, most participants con-
+sion model that uses global co-occurrence statistics to de-         sidered “North Korea” to be very similar to “China,” while
+rive a real-valued vector representation of each word. Like         the reverse relationship was rated as significantly less strong
+Word2Vec, GloVe learns similar vector representations for           (“China” is not very similar to ”North Korea”).
+words that appear in similar contexts, however the latter              Griffiths et al. (2007) extended this argument to spatial
+model differs significantly in that it fits co-occurrence fre-      representations of the semantic relationships between words,
+quencies from an entire corpus rather than iterating through        showing that similar violations of the metric axioms can be
+local context windows. GloVe exhibits particularly strong           demonstrated for vector-space representations. We now re-
+performance in analogy tasks, but also performs well on sim-        visit these analyses, examining the extent to which they are
+ilarity tasks and named entity recognition (NER).                   problematic for new vector-space models.
+                                                                860
+
+   One of the properties of metric spaces is that the distance        proximately 45% of the target words are present as cues in
+between each 3-word tuple must satisfy the triangle inequal-          the dataset. The Nelson norms are well-suited for the evalua-
+ity: given three points x, y, and z, d(x, z) ≤ d(x, y)+d(y, z),       tion of semantic similarity because unlike most gold-standard
+where d() is a distance function. This inequality constrains          similarity lexicons (e.g., Hill et al., 2015), word associations
+the possible distance values among the vector representations         obtained in this way potentially encode asymmetric relations:
+for each of the three words: if distances between the words           the Nelson association norms encode for many words both
+in two of the pairs are very small, the distance between the          how likely people are to produce w1 when cued with w2 , as
+words in the third pair is also expected to be small.                 well as w2 when cued with w1 .
+   After demonstrating that cosine—as a monotonic function
+of the angle between two vectors—satisfies an analogue of             Evaluation Tasks
+the triangle inequality Griffiths et al. (2007) studied to what       We evaluate the word representations found by these mod-
+extent this is true among the cue–target pairs in the Nelson          els on four tasks to assess whether they capture empirical
+norms. For the words w1 , w2 , and w3 , they plot the distri-         phenomena of interest in the Nelson norms. The first two,
+bution of p(w3 |w1 ) when both p(w2 |w1 ) and p(w3 |w2 ) are          coefficient of correlation and median rank of associates, test
+greater than a given threshold τ . They observe that even             whether these representations capture the strength of associ-
+for large values of τ , there are a lot of very small values of       ations between each cue–target pair. The remaining two, the
+p(w3 |w1 ). Consistent with the intuition that human similar-         triangle inequality and ratio of asymmetries specifically test
+ity judgments are not always transitive, they find many cases         whether these representations can account for human behav-
+where two of the pairs (w2 –w1 and w3 –w2 ) in a tuple (w1 ,          ior on tasks with asymmetric associations.
+w2 , and w3 ) are highly similar, but the words in the third pair     Coefficient of correlation. Computing the correlation be-
+(w1 and w3 ) are not.                                                 tween two list of scores is a standard way for measuring
+   As a result, by using cosine (or any distance measure more         their similarity (Budanitsky and Hirst, 2006). We created
+generally) on vector-space representations, we cannot repli-          a gold-standard list of similarity scores that, for each cue–
+cate the asymmetric patterns of similarities observed in hu-          target pair in the norms, includes p(target|cue). We then re-
+man judgments. To enable word representations derived with            trieved a list of similarities for the same cue–target pairs from
+vector space models to account for a greater range of phenom-         the representations under study, measuring similarity as ei-
+ena, we propose an elaborated, non-metric similarity measure          ther cosine(wtarget , wcue ) or p(wtarget |wcue ), where wx is
+for vector-space representations. Following recent work that          the vector representation of x. To assess the extent to which
+provides a probabilistic interpretation of Word2Vec (Levy             these representations can predict human similarity judgments
+and Goldberg, 2014; Arora et al., 2015) we calculate the con-         of semantic associations, we calculated the Spearman’s rank
+ditional probability for a given pair of words w1 and w2 using        correlation coefficient (ρassoc ) between these two lists.
+a softmax function:                                                   Median rank of associates. We also assess the quality of
+                                  exp(w2 .w1 )                        the representations by checking whether they produce similar
+                p(w2 |w1 ) = P                                (5)
+                                  wj exp(wj .w1 )                     rankings of target words (associates) for each cue in the Nel-
+                                                                      son norms. For each cue, we rank all its associates based on
+ where wj is the vector representation of wj and w2 .w1 is the        their conditional probabilities (given the cue) from the Nel-
+dot product of the two vectors. Using this probabilistic mea-
+                                                                      son norms, and also get a similar ranking for each cue in the
+sure, we can now examine how well Word2Vec and GloVe
+                                                                      model. For the first associate of each cue, i.e., the one with the
+representations perform on tasks that do not satisfy the geo-
+                                                                      highest probability per the Nelson norms ranking, we check
+metric constraints, i.e., triangle inequality and asymmetries in
+                                                                      its rank in the model list. We take the median rank of the
+similarity judgments.
+                                                                      first associate across all the cues from the Nelson norms, and
+     Evaluating Vector-Space Representations                          repeat this process for second and third associates.
+In this section, we describe the evaluation data and explain          Triangle inequality. We extend the analysis in Griffiths et al.
+the tasks that we use to examine how well vector-space rep-           (2007) to the evaluate whether word representations satisfy
+resentations predict human word associations.                         the triangle inequality. For every w1 , w2 , and w3 such that
+                                                                      similarity of w1 –w2 and w2 –w3 are greater than a threshold
+Data: Nelson Association Norms                                        τ , we plot the distribution of similarity values of w1 –w3 . For
+Following Griffiths et al. (2007), we use the association             the Nelson norms, similarity of words in a pair is their condi-
+norms from Nelson et al. (1998) as our gold-standard eval-            tional probability; for other models similarity is given by the
+uation data. Nelson et al. (1998) performed an extensive free         cosine or conditional probability. We select thresholds (τ )
+association experiment where they asked 6000 participants to          such that for each threshold, the number of pairs selected for
+record the first word they can think of given a cue word. The         each model is similar to that of the Nelson norms; The thresh-
+experiment resulted in a set of 5018 cues, the target words           olds for the norms are taken from Griffiths et al. (2007).
+produced in response of each cue (associates), and the prob-          Asymmetry ratio. Griffiths et al. (2007) show that the sim-
+ability of producing each target word for a given cue. Ap-            ilarity of more than 85% of cue-target pairs in Nelson norms
+                                                                  861
+
+are asymmetric by the criterion of at least an order of mag-       We also compute association using the LDA results (sampled
+nitude difference between p(w2|w1) and p(w1|w2). How-              document-topic and topic-word assignments) from Griffiths
+ever, distance measures are inherently symmetric and for any       et al. (2007).
+distance function d(), we have d(w1 , w2 ) = d(w2 , w1 ). To          Finally, we used large-scale pre-trained models distributed
+measure the performance of vector-space representations in         by the authors of Word2Vec and GloVe. These largest-
+predicting the asymmetries, for each cue–target pair in the        available models often exhibit best-in-class performance be-
+Nelson norms, we calculate the ratio of asymmetry as fol-          cause they reflect extensive parameter search, proprietary cor-
+lows:                                                              pora, and distributed implementations that can handle more
+                                                                   training data than publicly-distributed single-machine im-
+                                    p(w2 |w1 )                     plementations. For Word2Vec we used a pre-trained 300-
+                  asym(w1 , w2 ) =                         (6)
+                                    p(w1 |w2 )                     dimensional model obtained by using the continuous bag of
+                                                                   words architecture (CBOW) on a corpus of 100 billion words
+We then calculate the Spearman’s rank correlation coefficient
+                                                                   from Google News. For GloVe we used a 300-dimensional
+between the asymmetry scores of these similarities and those
+                                                                   model trained by Pennington et al. (2014) using a 2014 ex-
+from the Nelson norms.
+                                                                   port of Wikipedia and the Gigaword 5 corpus, consisting of
+             Corpora and Model Training                            approximately 6 billion tokens in total.1
+To support comparison with Griffiths et al. (2007) we trained                                 Results
+GloVe, Word2Vec skipgram, and collected co-occurence fre-          Overall associations. We first look at the coefficient of corre-
+quencies on TASA, the Touchstone Applied Sciences Corpus           lation that shows how the various models perform in predict-
+(Landauer and Dumais, 1997). This corpus consists of ap-           ing the overall associations. We find that using conditional
+proximated 8M tokens taken from reading materials appropri-        probability in place of cosine results in slightly better perfor-
+ate for a high school English students. In addition to TASA,       mance in predicting the semantic associations when the mod-
+we trained Word2Vec skipgram and GloVe, and collected co-          els are trained on medium or large corpora (see cosine (“cos.”)
+occurrence frequencies on English Wikipedia (3.91B tokens).        and conditional probability (“cond. pr.”) columns in Table 1).
+This corpus is too large for training a Latent Dirichlet Allo-     We also observe that given small and medium corpora (first
+cation (LDA) topic model using Gibbs Sampling. While we            and second row of Table 1), the Word2Vec skip-gram has the
+tried to replicate the LDA results for TASA with more scal-        highest correlation with human word associations; but, given
+able variational methods (Hoffman et al., 2010), the result-       the largest corpora, GloVe performs slightly better than the
+ing topics produced associations that were significantly worse     Word2Vec model. Interestingly, given the small and medium
+than those obtained through Gibbs sampling or either of the        corpora, simple co-occurrence frequencies perform similarly
+vector space models.                                               to or better than the Word2Vec CBOW and GloVe represen-
+   Preprocessing was matched to the extent possible across         tations. Looking at the second measure of associations, the
+model inputs. All words were translated to their nearest low-      median rank of the associates (Table 2), we observe that the
+ercase ASCII equivalent. For both TASA and Wikipedia               LDAmodel and co-occurrence frequencies perform similar to
+we discarded function words using the Python stopwords             Word2Vec on TASA and Wikipedia; both models exhibit bet-
+package. For TASA we removed the same set of low-                  ter performance than GloVe. The representations of the pre-
+information words and enforced the same frequency cutoff           trained GLoVe model (on the largest corpus) have the lowest
+as Griffiths et al. (2007). For Wikipedia, we removed words        (best) median ranks.
+that appeared on too many pages or too few, and retained only      Geometric constraints. The results for the triangle inequal-
+the top 100k most frequent remaining words.                        ity analysis using the conditional probability measure are
+   To evaluate the performance of the Word2Vec skipgram            shown in Figure 1 (cosine results are omitted as they cannot
+model we trained 20 models across a range of hyperparam-           produce the pattern). We observe the expected pattern for the
+eter settings, varying the size of the embedding vector (50,       Nelson norms, the LDA model, and co-occurrence frequency
+100, 200, 300 or 400 hidden units), the choice of optimiza-        (see Figure 1 a-c): even for large values of τ , there are a lot
+tion method (hierarchical softmax or negative sampling), and       of pairs that have probabilities close to zero. However, as
+for models with negative sampling the number of negative           shown in Figure 1 d-f, we do not see pairs with very small
+examples (5, 10, 15). Words with unigram probability higher        values of similarity when examining large thresholds for any
+than .001 are downsampled following Mikolov et al. (2013b).        of the recent vector-space representations. Our results reveal
+   Because of an implementation error, we were unable to ex-       that even with a probabilistic measure, Word2Vec represen-
+plore a large parameter space with GloVe, and report only the      tations cannot predict the triangle inequality: for very high
+results with the default parameters (Xmax = 10, α = .75,           thresholds on the similarity of w1 –w2 and w2 –w3 , there are
+50-dimensional vectors, and a 7-word symmetric window on
+                                                                       1
+either side of the target word). This leaves open the possi-             The pre-trained Word2Vec model is available at
+                                                                   https://code.google.com/archive/p/word2vec/;
+bility that GloVe may exhibit even higher performance on           The pre-trained GloVe model is available at http://
+TASA and Wikipedia with appropriate parameter settings.            nlp.stanford.edu/projects/glove/
+                                                               862
+
+Table 1: The Spearman’s rank correlation coefficient (ρassoc ) between gold-standard association scores from Nelson norms and
+different models of word representations. “cos.” and “cond. pr.” refer to cosine and conditional probability, respectively. [*]
+Data unavailable or infeasible to compute given current resources.
+                                Word2Vec CBOW         Word2Vec skip-gram               GloVe
+                                cos.     cond. pr.    cos.       cond. pr.        cos.   cond. pr.    LDA     Co-occurrence
+           Small (TASA)          .22        .21       .25           .25           .21       .20        .20          .21
+        Medium (Wikipedia)       .22        .22       .23           .24           .16       .19        [*]          .20
+          Largest available      .25        .26       [*]           [*]           .24       .27        [*]          [*]
+Table 2: The median rank of first, second, and third associates (1st /2nd /3rd ) for different models of word representation using
+conditional probabilities. The number of possible targets is 3951 for all corpora.[*] Data unavailable or infeasible to compute
+given current resources.
+                               Word2Vec CBOW         Word2Vec skip-gram            GloVe           LDA         Co-occurrence
+          Small (TASA)             48/112/160              26/72/106            56/138/215     23/69/103.5       21/58/122
+      Medium (Wikipedia)            23/48/75                21/46/74             52/92/129          [*]           23/48/70
+         Largest available          13/29/47                   [*]              11/25/40.5          [*]              [*]
+no w1 –w3 pairs with low similarity. These results suggest          atively high frequency rank. In future work we would like
+that using a probabilistic measure do not address the limita-       to investigate exactly how robust each of these models are
+tions of the vector-space models with respect to the triangle       to sparsity to test the hypothesis that reduced-dimensionality
+inequality.                                                         models are better at generalizing, such that they better predict
+   Finally, we examine whether the representations capture          associations for low frequency words.
+the observed asymmetry in human similarity judgements as               The two vector-space models investigated here were both
+calculated in Eqn. (6). Note that we can only use conditional       developed with the explicit objective of capturing meaningful
+probabilities in this analysis because the cosine measure is        linguistic difference in the linear substructure of the model
+symmetric. This probabilistic measure of similarities in both       (e.g., the vector produced by king - man + woman is closest
+Word2Vec and GloVe to some extent predicts the asymmet-             to queen). As such, these models show strong performance
+ric patterns of similarity observed in the Nelson norms (Ta-        on analogy tasks, while LDA typically fairs poorly. One ques-
+ble 3). We observe that the performance of the LDA model            tion is thus whether a single representation could predict word
+is comparable to the GloVe representations trained the largest      associations, while preserving linear substructure.
+corpora. The GloVe models performs significantly better than
+the Word2Vec models, which we believe is a result of its ob-                                  Conclusion
+jective function—it uses the ratio of conditional probabilities     We show that representations from two new vector-space
+of word pairs in training.                                          models, Word2Vec and GloVe, suffer from the same geo-
+                                                                    metric constraints as predecessors, and are consequently un-
+Table 3: The Spearman’s rank correlation coefficient (ρasym )       able to predict some of the characteristics of human similarity
+between asymmetry scores of Nelson norms and representa-            judgments, such as asymmetric similarity relations between
+tions from the models. In our data, there are 7096 cue–target       two words or triangle inequality. Besides performing well in
+pairs for which target–cue also exits. [*] Data unavailable or      the above task, word representations derived from LDA topic
+infeasible to compute given current resources.                      modeling show remarkable predictive power with respect to
+                   Word2Vec      Word2Vec                           human judgments given that they are learned from a dataset
+                     CBOW         Skipgram      GloVe   LDA         two orders of magnitude smaller than comparably performing
+      Small            .18           .01         .32     .49        vector-space models.
+     Medium            .20           .19         .43     [*]                                  References
+  Largest avail.       .20           [*]         .48     [*]
+                                                                    S. Arora, Y. Li, Y. Liang, T. Ma, and A. Risteski. Rand-
+                                                                       walk: A latent variable model approach to word embed-
+                         Discussion                                    dings. arXiv preprint arXiv:1502.03520, 2015.
+The selection of models, corpora, and tasks presented above         M. M. Azzopardi, L.;Girolami. Probabilistic hyperspace ana-
+suggests that LDA and co-occurrence frequencies have cer-              logue to language. In Proceedings of the 28th Annual ACM
+tain advantages when compared with the vector-space repre-             Conference on Research and Development in Infomration
+sentations produced by Word2Vec and GloVe. We expound                  Retrieval (SIGIR 2005), pages 575–576, 2005.
+on a few key points below to contextualize our results and set      A. Budanitsky and G. Hirst. Evaluating wordnet-based mea-
+the stage for future research.                                         sures of lexical semantic relatedness. Computational Lin-
+   Most of the targets and queues analyzed here are of rel-            guistics, 32(1):13–47, 2006.
+                                                                863
+
+Figure 1: The triangle inequality histograms on TASA: conditional probability for the third pair of words in a tuple (w1 –w3 )
+when the first two pairs (w1 –w2 and w2 –w3 ) are above the given threshold.
+C. Burgess and K. Lund. Modelling parsing constraints with          T. Mikolov, K. Chen, G. Corrado, and J. Dean. Efficient esti-
+   high-dimensional context space. Language and cognitive              mation of word representations in vector space. 2013a.
+   processes, 12(2-3):177–210, 1997.                                T. Mikolov, I. Sutskever, K. Chen, G. S. Corrado, and J. Dean.
+T. L. Griffiths, M. Steyvers, and J. B. Tenenbaum. Topics in           Distributed representations of words and phrases and their
+   semantic representation. Psych. Rev., 114(2):211, 2007.             compositionality. In Advances in Neural Information Pro-
+M. Gutmann and A. Hyvärinen. Noise-contrastive estima-                cessing Systems, pages 3111–3119. 2013b.
+   tion of unnormalized statistical models, with applications       F. Morin and Y. Bengio. Hierarchical probabilistic neural net-
+   to natural image statistics. Journal of Machine Learning            work language model. In R. G. Cowell and Z. Ghahramani,
+   Research, 13:307–361, 2012.                                         editors, Proceedings of the Tenth International Workshop
+F. Hill, R. Reichart, and A. Korhonen. Simlex-999: Evaluat-            on Artificial Intelligence and Statistics, pages 246–252. So-
+   ing semantic models with (genuine) similarity estimation.           ciety for Artificial Intelligence and Statistics, 2005.
+   Computational Linguistics, 2015.                                 D. L. Nelson, C. L. McEvoy, and T. A. Schreiber. The uni-
+                                                                       versity of south florida free association, rhyme, and word
+M. Hoffman, D. M. Blei, and F. R. Bach. Online learning for
+                                                                       fragment norms. 1998.
+   latent dirichlet allocation. In Advances in Neural Informa-
+   tion Processing Systems, pages 856–864, 2010.                    J. Pennington, R. Socher, and C. D. Manning. Glove: Global
+                                                                       vectors for word representation. In Empirical Methods in
+T. K. Landauer and S. T. Dumais. A solution to platos prob-
+                                                                       Natural Language Processing, pages 1532–1543, 2014.
+   lem: The latent semantic analysis theory of acquisition, in-
+   duction, and representation of knowledge. Psychological          P. D. Turney and P. Pantel. From frequency to meaning: Vec-
+   Review, pages 211–240, 1997.                                        tor space models of semantics. Journal of Artificial Intelli-
+                                                                       gence Research, 37(1):141–188, 2010.
+O. Levy and Y. Goldberg. Neural word embedding as implicit
+                                                                    A. Tversky. Features of similarity. Psychological Review, 84
+   matrix factorization. In Advances in Neural Information
+                                                                       (4):327, 1977.
+   Processing Systems 27, pages 2177–2185. 2014.
+                                                                864
+

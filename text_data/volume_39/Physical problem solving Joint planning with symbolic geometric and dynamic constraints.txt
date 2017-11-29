@@ -1,0 +1,315 @@
+                                                   Physical problem solving:
+                 Joint planning with symbolic, geometric, and dynamic constraints
+    Ilker Yildirim*1 (ilkery@mit.edu), Tobias Gerstenberg*1 (tger@mit.edu), Basil Saeed1 (bsaeed@mit.edu),
+        Marc Toussaint2 (marc.toussaint@informatik.uni-stuttgart.de), Joshua B. Tenenbaum1 (jbt@mit.edu)
+                        1 Brain and Cognitive Sciences, Massachusetts Institute of Technology, Cambridge, MA
+                                 2 Machine Learning and Robotics Lab, University of Stuttgart, Germany
+                                Abstract                                  tions support reasoning (Johnson-Laird, Khemlani, & Good-
+   In this paper, we present a new task that investigates how peo-        win, 2015). However, the theoretical and behavioral work
+   ple interact with and make judgments about towers of blocks.           on human reasoning and problem solving has tended to focus
+   In Experiment 1, participants in the lab solved a series of prob-      on symbolic domains (e.g., logical, spatial, and visuo-spatial
+   lems in which they had to re-configure three blocks from an
+   initial to a final configuration. We recorded whether they used        reasoning Newman, Carpenter, Varma, & Just, 2003; Byrne
+   one hand or two hands to do so. In Experiment 2, we asked              & Johnson-Laird, 1989), and has not yet looked into situa-
+   participants online to judge whether they think the person in          tions that require reasoning about physical objects, and form-
+   the lab used one or two hands. The results revealed a close
+   correspondence between participants’ actions in the lab, and           ing plans about how to interact with them.
+   the mental simulations of participants online. To explain par-            Secondly, research on computational motor control and ob-
+   ticipants’ actions and mental simulations, we develop a model          ject manipulation emphasizes the knowledge and transforma-
+   that plans over a symbolic representation of the situation, exe-
+   cutes the plan using a geometric solver, and checks the plan’s         tions necessary for skillful manipulation of objects. For in-
+   feasibility by taking into account the physical constraints of the     stance, work on sensorimotor control and object manipulation
+   scene. Our model explains participants’ actions and judgments          extensively studied internal models of the forward dynam-
+   to a high degree of quantitative accuracy.
+                                                                          ics of the arm and the objects, as well as how to choose ac-
+   Keywords: planning; problem solving; logic-geometric pro-              tions to efficiently achieve one’s goals based on internal mod-
+   gramming; intuitive physics; scene understanding
+                                                                          els (Nagengast, Braun, & Wolpert, 2009; Franklin & Wolpert,
+                            Introduction                                  2011). However, this line of work has tended to focus on rela-
+   Physical problem solving – converting knowledge into be-               tively simple actions, instead of settings that involve planning
+havior to achieve a goal that involves physical object manipu-            longer sequences of moves.
+lation – is a core component of human intelligence and ubiq-                 In this paper, we aim to bring these two different research
+uitous in everyday cognition. From young children playing                 traditions together. To better understand physical problem
+with stacking cups to an adult moving furniture to redesign a             solving, we introduce an intuitive, yet complex task in which
+room or to load a truck, our intuitive understanding of how to            participants are asked to manipulate a stack of blocks to gen-
+manipulate the physical world in order to meet our goals is               erate a target configuration. Consider Problem 1 shown in
+remarkable. For instance, when rearranging the furniture in a             Figure 1. The task is to manipulate the blocks so that the
+room, one needs to form and execute a plan which takes into               scene on the left is turned to the scene on the right. While par-
+account both spatial and physical constraints, such as how big            ticipants have no trouble doing this task, and even young chil-
+are the objects, and which objects might be stacked on top of             dren naturally perform such tasks, modeling people’s actions
+others.                                                                   is far from trivial and robotic systems rarely implement this
+   Two independently developed lines of research provide in-              kind of flexible manipulation. The task requires representing
+sights and starting points into exploring these computations:             the initial state, the final state, and making a plan for how to
+reasoning based on mental models, and motor control based                 get from A to B. Finding good action sequences in this task
+on forward models. Firstly, the theoretical and behavioral                not only requires a symbolic high-level plan (e.g., which se-
+work on reasoning and problem solving in symbolic domains                 quence of actions to take) and visuo-spatial reasoning, it also
+(e.g., logical reasoning, or visuo-spatial reasoning) empha-              requires intuitive physical reasoning about how objects sup-
+sizes the importance of common-sense knowledge. For in-                   port each other (i.e., their dynamics) and actual motor control
+stance, early Artificial Intelligence (AI) systems that were              required to execute the high-level abstract plan. Such combi-
+built to reason like humans do, focused on building models                nation of rich behavior is common in everyday cognition, but
+that capture aspects of common-sense knowledge about the                  has rarely been studied in the lab. We used two different ver-
+physical world in the form of knowledge representations and               sions of the task. In one version, participants in the lab were
+methods to efficiently manipulate them (e.g., Newell, Shaw,               asked to generate the different configurations. In another ver-
+& Simon, 1958). Similarly, in cognitive psychology, the                   sion of the task, we had online participants judge whether
+idea that problem solving begins with the construction of a               they think the person in the lab used one or two hands to get
+mental model of the situation was explored in more detail                 from A to B (cf. Figure 1E).
+by mental model theory (Johnson-Laird, 2005). While still                    We develop a novel computational model of physical prob-
+operating over logical representations, mental model theory               lem solving that goes all the way from formulating an ab-
+makes additional assumptions about what aspects of a situ-                stract symbolic plan to executing the low-level motor com-
+ation people naturally represent, and how these representa-               mands that are required to realize the plan. The model is com-
+                                                                      3584
+
+Figure 1: Experimental setup. A: Example for an initial and final configuration of the three blocks. B: Illustration for what moves were
+legal (green border) or illegal (red border). C and D: Some example problems. E: Screenshot of the experimental interface for participants in
+Experiment 2.
+posed of three components: (1) a symbolic representation of                         Stack re-configuration problems
+the scene, (2) a geometric solver for motion synthesis, and                Most classical paradigms used to study problem solving,
+(3) a physics engine for physical reasoning. Planning in the            such as the Tower of Hanoi and its variants require visuo-
+model operates over the symbolic representation of the scene.           spatial reasoning and planning for successful solutions. Here
+Each plan is composed of subgoals and finds a sequence of               we present a novel problem which requires the problem-
+moves that turn the initial into the final configuration (see,          solver to also take into account physical constraints, such as
+e.g., Figure 3C, left side). An optimization-based kinemat-             considering whether a particular configuration of blocks will
+ics solver takes the symbolic plan as its input and generates           be stable.
+a full motion plan which we implement in a simulated two-                  The problems involve an initial stack of three physical
+armed robot (Figure 3C, right side). We use a physics engine            blocks on a table paired with an image showing the desired
+to check whether the plan that the kinematic solver came up             target stack of the same three blocks (Figure 1A). The three
+with is feasible. More specifically, we test at each point when         wooden blocks had the same size and mass, and were colored
+a subgoal is reached, whether the configuration is physically           in red, yellow, and blue. Given the pair of initial and target
+stable. If the plan includes an unstable configuration, it is dis-      stacks, the problem is to re-configure the initial stack such
+carded (Figure 3D for a plan that includes an unstable state).          that it will match the target stack in the image. While interact-
+The model’s task is to get from the initial stack shown in A            ing with the blocks, participants aren’t allowed to touch more
+to the target stack. However, just taking the red block and             than one block at a time. Example legal and illegal moves
+moving it to the right so that it’s correctly positioned relative       are shown in Fig 1B. To solve each stack re-configuration
+to the yellow block, causes the blocks to fall over.                    problem, participants have to plan and execute a set of moves
+   For each pair of initial and target stack, the model is able         (using one or both hands) that will generate the target stack
+to generate plans using either only one arm, or both arms. We           from the initial stack.
+score each plan based on its efficiency which is a function
+                                                                                      Experiment 1: Physical task
+of the number of the moves it takes to get from the initial to
+the target stack, as well as the effort that the plan takes. We            The goal of Experiment 1 was to assess how participants
+evaluate the contributions of the three different components            interact with the scene to get from the initial to the final con-
+of our model through lesion studies (i.e. we remove parts of            figuration for each problem. In particular, we were interested
+the model and see how well it does, in order to gauge what              in seeing whether they used one hand or two hands to get
+components are necessary to capture people’s behavior).                 from A to B.
+   The remainder of this paper is organized as follows: first,          Methods
+we describe a novel, physical problem-solving task and show             Participants 10 participants (Mage = 35, SDage =
+how participants solve the task in the lab and online. Next,            16.4, Nfemale = 6) were recruited from MIT’s subject
+we describe our computational model and analyze how well                pool. The study took about 15 minutes to complete, and all
+it does in accounting for participants’ behavior. We conclude           participants were compensated for their participation.
+by highlighting the key contributions of the paper, and by sug-         Stimuli The three physical blocks used in the experi-
+gesting several lines of future research.                               ment were of size 10cm-5cm-5cm (height-width-depth) and
+                                                                   3585
+
+Figure 2: The probability that participants used one hand in the lab (Physical) together with the mean judgments provided by participants
+online (Mental) for 34 different problems. Note: Error bars indicate 95% bootstrapped confidence intervals.
+weighed about 50 grams. We manually arranged these 3                      Discussion
+blocks into 38 different configurations and took a picture of                Overall, we found that participants had no trouble doing
+each configuration. The configurations were constrained such              the task. There was considerable variance in how partici-
+that all blocks remained within a spatial boundary on a table,            pants solved the different problems with some participants al-
+and the block or blocks touching the table were centered at               most exclusively using one hand (if possible) and others being
+one of three designated spots. Figure 2 shows some examples               more likely to use two hands to get to the target configuration.
+of initial and final configurations.1                                        Experiment 1 serves as a baseline to see how participants
+Procedure After providing written consent, participants                   actually interact with the physical scene. In Experiment 2,
+were introduced to the task, including what moves were legal              we were interested to see how people mentally simulate the
+and which ones were illegal. Starting from the initial stack              way in which they would interact with the scene to get from
+configuration of Problem 1, participants were asked to re-                the initial to the final stack. If participants are able to men-
+configure the blocks to the target stack of Problem 1, which              tally do this task, we would expect a close correspondence
+was presented on a computer screen in front of them. They                 between the judgments participants make based on their men-
+clicked on the “Continue” button on the screen to indicate                tal simulation, and the actual behavior of participants in the
+that they were done and the experiment moved on to the next               lab.
+problem.
+                                                                                         Experiment 2: Mental task
+   The initial configuration of the next problem, Problem 2                  The goal of this experiment was to test whether partici-
+(Figure 2C), was the target configuration from the previous               pants can simulate how another person would interact with a
+problem, and so on. This sequence of problems continued                   physical scene to get from A to B.
+for a total number of 37 problems.2 The presentation order
+was the same for all participants. All participant responses              Methods
+were video-recorded. For each problem, we coded whether                   Participants 40 participants (Mage = 35, SDage =
+participants used one or two hands to solve it.                           14, Nfemale = 22) were recruited via Amazon’s crowd-
+                                                                          sourcing service Mechanical Turk. The experiment took
+Results                                                                   8.7 minutes (SD = 4.4) to complete and participants were
+                                                                          compensated at an hourly rate of 6.0$.
+   Figure 2 shows the proportion of participants who used one
+hand for each trial. In some trials, most participants used               Stimuli The same pairs of initial and target stacks as Exper-
+only one hand (e.g., Problem 21, Figure 1D), and in others                iment 1 were used, with the exception that both stacks were
+most participants used both hands (e.g., Problem 34, Fig 1D).             presented on the screen side by side.
+Across all trials, participants used one or two hands about               Procedure Participants saw two images side by side with the
+equally. Participants often solved the problem with one hand              left image showing the initial stack and the right image show-
+if it was possible to do so. Some participants only used their            ing the target stack (example pairs in Figure 1 except panel
+non-dominant hand if it was impossible to achieve the target              B). They were instructed that “The image on the left shows
+configuration with one hand only.                                         you the initial configuration of the blocks. The image on the
+                                                                          right shows you the configuration after the person interacted
+                                                                          with the blocks.” Their task was to judge whether the per-
+    1 For the full set of problems as well as example videos              son had used one hand or two hands to re-configure the stack.
+for how the model described below solves the differ-                      They entered their response by adjusting a slider bar at the
+ent trials please see:          https://github.com/iyildirim/
+stack-reconfiguration-problems                                            bottom of the screen (see Figure 1). Then they clicked on
+    2 Because several participants had trouble to successfully gener-     the “Continue” button to proceed to the next problem. The
+ate the trials 35–37, we will focus on the first 34 trials.               different problems were presented in randomized order.
+                                                                      3586
+
+Results                                                              fies a grasp action with an actuator on a movable object. For
+   Figure 2 shows participants’ mean judgments for the differ-       example, Grasp(R, handR) specifies a right hand grasp of
+ent problems. To assess how well participants’ mental sim-           the red block. This move changes the position of the object to
+ulations correspond with the actions that participants took in       inside in the actuator while clearing its previous location for
+the experiment, we compared the mean responses in Experi-            moving other objects. The symbolic planning stage doesn’t
+ment 2 with the proportion of participants who used one hand         take into account rotation of the objects or the actuators.
+in Experiment 1.                                                        Place(Obj, Supp_Obj, Act) specifies any place action
+   Overall, we found that participants’ judgments about how          that is not final of a movable object on another object using an
+many hands the person used correlated well with participants’        actuator. For example, Place(B, T, handL) specifies plac-
+actual behavior in the lab, r = .73, p < .05. Whereas there          ing the blue block on the table using the left hand. This move
+were many trials for which the correspondence between judg-          changes the position of the object (e.g., the red block) to be
+ments and actions was very high (e.g. Problems 1–6, or 21–           on top of the support object (e.g., an empty location on top
+32), there were also situations in which actions and judgments       of the table) while clearing its previous location. The rotation
+came apart. For example, in Problem 34 almost all partici-           again is not handled at the symbolic planning stage.
+pants in the lab used two hands, whereas online participants
+                                                                        Fix(Obj, Supp_Obj, Act) specifies any place action
+believed that it was likely that a person would only use one
+                                                                     that is final of a movable object on another object using an
+hand to re-configure the scene.
+                                                                     actuator. For example, Fix(G, R, handR) specifies final
+                             Model                                   fixation of the green block on top of the red block using the
+   The model consists of three components: (1) a set of ab-          right hand. This move changes the position of the object (e.g.,
+stract motion primitives that can be composed to symbolic            the green block) to be on top of the support object (e.g., red
+plans for re-configuring an input stack to a target stack, (2) a     block) while clearing its previous location. Fix action is al-
+hierarchical kinematics-based optimization algorithm to find         ways final – the object isn’t moved after.
+manipulation trajectories conditioned on the symbolic plan,             Given a pair of stack configurations as input, we wish to
+(3) and a physics engine to evaluate the stability of the inter-     find sequences of moves (symbolic plans) that transform the
+mediate stages produced by the execution of the manipulation         initial stack to the target stack. We used Monte Carlo tree
+trajectories. The first two components of our model are based        search (MCTS) to find satisfying sequences by branching the
+on the logic-geometric programming framework (Toussaint,             search tree using the three move types, the three objects, the
+2015).                                                               four support objects, and the two actuators. Our pruning al-
+Logic-geometric programming framework                                gorithm was efficient to a certain extent – for example, if an
+                                                                     object is already grasped, we did not branch the grasp move
+   The logic-geometric programming framework presents a
+                                                                     on it again. We also imposed a condition to produce a spe-
+solution to problems of combined task and motion planning.
+                                                                     cialized set of solutions which we labeled as the efficient set,
+Such tasks involve sequential manipulation of a scene based
+                                                                     leaving the label inefficient for the universal set of solutions.
+on a geometrically defined goal function. It utilizes symbolic
+                                                                     To produce the efficient set, we would only branch the search
+task descriptions as (in-)equality constraints within a hierar-
+                                                                     tree to a Place(Obj,.,.) if the Fix(Obj,.,.) was not cur-
+chical geometric solver to find full manipulation and object
+                                                                     rently available for the block. We increased the maximum
+trajectories starting from a coarse-level solution to eventually
+                                                                     length of move sequences until no new unique solutions could
+fine-grained full-paths. Below, we present our representations
+                                                                     be found.
+and an algorithm for symbolic planning as well as a general
+outline of the geometric solver.                                        After a sequence was deemed satisfactory, we assigned in-
+Symbolic plans Symbolic plans are sequences of a set of ab-          tegral timestamps to each of the abstract moves that it is com-
+stract move types defined using actuators, movable objects           posed of. These timestamps indicated the discrete-time val-
+and fixed objects in a simulated world. The moves change             ues that an abstract move should be executed at. The assign-
+the state of the actuators and the movable objects. The world        ment was done in a way to allow the execution of as many
+is described as a linked list of fixed and movable objects with      concurrent moves as possible. Of course, when a solution is
+relative world coordinates: the position and rotation of a child     one-handed, only one move can be executed at a time, thereby
+object is defined relative to its parent.                            each abstract move must be assigned a separate timestamp.
+   In order to model our stack re-configuration tasks, we pop-       However, with two-handed solutions, different blocks can be
+ulated the world with three movable objects (red block R,            concurrently actuated by different hands. Example symbolic
+green block G, and blue block B), and a fixed object (table T).      plans for a pair of initial and target stack configurations are
+The world also includes a robotic body with arms and pincer          shown in Fig 3.
+hands (actuators: handL and handR) overall consisting of 12             We assigned a complexity score to every symbolic solu-
+degrees of freedom (two at each shoulder, two at each wrist,         tion generated, denoted si, j where i indexes problems and j
+and two at each hand).                                               indexes its solutions. The score for a sequence is equal to the
+   There are three types of moves: Grasp(Obj, Act) speci-            discrete-time that this sequence takes to terminate.
+                                                                 3587
+
+Figure 3: Illustration of how the model works. A: The model successfully went from the inital to the final configuration. B: The symbolic
+plan for going from Step 1 to Step 2 using two hands. C: A more involved plan that requires 8 moves. D: Example of a scene where a plan
+fails because it created an unstable configuration (as determined by the physics engine).
+Geometric solver The geometric solver can be thought of as                spired by (Battaglia, Hamrick, & Tenenbaum, 2013), we infer
+compiling a symbolic plan to manipulation trajectories of ac-             whether a given intermediate configuration is stable by physi-
+tuators and movable objects. It is based on a hierarchical op-            cally instantiating it in a physics engine (PhysX) and measur-
+timization procedure for combined task and motion planning                ing the total kinetic energy over a total simulation duration of
+where the tasks come from the symbolic plan. Conditioned on               1 sec with a burn-in period of 100 msecs. We reject a solution
+the symbolic plan, the geometric solver generates a number of             if the total kinetic energy exceeds an empirically determined
+equality and inequality constraints that need to be met by the            threshold of 0.1 joules.
+optimization procedure. These constraints are solved using                   Similar to the complexity score for the symbolic solutions,
+an optimization package (k-order motion optimization frame-               we assigned an approximately metabolic cost score to every
+work, KOMO Toussaint, 2014) that can handle long-distance                 full model solution found (that is, solutions after the physical
+dependencies such as the dependencies between actuator and                stability inference step), denoted fi, j where i indexes prob-
+object trajectories across time steps. Due to space limits,               lems and j indexes its solutions. This score captures the ex-
+we cannot provide any further the details of KOMO and the                 tent to which a particular plan requires effort to execute. The
+logic-geometric programming framework (but see Toussaint,                 score starts with the symbolic complexity score, si, j , but adds
+2015, 2014). Snapshots of example manipulation trajectories               two more quantities: (1) an extra cost of 0.5 for moves involv-
+generated by this optimization procedure for a pair of initial            ing multiple blocks (e.g., actuating–i.e., grasping, placing or
+and target stack configurations are shown in Fig 3.                       fixing– the red block while the blue block rests on top of it),
+                                                                          and (2) an extra cost of 0.5 for moves that result in an in-
+Physical stability inference
+                                                                          termediate physically unstable configuration from which the
+   Because the geometric solver only considers kinematics                 solver can recover to reach the correct stable configuration
+and not the physical dynamics of the scene, it can find so-               (e.g., moving the yellow block while the red block is leaning
+lutions that have physically unstable intermediate steps. In-             on it, and subsequently moving the red block).
+                                                                     3588
+
+                                                                             ciently plans over this representation by first forming a sym-
+                                                                             bolic plan, trying to execute the plan using a geometric solver,
+                                                                             and then checking whether the plan was feasible by consult-
+                                                                             ing a physics simulation engine to make sure that each move
+                                                                             resulted in a physically stable configuration.
+                                                                                The full model accounts well for participants’ actions as
+                                                                             well as mental simulations. A model that does not take into
+                                                                             account the efficiency of different plans fares worse (partic-
+                                                                             ularly when trying to explain mental simulations). More-
+                                                                             over, it is crucial to consider how much effort different plans
+Figure 4: Scatter plots showing the relationship between different           would take into account well for participants’ actions and
+versions of the model (columns) and participants’ actions in the lab         judgments. Participants chose to use two hands only when
+(top), or mental simulations online (bottom). Note: 1 = definitely           a one-hand solution would have required considerably more
+one hand, 0 = definitely two hands.
+                                                                             effort.
+Simulations and results                                                         A striking aspect of problem solving is that it demands
+   In addition to our full model, we also considered a lesioned              flexible systems that can operate with very little training op-
+model which leaves out the physical inference component.                     portunity, leading many researchers to emphasize the role of
+We assume that people aim to reach their goal efficiently.                   common-sense reasoning and model-building as the building
+Hence, we assume that sequences with higher complexity                       blocks of human problem solving (Johnson-Laird, 2005). We
+scores or metabolic costs are less likely to be chosen (in the               find such flexibility and data efficiency in stark contrast with
+lab) or simulated (online) than those with lower complexity                  some of the main approaches to artificial intelligence today,
+scores or costs. For a given problem i, we obtain the probabil-              in particular to deep learning (Silver et al., 2016). These
+ity of choosing one-hand based on the symbolic complexity                    approaches require huge amounts of data, yet their gener-
+                                                         −s
+                               ∑ j∈one−hand solutions e i, j                 alization capacity is limited in contrast to human’s flexibil-
+scores in the following way                           −si, j . This means
+                                  ∑ j∈all solutions e                        ity. Turning these data-hungry approaches to flexible prob-
+that the model is more likely to choose a one-hand solution                  lem solvers is a substantial challenge. This paper makes a
+the lower the cost of one-hand solutions are relative to all pos-            few (block) moves in this direction.
+sible solutions.For the full model, the probability of choosing              Acknowledgments This work was supported by the Center for
+one-hand, Pr(One-hand), is calculated identically but using                  Brains, Minds & Machines (CBMM), funded by NSF STC award
+the full model scores, fi, j .                                               CCF-1231216 and by an ONR grant N00014-13-1-0333.
+   Overall, we found that the model accounted well for the                                                 References
+data (see Fig. 4). In particular, we found that both physical
+                                                                             Battaglia, P. W., Hamrick, J. B., & Tenenbaum, J. B. (2013). Simu-
+stability inferences and efficiency were necessary to account                        lation as an engine of physical scene understanding. Proceed-
+for participants’ judgments in Experiment 2 (r = .74, com-                           ings of the National Academy of Sciences, 110(45), 18327–
+parisons to symbolic-efficient, symbolic-inefficient and full-                       18332.
+                                                                             Byrne, R. M., & Johnson-Laird, P. N. (1989). Spatial reasoning.
+model-inefficient p < .05 using direct hypothesis testing with                       Journal of memory and language, 28(5), 564–575.
+the bootstrap samples).                                                      Franklin, D. W., & Wolpert, D. M. (2011). Computational mecha-
+   Similarly, in Experiment 1, we found that physical stability                      nisms of sensorimotor control. Neuron, 72(3), 425–442.
+                                                                             Johnson-Laird, P., Khemlani, S. S., & Goodwin, G. P. (2015). Logic,
+inferences were necessary to best explain participants’ behav-                       probability, and human reasoning. Trends in Cognitive Sci-
+ior (with r = .68 of the full model compared to r = 0.63 of a                        ences, 19(4), 201–214.
+model that doesn’t take into account efficiency). But we did                 Johnson-Laird, P. N. (2005). Mental models and thought. The
+                                                                                     Cambridge handbook of thinking and reasoning, 185–208.
+not find a statistical difference between using only the effi-               Nagengast, A. J., Braun, D. A., & Wolpert, D. M. (2009). Optimal
+cient solutions versus all solutions (p = .06).                                      control predicts human performance on objects with internal
+                                                                                     degrees of freedom. PLoS Comput Biol, 5(6), e1000419.
+                    General Discussion                                       Newell, A., Shaw, J. C., & Simon, H. A. (1958). Elements of a the-
+                                                                                     ory of human problem solving. Psychological Review, 65(3),
+   We presented a novel paradigm – the stack re-configuration                        151–166.
+problems – and studied people’s solving these problems in the                Newman, S. D., Carpenter, P. A., Varma, S., & Just, M. A.
+laboratory (Experiment 1) and mentally simulating what they                          (2003). Frontal and parietal participation in problem solv-
+                                                                                     ing in the Tower of London: fMRI and computational model-
+think a person would do (Experiment 2). We found that par-                           ing of planning and high-level perception. Neuropsychologia,
+ticipants’ judgments about whether they think a person used                          41(12), 1668–1682.
+one or two hands to get from the initial to the target configu-              Silver, D., van Hasselt, H., Hessel, M., Schaul, T., Guez, A., Harley,
+                                                                                     T., . . . others (2016). The predictron: End-to-end learning
+ration correlated well with participants’ actual behavior in the                     and planning. arXiv preprint arXiv:1612.08810.
+lab.                                                                         Toussaint, M. (2014). Newton methods for k-order markov con-
+   In order to explain participants’ behavior, we developed                          strained motion problems. arXiv preprint arXiv:1407.0414.
+                                                                             Toussaint, M.         (2015).   Logic-geometric programming: An
+a computational model that flexibly combines a symbolic,                             optimization-based approach to combined task and motion
+geometric, and physical representation of the scene. It effi-                        planning. In IJCAI (pp. 1930–1936).
+                                                                         3589
+

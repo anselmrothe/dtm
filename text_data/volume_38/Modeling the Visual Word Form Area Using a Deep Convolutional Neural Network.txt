@@ -1,0 +1,371 @@
+        Modeling the Visual Word Form Area Using a Deep Convolutional Neural
+                                                                  Network
+                                             Sandy Wiraatmadja (csandyw@gmail.com)
+                        Department of Computer Science and Engineering, University of California San Diego
+                                              9500 Gilman Dr 0404, La Jolla, CA 92093 USA
+                                                Garrison W. Cottrell (gary@ucsd.edu)
+                        Department of Computer Science and Engineering, University of California San Diego
+                                              9500 Gilman Dr 0404, La Jolla, CA 92093 USA
+                               Abstract
+   The visual word form area (VWFA) is a region of the cortex lo-
+   cated in the left fusiform gyrus, that appears to be a waystation
+   in the reading pathway. The discovery of the VWFA occurred
+   in the late twentieth century with the advancement of func-
+   tional magnetic resonance imaging (fMRI). Since then, there
+   has been an increasing number of neuroimaging studies to un-
+   derstand the VWFA, and there are disagreements as to its prop-        Figure 1: Activation of the VWFA in the left occipitotempo-
+   erties. One such disagreement is regarding whether or not the
+                                                                         ral sulcus near the fusiform gyrus (Dehaene & Cohen, 2011).
+   VWFA is more selective for real words over pseudowords1 . A
+   recent study using fMRI adaptation (Glezer, et al., 2009) pro-        conclusion of this research is that the response of VWFA is
+   vided evidence that neurons in the VWFA are selectively tuned
+   to real words. This contradicts the hypothesis that the VWFA          strictly visual and prelexical, such that the words are recog-
+   is tuned to the sublexical structure of visual words, and there-      nized by VWFA visually, without giving them any meaning.
+   fore has no preference for real words over pseudowords. In               In this paper we develop a deep CNN model of the Visual
+   this paper, we develop a realistic model of the VWFA by train-
+   ing a deep convolutional neural network to map printed words          Word Form Area (VWFA). We trained the network to map
+   to their labels. The network is able to achieve an accuracy of        printed words to their labels. We then analyzed it to look
+   98.5% on the test set. We then analyze this network to see if         for properties similar to the VWFA. We are especially inter-
+   it can account for the data Glezer et al. found for words and
+   pseudowords, and find that it does.                                   ested to see if the model is consistent with the neuroimaging
+                                                                         evidence reported by Glezer, Jiang, and Riesenhuber (2009),
+                           Introduction                                  that suggests that the VWFA represents words discretely, and
+                                                                         pseudowords in a more distributed manner. This is in con-
+The VWFA is a region of the visual cortex that is activated              trast to previous studies which concluded that the VWFA is
+during visual alphabetical word reading, similar to how the              tuned to sublexical orthographic structure, and therefore has
+fusiform face area (FFA) is responsive to faces. The idea of             no preference for real words over pseudowords.
+the existence of a specific region in the brain specialized for
+                                                                            An influential descriptive model of the VWFA was pro-
+the reading process has been around since the nineteenth cen-
+                                                                         posed by McCandliss et al. (2003) (Figure 2). The word is
+tury, when a French neurologist, Joseph Jules Dejerine, who
+                                                                         first processed in ventral occipital regions V1 to V4, where
+in 1892 reported a case of a patient with pure alexia due to a
+                                                                         the neurons are tuned to features that are increasingly com-
+brain lesion. However, it was not until the late twentieth cen-
+                                                                         plex and abstract, running posterior to anterior along the vi-
+tury, with advances in functional magnetic resonance imaging
+                                                                         sual pathway. The features progress from horizontal and ver-
+(fMRI), that the physical existence of the VWFA was discov-
+                                                                         tical bars, to individual letters, to bigrams, and so on, until
+ered. Several brain imaging studies have been able to pinpoint
+                                                                         the sequence of the letters is identified. This model is consis-
+this region to the same location within the left lateral occipi-
+                                                                         tent with some neuroimaging studies (Dehaene et al., 2004;
+totemporal sulcus near the fusiform gyrus (Cohen et al., 2000;
+                                                                         Vinckier et al., 2007). However, experiments have failed to
+McCandliss, Cohen, & Dehaene, 2003; Vigneau, Jobard, Ma-
+                                                                         find any further evidence of selectivity for whole words in the
+zoyer, & Tzourio-Mazoyer, 2005; Dehaene & Cohen, 2011),
+                                                                         VWFA, leading to the hypothesis that the VWFA is tuned to
+shown in Figure 1. This area is found to be more respon-
+                                                                         the sublexical structure of a word.
+sive to visual words than any other similar stimuli, as cor-
+                                                                            We do not have space here to review the many studies of the
+roborated by several lesion and interference studies. Lesions
+                                                                         VWFA. The reader is referred to (Dehaene & Cohen, 2011)
+in the VWFA can cause pure alexia, where subjects experi-
+                                                                         for a relatively recent review. Here we focus on a study by
+ence severe visual reading impairment without any changes
+                                                                         Glezer et al. (2009), who used fMRI rapid adaptation (fMRI-
+in ability to identify faces, objects, or even Arabic numer-
+                                                                         RA) (Grill-Spector, Henson, & Martin, 2006) to investigate
+als (McCandliss et al., 2003; Dehaene & Cohen, 2011). The
+                                                                         the nature of representations in the VWFA. fMRI-RA makes
+    1 Pseudowords are usually constructed from real words by chang-      use of the fact that repeated stimuli lead to a reduction in the
+ing a consonant, and hence follow the orthographic rules of English.     overall BOLD response. If a new stimulus leads to a resur-
+                                                                     2519
+
+                                                                     Figure 3: Mean percent signal change in the VWFA of par-
+Figure 2: The anatomical and functional pathway model of             ticipants in Glezer et al.’s third experiment.
+visual word processing proposed by McCandliss et al. (2003).
+                                                                     and finally our experimental design to test the network on the
+Table 1: Some examples of prime-target word pairs that were          stimuli used in Glezer et al. (2009).
+used in the experiments done by Glezer et al. (2009).                Visual Words Dataset
+                      Target Word                                    To minimize the scope of the project, we used the 850 words
+     Prime                                                           of Basic English, that was created by Charles Kay Ogden.
+                same       1L      different
+       car       car       bar         lie    real words             He claimed that these words are sufficient for ordinary com-
+      plane    plane      place      cross    real words             munication in idiomatic English. The words are split into 3
+     health    health    wealth ground        real words             different categories: (1) Operations, consisting of 100 words;
+       dut       dut       dun        pim     pseudowords            (2) Things, consisting of 400 general words and 200 pictured
+     nount     nount     naunt       spibe    pseudowords            words; and (3) Qualities, consisting of 100 general words and
+     shatch    shatch    chatch     jounge    pseudowords            50 opposite words. In order to model Glazer et al., we added
+                                                                     47 sets of three words each that they used for their stimuli.
+gence of activation, that is taken as evidence that different        Since some of these words were already in the Basic English
+neurons represent that stimulus, i.e., the brain sees it as dif-     set, this resulted in 899 unique words.
+ferent from the prime stimulus.                                         Using MATLAB, the words were printed in black onto a
+   The subjects in the experiments were presented with               227x227 blank white background, and saved in PNG format.
+prime/target pairs of real words and pseudowords, each with          To generate an adequate variety of word images, we used 75
+three different conditions: (1) “same”, where the prime and          different font types, with three different sizes: 12, 15, and
+target words are the same, (2) “1L”, where the prime and tar-        18 pt. We also rotated the words slightly, with a rotation an-
+get words differ by one letter, and (3) “different”, where the       gle ranging from -15◦ to 15◦ , and translated the center of the
+prime and target words share no common letters. Examples             text to be at least 75 and 100 pixels away from the top/bottom
+of pairs that were used in the experiments are shown in Table        border and left/right border, respectively, maintaining enough
+1. Of greatest interest here is their third experiment, which        space for longer words. In this manner, we generated 1,296
+presented these stimuli in a within-subject design. The re-          images per word, totaling over 1.1 million images. Some
+sults (consistent with the first two experiments) showed that        sample images in the dataset are shown in Figure 4. The im-
+single letter changes gave rise to recovery of the BOLD signal       ages were then divided randomly into 3 sets: a training set of
+that was equal to the recovery for completely different words,       899,000 images (1,000 images per word), a test set consisting
+suggesting that even words with one letter different did not         of 170,000 images (200 images per word, plus four images
+share representations. On the other hand, responses to pseu-         each of the Glazer et al. words for simulating their experi-
+doword changes were graded, suggesting that their represen-          ments), and a validation set consisting of 86,304 images (96
+tations were overlapping.                                            images per word).
+                                                                     VWFA network model
+                  Experimental Methods                               Consistent with recent work in computer vision, we used a
+As a first step in this research, we needed to develop a real-       convolutional neural network (CNN) for the VWFA model.
+istic model of the VWFA that we could analyze to look for            A CNN is a feed-forward neural network that uses the convo-
+properties that are similar to the VWFA. In order to do so, we       lution of repeated features with small receptive fields across
+designed a convolutional neural network for this task, created       the image to create several feature maps. After a nonlinear-
+a large dataset of word images, and trained the network to           ity is applied, these maps are then downsampled by comput-
+recognize visual words by mapping them to their labels. Here         ing the max of a small patch of them, and the process is re-
+we describe the dataset, the network, our training procedures,       peated. In this way, the receptive fields of the units get larger
+                                                                 2520
+
+                                                                      has a high dimension, produces sparse activations. These
+                                                                      sparse features have been shown to improve the network’s
+                                                                      discriminative ability (Jarrett, Kavukcuoglu, Ranzato, & Le-
+                                                                      Cun, 2009).
+                                                                         The next step is pooling the responses of the first convolu-
+                                                                      tional layer. We used max pooling on each 2x2 patch (i.e., the
+                                                                      output of this operation is the maximum response of the four
+                                                                      units), reducing the dimensionality to 1/4 of its previous size.
+                                                                      Using a stride of 2, adjacent pooling units do not overlap.
+                                                                      This produces a feature map of dimension 56x56x20.
+                                                                         We then applied Local Response Normalization to this
+Figure 4: Example of some visual words images in the dataset          output, which normalizes the activation over local regions.
+                                                                      This scheme has heuristically been shown to aid general-
+                                                                      ization and make training faster. Each unit is divided by
+                                                                      (1 + (α/n) ∑i xi2 )β , where x is the activation of the units, n
+                                                                      is the size of each local region, and the sum is taken over
+                                                                      the region that is centered at that unit (Jia et al., 2014). All
+                                                                      constants, n, α, β, are hyper-parameters. We used the values
+                                                                      n = 5, α = 10−4 , and β = 0.75, which are the same values
+                                                                      used by Krizhevsky et al. (2012).
+                                                                         The third layer is another convolutional layer with 50 ker-
+                                                                      nels, each of size 5x5x20, with a stride of 1. The output of
+                                                                      this layer is a 52x52x50 feature map, to which we apply the
+Figure 5: Architecture of the VWFANet, a modification of              ReLU activation function. We then use max pooling on this
+the LeNet-5 architecture, trained to classify visual words.           layer with the same parameters as before, and again use re-
+                                                                      sponse normalization. This produces a feature map of dimen-
+in deeper layers of the network (Krizhevsky, Sutskever, &
+                                                                      sion 26x26x50.
+Hinton, 2012), just as they do in visual cortex. CNNs are
+                                                                         At this point, we use a fully-connected (non-convolutional)
+therefore biologically-inspired variants of multilayer percep-
+                                                                      hidden layer of 2048 units, each with 26x26x50 inputs from
+trons (Bengio, Goodfellow, & Courville, 2015).
+                                                                      the previous layer. Again we used ReLU as the activation
+   A common approach in computer vision is to start with a
+                                                                      function. Finally, the output of this layer is connected to an
+pre-trained network, such as “Alexnet,” the network that won
+                                                                      899-way softmax. This produces a probability distribution
+the 2012 Imagenet Large Scale Visual Recognition Challenge
+                                                                      over the 899 classes (850 Basic English words plus 49 extra
+(ILSVRC) (Krizhevsky et al., 2012). However, for the task
+                                                                      words used in Glezer et al.), P(word|input).
+of recognizing images of words, Alexnet did not work well
+at all, presumably because it is tuned to objects, not words,
+which require fine-grained discrimination.
+                                                                                        Training the Network
+   Hence we designed a modified version of LeCun’s zip                In order to train the network, we used Caffe, a framework
+code reading network, LeNet-5 (LeCun, Bottou, Bengio, &               designed for deep neural networks (Jia et al., 2014). We
+Haffner, 1998). We used several refinements following ideas           trained the weights of the VWFANet from scratch, on a single
+by Krizhevsky et al. (2012). We chose LeNet-5 as the ba-              NVIDIA GeForce GTX TITAN GPU which contains 2688
+sis for our VWFA network because both tasks involve visual            cores with 6GB of memory.
+character recognition. An illustration of the VWFANet archi-             The network was trained using cross-entropy loss, the
+tecture is shown in Figure 5.                                         minibatch stochastic gradient descent method, with momen-
+   The input to the VWFANet is a 227x227 pixel image,                 tum and weight decay. The minibatch method computes the
+scaled so each pixel is in the range [0,1]. The first convolu-        error over a small “batch” of training examples, and then
+tional layer filters the input image with 20 kernels of size 5x5,     changes the weights. In our case, we used a minibatch size
+and uses a stride of 2. The stride is the offset of each kernel       of 32. We used an initial learning rate of 0.01, momentum of
+with respect to its neighbor, so here the kernels are overlap-        0.9, and weight decay of 0.0005. The learning rate was ad-
+ping. This results in a feature map of dimension 112x112x20.          justed using the inverse policy, where λn = λ0 ×(1+0.0001×
+We used Rectified Linear Units (ReLU) as the nonlinear ac-            n)−3/4 , where λ0 is the initial learning rate and n is the cur-
+tivation function for this layer. The ReLU function is de-            rent iteration number. The weights initialized
+                                                                                                            √          to have 0 mean
+fined as f (x) = max(0, x). It has been shown empirically to          and standard deviation equal to 1/ m, where m is he fan-
+learn faster than saturating nonlinearities, such as the hyper-       in to the unit. The bias in each layer was initialized to 0.
+bolic tangent function f (x) = tanh(x) or the sigmoid func-           We trained the network for a maximum of 100,000 iterations,
+tion f (x) = (1 + e−x )−1 . Using ReLU for this layer, which          while checking the validation set accuracy after every 5,000
+                                                                  2521
+
+iterations so we could stop training once the accuracy started
+to go down. However, even after 100,000 iterations, the error
+was still dropping on the validation set.
+       Selectivity to Real Words Experiments
+We analyzed the VWFAnet to see if it has a similar selectivity
+for real words as the VWFA, as suggested by Glezer et al.
+(2009). We compared the analysis of the highest accuracy
+model to the results of the within-subject experimental results
+shown in Figure 3.
+   The main question now is how to model the release from
+adaptation effect. We assume that this effect is proportional to
+the difference in activation between stimuli. Hence we mea-          Figure 6: Some examples of correct and incorrect predictions.
+sure the Euclidean distance between stimuli as a proxy for           On the right, the incorrect predictions, and their frequency,
+signal change - a small distance means most neural activities        are listed below the panels. Embiggen the pdf to see these
+are shared, and so there should be no or a small rise in the         better.
+BOLD response, whereas a large distance means that the two
+stimuli do not share neural activations, so there should be a
+large change in the BOLD response. We measure this dis-
+tance in the softmax layer. This is because each unit in this
+layer can be thought of as representing either a single neuron
+responding to a word, or a group of neurons (a Hebbian cell
+assembly) that work in unison.
+   The softmax layer imposes extreme values on the probabil-
+ities of outputs, that are likely to be more differentiated than
+actual neural activities. Hence we “soften” the output activity
+with a temperature parameter T on the softmax, as follows:
+                                      exp(xi /T )                    Figure 7: Euclidean distance between the activations in the
+                P(wordi |input) =                             (1)
+                                   ∑nj=1 exp(x j /T )                output layer, with the softmax temperature set to 4. The blue
+                                                                     bar represents the distance in activation of two instances of
+where x is the input to the softmax layer. A high temperature        the same word (or pseudoword, on the right), while the or-
+parameter will distribute the probability evenly, such that for      ange bar represents the distance between the activations of
+T → ∞, all words will have probability 1/n. On the other             two words or pseudowords differing by one letter. The gray
+hand, a low temperature will distribute the probability to only      bar represents the distance between two different words or
+the highest value. We chose a temperature of T = 4, which            pseudowords. Error bars represent the standard error of the
+creates a smoother probability distribution, such that there are     mean. In each case, these are averages over the stimuli used
+a few labels that have non-zero probabilities, without losing        in the human subject experiments.
+the actual label information. We chose this number arbitrar-
+ily, but it is a parameter that could be fit to the data.            with an accuracy of 52.5%, respectively. However, as can
+   To model the Glezer et al. (2009) experiments, we ran each        be seen in Figure 6, the network makes reasonable mistakes.
+word in a pair through the network and measured the distance         Out of the 200 images in the test set for the word “tall”, 124 of
+between their output activations. For each pair of words, we         them are predicted incorrectly; 113 of those 124 images are
+took the average of all possible input image pairs that we cre-      categorized as “tail” which is very similar to “tall”. Similarly,
+ated out of the four generated images per word.                      for “hour”, 89 out of the 95 incorrectly predicted images are
+                                                                     predicted to be “how” which has high resemblance to “hour”.
+                   Results and Discussion
+Network Performance                                                            Selectivity Analysis of VWFANet
+The VWFAnet achieved 98.5% accuracy on the test set. We              Figure 7 shows the result of calculating the euclidean distance
+deemed this sufficient to proceed with testing the network in        between the activation in the last layer of the two input im-
+a paradigm similar to that used by Glezer et al. (2009).             ages. Even though we cannot compare directly to the results
+   Some samples of correct and incorrect predictions by the          of the Glezer et al. (2009) study, since the measurements are
+VWFANet can be seen in Figure 6. We can see that even                not the same, we can still observe a trend similar to the find-
+though the VWFANet overall accuracy in visual words clas-            ings shown in Figure 3.
+sification task is high, there are a few outliers with less than        It should be noted that there is a small distance between
+60% accuracy: “tall” with an accuracy of 38%, and “hour”             the activations in the last layer in the “same” condition. This
+                                                                 2522
+
+is because we use different images of the same word to com-
+pute the response. For the “1L” and “different” conditions, we
+observe a bigger Euclidean distance compared to the one in
+“same”, but the difference between the two conditions are not
+significant. This indicates that in each condition, the prime
+and target words activate disjoint groups of neurons, or dif-
+ferent units in our model’s output layer. This shows that even
+when the two stimuli differ only by one letter, the model is
+still able to discriminate them and so they activate different
+neurons, similar to when the two inputs share no common
+letters. A sample of the activations in the output layer for a
+given pair of real words is shown in Figure 8.
+   For the pseudowords experiment, we again notice that the
+smallest Euclidean distance happens when the two stimuli are
+images of the same pseudoword, even though the model has
+not been trained on these. However, what is different from
+the real words experiment is that we observe a gradual in-
+crease in the Euclidean distance from the “same” condition
+                                                                   Figure 9: The activations patterns in the output layer for each
+to “1L” to “different”. This is also sensible because the net-
+                                                                   pair of pseudowords: two instances of bot, bot and sot, and
+work is trained for real words. Therefore, when the model
+                                                                   bot and lan. bot’s activation is shown in blue. Note that while
+is given a pseudoword, it activates partial representations of
+                                                                   bot, sot and lan are all real words to computer scientists, the
+many different words. Figure 9 shows that the neurons from
+                                                                   network does not know that!
+the softmax layer that get activated on pseudowords are more
+distributed (compare to Figure 8), but there is more overlap
+                                                                   Most of the mistakes made by the network, while few, were
+when the stimuli are similar, compared to when the stimuli
+                                                                   very reasonable, such as confusing “tall” with “tail.”
+are completely different.
+                                                                      Our model of the fMRI-RA results was predicated on the
+                                                                   idea that the amount of release from adaptation upon the pre-
+                                                                   sentation of a new stimulus should be proportional to the
+                                                                   difference in their representations. We measured this as the
+                                                                   Euclidean distance between the representations of words at
+                                                                   the output layer of the network. This is consistent with pre-
+                                                                   vious modeling work that measures the distance between
+                                                                   stimulus representations as the distance between their out-
+                                                                   put activations, and fits human judgments of similarity quite
+                                                                   well (Dailey, Cottrell, Padgett, & Adolphs, 2002).
+                                                                      Using this interpretation of release from adaptation, VW-
+                                                                   FANet was able to qualitatively reproduce the data that Glezer
+                                                                   et al. (2009) observed in their human neuroimaging study.
+                                                                   That is, real words, no matter how similar, were equally dis-
+                                                                   tant from one another at the output layer of the network. The
+                                                                   representations developed at the output layer were also rel-
+                                                                   atively sparse (Figure 8). On the other hand, pseudowords
+                                                                   displayed more graded distances, and less sparsity at the out-
+                                                                   put layer (Figure 9). These results suggest that Glezer et al.’s
+Figure 8: The activation patterns in the output layer for each     interpretation of their fMRI-RA results are quite reasonable
+pair of real words: two instances of arm, one of arm and art,      - real words are represented by different populations of neu-
+and (bottom right) arm and key. arm’s activation is shown          rons, while pseudowords are represented by distributed pat-
+in blue. The words are sorted alphabetically, so in the upper      terns of activation over the representations of real words.
+right, the highest activation for art is right next to arm.           It is of considerable note that the fMRI-RA results support
+                                                                   the Interactive Activation Model’s representation of words
+                        Conclusions                                versus pseudowords(McClelland & Rumelhart, 1981). In that
+We developed a model (VWFANet) of the Visual Word Form             model, words were represented by separate nodes in the net-
+Area using a deep convolutional neural network. Our model          work at a “word level.” The word superiority effect in letter
+was trained on over a million images of almost 900 words,          perception was explained in the model as feedback to the let-
+and achieved a very high accuracy of 98.5% on the test set.        ter level from the word level. On the other hand, the pseu-
+                                                               2523
+
+doword superiority effect, for example in the pseudoword                   and neuroimaging evidence. Psychological Science, 15(5),
+“mave,” was explained by the sum of feedback activation                    307–313.
+from many partially activated words at the word level (e.g.,            Glezer, L. S., Jiang, X., & Riesenhuber, M. (2009). Evidence
+“save,” “have,” “wave,” etc.). The current results are consis-             for highly selective neuronal tuning to whole words in the
+tent with that account.                                                    ”visual word form area”. Neuron, 62(2), 199–204.
+   The current model is just the first step in modeling the             Grill-Spector, K., Henson, R., & Martin, A. (2006, Jan). Rep-
+VWFA. There are many other experiments that could be mod-                  etition and the brain: neural models of stimulus-specific ef-
+eled by this same architecture. For example, Dehaene et al.                fects. Trends in Cognitive Sciences, 10(1), 1423.
+(2004) compared activation to the “same” words in differ-               Jarrett, K., Kavukcuoglu, K., Ranzato, M., & LeCun, Y.
+ent cases and positions, but they also include “circular ana-              (2009, Sept). What is the best multi-stage architecture for
+grams,” where pairs of words can transform into one another                object recognition? In ICCV 2009 (p. 2146-2153).
+simply by moving a single letter from the front to the back,            Jia, Y., Shelhamer, E., Donahue, J., Karayev, S., Long, J.,
+and vice versa. An example of circular anagrams are the                    Girshick, R., . . . Darrell, T. (2014). Caffe: Convolutional
+French words “reflet” and “trefle.” If we can find some pairs              architecture for fast feature embedding. arXiv preprint
+of English words that are circular anagrams, we can add this               arXiv:1408.5093.
+to our experiments. This goes a step further than the “1L”              Krizhevsky, A., Sutskever, I., & Hinton, G. E. (2012). Im-
+condition because the target word is made up of exactly the                agenet classification with deep convolutional neural net-
+same letters as the prime word, but with one location shift,               works. In F. Pereira, C. Burges, L. Bottou, & K. Wein-
+instead of one letter change. If we still observe the same high            berger (Eds.), Advances in neural information processing
+percent signal change in the fMRI data, or high Euclidean                  systems 25 (pp. 1097–1105). Curran Associates, Inc.
+distance in the VWFANet, then we provide an even stronger               LeCun, Y., Bottou, L., Bengio, Y., & Haffner, P. (1998).
+support for the hypothesis that the neurons in the VWFA are                Gradient-based learning applied to document recognition.
+highly selective to whole words, instead of a broader tuning               In Proceedings of the ieee (pp. 2278–2324).
+to sublexical orthographic structure of the words.                      McCandliss, B. D., Cohen, L., & Dehaene, S. (2003). The
+   In conclusion, we have successfully trained a convolutional             visual word form area: expertise for reading in the fusiform
+neural network to model the VWFA by trying to map the                      gyrus. Trends in Cognitive Sciences, 7, 293-299.
+words to their labels. This network might not be as deep as             McClelland, J. L., & Rumelhart, D. E. (1981). An interac-
+the latest state of the art for object recognition, but it seems to        tive activation model of context effects in letter perception:
+perform well for the task of modeling the VWFA. The VW-                    Part 1. an account of basic findings. Psychological Review,
+FANet model is able to support the recent fMRI-RA evidence                 88(5), 375-407.
+that there is a preference for real words over pseudowords in           Vigneau, M., Jobard, G., Mazoyer, B., & Tzourio-Mazoyer,
+the VWFA. This VWFANet model may open up more op-                          N. (2005, September). Word and non-word reading: what
+portunities to study the VWFA and its properties further, es-              role for the visual work form area. NeuroImage, 27(3),
+pecially with the recent increase in the neuroimaging studies              694-705.
+for the VWFA.                                                           Vinckier, F., Dehaene, S., Jobert, A., Dubus, J. P., Sigman,
+                                                                           M., & Cohen, L. (2007). Hierarchical coding of letter
+                      Acknowledgments                                      strings in the ventral stream: Dissecting the inner organi-
+This work was supported by NSF grants IIS-1219252 and                      zation of the visual word-form system. Neuron, 55(1), 143
+SMA 1041755 to GWC.                                                        - 156.
+                           References
+Bengio, Y., Goodfellow, I. J., & Courville, A. (2015). Deep
+   learning. (Book in preparation for MIT Press)
+Cohen, L., Dehaene, S., Naccache, L., Lehéricy, S., Dehaene-
+   Lambertz, G., Hénaff, M.-A., & Michel, F. (2000). The
+   visual word form area. Brain, 123(2), 291–307.
+Dailey, M. N., Cottrell, G. W., Padgett, C., & Adolphs, R.
+   (2002). Empath: A neural network that categorizes fa-
+   cial expressions. Journal of Cognitive Neuroscience, 14(8),
+   1158-1173.
+Dehaene, S., & Cohen, L. (2011, Jun). The unique role of
+   the visual word form area in reading. Trends in Cognitive
+   Sciences, 15(6), 254262.
+Dehaene, S., Jobert, A., Naccache, L., Ciuciu, P., Poline,
+   J.-B., Le Bihan, D., & Cohen, L. (2004). Letter bind-
+   ing and invariant recognition of masked words: Behavioral
+                                                                    2524
+

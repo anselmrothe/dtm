@@ -1,0 +1,424 @@
+                    Cross-situational cues are relevant for early word segmentation
+                                               Okko Räsänen (okko.rasanen@aalto.fi)
+                                    Department of Signal Processing and Acoustics, Aalto University,
+                                                       PO Box 13000, Aalto, Finland
+                                                 Heikki Rasilo (heikki.rasilo@aalto.fi)
+                                    Department of Signal Processing and Acoustics, Aalto University,
+                                                       PO Box 13000, Aalto, Finland
+                               Abstract                                  transcriptions that are not available for an infant trying to
+                                                                         bootstrap the language acquisition process.
+      Existing models of infant word learning have mainly
+   assumed that the learner is capable of segmenting words from             Likewise, the problem of associating segmented words to
+   speech before grounding them to their referential meaning,            their referents has been widely addressed in earlier research.
+   while segmentation itself has been treated relatively                 One of the prominent mechanisms in this area is the so-
+   independently of meaning acquisition. In this paper, we argue         called cross-situational learning (XSL; Pinker, 1989;
+   that situated cues such as visually perceived concrete objects        Gleitman, 1990). According to the XSL hypothesis, infants
+   or actions are not just important for word-to-meaning                 learn meanings of words by accumulating statistical
+   mapping, but that they are useful in pre-linguistic word              information on the co-occurrences of spoken words and the
+   segmentation, thereby helping the learner to bootstrap the            possible word referents (e.g., objects and events) across
+   language learning process. We present a model where joint
+                                                                         multiple communicative contexts. While each individual
+   acquisition of proto-lexical segments and their meanings
+   maximizes the referential quality of the lexicon, and where           communicative situation may be referentially ambiguous,
+   learning can occur without any a priori knowledge of the              the ambiguity is gradually resolved as the learner integrates
+   language or its linguistically relevant units. We investigate the     co-occurrence statistics over multiple such scenarios. A
+   behavior of the model using a computational implementation            large body of evidence shows that infants and adults are
+   of statistical learning, showing successful word segmentation         sensitive to cross-situational statistics between auditory
+   under varying degrees of referential uncertainty.                     words and visual referents (see, e.g., Yu & Smith, 2012 for
+   Keywords: word learning; segmentation; meaning                        a recent overview) and that these statistics are accumulated
+   acquisition; computational modeling; synergies in word                and used incrementally across subsequent exposures to the
+   learning; language acquisition                                        word-referent co-occurrences (e.g., Yu, Zhong & Fricker,
+                                                                         2012).
+                           Introduction                                     In this work, we argue that, instead of looking at the early
+   One of the largest challenges faced by language learning              word segmentation and meaning acquisition separately, the
+infants is the problem of word learning. From a linguistic               two problems should be approached as one. Then the
+point of view, the problem is often posed as the question of             learning problem can be formulated as how to segment
+1) how to segment the incoming speech input into words                   speech into meaningful units? When defined this way, there
+and 2) how to associate the segmented words to their correct             is no longer the implication that successful segmentation
+referents in the surrounding environment in order to acquire             precedes      meaning      acquisition;     rather,    segment
+meaning of the words. In this paper, we describe how these               meaningfulness as such should be the main criterion for
+two tasks can be approached as a single learning problem.                speech segmentation (for similar ideas, see ten Bosch et al.,
+   Several behavioral and computational studies have                     2009; Johnson, Demuth, Frank & Jones, 2010 and Fourtassi
+addressed the segmentation problem and it is now known                   & Dupoux, 2014). Since word meanings are acquired
+that infants may utilize different cues, such as statistical             through grounding of word forms to their referents, it would
+regularities (Saffran, Aslin & Newport, 1996), prosody                   be natural to utilize the statistical regularities in the
+(Cutler & Norris, 1988; Thiessen & Saffran, 2003), or other              referential domain also in the acquisition of word forms
+properties of infant directed speech (Thiessen, Hill &                   themselves.
+Saffran, 2005), in order to find word-like units from speech.               We base our argument on the idea that the role of
+Similarly, computational modeling studies show that                      language is to describe the external world as accurately as
+segmentation into recurring word-like units is possible at               possible, making all speech potentially referential. In this
+varying levels of language representation (e.g., Brent, 1999;            context, an effective learner is the one that finds maximally
+Frank, Goldwater, Griffiths & Tenenbaum, 2010; Pearl,                    informative mapping from the initially ambiguous acoustic
+Goldwater & Steyvers, 2010; Räsänen, 2011). However, the                 speech stream to the word referents that consistently co-
+main problem with these models is that they either require               occur with the speech contents. Solving this mapping
+strong constraints or heuristics to drive the segmentation, or           problem simultaneously solves the acquisition of word
+they assume representations of language such as phonetic                 meanings (speech-to-referents associations) and word
+                                                                         segmentation (mutually exclusive segments of speech). This
+                                                                     1949
+
+provides the basis for a functional proto-lexicon (Nazzi &          xN] (e.g., short-term spectra of speech or neural firing
+Bertoncini, 2003) that has functional significance to a             patterns of the auditory nerve) with subscripts denoting time
+language learner that does not yet master the phonological          indices. These observations can be uni- or multivariate, or
+structure of the language, and upon which more                      they can also be discrete, but here we will use vectors xt for
+sophisticated language processing and parsing can build.            the purpose of generality. Moreover, each observation xt is
+                                                                    paired with a set ct describing the present communicative
+           Learning word segments through cross-                    context attended by the learner. In this case, the goal of an
+                   situational learning                             referentially optimal learner is to map X into a sequence of
+                                                                    words f(X) à [w1, w2, …, wM] so that the Q in Eq. (1)
+The idea of learning word segments and their referential
+                                                                    becomes maximized. This can be seen as a segmentation
+meanings simultaneously is not new. Several computational
+                                                                    and classification problem: how to find sequences of
+models have made use of joint inference at both levels with
+                                                                    acoustic observations that consistently co-occur in specific
+(Roy & Pentland, 2002; Yu & Ballard; 2004) and without
+                                                                    communicative contexts.
+(ten Bosch et al. 2009; Aimetti, 2009; Räsänen, Laine &
+                                                                      The first step in solving the optimization problem is to
+Altosaar, 2008; van Hamme, 2008) assuming phonemic
+                                                                    consider the direct coupling of the speech X with the
+representation of speech. Recent behavioral evidence also
+                                                                    referential context c through their joint distribution P(X, c).
+shows that consistent visual cues help in word segmentation
+                                                                    Importantly, unlike a generative latent lexicon W that would
+(Thiessen, 2010; Glicksohn and Cohen, 2013; Shukla,
+                                                                    be responsible for generating sequences of words, and each
+White & Aslin, 2011). The goal here is to formalize the
+                                                                    word generating an acoustic realization, the distribution
+joint-problem from referential point of view and to show
+                                                                    P(X, c) is directly observable to the learner. The challenge is
+with concrete simulations how this leads to successful word
+                                                                    to model the signal X so that it compactly and
+segmentation under varying degrees of referential
+                                                                    discriminatively captures the acoustic and temporal
+uncertainty.
+                                                                    characteristics of speech in different referential contexts c.
+   We will start by defining the referential quality of a
+                                                                      From Eq. (1) we can infer that, in order to maximize Q,
+lexicon. By making a simplifying assumption that there is
+                                                                    the co-occurrence matrix P(w,c) should be a sorted diagonal
+no grammar (i.e., all words are independent of each other),
+                                                                    matrix, i.e., there would be one word for each unique
+the referential quality (or information value) of the lexicon
+                                                                    referent and they only occur with each other as this
+can be measured using mutual information:
+                                                                    minimizes the referential uncertainty. The easiest way to
+                        P(w, c)
+ Q = ∑ P(w, c)log 2              / max{log|C|, log|W| } (1)         ensure that the size of vocabulary equals to the number of
+       w,c             P(w)P(c)                                     referents (|W| = |C|) is to have a separate model for speech X
+In the equation, w ∈ W are the words known by the learner           occurring in the context of each possible referent c,
+and c ∈ C are discrete referents (states of the world) that the     capturing the cross-modal statistical dependencies between
+language attempts to describe. P(w,c) is the probability of         the two. Formally, an acoustic model with parameters θc is
+observing word w and referent c in the same context while           introduced for each referent c,
+P(w) and P(c) are the probabilities of observing them                  P(c | X) ∝ P(X | c, θ c )P(c) ,                         (2)
+individually.                                                       capturing the probability of observing referent c given
+   What Q quantifies is that, given a set of words (e.g., an        speech input X and therefore constituting the meaning part
+utterance), how much information we know about the state            of the model. This model θc can be any algorithm or rule
+of the world. Q achieves its maximum value of one when              that maps from X to c, but the overall quality of the lexicon
+each word w co-occurs only with one referent c, i.e., there is      will depend on the accuracy and consistency of these
+no referential ambiguity at all and all referents have been         mappings. Learning of the words is then a parameter
+named, each word having deterministic consequence to the            estimation problem with the aim of finding the set of
+state of the world. On the other hand, Q approaches zero
+                                                                    acoustic model parameters θ* that maximize the joint
+when words of the lexicon W occur independently of the
+                                                                    probability of the concurrent referents across all speech X:
+referents, i.e., there is no coupling between the lexical
+                                                                       θ * = argθ max{P(X | c, θ )P(c) | ∀X, c}
+system and the surrounding world. The max{}-term                                                                               (3)
+normalizes the base of the logarithm, ensuring that Q                  = argθ max{P(c | X, θ )P(X) | ∀X, c}
+decreases if the number of words is larger than the number          From referential quality point of view, by replacing the
+of referents and vice versa, indicating ambiguity or                discrete words w with the probabilistic models θc of referent
+redundancy in referential capability of the vocabulary.             c during speech X, i.e., setting P(w, c) = P(c | X, θ c )P(X) , we
+   From learning point of view, a referentially optimal
+                                                                    get
+language learner wants to discover a vocabulary of words
+W that maximizes Eq. (1), i.e., considering those speech
+patterns as words that are maximally coupled to the
+concurrent environment in each communicative situation.
+   Let us assume that speech input to the learner is
+represented as a sequence of observations X = [x1, x2, …,
+                                                                1950
+
+                                             P(c | X, θ c )P(X)               context. This is not to suggest that humans would actually
+   Q=∑         P(c | X, θ c )P(X)log|C|
+           X,c                                    P(X)P(c)                    utilize TPs over discrete representations of speech. Instead,
+                                          P(c | X, θ c )                      the discrete domain analysis should be simply seen as a
+   = ∑ P(c | X, θ c )P(X)log|C|                                       (4)     practical tool for analyzing statistical regularities of speech
+        X,c                                   P(c)                            that, in the general case, reside in a much more complex
+                                         P(X | c, θ c )                       multidimensional acoustic or perceptual space.
+   = ∑ P(X | c, θ c )P(c)log|C|
+        X,c                                 P(X)                                 Let us start by assuming that speech input X is represented
+where P(X) replaces P(w), being the probability of                            as a sequence of discrete acoustic events X = [a1, a2, …, aL],
+observing the speech-signal state X. Now, since P(X) and                      where each event a belongs to a finite alphabet A (a ∈ A).
+P(c) are independent of the model parameters θ, optimizing                    These events can be any descriptions of a speech signal that
+the solution for Eq. (3) will also optimize the referential                   can be derived in an unsupervised manner, and they are
+value of the lexicon. Informally put, the overall quality of                  assumed to be shorter in time than any meaningful patterns
+the lexicon depends on how well the model θc discriminates                    of the language. Eq. (4) states that the quality of the lexicon
+different referents c in different speech inputs X, giving                    is proportional to the probability that speech X is observed
+more importance to referents occurring more often.                            during referent c. By substituting X with the discrete
+   As for the segmentation, the major consequence of the                      sequence representation, the maximum likelihood estimate
+above formulation is that word segmentation emerges as a                      for P(c | X, θc) is given as
+side product of learning of the acoustic models P(X | c, θc)                                                              F(a1, a2 ,..., aN | c)
+                                                                               P(c | X, θ ) = P(c | a1,..., aN , θ ) =                             (6)
+for the referents. The relative probability (or familiarity) of                                                         ∑ F(a1, a2,..., aN | c)
+                                                                                                                           c
+word w occurring at time t in the speech input is given
+                                                                              where F(a1, a2, …, aN | c) is the frequency of observing the
+simply by the corresponding acoustic model θc:
+                                                                              corresponding sequence a1, a2, …, aN concurrently with
+    P(w, t) = P(c, t | x 0,..., x t ) ∝ P(c, t | x 0,..., x t , θ c ) (5)     referential context c. In the general case, this solution is
+where x0, …,xt refer to speech observations up to time t.                     infeasible since the distribution P(a1, …, aN | c) cannot be
+Input can be parsed into contiguous word segments by either                   reliably estimated from any finite data for N >> 0 in the
+1) assigning each time frame of analysis into one of the                      presence of variability characteristic to normal speech.
+known referents (proto-words) with word boundaries                            However, Eq. (6) can be approximated as a mixture of TPs
+corresponding to points in time where the most likely                         between adjacent and non-adjacent states (see Räsänen &
+referent changes, or 2) thresholding the probabilities in                     Laine, 2012, for details):
+order to make a decision whether a known word is present                                       ∑k P(at | at−k , c) = ∑k F(at , at−k , c) (7)
+in the input at the given time or not.                                         P(c, t | X) ∝
+   Note that the learner never explicitly attempts to segment                                 ∑ P(at | at−k , c) ∑ ∑ F(at , at−k , c)
+                                                                                                  c,k
+the incoming speech into words as a separate stage from                                                                  c,k at ∈A
+meaning acquisition. Instead, the learner simply performs                     Eq. (7) also makes a further simplifying assumption that
+maximum-likelihood decoding of referential meaning from                       P(c) is a non-informative uniform distribution. Note that
+the input, and this dynamically leads to the emergence of                     with k = 1, c = constant, and A being the set of syllables in
+word boundaries in time.                                                      the language, this model becomes equal to the basic TP-
+   In contrast, if the processes of segmentation and word-                    model used by Saffran et al. (1996).
+referent mapping are to take place independently of each                         In order to decode model information in terms of
+other, the ultimate referential quality of the lexicon cannot                 contiguous patterns instead of doing it frame-by-frame, the
+recover from potential errors in the segmentation without                     activation A(c,t) of a referent (word) c at time t is given as
+further corrective mechanisms. Also, the “pre-segmented”                                                             $ t2
+                                                                                                                            ∑k P(at | at−k , c) ') (8)
+                                                                                                              1      &
+vocabulary W is of no practical value before meaning is                           A(c | Xt1 ,..., Xt2 ) ≈              ∑
+attached to the words, making at least explicit attempts to                                               t2 − t1 +1 & t=t ∑ P(at | at−k , c) )
+                                                                                                                     % 1 c,k                     (
+solve the segmentation problem alone questionable for an                      i.e., by simply integrating the context-dependent TPs over
+infant that doesn’t even know what kind of entities words                     the time-window of analysis from t1 to t2 (see also Räsänen
+are. Language has functional value only when the words                        & Laine, 2012). Once the activation curves for referents
+carry some significance with respect to the states of the                     have been computed, temporally contiguous above-chance
+world as perceived by the language user.                                      activation of a referent c can be seen as a candidate word
+                                                                              segment, or cluster, that is both familiar to the learner and
+     Approximating the ideal model with TPs                                   that spans across both auditory and referential
+   In order to demonstrate the feasibility of the joint model                 representational domains. In the experiments of the current
+of segmentation and meaning acquisition, a simple                             paper, decoding in Eq. (8) is always performed in a sliding
+computational implementation of the model was created by                      window of 250 ms. TPs are always estimated from lags k =
+utilizing the idea of using transition probabilities (TPs) to                 {1, 2, …, 25}, corresponding to temporal distances of 10-
+perform statistical learning on language input (c.f., e.g.,                   250 ms, as this time-scale captures the statistical regularities
+Saffran et al., 1996), but now conditioned on the referential
+                                                                          1951
+
+of speech available at the low-level acoustic features (see      referent, given the audio, is relatively noisy after observing
+Räsänen & Laine, 2012).                                          only 60 utterances (recall that there are 50 different referents
+                                                                 and 1–4 referents per utterance in the dataset). In the bottom
+                       Simulations                               panel, the words “small” and “tree” have been successfully
+                                                                 associated to their corresponding referents after training,
+Data and evaluation                                                             1
+                                                                 amplitude
+                                                                                           do youhave a small       tree
+   The model was tested on pre-recorded continuous speech                      0.5
+by using the Caregiver UK Y2 corpus (Altosaar et al.,
+                                                                                0
+2010). The material contains spoken utterances paired with
+visual tags denoting the concurrent presence of visual                        −0.5
+                                                                                     0.5             1               1.5   2
+referents for the “keywords” (nouns, verbs, adjectives) in
+each sentence. In addition to the 1–4 referential keywords                    0.06
+per utterance (mean 2.9), the utterances also contain
+                                                                     A(c|X)
+                                                                              0.04
+additional words, such as function words (e.g., “a woman
+takes the yellow cookie”, referential keywords emphasized),                   0.02
+leading to an average utterance length of 5.4 words. The                             0.5             1               1.5   2
+main section of the corpus contains 2397 utterances for each                  0.06
+talker, spoken in enacted, child-directed speaking style.
+                                                                     A(c|X)
+There are a total of 50 unique keywords and corresponding                     0.04
+visual referents in the corpus.                                               0.02
+   For each run of the simulation, half of the corpus (N =
+                                                                                     0.5             1               1.5   2
+1199 utterances) from Talker-01 was randomly assigned as                                                 time (s)
+the training data while the remaining half (N = 1198) was        Figure 1: An example of the basic model output for the
+used to test the word-referent recognition performance of        sentence “Do you have a small tree?” (keywords with visual
+the model. The experiment was performed separately with          referents emphasized). Top: The original waveform.
+the original referential information and with varying degrees    Middle: The model output after exposure to 60 sentences.
+of additional referential uncertainty by randomizing 20%,        Bottom: The model output after exposure to 1199 sentences.
+40%, or 80% of the original visual referents to any of the 50    The different colored curves represent probabilities of
+referents in the data. During the training stage, referents of   different visual referents. The vertical lines show the true
+the spoken keywords were always shown to the algorithm.          word boundaries extracted from the corpus annotation.
+   For each test utterance, the M words with the highest non-
+concurrent maxima in activation (Eq. 8) were chosen as the       leading to clear activations that approximately correspond to
+referent hypotheses, where M is the true number of referents     the temporal extent of the underlying linguistic word forms,
+associated with the utterance. The overall recognition           thereby also leading to segmentation of the input into word-
+performance was measured as the proportion of correct            like units. On the other hand, words without a visual
+hypotheses across all test utterances and across five            referent (e.g., “a”) do not have distinct activation segments.
+independent runs of the simulation.                              Also, activation of the referent {to have} extends to across
+                                                                 the entire phrase “do you have” as it almost always occurs
+Speech pre-processing                                            within this phrase in the corpus.
+  In order to represent speech in terms of short-term                Top panel in Fig. 2 shows the word-referent recognition
+discrete events, Mel-frequency cepstral coefficients             performance as a function of the number of utterances
+(MFCCs) representing the short-term spectrum of the              perceived by the learner. The result is shown for the original
+speech were first computed from the speech signals using         referential information where referents always correspond to
+25-ms sliding window with 10-ms steps. 10,000 randomly           the keywords in the spoken utterances. In addition, results
+chosen MFCC-vectors were then clustered into 64 unique           with 20%, 40% and 80% of the original referents
+categories in an unsupervised manner using the standard k-       randomized are also shown in order to analyze model
+means algorithm. Finally, each MFCC vector was assigned          behavior under varying degrees of referential uncertainty.
+to the nearest cluster, leading to a discrete sequential         As can be seen from the results, the basic model
+representation of X = [a1, a2, …, aN] with a ∈ [1, 64] with      successfully learns the word-referent mappings from the
+one element at occurring every 10 ms (see, e.g., Räsänen,        continuous utterances, achieving a mean referent
+2011 for more details).                                          recognition rate as high as M = 89.5% (SD = 0.4%) across
+                                                                 all 50 keywords in the data. The final results for the three
+Results                                                          noise levels are M0.2 = 89.1% (SD0.2 = 0.8%), M0.4 = 88.3%
+    Fig. 1 shows an example of the model output for an           (SD0.4 = 0.5%), and M0.8 = 59.4% (SD0.8 = 1.9%) in the
+early stage of the learning and after processing of the full     order of increasing uncertainty. This shows that the model
+training set and without added referential noise. As can be      copes well with referential uncertainty since nearly 90% of
+observed from the middle panel, the activation of each           the word tokens are associated to their correct referents even
+                                                              1952
+
+when almost half (40%) of the attended referents are not                                     data is observed and the final error of approximately 60 ms
+related to the speech contents during learning. Even in the                                  is small in comparison to the typical word durations.
+case of only 20% of referents being related to the words in                                     Finally, bottom panel in Fig. 3 shows the mean segment
+the utterances, the performance is still 59.4% and would                                     length that approaches the true mean keyword length of
+likely keep increasing with more training data.                                              ~400 ms as the recognition performance improves. In
+                                                                                             addition, the segment lengths of the correctly learned words
+                            100                                                              are nearly identical at all referential uncertainty levels. This
+ recog. accuracy (%)
+                                   accurate referents                                        suggests that the learner first starts to discriminate different
+                                                        40% random referents                 referential contexts based on short snippets of speech that
+                             50                                                              are acoustically prominent in these contexts and then
+                                                                      80% random             gradually learns the overall extent of the word-like units as
+                                                                      referents
+                                                                                             more evidence is accumulated. In all, the model
+                                                                                             distinguishes different referents based on segments that are
+                              0
+                               0         200   400      600    800    1000         1200      distinct in different referential contexts, ultimately
+                                           number of sentences perceived                     converging to words or phrases that have referential
+                                                                                             meaning (also seen in Fig. 1).
+ mean seg. error (ms)
+                            100                                                                           Discussion and conclusions
+                                                                                             In the present paper, we argued that language learners could
+                             80                                                              utilize referential cues in communicative contexts by
+                                                                                             segmenting speech into units that are guaranteed to have
+                             60                                                              referential significance. We provided a mathematical
+                               0           20       40        60      80           100       framework for joint-model of word segmentation and
+                                            recognition performance (%)                      meaning acquisition by connecting referential value of the
+ mean segment length (ms)
+                            400                                                              learned lexicon to the segmentation task. We tested the
+                                                                                             model in a word-learning simulation, showing that the
+                                                                                             model can successfully learn words from continuous speech.
+                                                                                                The present results converge with earlier modeling studies
+                            200                                                              using visual referential information for perceptual
+                                                                                             grounding of acoustic patterns (e.g., Räsänen et al., 2008;
+                                                                                             van Hamme, 2008; Aimetti, 2009; ten Bosch et al., 2009).
+                              0
+                               0           20       40        60      80           100
+                                                                                             All these models exhibit successful word learning after
+                                            recognition performance (%)                      sufficient exposure to the language without any a priori
+                                                                                             linguistic knowledge, and the present mathematical
+Figure 2: Top: Word-referent recognition performance as a
+                                                                                             framework explicates why this is the case, i.e., why the
+function of the number of sentences with which the model is
+                                                                                             cross-modal strategy is valid for early word learning.
+trained and for different levels of referential noise. Middle
+                                                                                                The idea of learning a referentially meaningful proto-
+panel: The mean distance from annotated word boundaries
+                                                                                             lexicon without any phonological decoding of speech
+to the model-generated boundaries (points where the
+                                                                                             converges with the definition of proto-lexicon by Nazzi and
+winning referent changes) as a function of word recognition
+                                                                                             Bertoncini (2003). Also, according to PRIMIR framework
+performance. Bottom panel: The mean duration of the
+                                                                                             of language acquisition (Werker & Curtin, 2005) and recent
+model-generated and correctly associated word segments as
+                                                                                             work on learning of phonological categories (Feldman et al.,
+a function of word-recognition performance. The black, red,
+                                                                                             2013), it is likely that language learners have to acquire
+blue, and magenta colored lines show the results with
+                                                                                             lexical knowledge before or in parallel with phonological
+referential noise of 0%, 20%, 40%, or 80% of the original
+                                                                                             representations instead of learning the sound system of the
+referent labels randomized to any of the 50 possible
+                                                                                             language before word learning. The present model provides
+referents, respectively. The horizontal dashed line shows the
+                                                                                             one possible approach for bootstrapping the learning process
+chance level performance in the top panel and the true mean
+                                                                                             by starting from proto-lexical learning that already results in
+word length in the bottom panel. The error bars correspond
+                                                                                             meaningful representations of the language and thereby
+to ±1 SE.
+                                                                                             enables (receptive) language use before more sophisticated
+                                                                                             language skills emerge.
+  Middle panel in Fig. 2 shows the corresponding
+                                                                                                From a machine learning point of view, the present model
+segmentation accuracy for all hypothesized word segments
+                                                                                             can be characterized as weakly-supervised learning. The
+with respect to underlying word-level annotation and the
+                                                                                             referential context provides labeling for the speech input,
+bottom panel shows the segment length for correctly
+                                                                                             but the labels are noisy and inaccurate due to the referential
+recognized words as a function of word-referent recognition
+                                                                                             ambiguity in each communicative situation. Efficiency of
+performance. In all noise conditions, the model shows
+                                                                                             the learning is dominated by the learner’s ability to limit the
+improvement in segmentation accuracy as more training
+                                                                                          1953
+
+number of possible referents in each communicative                 Pearl, L., Goldwater, S., & Steyvers, M., (2010). Online
+situation, possibly driven by attentional and social cues in         learning mechanisms for Bayesian models of word
+case of real infants.                                                segmentation. Research on Language and Computation,
+   In general, it is likely that learners use a number of            8, 107–132.
+different strategies to bootstrap their word learning. This        Pinker, S. (1989). Learnability and cognition. Cambridge,
+also involves the use of purely bottom-up cues to words and          MA: The MIT Press.
+word boundaries (see the introduction). However, the               Roy, D. K., & Pentland, A. P. (2002). Learning words from
+essence of language is in the word meanings. An optimal              sights and sounds: a computational model. Cognitive
+language learner will therefore take the meanings of                 Science, 26, 113–146.
+potential word segments into account when trying to make           Räsänen, O. (2011). A computational model of word
+sense of the auditory world.                                         segmentation from continuous speech using transitional
+                                                                     probabilities of atomic acoustic events. Cognition, 120,
+                    Acknowledgments                                  149–176.
+This research was funded by Academy of Finland, the ETA            Räsänen, O., Laine, U. K., & Altosaar, T. (2008).
+Graduate School of Aalto University, Finland, and the ERC            Computational language acquisition by statistical bottom-
+starting grant project ABACUS, grant number 283435. The              up processing. Proc. Interspeech’08, pp. 1980–1983,
+authors would like to thank Mike Frank and Unto K. Laine             Brisbane, Australia.
+for their insightful comments on the paper.                        Räsänen, O., & Laine U. (2012). A method for noise-robust
+                                                                     context-aware pattern discovery and recognition from
+                                                                     categorical sequences. Pattern Recognition, 45, 606–616.
+                         References                                Saffran, J. R., Aslin, R. N., & Newport, E. L. (1996a).
+Aimetti, G. (2009). Modelling early language acquisition             Statistical learning by 8-month-old infants. Science, 274,
+   skills: Towards a general statistical learning mechanism.         1926–1928.
+   Proc. EACL’09, Athens, Greece, pp. 1–9.                         Shukla, M., White, K. S., & Aslin, R. N. (2011). Prosody
+Altosaar, T., ten Bosch, L., Aimetti, G., Koniaris, C.,              guides the rapid mapping of auditory word forms onto
+   Demuynck, K., & van den Heuvel, H. (2010). A speech               visual objects in 6-mo-old infants. Proceedings of the
+   corpus for modeling language acquisition: CAREGIVER.              National Academy of Sciences, 108, 6038–6043.
+   Proceedings of the International Conference on Language         ten Bosch, L., Van hamme, H., Boves, L., & Moore, R. K.
+   Resources and Evaluation, Malta, pp. 1062–1068.                   (2009). A computational model of language acquisition:
+Brent, M. R., & Cartwright, T. A. (1996). Distributional             the emergence of words. Fundamenta Informaticae, 90,
+   regularity and phonotactic constraints are useful for             229–249.
+   segmentation. Cognition, 61, 93–125.                            Thiessen, E. D. (2010). Effects of visual information on
+Cutler, A., & Norris, D. G. (1988). The role of strong               adults’ and infants’ auditory statistical learning. Cognitive
+   syllables in segmentation for lexical access. Journal of          Science, 34, 1092–1106.
+   Experimental Psychology: Human Perception and                   Thiessen, E. D. & Saffran, J. R. (2003). When cues collide:
+   Performance, 14, 113–121.                                         Use of stress and statistical cues to word boundaries by 7-
+Feldman, N. H., Griffiths, T. L., Goldwater, S., & Morgan,           to 9-month-old infants. Developmental Psychology, 39,
+   J. L. (2013). A role for the developing lexicon in phonetic       706–716.
+   category acquisition. Psych. Review, 120, 751–778.              Thiessen, E. D., Hill, E. A., & Saffran, J. R. (2005). Infant-
+Fourtassi, A. & Dupoux, E. (2014). A rudimentary lexicon             directed speech facilitates word segmentation. Infancy, 7,
+   and semantics help bootstrap phoneme acquisition. Proc.           53–71.
+   18th Conf. on Computational Natural Language                    Van hamme, H. (2008). HAC-models: A novel approach to
+   Learning, Baltimore, Maryland, pp. 191–200.                       continuous speech recognition. Proc. Interspeech’08, pp.
+Frank, M. C., Goldwater, S., Griffiths, T. L., & Tenenbaum,          2554–2557, Brisbane, Australia.
+   J. B. (2010). Modeling human performance in statistical         Werker, J. F., & Curtin, S. (2005). PRIMIR: A
+   word segmentation. Cognition, 117, 107–125.                       developmental framework of infant speech processing.
+Gleitman, L. (1990). The structural sources of verb                  Language Learning and Development, 1, 197–234.
+   meanings. Language Acquisition, 1(1), 1–55.                     Yu, C., & Ballard, D. H. (2004). A multimodal learning
+Glicksohn, A., & Cohen, A. (2013). The role of cross-modal           interface for grounding spoken language in sensory
+   associations in statistical learning. Psychonomic Bulletin        perceptions. ACM Transactions on Applied Perceptions,
+   and Review, 20, 1161–1169.                                        1, 57–80.
+Johnson, M., Demuth, K., Frank, M. C., & Jones, B. K.              Yu, C. & Smith, L. B. (2012). Modeling cross-situational
+   (2010). Synergies in learning words and their referents.          word-referent learning: Prior questions. Psychological
+   Advances in Neural Information Processing Systems                 Review, 119, 21–39.
+   (NIPS 2010), 23, 1018–1026.                                     Yu, C., Zhong, Y., & Fricker, D. (2012). Selective attention
+Nazzi, T., & Bertoncini, J. (2003). Before and after the             in cross-situational statistical learning: evidence from eye
+   vocabulary spurt: Two modes of word acquisition?                  tracking. Frontiers in Psychology, 3, 1–16.
+   Developmental Science, 6, 136–142.
+                                                               1954
+

@@ -1,0 +1,338 @@
+         Improving with Practice: A Neural Model of Mathematical Development
+                                                  Sean Aubin (saubin@uwaterloo.ca)
+                                            Aaron R. Voelker (arvoelke@uwaterloo.ca)
+                                            Chris Eliasmith (celiasmith@uwaterloo.ca)
+                                       Centre for Theoretical Neuroscience, University of Waterloo
+                                                     Waterloo, ON, Canada N2L 3G1
+                               Abstract                                    For addition-by-counting, the model is presented with two
+                                                                        digits and asked to draw the digit that corresponds to the sum
+   The ability to improve in speed and accuracy as a result of re-      of these two digits. The “counting” strategy methodically
+   peating some task is an important hallmark of intelligent bio-
+   logical systems. Although gradual behavioural improvements           computes the result by adding one to a digit, for the number
+   from practice have been modelled in spiking neural networks,         of times indicated by the other digit. In Spaun, this is ac-
+   few such models have attempted to explain cognitive devel-           complished by a number of structures that function together.
+   opment of a task as complex as addition. In this work, we
+   model the progression from a counting-based strategy for ad-         Visual cortical areas compress the representation of a given
+   dition to a recall-based strategy. The model consists of two         image into a semantic representation, referred to as a seman-
+   networks working in parallel: a slower basal ganglia loop, and       tic pointer. Prefrontal cortical areas transform these pointers,
+   a faster cortical network. The slow network methodically com-
+   putes the count from one digit given another, corresponding          while maintaining partial results in working memory, and a
+   to the addition of two digits, while the fast network gradually      basal ganglia and thalamus control loop selects actions to co-
+   “memorizes” the output from the slow network. The faster net-        ordinate and drive the behaviour of the system. The cortical
+   work eventually learns how to add the same digits that initially
+   drove the behaviour of the slower network. Performance of            areas of Spaun should, but are currently unable, to recognize
+   this model is demonstrated by simulating a fully spiking neu-        and learn from previous instances of this problem. Including
+   ral network that includes basal ganglia, thalamus and various        such learning should translate to performance improvements
+   cortical areas. Consequently, the model incorporates various
+   neuroanatomical data, in terms of brain areas used for calcula-      in both speed and accuracy.
+   tion and makes psychologically testable predictions related to          DeWolf & Eliasmith (2013) have presented a neural model
+   frequency of rehearsal. Furthermore, the model replicates de-        in which a simple motor skill is consolidated into cortex via
+   velopmental progression through addition strategies in terms
+   of reaction times and accuracy, and naturally explains observed      repeated practice. However, the skill being learned in that
+   symptoms of dyscalculia.                                             case cannot be extended to solve the addition task because
+   Keywords: neural engineering framework; semantic pointer             it is unclear how a simple motor action could be general-
+   architecture; nengo; cognitive modelling; mathematical abil-         ized to counting from any digit to any other. Consequently,
+   ity; dyscalculia; skill consolidation
+                                                                        here we consider how consolidation can happen for more so-
+                                                                        phisticated representations, and argue that such representa-
+                            Introduction                                tions may help to explain more complex cognitive phenom-
+Adaptability and scalability are two central challenges in cog-         ena. This is demonstrated by proposing a spiking neural
+nitive modelling. Building a model that performs some be-               model that exhibits gradual performance improvement on the
+haviour is a daunting enough task, even without considering             addition-by-counting task.
+how it might improve over time. This is made significantly
+more challenging when building a large-scale biologically                             Mathematical Development
+plausible model that uses spiking neurons to represent and              The development of numeracy in children is not a simple pro-
+communicate information over time.                                      gression of skills. For instance, children learn to count before
+   One example of such a biologically plausible model is                they understand how sets relate to numbers. As well, it is
+the Semantic Pointer Architecture Unified Network (Spaun),              thought that after learning to count, they progressively learn
+which is currently the largest behaving model of the human              the relationship between set sizes and numbers until the age
+brain (Eliasmith et al., 2012). This model flexibly performs            of five, after which they have a complete understanding of
+eight different cognitive tasks by receiving images of hand-            the number scale (Sarnecka & Carey, 2008). This same sort
+written digits through its simulated retina and outputting re-          of complex learning development can be observed in children
+sponses by drawing using its simulated arm. This model                  learning addition. Typically, children progress through vari-
+makes some progress in addressing the challenge of scalabil-            ous strategies before finally memorizing the results of addi-
+ity (Eliasmith, 2013), but lacks the ability to learn from pre-         tion, as shown in Table 1 (Siegler, 1987).
+viously experienced cognitive tasks to permanently improve                 The Counting strategy involves choosing the larger number
+its performance (Spaun only changes its long term connec-               and incrementing it a number of times equal to the smaller
+tion weights during a simple reinforcement learning task). In           number. The Recall strategy is where the two numbers form
+this work, we show that one task from Spaun’s repertoire,               an association to a previously memorized answer, which is
+addition-by-counting, can be extended to benefit from this              then recalled from long-term memory. Other strategies have
+cognitive ability.                                                      been identified, although we focus here on recall and count-
+                                                                    2021
+
+                                                                      mathematical functions using vector spaces. The presented
+Table 1: Percentage of addition strategy use by grade level
+                                                                      model relies on two key principles of the NEF as a method
+(Summarized from Siegler (1987)).
+                                                                      for constructing networks of spiking neurons and connection
+                                                                      weights from a mathematical description of the system. The
+                                            Guess or                  first principle describes how a vector can be mapped onto a
+  Grade level      Counting      Recall                   Other       distributed representation over neurons. The second principle
+                                           no response
+  Kindergarten     30 %          16 %      30 %           24 %        characterizes how connections between neurons can trans-
+  Grade 1          38 %          44 %      8%             10 %        form these vectors.
+  Grade 2          40 %          45 %      5%             11 %           A vector x(t) is represented by encoding it into the spik-
+                                                                      ing activity of a population of neurons. Each neuron i has an
+                                                                      encoding vector ei (which can be understood as a preferred
+Table 2: Median solution times (seconds) per addition strat-          direction in the vector space), a gain αi , and a background
+egy use by grade level (Summarized from Siegler (1987)).              current Jibias . These parameters determine how the input vec-
+                                                                      tor is translated into the input current Ji (t) to a neural non-
+              Grade level       Counting     Recall                   linearity Gi [·]. For our work, this neural nonlinearity is the
+              Kindergarten      6.0 s        3.9 s                    leaky integrate-and-fire (LIF) model, which converts the in-
+              Grade 1           6.9 s        2.1 s                    put current into a neural spike train ai (t).
+              Grade 2           3.9 s        1.8 s
+                                                                                ai (t) = Gi [ Ji (t) ] , Ji (t) = αi ei · x(t) + Jibias (1)
+                                                                         To decode an approximation of the vector back from these
+Table 3: Percentage of errors per addition strategy use by            spike trains, they are first convolved with a low-pass filter
+grade level (Summarized from Siegler (1987)).                         h(t) (a decaying exponential modelled after the postsynaptic
+              Grade level       Counting     Recall                   current) and then multiplied by a decoding vector di .
+              Kindergarten      19 %         29 %
+              Grade 1           4%           17 %                                              x̂(t) = ∑ di (ai ∗ h)(t)                 (2)
+                                                                                                          i
+              Grade 2           3%           7%
+                                                                         The decoders di are found using regularized least squares
+                                                                      optimization to minimize the error over the range of inputs x:
+ing, since the greatest developmental change is seen with                                           Z
+these two strategies. Additionally, for the sake of simplic-                                            (x − x̂)2 dx.                   (3)
+ity, we focus on the progression from the counting strategy
+to recall, using sums less than ten. As demonstrated below,              To describe how two neural ensembles are connected, we
+the model is initially entirely reliant on the counting strategy,     define a weight matrixNas the outer product of the encoders
+but gradually learns the recall strategy, causing an increase in      and decoders ωi j = ei d j . The second principle then shows
+accuracy and a decrease in reaction times, consistent with the        that the input current to neuron i may be rewritten as a
+data shown in Table 2 and Table 3.                                    weighted summation of its postsynaptic potentials, allowing
+   To this point we have characterized the typical develop-           for the connection of multiple populations of neurons:
+mental path for children. However, there are individuals who
+suffer from dyscalculia. Dyscalculia is a learning disabil-                            Ji (t) = ∑ αi ωi j (a j ∗ h)(t) + Jibias .       (4)
+                                                                                                  j
+ity characterized by various problems with numeracy, one
+of which can be understood as difficulty making the transi-              To apply arbitrary transformations to the vector using these
+tion from counting to retrieval. Our model demonstrates how,          connections, we can minimize the decoding error for the de-
+without a parallel learning mechanism, symptoms of dyscal-            sired function:
+culia can arise. In particular, our model explains increased ac-                                Z
+tivation of the prefrontal cortex compared to individuals with
+                                                                                                   ( f (x) − fˆ(x))2 dx.                (5)
+normal numeracy (Kucian & von Aster, 2015) and a lack of
+progression to recall based strategies.                                  Together, these two principles allow us to construct spiking
+                                                                      neural models of arbitrary functions of vector spaces.
+     Neural Representation of Digit Semantics                            To apply the NEF to cognitive models, the SPA suggests
+To build our model, we make use of the Neural Engineer-               specific architectural components and organization as well as
+ing Framework (NEF; Eliasmith & Anderson (2003)) and the              a general kind of representation called a semantic pointer. Se-
+Semantic Pointer Architecture (SPA; Eliasmith (2013)) that            mantic pointers are compressed neural representations that
+were both used to build Spaun.                                        can be efficiently manipulated, transformed, and derefer-
+   The NEF may be understood as a “neural compiler” for               enced to retrieve deep semantic information. It has been
+                                                                  2022
+
+ suggested that this approach addresses the symbol ground-              to the output to compute the incremented semantic pointer.
+ ing problem by defining the semantics of a neural represen-            Finally, the output layer uses mutual inhibition to form a
+ tation as resulting from the compression of sensory informa-           winner-take-all (WTA) mechanism, which ensures the trans-
+ tion as well as conceptual relations (Eliasmith, 2013). Con-           formation system returns only a single pointer. This design
+ sequently, the SPA lends itself especially well to representing        is different from Spaun’s, which relied on the repeated con-
+ concepts which are grounded in multiple modalities but uni-            volution of a single vector to indicate a count. While both
+ fied in a single representation. In this model, the semantic           approaches are viable, an associative memory is more effec-
+ pointers are used to represent digits, which have been shown           tive for simpler, low-dimensional models.
+ to be grounded in auditory and visual modalities (Nieder,                 When using a heteroassociative memory, the semantic
+ 2012), but also include conceptual relationships (e.g. TWO             pointer corresponding to each digit is taken from a random
+ comes after ONE but before THREE). Conceptual relation-                ten-dimensional orthonormal basis. This ensures that no prior
+ ships are captured in the SPA by adopting a compression                information is given to bias the relationship between the ten
+ operator from a specific type of Vector Symbolic Architec-             digits. Initially, the model only knows how to increment a
+ ture (Gayler, 2004) called a Holographic Reduced Represen-             digit, as is the situation for learning addition during child-
+ tation (Plate, 1995).                                                  hood using solely the counting strategy.
+                                                                           The learned heteroassociative memory is identical to the
+              Modelling the Counting Strategy                           aforementioned predefined memory, except the decoders can
+ Although Spaun serves as the starting point for our model,             be learned with experience, so that no action selection mech-
+ it is not practical to simulate all 2.5 million of its neurons.        anism is required to cycle through mappings until the desired
+ Instead, a counting circuit based on Spaun’s design was im-            result is reached.
+ plemented. As shown in Figure 1, after a question input is
+ received, the procedure consists of three main steps:                      Memorization via Reinforcement Learning
+1. The digit contained in the working memory neural popula-             The counting circuit that employs the predefined memory is
+    tion is routed to a “transformation system”.                        slow, since information is routed back and forth at the rate
+2. The digit is transformed by a heteroassociative “increment-          of subvocal rehearsal. We thus refer to the counting portion
+    ing memory” to produce the semantic pointer correspond-             of the model as the “Slow-Net”. In the model, other cortical
+    ing to the incremented digit.                                       areas consolidate the function of the Slow-Net by memorizing
+                                                                        its eventual responses. The portion of the network responsible
+3. The incremented number is returned to working memory.                for the storage and subsequent retrieval of originally counted
+    This process is continued until the ”Counts finished” are           answers will be referred to as the “Fast-Net”.
+ equal to the ”Total counts to take”. At which point the value             The purpose of the Fast-Net is to learn to associate the two
+ in ”Count result” is routed as the final answer to the output.         digits provided as input to the Slow-Net with the Slow-Net’s
+                                                                        eventual response. This heteroassociative memory is highly
+                          Working Memory                                nonlinear with respect to the vectors that represent each digit.
+        Count result         Counts finished   Total counts to take     Knight et al. (submitted 2016) has shown that by combining
+          TWO                   ZERO              THREE                 the supervised Prescribed Error Sensitivity (PES; MacNeil &
+                                                                        Eliasmith (2011)) learning rule with the unsupervised Vector
+                                                                        Oja (Voja; Voelker et al. (2014)) learning rule, we can scal-
+          Incrementing         Incrementing     Basal Ganglia           ably and efficiently learn such complex functions in the NEF.
+             Memory               Memory        and Thalamus            The Fast-Net leverages the unsupervised learning rule to ef-
+                                                                        ficiently represent the incoming addends and uses the super-
+        THREE                     ONE                                   vised learning rule to learn the correct sum from the Slow-Net
+                                                                        output.
+                                                                           Specifically, the PES learning rule minimizes the differ-
+ Figure 1: High-level overview of the addition-by-counting              ence between the output of a neural population and its desired
+ procedure. See text for details.                                       value, by adjusting its decoders (di from (2)) in response to
+                                                                        an error signal. However, for discontinuous high-dimensional
+    These steps are controlled by an action selection system            functions such as the desired heteroassociative memory, this
+ implemented in the basal ganglia and thalamus (Stewart et              supervised learning rule is insufficient. This is because a neu-
+ al., 2010) in a manner similar to Spaun.                               ron will often fire in response to multiple inputs, in which
+    To increment a digit, a predefined heteroassociative mem-           case its decoder will be adjusted to completely overwrite the
+ ory is used to associate each semantic pointer with its incre-         past association. To avoid this, a neuron should only fire for a
+ mented pointer. This is implemented using a single popula-             single input, which is achievable by selecting the encoders (ei
+ tion of neurons, with encoders tuned to each vector of the nu-         from (1)) to be equal to the semantic pointers for each of the
+ merical vocabulary and decoders chosen to apply a transform            digits ahead of time, as is done in the predefined heteroasso-
+                                                                    2023
+
+                                                    Modulatory
+                                                                                                  Results
+                            Fast-Net                Error Signal      The model was built and simulated using Nengo (Bekolay et
+                                                                      al., 2014). The results of the Slow-Net, which implement the
+                            Slow-Net                                  counting strategy, are shown in Figure 3.
+                                                                         As expected, the magnitude of error between the answer
+                              Basal                                   from Fast-Net and the correct answer decreases with re-
+    Question                 Ganglia                 Answer           hearsal, as shown in Figure 4. Each epoch of training consists
+     Input                     and                   Output
+                            Thalamus                                  of 20 randomized example additions with no repetition. Give
+                                                                      the fast learning rate of the model, after each epoch there is
+                                                                      a significant drop in error (during each subsequent epoch, the
+                                                                      model is seeing problems it has encountered before). Note
+                                                                      that after the magnitude of error drops below 0.5, the Fast-
+                                                                      Net response will drive the model’s response instead of Slow-
+                             Working                                  Net, since it has the correct answer. Which network drives the
+                             Memory                                   overall response is determined by the basal ganglia. Notably,
+                                                                      any decrease of error magnitude past 0.5 reflects an increase
+                                                                      in the certainty of the answer.
+                                                                         Additionally, once the Fast-Net becomes confident enough
+Figure 2: A high-level view of the model, featuring the paral-
+                                                                      in its responses to over-ride the Slow-Net, the speed of re-
+lel Slow-Net and Fast-Net.
+                                                                      sponses becomes faster and more uniform, as shown in Fig-
+                                                                      ure 5. The confidence of the response is determined by its
+                                                                      similarity to any known number representation (correct or
+ciative memory. However, this would assume that the area of           incorrect). If the response is incorrect, environmental feed-
+cortex designated to learn the addition task is already aware         back will drive the Fast-Net to change its answer. Given the
+of the set of possible inputs to the Slow-Net.                        high learning rates, such errors are rapidly corrected. The fact
+                                                                      that reaction times regularize with transition to a recall-based
+   To keep our approach general, the Voja rule learns to form         strategy matches experiments investigating addition strate-
+a sparse encoding of the possible inputs as they are presented        gies (Siegler, 1987).
+to the Fast-Net. This is achieved by adjusting the encoders of
+any active neurons to become selective to only the current in-           Neuroanatomical Mappings and Dyscalculia
+put. This allows PES to learn the correct output without over-        As discussed in Spaun’s mapping of counting (Eliasmith et
+writing past associations, while being able to scale to recall        al., 2012), parietal areas are more active for stable, learned
+over 100,000 associations (Knight et al., submitted 2016).            transformations while prefrontal areas are more active for
+   In our model, to enable simultaneous learning and oper-            transient, working memory representations. Given that the
+ation, the Fast-Net is placed in parallel to the Slow-Net, as         Fast-Net responses eventually replace those from the Slow-
+shown in Figure 2. Both networks receive the same input,              Net, we would expect that with practice brain activity will
+but the answer from the Slow-Net is projected to modulate             move from the prefrontal cortex to frontal-parietal areas.
+the output of the Fast-Net. This modulatory error signal is              Although this is quite difficult to measure during the nat-
+triggered whenever the Slow-Net responds with an answer,              ural development of a child, this hypothesis is supported by
+which then provides the feedback for learning via PES. In             the observation that those with dyscalculia show greater acti-
+summary, the population of neurons in the Fast-Net memory             vation of the prefrontal cortex compared to individuals with
+continually learns to represent the input digits by adjusting its     normal numeracy (Kucian & von Aster, 2015). Although
+encoders, while its decoders adjust to associate its input with       this model make no claims about why dyscalculia occurs,
+the output of the Slow-Net.                                           given that it is a complicated disability usually accompanied
+                                                                      by various comorbidities, it does provide a possible explana-
+   The learning rate of the heteroassociative memory can be           tion as to why such compensation occurs. Specifically, those
+adjusted to model developmentally plausible learning. At              with dyscalculia are unable to consolidate the functional role
+high learning rates the model learns mappings after being             of the prefrontal cortex during the counting task within the
+shown only a single example and at lower learning rates it            frontal-parietal region and must instead rely on their work-
+gains confidence gradually, covering the spectrum of human            ing memory. Given an excessively noisy input, inaccurate
+variability and demonstrating the versatility of the heteroas-        feedback, or inappropriate modulation of the error signal, the
+sociative memory. Given the focus of this paper on increasing         Fast-Net could fail to learn the mapping between addends and
+the accuracy and speed of reaction, while ignoring realistic          sum. Consequently, there would be limited progression from
+amounts of rehearsals required to learn, an artificially high         counting to recall and a continued dependence on working
+learning rate was chosen for the simulation.                          memory.
+                                                                  2024
+
+       Count Result
+      (Spikes from 50
+         Neurons)
+Figure 3: The Slow-Net (counting network) answering the questions 2+2 and 1+3. The plots show similarity of neural activity
+to semantic pointers over time (colours indicate which pointer). As shown in “Count Result” the model is progressing through
+each intermediate digit before reaching the answer. Lines are the similarity between the spiking pattern in the area and the ideal
+spiking pattern for each number in the numerical vocabulary.
+                        Discussion and Conclusions                  already adapted to represent this digit.
+We presented a biologically plausible model that progresses            The model as presented is clearly limited in several re-
+from a methodical counting procedure to recalling the re-           spects. For instance, numerical representation in the brain
+sponse for an addition task. As specified in Table 3 and shown      consists of more structure than the randomly selected or-
+in Figure 4, the accuracy of the Fast-Net memory progresses         thonormal vectors used here. This assumption is reasonable
+from noisy to accurate. Once a sufficient accuracy thresh-          for small magnitudes, but is untenable for numerical repre-
+old is reached, the memory takes over the process of addition       sentation in general. For instance, there is evidence that neu-
+from the Slow-Net, increasing the reaction times.                   rons tuned to numerical size comparisons are proportional to
+                                                                    a log scale and can be highly sensitive to task saliency (Nieder
+   These simulations suggest the following prediction: that
+                                                                    & Dehaene, 2009). Capturing such properties will require
+performance should increase in proportion to the frequency
+                                                                    different numerical representations.
+of the presented addends. That is, improvement in learning
+should be proportional to the amount of rehearsal, as well as          Finally, this model only describes a handful of the brain
+the familiarity of the given addends. For example, continual        areas associated with numerical calculation. One of the most
+presentation of sums with the first addend of “3” should allow      surprising areas involved in addition is the cerebellum. It has
+for faster learning of other sums involving the addend “3”,         been suggested that cerebellar activity might be a develop-
+since the encoders of the heteroassociative memory will have        mental artifact persisting from when addition is first learned
+                                                                 2025
+
+                                       Decrease of Error with Training Time                   Bekolay, T., Bergstra, J., Hunsberger, E., DeWolf, T., Stewart,
+                      1.2                                                                       T. C., Rasmussen, D., . . . Eliasmith, C. (2014). Nengo: A
+                      1.0
+                                                                                                python tool for building large-scale functional brain mod-
+                                                                                                els. Frontiers in Neuroinformatics, 7(48). doi: 10.3389/fn-
+                      0.8                                                                       inf.2013.00048
+ Magnitude of Error
+                                                                                              DeWolf, T., & Eliasmith, C. (2013). A neural model of the
+                      0.6                                                                       development of expertise. In 12th international conference
+                                                                                                on cognitive modelling. Ottawa, Ontario.
+                      0.4
+                                                                                              Eliasmith, C. (2013). How to build a brain: A neural archi-
+                      0.2                                                                       tecture for biological cognition. New York, NY: Oxford
+                                                                                                University Press.
+                      0.0                                                                     Eliasmith, C., & Anderson, C. H. (2003). Neural engineer-
+                            0            5                10                15        20
+                                                   Training Time (s)                            ing: Computation, representation, and dynamics in neuro-
+                                                                                                biological systems. Cambridge, MA: MIT Press.
+                                                                                              Eliasmith, C., Stewart, T. C., Choo, X., Bekolay, T., DeWolf,
+Figure 4: Error magnitude in Slow-Net decreasing with train-
+                                                                                                T., Tang, Y., & Rasmussen, D. (2012). A large-scale model
+ing received from the feedback of each trial. Note the drop in
+                                                                                                of the functioning brain. Science, 338, 1202-1205. doi:
+error after each training epoch.
+                                                                                                10.1126/science.1225266
+                                                                                              Gayler, R. W. (2004). Vector symbolic architectures answer
+                      1.4           Decrease of Reaction Times with Rehearsal                   jackendoff’s challenges for cognitive neuroscience. arXiv
+                                                                                                preprint cs/0412059.
+                      1.2
+                                                                                              Knight, J., Voelker, A. R., Mundy, A., Eliasmith, C., &
+                      1.0                                                                       Furber, S. (submitted 2016). Efficient SpiNNaker simu-
+ Response Time (s)
+                                                                                                lation of a heteroassociative memory using the Neural En-
+                      0.8
+                                                                                                gineering Framework. In The 2016 international joint con-
+                      0.6                                                                       ference on neural networks (IJCNN). IEEE, submission
+                                                                                                N-16403.
+                      0.4
+                                                                                              Kucian, K., & von Aster, M. (2015). Developmental dyscal-
+                      0.2                                                                       culia. European journal of pediatrics, 174(1), 1–13.
+                      0.0                                                                     MacNeil, D., & Eliasmith, C. (2011). Fine-tuning and the
+                                0            20           40           60        80             stability of recurrent neural networks. PloS one, 6(9),
+                                                    Trial Number
+                                                                                                e22885.
+                                                                                              Nieder, A. (2012). Supramodal numerosity selectivity of neu-
+Figure 5: Reaction times decreasing with rehearsal as the                                       rons in primate prefrontal and posterior parietal cortices.
+Fast-Net takes over for the Slow-Net for increasingly more                                      Proceedings of the National Academy of Sciences, 109(29),
+additions.                                                                                      11860–11865.
+                                                                                              Nieder, A., & Dehaene, S. (2009). Representation of number
+as a physical combination of objects (Arsalidou & Taylor,                                       in the brain. Annual review of neuroscience, 32, 185–208.
+2011). To model cerebellar involvement, counting and group-                                   Plate, T. A. (1995). Holographic reduced representations.
+ing objects would need to be rehearsed via explicit motor                                       Neural networks, IEEE transactions on, 6(3), 623–641.
+plans. This could be captured with a more in-depth model                                      Sarnecka, B. W., & Carey, S. (2008). How counting rep-
+that includes a motor control hierarchy and a visual system                                     resents number: What children must learn and when they
+similar to those found in Spaun.                                                                learn it. Cognition, 108(3), 662–674.
+                                                                                              Siegler, R. S. (1987). The perils of averaging data over strate-
+                                        Acknowledgments                                         gies: An example from children’s addition. Journal of Ex-
+This work was supported by CFI and OIT infrastructure fund-                                     perimental Psychology: General, 116(3), 250.
+ing as well as the Canada Research Chairs program, NSERC                                      Stewart, T. C., Choo, X., & Eliasmith, C. (2010). Symbolic
+Discovery grant 261453, AFOSR grant FA8655-13-1-3084                                            reasoning in spiking neurons: A model of the cortex/basal
+and NSERC graduate funding.                                                                     ganglia/thalamus loop. In 32nd annual conference of the
+                                                                                                cognitive science society.
+                                                  References                                  Voelker, A. R., Crawford, E., & Eliasmith, C. (2014). Learn-
+Arsalidou, M., & Taylor, M. J. (2011). Is 2+ 2= 4? meta-                                        ing large-scale heteroassociative memories in spiking neu-
+  analyses of brain areas needed for numbers and calcula-                                       rons. In 13th international conference on unconventional
+  tions. Neuroimage, 54(3), 2382–2393.                                                          computation and natural computation. London, Ontario.
+                                                                                           2026
+

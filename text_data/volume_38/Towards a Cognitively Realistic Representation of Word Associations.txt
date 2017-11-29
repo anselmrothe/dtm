@@ -1,0 +1,340 @@
+             Towards a Cognitively Realistic Representation of Word Associations
+                                           Ivana Kajić (ivana.kajic@plymouth.ac.uk)1,2
+                                             Jan Gosmann (jgosmann@uwaterloo.ca)1
+                                          Terrence C. Stewart (tcstewar@uwaterloo.ca)1
+                                 Thomas Wennekers (thomas.wennekers@plymouth.ac.uk)2
+                                           Chris Eliasmith (celiasmith@uwaterloo.ca)1
+                                     1 Centre for Theoretical Neuroscience, University of Waterloo
+                                                      Waterloo, ON, Canada N2L 3G1
+                                              2 School of Computing, Plymouth University
+                                           Plymouth, Drake Circus, United Kingdom PL4 8AA
+                              Abstract                                 those methods may not do as good a job at predicting hu-
+                                                                       man performance. Finally, we take the representation method
+   The ability to associate words is an important cognitive skill.     that is closest to human performance and implement it using
+   In this study we investigate different methods for representing
+   word associations in the brain, using the Remote Associates         spiking neurons. Not only does this demonstrate that this al-
+   Test (RAT) as a task. We explore representations derived from       gorithm could be implemented biologically, but it also allows
+   free association norms and statistical n-gram data. Although        us to determine how many neurons would be needed to repre-
+   n-gram representations yield better performance on the test, a
+   closer match with the human performance is obtained with rep-       sent these associations, given realistic biological constraints.
+   resentations derived from free associations. We propose that
+   word association strengths derived from free associations play      Remote Associates Test
+   an important role in the process of RAT solving. Furthermore,
+   we show that this model can be implemented in spiking neu-          The RAT was conceived to study the ability of an indi-
+   rons, and estimate the number of biologically realistic neurons     vidual to form new associations among seemingly unre-
+   that would suffice for an accurate representation.
+                                                                       lated words (Mednick, 1962). The test consists of a list of
+   Keywords: semantic spaces; vector representations; spiking          word problems and each problem contains three cue words
+   neurons; insight; remote associates test
+                                                                       (e.g., call, pay, line). The task is to find a word (phone) as-
+                                                                       sociated with all three cue words within a time limit of up to
+                          Introduction                                 several seconds. The words can form a word phrase (phone
+Creating word associations is an important skill for the de-           line), or a compound word (payphone). Individuals scor-
+velopment of many cognitive abilities. Language acquisition            ing higher on the test are assumed to more easily create un-
+is highly dependent on the ability to associate words (Elman           common and less stereotypical associations between pairs of
+et al., 1997), and the associative organisation of children’s          words. The RAT has been used in psychology and cognitive
+language is known to facilitate learning of new words and              neuroscience to study creative thinking and insight. Because
+syntax (Brown & Berko, 1960; Hills, 2013). Furthermore,                the RAT problems differ in difficulty, they give us information
+word associations have been shown to play a role in analog-            about which associations are common and therefore easier to
+ical problem solving important for inference and concept at-           come up with. This allows us to infer which ways of repre-
+tainment (Powell & Vega, 1971).                                        senting associations are likely used in the brain as they should
+   Despite their importance in a variety of cognitive tasks,           reproduce the same patterns of easy and hard problems.
+it is not clear how associations are represented in the brain.            For comparison to human data, this work uses data set from
+This question is of interest to researchers in cognitive and           the experimental condition where subjects were given only a
+computer science. From a cognitive science perspective,                few seconds to solve a problem. This is meant to address
+understanding word representations has been relevant for               situations where people are solving RAT based on insight,
+the modelling and explaining of psycholinguistic phenom-               rather than explicitly searching for solution. Longer time pe-
+ena (Landauer & Dumais, 1997; Jones & Mewhort, 2007;                   riods would allow analytical solving, rather than relying on
+Steyvers, Shiffrin, & Nelson, 2004). In computer science,              unconscious information such as word association, and lead
+machine learning has been concerned with optimal word rep-             to higher scores on the RAT (Bowden & Jung-Beeman, 2003;
+resentations for automated natural language processing and             Kounious & Beeman, 2014).
+text comprehension.
+   In this study we investigate biologically plausible repre-          Related Work
+sentations of word associations. To this end, we analyse two           A number of studies have investigated the influence of word
+sources of information about word associations and differ-             representations in in a wide range of semantic memory
+ent forms of encoding of the associations. We compare these            tasks (Landauer & Dumais, 1997; Steyvers et al., 2004; Jones
+methods on predicting human performance on the Remote                  & Mewhort, 2007). Common to all approaches is the rep-
+Associates Test (RAT). In particular, we note that some meth-          resentation of words as vectors, whose relationships can be
+ods of representation may be better for solving this task, but         quantified using linear algebra methods. Latent Semantic
+                                                                   2183
+
+Analysis (LSA) evaluates word occurrences in large corpora           FAN sym matrix. In the rest of the analysis we will merely
+of text and derives vector representations for each word. The        use NGsym which includes the backward strength between
+words similar in meaning will have similar vector represen-          word co-occurrences. This is necessary to solve the prob-
+tations. LSA has been successfully applied to explain a va-          lems where only the second part of the compound word is
+riety of psycholinguistic phenomena (Landauer & Dumais,              given as one of the three cues (e.g., board for blackboard).
+1997; Deerwester, Dumais, Furnas, Landauer, & Harshman,              Even though the NG matrices give co-occurrence counts, we
+1990). Instead of using large corpora of text to derive the          will use the terms association matrix and association strength
+semantic spaces, another approach is to use free association         as they are used in the same manner as the FAN association
+norms (FAN; Nelson, McEvoy, & Schreiber, 2004). The as-              matrix.
+sociation strengths between word pairs have been derived ex-            There are two commonly used approaches to represent
+perimentally, by asking each participant to provide the first        word associations. First, we can directly use the association
+word which comes to their mind given a word cue. By                  matrix. That is, we represent a word as a localist vector (all
+applying dimensionality reduction techniques on this data,           zeros except for a single one for the word itself), and then,
+the word association space (WAS) was created and used to             to perform the association we multiply the word by the asso-
+predict the performance on semantic memory tasks such as             ciation matrix. The non-zero entries in the resulting vector
+recognition and recall (Steyvers et al., 2004). Corpus-based         represent the word associates. Alternatively, we can embed
+approaches have been shown to solve the RAT with solution            the associates in a vector space. That is, instead of represent-
+rates higher than humans (Toivonen, Gross, Toivanen, & Vali-         ing the full association matrix, we compress that matrix into
+tutti, 2013; Klein & Badia, 2015). However, very few studies         a lower-dimensional space. In certain cases this approach can
+have investigated models which match the performance on              adjust the similarity space between the words to uncover la-
+the RAT with the human performance (but see, Kajić & Wen-           tent structure among the associations. For example, this is the
+nekers, 2015; Bourgin, Abbott, Griffiths, Smith, & Vul, 2014;        basis for Latent Semantic Analysis (Deerwester et al., 1990),
+Gupta, Jang, Mednick, & Huber, 2012). In this study we anal-         where similar words are made more similar and less simi-
+yse what kind of biologically plausible representations yield a      lar words less similar. In particular, we use singular value
+performance comparable to human performance on this test.            decomposition (SVD) to take the 5018-dimensional localist
+                                                                     word representation and compress it into an D-dimensional
+            Representation of associations                           distributed representation (where D is varied between 128 and
+                                                                     4096).
+We use two datasets to construct the word representations.
+The first dataset are the free association norms (Nelson et al.,                      Preliminary evaluation
+2004), containing association strengths for over 5000 word
+cue-target pairs. The strengths between the words are or-            To determine which representational approach gives the best
+ganized in an asymmetric association matrix FAN asym , with          performance on the task, we use the problem set from
+rows representing cues and columns representing targets used         Bowden and Jung-Beeman (2003). Out of 144 RAT prob-
+in the free association experiment. The asymmetry is a result        lems, we used the 117 problems for which the cues and the
+of non-reciprocal association strengths. For example, given          target exist in the set of free association norms. We took
+the cue left, 94% subjects respond with right, however, given        the sum of the vector representations of each cue word, and
+the cue right, 41% subjects respond with left and 39% sub-           multiplied it by the association matrix. The resulting vector
+jects respond with wrong. Formally, this is a difference in the      was compared to the vectors for all of the possible response
+forward (cue to target) and the backward (target to cue) as-         words. In the ideal case, the correct solution word would be
+sociation strength. In addition to the asymmetric matrix, the        the most similar to this output value. However, we also deter-
+symmetric matrix FAN sym is created by adding the asymmet-           mined if the solution word was in the top 2, 3, 5, and 10 most
+ric matrix and its transpose.                                        similar words, as reported in Table 1.
+   The second form of association information is derived from           The results indicate that the solution appears as the top-
+the Google Books Ngram Viewer dataset (version 2 from July           ranked word more often for Google n-grams (NGsym ) than
+2012; Michel et al., 2011). An n-gram is a sequence of n             for association norms (11 solutions in the first position versus
+words, and this dataset provides occurrence frequencies of
+n-grams across over 5 million books published up to 2008.
+The set of words used in this study is restricted to the same                Table 1: Target positions for 117 RAT problems
+words that have been used in the FAN data. Furthermore, we
+                                                                                                           Within top
+only used n-gram frequencies from 2008. For every combi-
+nation of two words w1 and w2 the corresponding entry in                     Association matrix      1     2     3     5   10
+the matrix NGasym was set to the sum of occurrences of the                   FAN asym                5    12   16    31    49
+2-gram (w1 , w2 ) and the 1-gram w1 w2 in the corpus. Each                   FAN sym                 4     5     6   14    36
+row of the matrix was then normalized to sum to one. The
+                                                                             NGsym                  11    15   16    22    35
+symmetric matrix NGsym is computed in the same way as the
+                                                                 2184
+
+5 and 4 solutions for symmetric and asymmetric matrices).           original FAN asym , FAN sym , and NGsym matrices. In addition,
+However, if we allow for the solution word to be in the top 5       we used the 768-dimensional NG768   sym matrix which gave im-
+or 10, then the FAN asym association matrix performs best.          proved performance in Figure 1.
+   Figure 1 also includes the results from applying SVD to             The resulting parameter values are given in Table 2. Rep-
+the association matrices. Contrary to expectation, SVD does         resentations derived from free norms yield a better fit on this
+not improve the performance on the RAT test except in a few         data set (r2 = 0.58) compared to the n-gram data (r2 = 0.30).
+specific circumstances. In particular, if we need the solution      There was no difference between the asymmetric and sym-
+word to be in the top 3 words and we are using the Google           metric FAN matrices. Interestingly, the second cue gets con-
+n-grams (NGsym ), then using 512-dimensional SVD provides           sistently a higher weight. We speculate that this is caused by
+a slight improvement over the full asymmetric FAN matrix.           this cue appearing in the center of the screen with the other
+   In majority of cases, the statistical n-gram data performs       cues above and below. For n-gram fits the parameters α2
+better than the free association norms. However, this only          and β are large, but because of the low r2 -value, these val-
+shows increased performance on the task, not whether the n-         ues cannot be seen as meaningful. For visual inspection, we
+gram approach performs similarly to people on this task. To         have plotted the model fits using free association norms and
+address this question, we compare the two approaches with           Google n-grams in Figure 2. Further error analysis revealed
+the human performance.                                              that the Google n-grams underestimate the solution probabil-
+                                                                    ities of easy items (more than 32% solved by humans) while
+            Matching human performance                              at the same time predicting a non-zero probability for items
+Instead of analysing which method gets the most correct so-         unsolved by humans.
+lutions on the RAT, we now explore which method yields the             All solutions in the data set used are based on compound
+results most similar to human results. That is, we are inter-       words which explains that n-gram data can solve more and
+ested to find which method is better in solving problems that       harder RAT problems. This also means that the insight pro-
+humans find easy, and worse in solving problems humans find         cess in RAT solving could be based on such co-occurrence
+hard. To do so, we predict a probability of producing the cor-      information. But the results provide evidence that this is not
+rect solution within a 2 s time limit. We use the same set of       the case and that the insight process is based on associations
+problems as in the previous section, and match to the per-          closer to the associations produced in an unconstrained free
+centage of people solving each problem (Bowden & Jung-              association task. These kinds of associations are likely to
+Beeman, 2003).                                                      be based on additional semantic information not available to
+   Let s(w, v) be the associative strength from word w to v.        purely statistical approaches.
+Given the three cues ck with k = 1, 2, 3 each word wi in the
+vocabulary is activated according to                                                  Biological plausibility
+                                                                    While the previous sections argue that people use word as-
+                              3
+                                                                    sociation data of the form seen in the free association norms
+                    a(wi ) = ∑ αk · s(ck , wi )             (1)
+                                                                    to perform the RAT task, there is the separate question of
+                             k=1
+                                                                    whether such an operation can be implemented in the brain.
+where αk are free parameters intended to model the effect that      Can neurons in the brain precisely implement the mathemat-
+subjects might differently prioritize the problem cues. We set      ical matrix operations described above? How many neurons
+a(ck ) = 0 for the cues to prevent them from appearing high in      would be needed to implement it accurately enough?
+the results. Moreover, we fix α1 = 1.0 as a scaling of all αk          To determine this, we implemented the above algorithm
+with a constant will produce the same predictions.                  using two groups of spiking Leaky Integrate-and-Fire (LIF)
+   Given that ws is the solution word, we calculate the pre-        neurons, with synaptic connections from the first group to the
+dicted probability for producing the correct answer as              second group. The first group represents the input (the sum of
+                                                                    the vectors from the three cue words), and the second group
+                                 a(ws )                             represents the output (the result after multiplying by the asso-
+                        P = β·                              (2)
+                                ∑i a(wi )                           ciation matrix).
+                                                                       To allow a group of neurons to represent a vector (which, in
+with β being another free parameter. Note, that we are not cal-
+culating the probability of each individual word being given
+as answer, but the probability of producing the correct vs. the
+wrong response. Because of that, β is not fixed to one, but                  Table 2: Model fits and best fitting parameters
+should be chosen such that P ≤ 1.                                      Association matrix     α1       α2       α3       β     r2
+   We did curve fits to the data from Bowden and Jung-                 FAN asym              1.0     2.06     1.20    1.13   0.58
+Beeman (2003) by minimizing the root mean square error                 FAN sym               1.0     2.50     1.63    2.86   0.58
+between the proportion of participants solving the problem             NGsym                 1.0    13.45     1.25    3.55   0.30
+within the time limit and our predicted solving probability.
+                                                                       NG768
+                                                                           sym               1.0    11.88     1.00    8.23   0.22
+For the curve fits we used the association strengths from the
+                                                                2185
+
+                                                       Top 1       Top 2     Top 3            Top 5              Top 10
+                                       Free Association Norms (FAN)                                   Google Books n-grams
+                           50                                                      50
+    Targets within top n
+                           40                                                      40
+                           30                                                      30
+                           20                                                      20
+                           10                                                      10
+                            0                                                       0
+                                128        380         768      204     409
+                                                                        sym6            128            380        768           204      409
+                                                                   8   asy  .
+                                                                           m.                                                      8     sym6.
+                                                  Dimensions                                                 Dimensions
+Figure 1: The number of correct solutions within the top n most similar words over 117 problems. The left plot shows the
+results with representations based on free association norms. The right plot is based on Google n-gram data. The isolated
+points at the end of the x-axis in both graphs represent the original symmetric and (for FAN) asymmetric matrices. All other
+data points are computed by applying the SVD to the matrices.
+                                                FAN asymmetric                                        Google Books n-grams
+                           70                                                      70
+                                                                                                                          Human solution rates
+                           60                                                      60
+                                                                                                                          Model prediction
+                           50                                                      50
+   Percent solved
+                           40                                                      40
+                           30                                                      30
+                           20                                                      20
+                           10                                                      10
+                            0                                                       0
+                                0     20   40     60     80    100 120 140 160          0     20      40    60     80      100 120 140 160
+                                                Problem number                                             Problem number
+Figure 2: Model fits to human data (blue line with shaded 95 % confidence interval). Human data are percentages of participants
+solving a RAT problem in 2 s and they have been sorted in descending order, so that problems solved by more participants have
+lower problem indices. Every green circle represents the probability of producing the correct solution to a RAT problem
+predicted by the model.
+                                                                            2186
+
+turn, represents a word), each neuron in the group has a ran-            A
+domly chosen preferred vector. This is the vector for which
+this neuron will fire maximally. For other vectors, the neuron
+will fire less frequently. This is a generalization of the stan-
+dard idea of neurons having a preferred stimulus or represen-
+                                                                         B
+tation, as seen in motor cortex, visual cortex, and throughout
+the brain. Importantly, since each neuron’s preferred vector is
+randomly chosen, the neurons will provide a distributed rep-
+resentation, even if the vector representation is localist. For
+example, if the represented vector is [0, 1, 0, 0], then one neu-
+ron might have a preferred vector of [0.1, 0.3, 0.8, 0.5] and
+so it would fire slowly (the similarity between the two vectors
+is 0.3, as measure by the dot product), while another neuron
+might have a prefered vector of [0.2, 0.9, 0.1, 0.4], so it would
+fire quite frequently (dot product of 0.9). We have previously           C
+shown that such a representation is extremely robust to neu-
+ral damage and consistent with observed patterns of neural
+activity (Stewart, Bekolay, & Eliasmith, 2011).
+   Given this approach to representation, we need to connect
+the first group of neurons to the second group of neurons in
+such a way that if we cause the first group of neurons to fire
+as they should when representing a particular cue word vector
+x, then this should cause the second group of neurons to fire
+with the pattern for the vector that is the result of multiplying
+x by the association matrix. We do this by setting the synap-
+tic weights between the first and second groups. Many tech-
+niques could be used to perform this task (including standard         Figure 3: Example run of the neural network model for three
+backpropagation learning rules), but here we simply treat it          RAT problems of easy, intermediate and hard difficulty. (A)
+as a least-squares optimization problem and directly solve            Spike patterns of a subset of the neurons in the Solution en-
+for the best set of connection weights for this task. This            semble. (B) Similarity of the representation in the Solution
+overall approach is known as the Neural Engineering Frame-            ensemble with the correct solution (blue) and most similar
+work (NEF; Eliasmith & Anderson, 2003).                               wrong word (green). The solid lines give the analytical result,
+   To test the model we used three RAT problems of easy, in-          whereas the semi-transparent lines give the network output.
+termediate, and hard difficulty, as shown in Figure 3B. We            (C) Root mean square error between neural network output
+estimate the output similarities from the spiking output with         and analytical calculation as we change the number of neu-
+the methods of the NEF and compare it to the analytical re-           rons.
+sult. The accuracy of the neural representation increases as
+the number of neurons increases. The root mean square error
+with the analytical result, relative to the word most similar to      gram data set and association norms by applying dimension
+the cues, is in the range from 4.5 % to 3.0 % depending on            reduction with SVD. Previous studies have shown that the
+the number of neurons ranging from 100 360 up to ten times            dimensionality reduction on association norms can be used
+as many neurons. Thus, we can approximate the model equa-             to accurately predict human responses on certain episodic
+tions with biologically realistic spiking neurons with minor          memory tasks such as recognition memory and cued word
+deviation.                                                            recall (Steyvers et al., 2004). Our analysis provides evidence
+                                                                      that dimensionality reduction does not improve performance
+                          Discussion                                  on the RAT. Moreover, it impairs the performance when the
+                                                                      target is among the ten most similar words to the cue words.
+In this study we have done a computational analysis of two            This indicates that for some RAT problems the important as-
+different sources of word associations and described how well         sociations are contained in links which are not present in a
+they predict human performance on the RAT. We have shown              low-dimensional representation. This is reminiscent of the
+that statistical language data like n-grams allow the high-           finding that direct association strengths are the best predic-
+est solution rates on this task, consistent with the previous         tor of intrusion rates in free recall (Steyvers et al., 2004).
+work (Klein & Badia, 2015; Toivonen et al., 2013). However,           Whether there is a connection between the associative mech-
+further analysis revealed that the better prediction of the hu-       anisms in the RAT and free recall with intrusion remains to be
+man performance is obtained with the free association norms.          explored in the future work. The dimensionality reduction on
+   First, we discovered structural differences between the n-         n-grams revealed a considerable amount of redundant infor-
+                                                                  2187
+
+mation: the original 5018 dimensional word vectors can be            Elman, J. L., Bates, E. A., Johnson, M. H., Karmiloff-Smith,
+reduced to at least 768 dimensions without large differences           A., Parisi, D., & Plunkett, K. (1997). Rethinking innate-
+in the results. Moreover, the SVD can even lead to improve-            ness: A connectionist perspective on development (neural
+ment when looking at targets which appear within the three             networks and connectionist modeling). MIT Press.
+most similar words to the cues. Second, the modelling analy-         Gupta, N., Jang, Y., Mednick, S. C., & Huber, D. E. (2012).
+sis showed that n-gram data, yielding best scores on the RAT,          The road not taken: Creative solutions require avoidance of
+is a worse predictor of human performance.                             high-frequency responses. Psychological Science, 23(3),
+    The FAN data model was a better fit to human solution              288 – 294.
+probabilities in the RAT. As expected, the model was not             Hills, T. (2013). The company that words keep: compar-
+able to solve any problems for which there was no associa-             ing the statistical structure of child- versus adult-directed
+tion between the cues and the target in the association norms          language. Journal of Child Language, 40, 586–604.
+indicating that free norms might not be the only source of in-       Jones, M. N., & Mewhort, D. J. K. (2007). Representing word
+formation. However, for the other problems we have demon-              meaning and order information in a composite holographic
+strated that free associations play an important role in the in-       lexicon. Psychological Review, 114, 1–37.
+sight process.                                                       Kajić, I., & Wennekers, T. (2015). Neural network model of
+    Finally, we demonstrated the biological plausibility of this       semantic processing in the remote associates test. In Work-
+approach in a spiking neural model of the insight solution             shop on Cognitive Computation: Integrating Neural and
+process of the RAT. The model shows the expected behaviour             Symbolic Approaches, 29th Annual Conference on Neural
+and is more likely to produce the correct solution for easy            Information Processing Systems (NIPS 2015).
+RAT problems. In the future, we plan to match the model              Klein, A., & Badia, T. (2015). The usual and the unusual:
+more rigorously to human data and extend it with recurrent             Solving remote associates test tasks using simple statistical
+processing to explore a variety of mechanisms and represen-            natural language processing based on language use. The
+tations involved in the memory search.                                 Journal of Creative Behavior, 49(1), 13–37.
+                                                                     Kounious, J., & Beeman, M. (2014). The cognitive neuro-
+                             Notes                                     science of insight. Annual Review of Psychology, 65, 71–
+The model and data analysis source code are available at               93.
+https://github.com/ctn-archive/kajic-cogsci2016.                     Landauer, T. K., & Dumais, S. T. (1997). A solution to
+                                                                       Plato’s problem: The latent semantic analysis theory of ac-
+                    Acknowledgments                                    quisition, induction, and representation of knowledge. Psy-
+                                                                       chological Review, 104(2), 211.
+This work has been supported by the Marie Curie Initial              Mednick, S. A. (1962). The associative basis of the creative
+Training Network FP7-PEOPLE-2013-ITN (CogNovo, grant                   process. Psychological Review, 69(3), 220-232.
+number 604764), the Canada Research Chairs program, the              Michel, J.-B., Shen, Y. K., Aiden, A. P., Veres, A., Gray,
+NSERC Discovery grant 261453, Air Force Office of Scien-               M. K., Pickett, J. P., . . . others (2011). Quantitative anal-
+tific Research grant FA8655–13–1–3084, CFI and OIT. This               ysis of culture using millions of digitized books. Science,
+work made use of SHARCNET and Compute Canada com-                      331(6014), 176–182.
+puter resources.                                                     Nelson, D. L., McEvoy, C. L., & Schreiber, T. A. (2004).
+                                                                       The University of South Florida free association, rhyme,
+                         References
+                                                                       and word fragment norms. Behavior Research Methods,
+Bourgin, D. D., Abbott, J. T., Griffiths, T. L., Smith, K. A.,         Instruments, & Computers, 36(3), 402-407.
+   & Vul, E. (2014). Empirical Evidence for Markov Chain             Powell, A., & Vega, M. (1971). Word association and verbal
+   Monte Carlo in Memory Search. In Annual Conference of               analogy problems. Psychonomic Science, 22(2), 103–104.
+   the Cognitive Science Society.                                    Stewart, T. C., Bekolay, T., & Eliasmith, C. (2011). Neu-
+Bowden, E. M., & Jung-Beeman, M. (2003). Normative data                ral representations of compositional structures: Represent-
+   for 144 compound remote associate problems. Behavior                ing and manipulating vector spaces with spiking neurons.
+   Research Methods, Instruments, & Computers: A Journal               Connection Science, 22, 145-153.
+   of the Psychonomic Society, Inc, 35(4), 634–639.                  Steyvers, M., Shiffrin, R. M., & Nelson, D. L. (2004). Word
+Brown, R., & Berko, J. (1960). Word association and the                association spaces for predicting semantic similarity effects
+   acquisition of grammar. Child Development, 31(1), 1–14.             in episodic memory. Experimental Cognitive Psychology
+Deerwester, S., Dumais, S. T., Furnas, G. W., Landauer, T. K.,         and its Applications: Festschrift in Honor of Lyle Bourne,
+   & Harshman, R. (1990). Indexing by latent semantic anal-            Walter Kintsch, and Thomas Landauer, 237–249.
+   ysis. Journal of the American Society for Information Sci-        Toivonen, H., Gross, O., Toivanen, J. M., & Valitutti, A.
+   ence, 41, 391–407.                                                  (2013). On Creative Uses of Word Associations. In Syn-
+Eliasmith, C., & Anderson, C. H. (2003). Neural engineer-              ergies of Soft Computing and Statistics for Intelligent Data
+   ing: computation, representation, and dynamics in neuro-            Analysis (Vol. 190, p. 17-24). Springer Berlin Heidelberg.
+   biological systems. Cambridge, MA: MIT Press.
+                                                                 2188
+

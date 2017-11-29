@@ -1,0 +1,379 @@
+                                  A Spiking Neural Model of the n-Back Task
+                                             Jan Gosmann (jgosmann@uwaterloo.ca)
+                                           Chris Eliasmith (celiasmith@uwaterloo.ca)
+                                      Centre for Theoretical Neuroscience, University of Waterloo
+                                    200 University Avenue West, Waterloo, ON, N2L 3G1, Canada
+                              Abstract                                 position in the list and an update of the position of remem-
+                                                                       bered items. At the same time, older stimuli become irrele-
+   We present a computational model performing the n-back task.
+   This task requires a number of cognitive processes includ-          vant. Preserving them in memory could interfere with new
+   ing rapid binding, updating, and retrieval of items in work-        stimuli and degrade performance. Because of this, an active
+   ing memory. The model is implemented in spiking leaky-              removal or unbinding of old items from memory is often as-
+   integrate-and-fire neurons with physiologically constrained pa-
+   rameters, and anatomically constrained organization. The            sumed (e.g., Juvina & Taatgen, 2007; Szmalec, Verbruggen,
+   methods of the Semantic Pointer Architecture (SPA) are used         Vandierendonck, & Kemps, 2011). However, the model pre-
+   to construct the model. Accuracies and reaction times pro-          sented here shows that active removal is not essential. Finally,
+   duced by the model are shown to match human data. Namely,
+   characteristic decline in accuracy and response speed with in-      a recollection process is needed to recall the item n positions
+   crease of n is reproduced. Furthermore, the model provides          back and compare it to the current stimulus.
+   evidence, contrary to some past proposals, that an active re-          To construct this model, we employ the methods of the Se-
+   moval process of items in working memory is not necessary
+   for an accurate performance on the n-back task.                     mantic Pointer Architecture (SPA; Eliasmith, 2013). Among
+   Keywords: n-back task; neural engineering; computational            other things, the SPA proposes methods for representing
+   neuroscience; vector symbolic architecture                          symbol-like information, controlling the flow of informa-
+                                                                       tion, and implementing serial working memory in biologi-
+                          Introduction                                 cally plausible spiking neural networks. It relies heavily on
+Reasoning about the world is a cognitive skill mediated by             the Neural Engineering Framework (NEF; Eliasmith & An-
+a large number of cognitive processes, including the ability           derson, 2003) for constructing such networks.
+to store information in working memory and quickly update                 This paper is organized as follows: First, we will give a
+this information in a controlled manner. The n-back task has           short overview of the NEF. This is followed by a description
+been used extensively to investigate these features of cogni-          of the methods used to represent symbol-like items and their
+tive processing. Thus, characteristic patterns in accuracy and         positions in the model. Next we introduce the n-back model
+reaction time data in this executive control test of working           and present the simulation results. Finally, we conclude with
+memory have been well validated.                                       a discussion of these results.
+   Despite its wide use in experiments, only few computa-
+tional models of this task exist. Here we propose the first
+                                                                               The Neural Engineering Framework
+model of the n-back task implemented in a spiking neural               The Neural Engineering Framework (NEF) provides meth-
+network. Our motivation is two-fold. First, we hope to gain            ods for implementing algorithms on abstract vector spaces
+a better understanding how the brain might process and up-             in spiking neural networks (Eliasmith & Anderson, 2003).
+date contents in working memory. Second, the model might               There are two key components to the NEF. First, it describes
+lead to new insights about the interaction of different cogni-         how an ensemble of neurons can form a distributed represen-
+tive mechanisms in performing more complex working mem-                tation of a vector space. Second, it specifies how connections
+ory tasks. By using spiking neural networks we can tie many            between neural populations can implement transformations
+model parameters to biological constraints, diminishing the            and computations on vectors in those spaces.
+parameter space.                                                          Equation 1 states how a vector x (t), varying over time, is
+   In the n-back task the test subject is presented with a list        encoded by an ensemble of neurons. Each neuron i has a pre-
+of stimuli (usually letters or spatial locations) one item at a        ferred direction or encoding vector e i , a gain αi , and a back-
+time. For each stimulus the subject has to indicate whether            ground or bias current Jibias . From these parameters the neu-
+he or she saw the current item exactly n positions before. As          ron’s input current Ji (xx(t)) is determined and passed through
+an example consider the sequence j-n-j-j-k. In a 2-back task           a non-linearity Gi that models the spiking response of a neu-
+the ‘j’ in bold would be a target, whereas the other letters in        ron to current input. The vector is thus encoded into the ac-
+the sequence would be considered distractors.                          tivity of the neurons ai (t).
+   A number of executive control processes, including up-
+                                                                                                     J(t) = αi e i · x (t) + Jibias
+                                                                                                                          
+dating, modification, maintenance, and matching of memory                       ai (t) = Gi [J(t)],                                  (1)
+contents, are of importance in this task. Specifically, the se-           Different neuron models with a varying degree of realism
+quence of recent stimuli has to be stored in working memory            can be used as the non-linearity Gi . For this model, we use
+for some duration. For each new stimulus the list has to be            spiking leaky integrate-and-fire (LIF) neurons as a good bal-
+updated. This requires rapid binding of the new item to its            ance of biological realism and computational efficiency. In a
+                                                                   812
+
+LIF neuron, the input currents are integrated over time with             of Vector Symbolic Architecture (VSA; Gayler, 2003). Com-
+an exponential decay determined by the neuron’s membrane                 mon to VSA approaches is that they represent individual con-
+time constant. Once a specified threshold is reached the neu-            cepts as vectors and combine vectors with nonlinear and lin-
+ron generates a spike. Afterwards it is reset to its starting            ear operators to perform binding, all of which can easily be
+voltage and held there for the duration of the absolute refrac-          implemented by neurons with the NEF.
+tory period. This spiking neuron model produces a spike train               In addition to representing symbol-like concepts it has to
+of the form ai (t) = ∑s δ(t − ti,s ) where ti,s is the time of spike     be possible to perform appropriate syntactic operations on
+s from neuron i.                                                         these concepts. The specific operator (i.e., circular convo-
+     To reconstruct, or decode, an encoded vector from the ac-           lution) we employ was first suggested by Plate (1995) for
+tivity (i.e., the spike train) of the neuron, the spikes are con-        encoding syntactic structure in vector spaces and termed as
+volved with a low pass filter h(t) that accounts for the post-           Holographic Reduced Representations1 (HRRs). The SPA
+synaptic response of receiving neurons, and then weighted                provides a general characterization of compressed neural rep-
+by linear decoding weights d i . To be clear, the low pass               resentations as ‘semantic pointers’. Circular convolution is
+filter models the post-synaptic current produced in the post-            one of the compressive operations used in the SPA, and so
+synaptic neuron by an incoming action potential. A typical               the symbol-like representations used here are one example of
+choice for this filter, also used here, is a decaying exponential        semantic pointers.
+with some synaptic time constant τ. The decoded value x̂x(t)                Given two vectors v and w we perform a union like or su-
+is then given by                                                         perposition operation yielding a new vector u similar to both
+                                                                         v and w by simple addition
+                       x̂x(t) = ∑ d i (ai ∗ h)(t).               (2)
+                                i                                                                     u = v + w.                           (3)
+     The decoding weights d i are obtained through a reg-                Another important operation is the binding of vectors. This
+ularized least-squares optimization of the decoding error                operation produces a new vector u which is dissimilar to both
+hkx̂x − xkix over a set of inputs x. Consequently, the represen-         of the original vectors v and w. As with HRRs, the SPA em-
+tation of the vector x by the neural population a is defined by          ploys circular convolution defined as
+the combination of the encoding (Eq. 1) and decoding (Eq. 2)
+equations.                                                                                                     D
+     However, these equations only describe how a vector can                           u = v ~w :       ui =  ∑ v j w(i− j) mod D .        (4)
+                                                                                                              j=1
+be encoded and decoded in a single ensemble. To connect
+two ensembles in a communication channel, the synaptic                   The binding operation can be undone (unbinding) by circular
+weight matrix is given by the pre-synaptic decoders and post-            convolution with the involution of one of the operands.
+synaptic encoders as Wi j = e i d >j . Thus, the input current
+of the post-synaptic neuron is obtained as Ji (t) = αiWi j (a j ∗                                    v ≈ u ~ w −1                          (5)
+h)(t) + Jibias .                                                         The involution is defined as
+     Transformations, f (xx), of the represented vector across
+neural connections can be implemented analogously to the                                  w −1 = (w1 , wD , wD−1 , . . . , w2 )> .         (6)
+communication channel. Instead of obtaining the decoding
+                                                                         Note that the unbinding operation produces an approximation
+weights with the least-squares optimization of hkx̂x − x kix the
+                                                                         of the original vector. The SPA includes a method for build-
+decoding error h x̂x − f (xx) ix is used. Linear and low-order
+                                                                         ing biologically realistic clean up memories (Stewart, Tang,
+polynomials can be approximated best, whereas for high-
+                                                                         & Eliasmith, 2011). These compare the noisy vector with
+order polynomials and less smooth function the approxima-
+                                                                         the clean vectors and then threshold the result with specially
+tion will be less precise. A desired accuracy can be reached
+                                                                         tuned neurons.
+in general by increasing the number of neurons in the ensem-
+                                                                            The binding and unbinding mechanisms allow us to re-
+ble (Eliasmith & Anderson, 2003).
+                                                                         cover certain concepts out of a superposition of bound
+     Finally, it is possible to implement differential equations
+                                                                         items. Consider the vector v = RED~COLOR+SQUARE~
+with recurrent connections. Note that the synaptic low-pass
+                                                                         SHAPE. The color can be recovered as:
+filter h(t) will influence the recurrent connection dynam-
+ics. To implement dx       dt = f (x) the connection weights for            v ~ COLOR−1 = RED ~ COLOR ~ COLOR−1                            (7)
+ f 0 (x) = τ f (x) + x have to be computed with the approach                                                                          −1
+                                                                                                + SQUARE ~ SHAPE ~ COLOR                   (8)
+given above (Eliasmith & Anderson, 2003, pp. 222–225).
+                                                                                              ≈ RED + noise                                (9)
+                 Symbol-like representation                                                   ≈ RED                                      (10)
+With the NEF we are able to represent vectors with neural en-
+                                                                             1 We relax the requirement that vectors are always renormalized.
+sembles and perform calculations on these with connections
+                                                                         Given the noise inherent in the neural representation, this does not
+between neural populations. To represent structured, concep-             alter the behavior significantly. In addition, much of the normaliza-
+tual or symbolic information the SPA employs a specific type             tion is automatically accounted for by neural saturation.
+                                                                     813
+
+  In the n-back task a list of items has to represented. Us-
+ing a variation of the standard SPA approach, this is done by
+binding each item to a position vector with backward index-
+ing (POS1 indicates the most recent item):
+  list = item1 ~ POS1 + item2 ~ POS2 + . . . + itemn ~ POSn
+(11)                                                                                                     stimulus
+The position vectors are defined as
+                         POSi = CTXi                        (12)                                                          ·   cortical state
+with
+                 CTXi = CTX ~ . . . ~ CTX .                 (13)                                         memory               Basal Ganglia
+                        |     {z        }
+                                 i times
+                                                                                                                 · √1n
+CTX is a random unitary vector, so that convolving with it                                               1
+                                                                                                             n                     Thalamus
+does not change the norm of the vector being bound (for every                                   q 1−
+v it has to hold that kvvk = kvv ~ CTXk).                                                        ·
+                            Model                                                          current-list             updated-list
+An overview of the model is given in Figure 1. It gets input                                                         ~CTX
+through the stimulus ensemble in form of a semantic pointer
+which represents the parsed visual input (i.e., a consonant or
+spatial location). We do not model the visual system here as
+this is out of the scope of this paper (although see Eliasmith              cue              list-copy
+et al. (2012) for an example of doing so with the SPA).
+    The input is routed through a number of working memory                   cu
+                                                                              e
+                                                                                  −1
+ensembles. Each of these ensembles can be described as a
+                                                                                       ~
+gated difference integrator (see Fig. 2). This kind of integra-
+tor has a primary population of neurons acting as a standard
+recurrent integrator. Without any input, a recurrent connec-                       compare
+tion with a long synaptic time constant (τ = 0.1 s) ensures
+that the currently represented value does not change much
+over time (save for a small drift due to noise). Input is given                    rectify       bias
+through another neural ensemble, gate, which also receives
+the negative currently stored value. Thus, the input to the in-                   response
+tegrator population is the difference of the target value and
+current value. Furthermore, the gating population can be in-
+hibited to disable any input to the integrator.                                thresholding
+    As the visual input is usually shown for a limited time only
+it is first stored in memory to have it available beyond the pre-
+sentation. The currently remembered list of stimuli is stored
+in the current-list memory. The new list to remember is con-              Figure 1: Overview of the n-back model. The labeled boxes
+structed in updated-list as                                               represent neural ensembles with exception of Basal Ganglia
+                                    r                                     which is a more complex network of multiple interconnected
+                       1                    1                             ensembles. The · and ~ ensembles output the dot product and
+     updated-list = √ memory + 1 − current-list. (14)                     circular convolution of their inputs. The gating ensembles
+                        n                   n
+                                                                          of gated difference integrators are unlabeled diamonds. For
+This provides the best representation of the n-th item com-               clarity the difference connection back from the integrator is
+pared to other possible weightings of memory and current-                 not shown. The flow of information is denoted with arrows
+list. It is possible that humans are not able to optimally weight         ( ). Transformations and computations are denoted along
+the components or that the exact weighting depends on how                 these connections. Inhibitory connections are indicated with
+much experience a person has with the task. When chang-                   full circles ( ).
+ing the weighting  √ to a simpler rule (e.g., both components
+weighted by 1/ 2), the model performance decreases, but
+qualitatively remains the same.
+   The representational strength of items after the n-th posi-
+tion will decrease with each new item. Thus, older items will
+                                                                    814
+
+                                                                     hibition of cortical neural populations to route information
+                               -1                                    accordingly. Table 1 lists how the utility values are calculated
+                                                                     and how information is routed.
+                       gate        integrator
+                                                                        The model switches to the ENCODE state once input is
+                                                                     available which is detected by calculating the squared length
+                                                                     of stimulus using a dot product. A bias of 0.2 is added to en-
+Figure 2: A gated difference integrator unit. It consists out of     sure that this switch happens. In this state, the gate to current-
+two neural populations gate and integrator. Arrows ( ) rep-          list has to be inhibited to prevent the current list from being
+resent NEF connections between ensembles. The line ending            overridden while the new item is added to it.
+in a filled circle ( ) is a connection directly inhibiting the          Once the stimulus disappears, the utility for the ENCODE
+neurons of the targeted ensemble. See the text for additional        state decreases and the model switches to the WAIT state. As
+details.                                                             there is no input stimulus, the memory and updated-list gate
+                                                                     have to be inhibited. Also, the list-copy gate will be inhibited
+be automatically forgotten without an active removal mecha-          to give the model time to provide an answer for the current
+nism.                                                                trial.
+   Once the new list has been constructed, it is transferred            Once an answer has been provided, which is detected by
+from updated-list to current-list and a circular convolution         the thresholding of the response integrator, the state switches
+with CTX is applied to update the position tags in the remem-        to TRANSFER. In the TRANSFER state the inhibition of
+bered list. In this convolution, one of the operands is constant     the list-copy gate ends to allow the transfer of the content
+allowing this transformation to occur efficiently in the con-        of current-list. The response integrator will be inhibited to
+nection weights (otherwise a dedicated neural ensemble with          prepare it for the next trial.
+both operands as input would be needed).                                Most ensembles in the model represent 64 dimensional
+   A copy of the remembered list is also stored in list-copy.        vectors with 3200 neurons. The dot product uses twice the
+This allows the list in current-list to be updated while the         number of neurons and the circular convolution uses 12 800
+model is still deciding on whether it saw the current item n         neurons. The rectify and response ensemble represent scalars
+positions before. Once it has given its answer, the content of       with 50 neurons each. The thresholding ensemble represents
+current-list will be loaded into list-copy.                          a scalar with 100 neurons. 31 450 neurons are used in the
+   To provide an appropriate response, the desired n has to be       basal ganglia and thalamus part of the model. Overall there
+given to the model (just as people are told the desired n). This     are 92 250 neurons in the model. The connections between
+information is encoded as CTXn in cue. Using involution, the         neurons are pre-calculated with the NEF methods and no
+item at the n-th position in the sequence stored in list-copy is     learning occurs during simulation.
+retrieved. This intermediate result is compared to memory in            Apart from the basal ganglia and thalamus, all model com-
+compare by computing a dot product. Values below zero will           ponents are assumed to be part of the cortex, and the neu-
+be clipped to zero in rectify.                                       ron’s model parameters were chosen accordingly. A mem-
+   The output of the rectify ensemble minus a bias is taken as       brane time constant of τRC = 20 ms and an absolute refractory
+evidence for a match if the value is positive and as evidence        period of 2 ms were used which are typical values for pyrami-
+for a mismatch if the value is negative. The bias was set to         dal cells in the cortex. During delay periods in memory tasks,
+          n
+− exp( 0.62 ) − 0.2. To form a final decision, the evidence is       maximal firing rates are typically around 80 Hz. But for com-
+integrated in the response ensemble until either a positive or       putational efficiency the maximum firing rates in the model
+negative threshold is reached. This is consistent with neural        were uniformly chosen from 200 Hz to 400 Hz. The same
+mechanisms observed in decision making tasks (e.g., Wang,            results can be obtained with lower firing rates, but require a
+2008). By reaching the decision threshold, the correspond-           larger number of neurons, which increases simulation times.
+ing motor action would be triggered. The motor system is             Recurrent connections were assumed to be of the NMDA type
+not part of the presented model and is out of the scope of           with a slow time constant of τNMDA = 100 ms. Inhibitory con-
+this paper. Thresholds 0.5 and −0.9 were chosen for match            nections, assumed to be GABA-ergic, used a time constant of
+and mismatch answers respectively. The bias and threshold            τGABA = 8.48 ms. Finally, for non-recurrent excitatory con-
+parameters were obtained by trial-and-error.                         nections synapses of the glutamate type with a time constant
+                                                                     of τglut = 5 ms were assumed.
+   As with SPA models in general, the routing is controlled by
+an action selection model of the basal ganglia and thalamus
+presented by Stewart, Choo, and Eliasmith (2010). To control
+                                                                                                 Results
+routing in the n-back model, three states – ENCODE, WAIT,            To test the model, 48 instances of the model with different
+and TRANSFER – are used. For each state, a utility value is          random number generator seeds were created. Each was run
+continuously calculated and the basal ganglia model selects          on a 1-, 2-, and 3-back random sequence consisting of 15
+the state with the highest utility value. The corresponding          match and 30 mismatch trials (45 + n trials overall). Lure tri-
+neurons in the thalamus are disinhibited and this leads to in-       als, where the current item matches the one at position n − 1
+                                                                 815
+
+                     Table 1: The utility calculations for switching to different states and the routing actions taken in these states.
+ Cortical State                   Utility Calculation                                                           Routing
+ ENCODE                           stimulus · stimulus + 0.2                                                     inhibit current-list gate; inhibit response
+ WAIT                             cortical state · ENCODE + cortical state · WAIT                               inhibit memory, updated-list, and list-copy gate
+ TRANSFER                         cortical state · TRANSFER +|thresholding|                                     inhibit memory and updated-list gate; inhibit response
+                    Overall        Match trials       Mismatch trials       Experimental                                 1.4
+                                                                                                                         1.3       Overall
+              1.0                                                                                                                  Match trials
+                                                                                                                         1.2       Mismatch trials
+                                                                                                     Reaction time [s]
+              0.9                                                                                                        1.1       Experimental
+                                                                                                                         1.0
+              0.8
+   Accuracy
+                                                                                                                         0.9
+              0.7                                                                                                        0.8
+                                                                                                                         0.7
+              0.6                                                                                                        0.6
+                                                                                                                         0.5
+              0.5
+                              1                   2                     3                                                      1                     2          3
+                                                  n                                                                                                  n
+Figure 3: The average model accuracy (proportion of correct                                      Figure 4: The average model reaction times (excluding trials
+answers) given n. For each n, the overall model accuracy,                                        without a response). Experimental data for comparison was
+experimental data, model accuracy in match trials, and model                                     taken from the practice session in Jonides et al. (1997). Error
+accuracy in mismatch trials is shown from left to right. The                                     bars show the standard deviation.
+experimental data for comparison was taken from the practice
+session in Jonides et al. (1997). Error bars denote the standard
+                                                                                                 the effect of n on accuracy and reaction times is highly signif-
+deviation.
+                                                                                                 icant (accuracies: F(3, 48) = 36.2, p < 0.001; reaction times:
+                                                                                                 F(3, 48) = 48.0, p < 0.001).
+or n + 1, were allowed to occur. 20 different stimulus items
+analogous to the 20 consonants commonly used in the n-back                                                                                 Discussion
+task were generated, but as the model makes no assumptions                                       To the best of our knowledge, we have presented the first bio-
+about the stimulus modality, those items could also be inter-                                    logically plausible, spiking neural network model able to per-
+preted as different spatial locations. In each trial, the current                                form the n-back task. The model is able to reproduce the well
+item was provided as input to stimulus for 0.5 s. The duration                                   known decline in accuracy and increase in response times
+of a single trial was 2.5 s. Similar protocols are employed in                                   with increasing n. Slower reaction to mismatch trials than
+n-back studies with human subjects (e.g., Jonides et al., 1997;                                  to match trials is also captured by the model.
+Szmalec et al., 2011).                                                                              Despite being implemented in spiking neurons it is
+   The response of the model was read out from the re-                                           straightforward to reuse parts of the model in other models
+sponse population at the moment of switching the state to                                        related to list learning or working memory. This is a wel-
+TRANSFER. A positive value indicated a ‘match’ response,                                         come feature of the model as it is unlikely that the brain has
+whereas a negative value indicated a ‘mismatch’ response. In                                     specialized subsystems for the n-back task. Also, in the n-
+some rare trials (less than 5%) the model did not switch to the                                  back task itself, the model exhibits some flexibility. For ex-
+TRANSFER state because it did not gather enough evidence                                         ample, it does not depend on a fixed timing of the stimuli and
+for one of the responses in time. These trials were counted as                                   is robust to changing n on the fly. The latter can be done by
+wrong answers and were excluded in the reaction time analy-                                      changing the input to the cue ensemble and modulating the
+sis.                                                                                             strength of the connections with a scaling dependent on n.
+   The model reproduces the characteristic decline in accu-                                      This scaling of connection weights may correspond to the ef-
+racy with increasing n as shown in Figure 3. The standard                                        fect of dopamine in the prefrontal cortex, which is commonly
+deviation increases with n as in human studies. Reaction                                         taken to be modulatory.
+time data of the model is shown in Figure 4. With increas-                                          However, we do not think that this model is complete with
+ing n the reaction times increase. Moreover, reaction times                                      respect to all the processes involved in the n-back task. The
+in match trials are shorter than in mismatch trials. These re-                                   current model only implements a recall based process, but
+sults match the observations from human studies well (e.g.,                                      there might also be a familiarity based process and a rehearsal
+Jonides et al., 1997; Szmalec et al., 2011). Performing the                                      process to keep the relevant items active in memory (Szmalec
+same statistical analysis as in these human studies shows thas                                   et al., 2011). To make matters more complicated, the con-
+                                                                                           816
+
+tribution of these additional processes might not be fixed but         Office of Scientific Research grant FA8655-13-1-3084, CFI
+dynamically adjusted according to task demands (Botvinick,             and OIT. This work made use of SHARCNET an Compute
+Braver, Barch, Carter, & Cohen, 2001). For example, if the             Canada computer resources.
+number of lure trials is low, relying purely on familiarity can
+be quite accurate, but as the number of lure trials increases                                  References
+it becomes more important to recall the exact position of an           Botvinick, M. M., Braver, T. S., Barch, D. M., Carter, C. S.,
+item.                                                                    & Cohen, J. D. (2001). Conflict monitoring and cognitive
+   There is also the possibility that human subjects con-                control. Psychological Review, 108(3), 624–652.
+sciously or unconsciously employ different strategies in the           Chatham, C. H., Herd, S. A., Brant, A. M., Hazy, T. E.,
+n-back task. For this reason, Juvina and Taatgen (2007) build            Miyake, A., O’Reilly, R., & Friedman, N. P. (2011, May).
+two different ACT-R models of the n-back task. The model                 From an executive network to executive control: a com-
+presented here is similar to their low-control model which               putational model of the n-back task. Journal of Cognitive
+uses a time-tag approach. Here, however, we tag the serial               Neuroscience, 23(11), 3598–3619.
+position instead of the time an item occurred. It should be            Ecker, U. K., Oberauer, K., & Lewandowsky, S. (2014).
+possible to tell these approaches apart by designing an n-back           Working memory updating involves item-specific removal.
+experiment with varying trial duration. This should leave our            Journal of Memory and Language, 74, 1–15.
+model mostly unaffected, but should be detrimental to the              Eliasmith, C. (2013). How to build a brain: A neural ar-
+performance of the model by Juvina and Taatgen (2007).                   chitecture for biological cognition. New York, NY: Oxford
+   The only other neural model of the n-back task to our                 University Press.
+knowledge was presented by Chatham et al. (2011). It is less           Eliasmith, C., & Anderson, C. H. (2003). Neural engineer-
+biologically and psychologically plausible than the model                ing: computation, representation, and dynamics in neuro-
+presented here. First, the spiking LIF neurons of our model              biological systems. Cambridge: MIT Press.
+provide greater biological plausibility than rate neurons, by          Eliasmith, C., Stewart, T. C., Choo, X., Bekolay, T., DeWolf,
+using a known mechanism of information transmission in the               T., Tang, Y., & Rasmussen, D. (2012, November). A Large-
+brain (i.e., action potentials). In addition, the Chatham et             Scale Model of the Functioning Brain. Science, 338(6111),
+al. (2011) model relies on idealized computational functions             1202–1205.
+(e.g., max for kWTA) not implemented in neurons, as well               Gayler, R. W. (2003). Vector symbolic architectures answer
+as several localist representations. Second, at the same time            Jackendoff’s challenges for cognitive neuroscience. In In-
+our model gives more insight into the high-level algorithm               ternational Conference on Cognitive Science.
+as it is explicitly formulated, whereas the model by Chatham           Jonides, J., Schumacher, E. H., Smith, E. E., Lauber, E. J.,
+et al. (2011) only implicitly learns it. Third, our model can            Awh, E., Minoshima, S., & Koeppe, R. A. (1997, July).
+dynamically switch between different n. In contrast to this,             Verbal working memory load affects regional brain acti-
+the model by Chatham et al. (2011) has to be trained for each            vation as measured by PET. Journal of Cognitive Neuro-
+specific n. While humans improve with training on the n-back             science, 9(4), 462–475.
+task, they are also able to perform the task without any prior         Juvina, I., & Taatgen, N. A. (2007). Modeling control strate-
+training.                                                                gies in the n-back task. In Proceedings of the 8th Interna-
+   It is often stated that the n-back task requires active inhibi-       tional Conference on Cognitive Modeling (pp. 73–78).
+tion or removal of irrelevant items. While there is evidence           Plate, T. A. (1995). Holographic reduced representations.
+for active removal in some working memory tasks (Ecker,                  IEEE transactions on Neural networks, 6(3), 623–641.
+Oberauer, & Lewandowsky, 2014), this claim has not been                Stewart, T. C., Choo, X., & Eliasmith, C. (2010). Dynamic
+investigated in the context of the n-back task. The perfor-              behaviour of a spiking model of action selection in the
+mance of our model shows that an active removal process is               basal ganglia. In D. Salvucci & G. Gunzelmann (Eds.),
+not necessary in the n-back task. Furthermore, the model im-             Proceedings of the 10th International Conference on Cog-
+plies a two stage update process requiring a secondary mem-              nitive Modeling (pp. 235–240).
+ory population. First, the updated list is constructed and then        Stewart, T. C., Tang, Y., & Eliasmith, C. (2011, June).
+the current list is replaced.                                            A biologically realistic cleanup memory: Autoassociation
+                                                                         in spiking neurons. Cognitive Systems Research, 12(2),
+                               Notes                                     84–92.
+                                                                       Szmalec, A., Verbruggen, F., Vandierendonck, A., & Kemps,
+The source code for simulations and data analysis is avail-
+                                                                         E. (2011). Control of interference during working memory
+able at https://github.com/ctn-archive/gosmann-cogsci2015/
+                                                                         updating. Journal of Experimental Psychology: Human
+releases/tag/cogsci2015-paper. It has not been peer reviewed.
+                                                                         Perception and Performance, 37(1), 137–151.
+                      Acknowledgments                                  Wang, X.-J. (2008, October). Decision making in recurrent
+                                                                         neuronal circuits. Neuron, 60(2), 215–234.
+This work was supported by the Canada Research Chairs
+program, the NSERC Discovery grant 261453, Air Force
+                                                                   817
+

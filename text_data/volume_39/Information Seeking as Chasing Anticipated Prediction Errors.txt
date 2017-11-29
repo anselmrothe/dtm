@@ -1,0 +1,384 @@
+                  Information Seeking as Chasing Anticipated Prediction Errors
+                                               Jian-Qiao Zhu (j.zhu@warwick.ac.uk)
+                                             Wendi Xiang (wendi.xiang11@gmail.com)
+                                             Elliot A. Ludvig (e.ludvig@warwick.ac.uk)
+                                             Department of Psychology, University of Warwick
+                                                          Coventry, UK CV4 7AL
+                               Abstract                                amount of food with the same delay, but only when an imme-
+                                                                       diate cue is provided, which signals to the pigeons whether or
+   When faced with delayed, uncertain rewards, humans and
+   other animals usually prefer to know the eventual outcomes          not food will eventually be available on that trial (Spetch et
+   in advance. This preference for cues providing advance infor-       al., 1990; Gipson, Alessandri, Miller, & Zentall, 2009). The
+   mation can lead to seemingly suboptimal choices, where less         choice of the 50% option is clearly suboptimal in terms of
+   reward is preferred over more reward. Here, we introduce a
+   reinforcement-learning model of this behavior, the anticipated      reward-intake maximization. Similarly, when choosing be-
+   prediction error (APE) model, based on the idea that predic-        tween delayed, probabilistic rewards, monkeys and humans
+   tion errors themselves can be rewarding. As a result, animals       will prefer an option that informs them about the eventual
+   will sometimes pick options that yield large prediction errors,
+   even when the expected rewards are smaller. We compare the          outcome of that trial over one that leaves the resolution of un-
+   APE model against an alternative information-bonus model,           certainty to the time of reward delivery (Bromberg-Martin &
+   where information itself is viewed as rewarding. These mod-         Hikosaka, 2009, 2011; Iigaya et al., 2016).
+   els are evaluated against a newly collected dataset with human
+   participants. The APE model fits the data as well or better            In addition to the presence of advance information, a few
+   than the other models, with fewer free parameters, thus provid-     variables have proven critical to the emergence of this subop-
+   ing a more robust and parsimonious account of the suboptimal        timal choice (see McDevitt, Dunn, Spetch, and Ludvig (2016)
+   choices. These results suggest that anticipated prediction er-
+   rors can be an important signal underpinning decision making.       for review). First, the contingencies between the predictive
+   Keywords: information seeking; early resolution of uncer-           cues and the outcomes is important because it influences the
+   tainty; anticipated prediction errors; forward sampling.            amount of uncertainty resolved by the cues: The more infor-
+                                                                       mation conveyed by the predictive cues, the more preferred
+                          Introduction                                 the associated choice target (Bromberg-Martin & Hikosaka,
+Humans and other animals have a strong preference for infor-           2009). Second, humans and other animals also exhibit a pref-
+mative options. They are inherently curious and will explore           erence for earlier advanced notice of the eventual outcome.
+unknown options, even sacrificing rewards to resolve an un-            Increased information seeking has been found in the case of
+certain outcome early. Sometimes the search for predictive             longer delays (Spetch et al., 1990; Iigaya et al., 2016). Third,
+information can be independent of profit and have no effect            the subjective value of advance information scales with the
+on the delivery of primary rewards, as if consuming infor-             reward magnitude of the potential outcomes (Blanchard et
+mation itself was rewarding (Wyckoff, 1952; Prokasy, 1956;             al., 2015). Finally, aversive outcomes can sometimes pro-
+Bromberg-Martin & Hikosaka, 2009; Iigaya, Story, Kurth-                duce outright information avoidance in human subjects, as in
+Nelson, Dolan, & Dayan, 2016). On occasion, this infor-                the Ostrich effect (Karlsson, Loewenstein, & Seppi, 2009).
+mation seeking can lead to seemingly suboptimal behaviors                 Given this rich set of empirical findings, we endeavored to
+with animals preferring options with lower expected values             build a computational model that can capture as many of these
+(Spetch, Belke, Barnet, Dunn, & Pierce, 1990; Roper & Zen-             empirical results as possible, but first we briefly review the
+tall, 1999). In this paper, we develop a new computational             existing computational models for this information-seeking
+model of this information-seeking behaviour based on the               behaviour.
+idea that animals’ choices reflect both the expected rewards
+and the anticipated prediction errors from any upcoming cues.                     Existing Computational Models
+   This preference for advanced information has been widely            The apparent departures from optimality observed when ad-
+observed across species, including rats (Prokasy, 1956;                vance information is available poses a significant computa-
+Chow, Smith, Wilson, Zentall, & Beckmann, 2016), pigeons               tional challenge to standard models of reinforcement learn-
+(Spetch et al., 1990), starlings (Vasconcelos, Monteiro, &             ing (RL) (Niv & Chan, 2011). Previous research has ex-
+Kacelnik, 2015), monkeys (Bromberg-Martin & Hikosaka,                  plored several possible extensions and refinements to the
+2009, 2011; Blanchard, Hayden, & Bromberg-Martin, 2015),               usual RL framework, including the information bonus model
+and humans (Iigaya et al., 2016). In some cases, animals               (Bromberg-Martin & Hikosaka, 2011), the disengagement
+even give up food or water for advance information about               model (Beierholm & Dayan, 2010), and the anticipatory util-
+impending rewards, even though these advanced signals do               ity model (Iigaya et al., 2016). The information bonus model
+not change the eventual reward. For example, pigeons re-               encapsulates the idea that receiving advance information acts
+liably choose an alternative that provides delayed access to           as if it were a primary reward. This information bonus has
+food 50% of the time over one that always provides the same            alternatively been operationalized as either a free parameter
+                                                                   3658
+
+(Bromberg-Martin & Hikosaka, 2011) or as the Shannon en-               erated via the forward traces are called anticipated prediction
+tropy of the reward probability (Bennett, Bode, Brydevall,             errors (APEs). Together with the conventional value func-
+Warren, & Murawski, 2016). These ideas successfully ex-                tions, these APEs drive the preference to seek or avoid certain
+plain the observed preference for more informative options             future states. The bias in the sampling process toward posi-
+(Bromberg-Martin & Hikosaka, 2009). Formalizing the in-                tive prediction errors can even induce suboptimal choices.
+formation bonus as the Shannon entropy, however, fails to
+deal with, for instance, the fact that animals prefer to observe       Model Specification
+more even when the number of bits they receive by doing so             We extend the standard Temporal-difference (TD) model
+is less (Roper & Zentall, 1999). On the other hand, without            (Sutton & Barto, 1998) where agents are assumed to estimate
+using Shannon entropy, the information bonus cannot capture            an action-value function for each experimental stimulus:
+the relationship between information seeking and probabil-                                                   ∞
+ity, which resembles an inverse U-shaped function (Green &                                  Q(st , at ) = E[ ∑ γk rt+k−1 ]                (1)
+Rachlin, 1977).                                                                                             k=1
+   The anticipatory utility model is a recently proposed alter-        where t indexes time, st specifies the state visited at time t,
+native model for these data, which formalizes the economic             rt indicates the immediate reward delivered at time t, and γ ∈
+idea of savouring (Loewenstein, 1987; Iigaya et al., 2016).            [0, 1) is a discount factor, which devalues delayed rewards.
+According to this model, animals are hypothesized to enjoy or          This action-value function represents the expected discounted
+savour the anticipation of guaranteed rewards to come. Antic-          future reward. In TD learning, this action-value function is
+ipatory utility alone, however, cannot explain why the delay           estimated through a simple incremental update mechanism:
+to reward would influence how much the informative option
+is preferred (Spetch et al., 1990; Iigaya et al., 2016). This lim-                         Q(st , at ) ← Q(st , at ) + αδt+1              (2)
+itation emerges because delay renders anticipatory utility less
+rewarding at the same speed as the primary reward. To rec-             where α is the learning rate and δ is the reward prediction
+tify this, an additional boosting mechanism was introduced             error (RPE), calculated as follows:
+to enhance anticipatory utility, and thereby slow down effect
+of discounting future rewards (Iigaya et al., 2016). The full                       δt+1 = rt+1 + γ max Q(st+1 , a) − Q(st , at )         (3)
+                                                                                                        a
+model, including this boosting mechanism, explains a wide
+range of information-seeking behaviours, including many of             This RPE signal represents the difference between the value
+the properties of sub-optimal choice. One challenge for the            of the current state-action pair and the value of the best next-
+anticipatory utility model is how such a mechanism could be            state-action plus the reward achieved in the transition. Thus,
+learned locally, as the computations require full knowledge of         RPEs are triggered by each state transition; the mechanics of
+the eventual time to reward in advance (Niv & Chan, 2011).             the APE model hinge on the transition from choice to the pre-
+                                                                       dictive cues which reveals what the eventual outcomes will be
+      The Anticipated Prediction Error Model                           on that trial. In particular, a good cue, which resolves reward
+                                                                       uncertainty appealingly, will generate positive RPEs, whereas
+Given these limitations on prior models, here, we develop an           a bad cue will generate negative RPEs. The RPEs will be zero
+alternative formalism centered around the idea of anticipated          in response to non-predictive cues, once the values are well
+prediction errors (APE). According to the APE model, ani-              learned.
+mals draw one-step samples of their anticipated futures from              Here, we define anticipated prediction errors (APE) as the
+a simple model of the world and calculate the prediction error         perceived discrepancy between the current state (what it is
+that would be associated with that sample. These anticipated           like at present) and an anticipated future state (how it would
+prediction errors are then treated as though they were reward-         be in the future) (see Figure 1). Formally, if there is no im-
+ing in and of themselves, reminiscent of how momentary sub-            mediate primary reward delivered during the trajectory from
+jective well-being correlates with prediction errors (Rutledge,        state s to s0 (e.g., the transition from choice state to cue states
+Skandali, Dayan, & Dolan, 2014). These samples are biased              in the information choice task), then the value of APE in state
+such that futures which contain positive prediction errors are         s when anticipating future state s0 is defined as the product
+more likely to be sampled. This forward sampling (i.e. an-             of prediction errors between the two states and the transition
+ticipation) from the current state using imagined experiences          probability:
+and learned environmental dynamics, such as developed in
+the Dyna-2 architecture (Silver, Sutton, & Müller, 2008), can
+provide useful anticipatory signals that guide decision mak-             APE(s0 |s, a) = T (s0 |s, a) × [γDss0 max Q(s0 , a0 ) − Q(s, a)] (4)
+                                                                                                                  a0
+ing. The critical difference between the APE model and the
+standard RL model is that the APE model maintains two sepa-               where Dss0 is the time taken to travel from s to s0 , and
+rate valuation systems: one estimated from actual experience           T (s0 |s, a) is the transition probability from s to s0 by taking
+(model-free), and the other estimated through this forward-            action a. In the simulations here, this travel time is always
+sampling process (model-based). The prediction errors gen-             taken to be 1, but the formulation is more general.
+                                                                   3659
+
+              AP E(S + |cued)                                            where A is the set of all possible actions at state s, and β is
+                                                                         an inverse temperature parameter, which controls the degree
+                                  S+                R (reward)
+                      q                                                  of exploration.
+       cued                                                                                       Experiment
+                     1-q                                                 We conducted an empirical experiment to evaluate the qual-
+                                  S0                0 (no reward)
+                                                                         ity of the APE model in comparison with the information-
+              AP E(S 0 |cued)                                            bonus model discussed above. In the experiment, people
+                                                p   R (reward)           were repeatedly given a choice between an informative or
+                                                                         non-informative option, where the outcomes were delayed
+      uncued                       S*                                    20s. Outcomes were either positive (erotic images), neutral
+                                               1-p  0 (no reward)        (images of objects) or negative (aversive images). Good tri-
+                AP E(S ⇤ |uncued)                                        als involved positive or neutral images, Mixed trials involved
+                                                                         positive or negative images, and bad trials involved negative
+       choice               cue period               outcomes            or neutral images. These outcomes were always delivered
+                                                                         with 50/50 odds on each trial. Qualitatively, the APE model
+                                                                         predicts that people will seek information in the positive and
+Figure 1: Formal representation of the information-choice                mixed cases, but not the negative cases. This prediction
+task as a Markov Decision Process (MDP). Two offers (red                 emerges from bias toward sampling future states with posi-
+and blue circles) are presented and the animal must choose               tive outcomes. The information bonus model would expect
+one of them. A cue then appears after this initial choice,               equivalent information seeking in all cases, as the amount of
+which is either informative (green S+ indicates a rewarding              information present is equal in all three types of choices.
+outcome, and yellow S0 indicates a neutral outcome) or unin-             Methods
+formative (black S∗ leaving the animal in a state of uncer-
+                                                                         Participants Eighty human participants were recruited from
+tainty). Following a delay (Tdelay ), the animal obtains the
+                                                                         the Warwick University SONA system. All participants gave
+outcome (reward or no reward). The anticipatory signals pro-
+                                                                         informed consent and were paid a flat rate of 5 pounds for
+posed by the APE model are illustrated as purple dashed lines.
+                                                                         their participation.
+                                                                            Task Participants performed the experiment on Windows
+   Note that this computation relies on the samples generated            PCs running PsychoPy (Peirce, 2007). The task was a simple
+based on the learned environment dynamics. The primary                   two-alternative forced choice between an uncued target (Keep
+assumption of the APE model is that humans and other an-                 It Secret), which was followed by a non-predictive cue, and
+imals treat APEs as though they were rewarding, whereby                  a cued target (Find Out Now), which was immediately fol-
+positive APEs are reinforcing and negative APEs punishing.               lowed by predictive cues that signalled the eventual outcome.
+The APEs are positive when the anticipated value of the fu-              Choosing either the cued or the uncued option did not alter the
+ture sampled state is better than value of the present state and         odds nor the eventual outcomes. The only difference between
+negative in the opposite case. These quantities can also be un-          the two options was the presence or absence of advance infor-
+derstood as measurements of the pleasure (displeasure) one               mation about those eventual outcomes. After choice, the cue
+derives from anticipating the good cue (bad cue). Further-               was present for 20 seconds in all trials. The outcome image
+more, attention weights are assigned to each individual APE,             was presented immediately at the end of this cue. To ensure
+specifying the relative likelihood that a particular future state        participants viewed the image, they had to press a randomly
+will be sampled. Accordingly, the decision value Q̄ of taking            selected key (indicated on the image proper) to advance to the
+action a is defined as the weighted sum of APEs for antici-              next trial.
+pated future outcomes plus the value function for the corre-                The experiment consisted of three different conditions in
+sponding state:                                                          terms of the valence of eventual outcomes. In the Good con-
+                                                                         dition, the gamble included 50% erotic images and 50% neu-
+            Q̄(s, a) =    ∑ wk APE(sk |s, a) + Q(s, a)            (5)
+                                                                         tral images (as illustrated in Figure 2). In the Bad condition,
+                         sk ∈S
+                                                                         the gamble included 50% aversive images and 50% neutral
+where S denotes the set of all possible future states after tak-         images. In the Mixed condition, the gamble included 50%
+ing action a at the state s that a subject can attend to.                erotic images and 50% aversive images. The images used
+   Given the decision values of both the cued and the un-                in the experiment were previously validated in the Interna-
+cued options, the softmax function is then used to compute               tional Affective Picture System (Lang, Bradley, Cuthbert, et
+the probability of choosing the cued option:                             al., 1999). Sixteen images from the “EroticCouple” category
+                                                                         were selected as positive images for heterosexual subjects and
+                                      eβQ̄(s,a)
+                      P(a) =                      0               (6)    another 16 images from “Mutilation” category were selected
+                                  ∑a0 ∈A eβQ̄(s,a )                      as the aversive images. Images were chosen as the rewards
+                                                                     3660
+
+so that they could be consumed immediately, as opposed to
+                                                                                           1.0
+monetary rewards (Crockett et al., 2013). All participants
+completed 16 interleaved trials for each condition, making
+48 trials in total. Participants were informed about the nature
+of the potential outcomes before the experiment started.
+                                                                                           0.8
+                                                                         P(Find Out Now)
+                               100%
+                                                                                           0.6
+                                                  Erotic image
+           50%
+  Find
+  Out
+  Now                                                                                      0.4
+           50%                 100%               Neutral image
+                                50%
+                                                  Erotic image                             0.2
+  Keep
+    It     100%
+  Secret
+                                50%               Neutral image                            0.0
+                                                                                                     Bad               Mixed      Good
+           1.5 sec             20 sec
+                                                            t                                                        Conditions
+  choice             cue                     outcome
+                                                                     Figure 3: Mean percentage of choosing cued option (Find
+                                                                     Out Now) in the Bad, Mixed, and Good conditions. Error
+Figure 2: Human information choice task. The diagram illus-          bars indicate ± SEM in mean choice proportions. The dashed
+trates the Good condition, which contains a gamble of 50%            black line indicates the 50% choice probability. The dashed
+erotic and 50% neutral images. The experiment also tested a          grey lines are individual choice probabilities.
+Bad condition (50% aversive and 50% neutral images) and a
+Mixed condition (50% erotic and 50% aversive images).                perimental task, Q(cued) = Q(uncued). In addition, receiv-
+                                                                     ing non-predictive cues leaves participants equally uncertain
+Results                                                              about the eventual outcomes, and thus sampling from those
+                                                                     states does not generate any anticipated prediction errors,
+A total of 69 heterosexual participants (48 female and 21            APE(S∗ |uncued) = 0. This analysis suggests that only the
+male) completed the task. Eleven participants were excluded          APEs related to the predictive cues determine choices in the
+(6 non-heterosexual, 4 did not disclose their sexual orienta-        current task. Following this logic, from equation (5), we can
+tion, and 1 did not complete the task). Only the data from the       calculate differences in the action values of the cued and un-
+last nine trials per condition are reported here.                    cued options in the Good, Bad, and Mixed conditions, respec-
+   As shown in Figure 3, participants chose the cued op-             tively as follows:
+tion on average 42.8% ± 8.2%, 60.2% ± 7.6%, and 71.8% ±
+6.5% in the Bad, Mixed, and Good conditions respectively.                       ∆Q̄Good = w+ APE(S+ |cued) + w0 APE(S0 |cued)             (7)
+Choices in the Good condition and the Mixed condition
+                                                                                                                γT R
+were significantly higher than chance responding (Good:                                          = (w+ − w0 )                             (8)
+t(68) = 6.72, p < 0.001, d = 1.143; Mixed: t(68) = 2.68, p =                                           4
+                                                                                               −     −
+0.009, d = 0.456). In the Bad condition, people chose the                            ∆Q̄Bad = w APE(S |cued) + w0 APE(S0 |cued)           (9)
+informative slightly below chance, but not significantly so                                                     γT R
+(t(68) = −1.75, p = 0.085, d = −0.297). There were, how-                                         = (w0 − w− )                            (10)
+                                                                                                  4
+ever, considerable individual differences in the preferences                ∆Q̄Mixed = w+ APE(S+ |cued) + w− APE(S− |cued)               (11)
+for advance information (dashed grey lines in Figure 3). This
+                                                                                                                γT R
+pattern of responses qualitatively agree with the predictions                                    = (w+ − w− )                            (12)
+of the APE model, but not the information-bonus model.                                                           2
+                                                                     where T is the length of the delay, R is the absolute magni-
+                     Model Comparisons                               tude of rewards or punishment, and S+ , S− , S0 are the cues in-
+Next, we attempted a quantitative model comparison, fitting          dicating positive, negative, or neutral outcomes. The weight
+both the APE model and the information-bonus model to the            factors are associated with their corresponding future states.
+individual choice proportions in the current dataset.                Note that only the differences in weights matter for model
+  To fit the APE model to the data, first note that the ex-          behavior.
+pected rewards for both options are held constant in the ex-            Any individual differences are reflected by the weight pa-
+                                                                  3661
+
+rameters in the APE model. The APE model predicts no                     model. As shown in Table 1, the best-fitting APE model
+preference for advance information when w+ = w− = w0 .                   vastly outperformed the different information-bonus models.
+We hypothesize that the differences in weights for various               We use the iBIC score of the best fitted model as a baseline
+future outcomes give rise to information seeking or avoid-               and derive the differences in iBIC as ∆iBIC.
+ance behaviors. The preferences for advance information
+would arise, for instance, in the Mixed condition if the model                   Table 1: Quality of model fit to behavioral data
+weights S+ more heavily than S− : w+ > w− .
+   As described above, the information-bonus model
+(Bromberg-Martin & Hikosaka, 2011) assumes that infor-                     Model          Free parameters             Model iBIC  ∆iBIC
+mation has an intrinsic value, rinfo , which in our setting was            APE            w+ − w− , w− − w0           2065.1      40.4
+delivered upon each state transition to an informative cue                 APE            w+ − w− , w− − w0 , γ       2126.3      101.6
+state. This model would predict the differences in decision                APE            w+ − w− , w− − w0 , β       2024.7      0.0
+values as follows:                                                         APE            w+ − w− , w− − w0 , β, γ    2137.2      112.5
+                                                                           Info Bonus     rinfo                       2361.5      336.8
+                            ∆Q̄ = rinfo                         (13)       Info Bonus     rinfo , β                   2430.8      406.1
+                                                                                           +       −       0
+for all situations where information is sometimes available.               Info Bonus     rinfo , rinfo , rinfo       2098.8      74.1
+                                                                                           +       −       0 ,β
+We also considered a potential extension to the information-               Info Bonus     rinfo , rinfo , rinfo       2081.0      56.3
+bonus model which would assign different values to differ-
+                              +      −       0
+ent types of information: rinfo   , rinfo , rinfo for viewing reward
+predicting cues, punishment predicting cues, and neutrality                                           Discussion
+predicting cues respectively.
+                                                                         We have introduced a novel model of information-seeking in
+Model Fitting                                                            choice, which assumes that preferences are driven by antic-
+The models were fit to the the data using hierarchical                   ipated prediction errors (APEs) accumulated through simu-
+Bayesian modeling (Huys et al., 2011), in which the maxi-                lated forward trajectories. These APEs are treated like re-
+mum a posteriori estimate of each parameter hi for each par-             wards, which combined with a bias toward sampling trajec-
+ticipant i is calculated. These parameters are treated as a              tories with positive outcomes, leads to information seeking
+random sample from a Gaussian population distribution with               in situations with potential positive outcomes. The model
+means and variance θ = {µθ , Σθ }. Model comparison was                  was compared against an information-bonus model through
+based on the integrated Bayesian Information Criteria (iBIC)             a novel empirical experiment, whereby people were given the
+scores with an uninformative prior. As such, we analyzed the             opportunity to get early information about rewarding or aver-
+log likelihood p(D|M) of each model directly:                            sive outcomes. As the APE model predicted, and contrary to
+                       Z                                                 the information-bonus model, people only sought early infor-
+            p(D|M) =       p(D|θ)p(θ|M)dθ                       (14)     mation for positive outcomes. Quantitative model selection
+                                                                         supported these conclusions.
+                          1                                                 In addition to better fitting the novel dataset, the
+                     ≈ − iBIC                                   (15)
+                          2                                              APE model provides potential insights into other types of
+                                              1                          information-induced sub-optimal choices (McDevitt et al.,
+                     = log p(D|θML ) − |M| log |D|              (16)
+                                              2                          2016). For example, the positive APE scales with the prob-
+where |D| is the number of choices made by all participants,             ability of reward (larger with lower probabilities), provid-
+and |M| is the number of parameters fitted. We compute the               ing a mechanism through which a lower probability reward
+log p(D|θML ) as the sum of integrals over individual parame-            could be preferred to a higher probability one, as some-
+ters:                                                                    times observed in animals (Spetch et al., 1990; Roper &
+                                                                         Zentall, 1999; Gipson et al., 2009). In addition, unlike an
+                                Z                                        information bonus, the APE is sensitive to the magnitude
+           p(D|θML ) = ∑ log        p(Di |h)p(h|θML )dh         (17)     of reward and would grow with larger rewards leading to
+                         i                                               greater preference for informative options, as observed with
+                                1 K                                      information-seeking in monkeys (Blanchard et al., 2015). Fu-
+                     ≈ ∑ log        ∑ p(Di |hk )                (18)     ture work will require direct simulation of these other find-
+                         i      K k=1
+                                                                         ings, as well as further comparison to existing models, in-
+   where the integrals are replaced by a sum over samples                cluding the different information-bonus models (Bromberg-
+from the empirical prior. This step ensures that we evalu-               Martin & Hikosaka, 2011; Bennett et al., 2016) and the antic-
+ate how well the model fits the data only using information              ipatory utility model (Iigaya et al., 2016).
+about the group parameters.                                                 The current experimental protocol only involved a shal-
+   As a result, the iBIC penalizes for model complexity, and             low decision tree, and the corresponding APE model pre-
+the model with the lowest iBIC is taken as the best-fitting              sented here only used one-step anticipation. For decision
+                                                                     3662
+
+trees with high branching factors and/or larger depths, how-          Huys, Q. J., Cools, R., Gölzer, M., Friedel, E., Heinz, A.,
+ever, it would be computationally intractable to sample from             Dolan, R. J., & Dayan, P. (2011). Disentangling the roles of
+all possible forward trajectories. For example, one recent               approach, activation and valence in instrumental and pavlo-
+study used a four-stage information-seeking game, and ob-                vian responding. PLoS Comput Biol, 7(4), e1002028.
+served systematic deviations from the optimal strategy (Hunt,         Iigaya, K., Story, G. W., Kurth-Nelson, Z., Dolan, R. J., &
+Rutledge, Malalasekera, Kennerley, & Dolan, 2016). This                  Dayan, P. (2016). The modulation of savouring by predic-
+type of task poses yet another computational challenge for               tion error and its effects on choice. eLife, 5, e13747.
+all the models discussed here. The APE model, which al-               Karlsson, N., Loewenstein, G., & Seppi, D. (2009). The
+ready involves look-ahead experiences, is readily adaptable              ostrich effect: Selective attention to information. Journal
+to incorporate other, more sophisticated, planning algorithms            of Risk and uncertainty, 38(2), 95–115.
+such as Monte-Carlo tree search (Coulom, 2006). This po-              Lang, P. J., Bradley, M. M., Cuthbert, B. N., et al. (1999). In-
+tential extension of the model to more complex tree search               ternational affective picture system (iaps): Instruction man-
+remains a question for further research.                                 ual and affective ratings. The center for research in psy-
+                                                                         chophysiology, University of Florida.
+                          References                                  Loewenstein, G. (1987). Anticipation and the valuation of de-
+                                                                         layed consumption. The Economic Journal, 97(387), 666–
+Beierholm, U. R., & Dayan, P.             (2010).    Pavlovian-          684.
+   instrumental interaction in observing behavior. PLoS Com-          McDevitt, M. A., Dunn, R. M., Spetch, M. L., & Ludvig,
+   put Biol, 6(9), e1000903.                                             E. A. (2016). When good news leads to bad choices. Jour-
+Bennett, D., Bode, S., Brydevall, M., Warren, H., & Mu-                  nal of the experimental analysis of behavior, 105(1), 23–
+   rawski, C. (2016). Intrinsic valuation of information in de-          40.
+   cision making under uncertainty. PLoS Comput Biol, 12(7),          Niv, Y., & Chan, S. (2011). On the value of information and
+   e1005020.                                                             other rewards. Nature neuroscience, 14(9), 1095.
+Blanchard, T. C., Hayden, B. Y., & Bromberg-Martin, E. S.             Peirce, J. W. (2007). Psychopypsychophysics software in
+   (2015). Orbitofrontal cortex uses distinct codes for dif-             python. Journal of neuroscience methods, 162(1), 8–13.
+   ferent choice attributes in decisions motivated by curiosity.      Prokasy, W. F. (1956). The acquisition of observing re-
+   Neuron, 85(3), 602–614.                                               sponses in the absence of differential external reinforce-
+Bromberg-Martin, E. S., & Hikosaka, O. (2009). Midbrain                  ment. Journal of Comparative and Physiological Psychol-
+   dopamine neurons signal preference for advance informa-               ogy, 49(2), 131.
+   tion about upcoming rewards. Neuron, 63(1), 119–126.               Roper, K. L., & Zentall, T. R. (1999). Observing behavior
+                                                                         in pigeons: The effect of reinforcement probability and re-
+Bromberg-Martin, E. S., & Hikosaka, O. (2011). Lateral
+                                                                         sponse cost using a symmetrical choice procedure. Learn-
+   habenula neurons signal errors in the prediction of reward
+                                                                         ing and Motivation, 30(3), 201–220.
+   information. Nature neuroscience, 14(9), 1209–1216.
+                                                                      Rutledge, R. B., Skandali, N., Dayan, P., & Dolan, R. J.
+Chow, J. J., Smith, A. P., Wilson, A. G., Zentall, T. R., &
+                                                                         (2014). A computational and neural model of momen-
+   Beckmann, J. S. (2016). Suboptimal choice in rats: in-
+                                                                         tary subjective well-being. Proceedings of the National
+   centive salience attribution promotes maladaptive decision-
+                                                                         Academy of Sciences, 111(33), 12252–12257.
+   making. Behavioural Brain Research.
+                                                                      Silver, D., Sutton, R. S., & Müller, M. (2008). Sample-based
+Coulom, R. (2006). Efficient selectivity and backup operators
+                                                                         learning and search with permanent and transient memo-
+   in monte-carlo tree search. In International conference on
+                                                                         ries. In Proceedings of the 25th international conference
+   computers and games (pp. 72–83).
+                                                                         on machine learning (pp. 968–975).
+Crockett, M. J., Braams, B. R., Clark, L., Tobler, P. N., Rob-        Spetch, M. L., Belke, T. W., Barnet, R. C., Dunn, R., &
+   bins, T. W., & Kalenscher, T. (2013). Restricting temp-               Pierce, W. D. (1990). Suboptimal choice in a percentage-
+   tations: neural mechanisms of precommitment. Neuron,                  reinforcement procedure: Effects of signal condition and
+   79(2), 391–401.                                                       terminal-link length. Journal of the experimental analysis
+Gipson, C. D., Alessandri, J. J., Miller, H. C., & Zentall, T. R.        of behavior, 53(2), 219–234.
+   (2009). Preference for 50% reinforcement over 75% rein-            Sutton, R. S., & Barto, A. G. (1998). Reinforcement learning:
+   forcement by pigeons. Learning & Behavior, 37(4), 289–                An introduction (Vol. 1) (No. 1). MIT press Cambridge.
+   298.                                                               Vasconcelos, M., Monteiro, T., & Kacelnik, A. (2015). Ir-
+Green, L., & Rachlin, H. (1977). Pigeons’preferences for                 rational choice and the value of information. Scientific re-
+   stimulus information: Effects of amount of information1.              ports, 5.
+   Journal of the experimental analysis of behavior, 27(2),           Wyckoff, L. B. (1952). The role of observing responses in
+   255–263.                                                              discrimination learning. part i. Psychological review, 59(6),
+Hunt, L. T., Rutledge, R. B., Malalasekera, N., Kennerley,               431.
+   S. W., & Dolan, R. J. (2016). Approach-induced biases in
+   human information sampling. bioRxiv, 047787.
+                                                                  3663
+

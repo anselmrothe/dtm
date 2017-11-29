@@ -1,0 +1,448 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Segmenting and Recognizing Human Action using Low-level Video Features
+Permalink
+https://escholarship.org/uc/item/7m79c36f
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 33(33)
+Authors
+Buchsbaum, Daphna
+Canini, Kevin
+Griffiths, Thomas
+Publication Date
+2011-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+      Segmenting and Recognizing Human Action using Low-level Video Features
+                                  Daphna Buchsbaum, Kevin R. Canini, Thomas L. Griffiths
+                             daphnab@berkeley.edu, kevin@cs.berkeley.edu, tom_griffiths@berkeley.edu
+                                      University of California, Berkeley, Berkeley, CA 94720 USA
+                              Abstract                                 (Zacks, 2004), as well as movement and position of tracked
+                                                                       body parts within videos of everyday action (Zacks et al.,
+   Dividing observed human behavior into individual, mean-
+   ingful actions is a critical task for both human learners and       2009; Meyer et al., 2010), have been shown to correlate with
+   computer vision systems. An important question is how much          human segmentation judgments. However, this previous
+   action structure and segmentation information is available in
+   the observed surface level motion and image changes, without        work still assumed some a priori knowledge of human body
+   any knowledge of human pose or behavior. Here we present a          pose, and of the types of motion features relevant to boundary
+   novel approach to jointly segmenting and recognizing videos
+   of human action sequences, using a hierarchical topic model.        detection. In this paper, we present a computational model
+   Video sequences are represented as bags of video words,             that makes very few representational assumptions about what
+   automatically discovered from local space-time interest
+   points. Our model jointly infers both action identification         is observed, in order to explore the amount of action structure
+   and action segmentation. Our results are a good fit with            that can be inferred from just low-level changes in pixel val-
+   human segmentation judgments as well as providing relatively
+   accurate action recognition and localization within the videos.     ues, without knowledge of human body structure, higher level
+                                                                       goals and intentions, or even foreground/background distinc-
+                          Introduction                                 tions. To the extent that the model corresponds to human
+                                                                       segmentation judgments, and correctly recognizes actions,
+When observing a continuous stream of human behavior,
+                                                                       we know that there are cues in surface level image changes
+an ongoing problem for both human learners and computer
+                                                                       that can be used to both segment and identify human behavior.
+vision algorithms is recognizing and segmenting out indi-
+vidual, meaningful actions from within the longer motion                  In addition, the problem of determining which subse-
+sequence. This ability to pick out individual actions or               quences of behavior go together can be seen as an important
+events is thought to play an important role in human social            instance of the more general problem of variable (or feature)
+cognition (Baldwin & Baird, 2001), allowing us to recognize            discovery and segmentation, a problem that the psycho-
+other’s behavior, and helping us link people’s actions with            logical, machine learning and computer vision literatures
+their internal mental states, and with the outcomes of those           have addressed in other domains. Recent work in action
+actions (Buchsbaum, Griffiths, Gopnik, & Baldwin, 2009;                segmentation has drawn particularly on both psychological
+Zacks, Speer, Swallow, & Maley, 2010). It is also a critical           and computational approaches to the problem of segmenting
+first step in developing computational approaches that can             words from continuous speech. There is now a large body
+recognize and understand human action from naturalistic                of evidence suggesting that both infants and adults can use
+videos. Prior research has shown that adults are able to               statistical patterns in spoken language to help segment speech
+segment videos of common everyday activities into coherent             into words (for a partial review, see Gómez & Gerken, 2000).
+actions, consistent with the goals and intentions underlying           More recently, it was demonstrated that a similar sensitivity
+the actor’s behavior e.g. (Newtson, Engquist, & Bois, 1977;            to statistical regularities in action sequences could play an
+Zacks, Tversky, & Iyer, 2001), and that even young infants             important role in action segmentation e.g. (Baldwin, An-
+are sensitive to the boundaries between intentional action             dersson, Saffran, & Meyer, 2008; Buchsbaum et al., 2009).
+segments (Baldwin, Baird, Saylor, & Clark, 2001; Saylor,               Similarly, Buchsbaum et al. (2009) were able to successfully
+Baldwin, Baird, & LaBounty, 2007). People’s boundary                   adapt a Bayesian model of statistical word segmentation
+judgments are also sensitive to the hierarchical structure             (Goldwater, Griffiths, & Johnson, 2009) to the action domain.
+of goals and sub-goals underlying human action – they are                 However, like previous computational models of word
+able to consistently segment actions at multiple levels of             segmentation, the Buchsbaum et al. (2009) model assumes
+granularity (Zacks, Tversky, & Iyer, 2001; Zacks, Braver, et           that the lowest level of segmentation is already known (or
+al., 2001; Hard, Tversky, & Lang, 2006).                               pre-labeled). That is, that there is some sort of motion
+   While a full understanding of human action requires                 primitive (equivalent to a syllable or phoneme in speech),
+knowledge about goals and intentions, infants are able to              that can already be recognized as a coherent unit. Since psy-
+parse dynamic human action well before they are thought                chological studies demonstrating human action segmentation
+to have a fully developed theory of mind. This suggests                have suggested that statistical patterns or features in human
+that there may also be low-level cues to intentional action            motion may correlate with segment boundaries at even the
+structure available in human motion, an idea supported by a            lowest level, we would like to see whether action boundaries
+variety of recent work (Zacks, 2004; Hard et al., 2006; Zacks,         can be automatically detected directly from video, without
+Kumar, Abrams, & Mehta, 2009; Meyer, DeCamp, Hard, &                   pre-existing knowledge of low-level motion units.
+Baldwin, 2010; Hard, Recchia, & Tversky, under review). In                Finally, in the computer vision literature, most action
+particular, movement features within simple animated scenes            recognition work has focused on pre-segmented videos of
+                                                                   3162
+
+             "'*04%5)3+'%6+0/78+%#+/+*1'.%     !"#$%&'()*%!+,-+./01'.%2'3+4%       and then creating summary descriptions of the image regions
+   9.(7/%    <=/80*/%0.3%       @47;/+8%)./'% C+(8+;+./%         9.?+8%/'()*%      surrounding these interest points, which can then be used as
+   :)3+';%   3+;*8)>+%          :);704%A'83%  ?80-+;%0;%         0;;),.-+./;%
+             4'*04%             :'*0>7408B%   >0,;D'?D:);704D    0.3%>'7.308B%
+                                                                                   features. They are an appealing choice for this application
+             ?+0/78+;%                        A'83;%             4'*01'.;%%        because they are unsupervised, and work directly with
+                                                                                   local patches of pixel values, so they do not require person
+                                                                                   detection or knowledge of pose.
+  Figure 1: Our video segmentation and recognition pipeline
+                                                                                   Interest Point Detection In this work, we use the space-time
+individual actions, rather than on continuous human action.                        interest point detector introduced by Dollár, Rabaud, Cottrell,
+We would like to better model and understand human action                          and Belongie (2005) and used by Niebles et al. (2008). This
+segmentation abilities, by trying to discover whether there are                    feature detector consists of a pair of linearly separable
+in fact statistical patterns or features in visible human motion                   gabor filters which are applied temporally, and convolved
+that correlate with the action boundaries people identify.                         with a Gaussian smoothing kernel over the video’s spatial
+Additionally, we would like to develop a computer vision                           dimensions. Space-time interest points correspond to the
+model capable of segmenting (and perhaps recognizing)                              local maxima of this response function. Dollár et al. (2005)
+actions, in videos that contain multiple actions, and more                         found that this detector responds most strongly to periodic
+varied actions than in standard computer vision data sets.                         motion, but tends to respond well to any complex motion.
+                                                                                   The detector has two parameters: a spatial scale s, and a
+              Modeling Video Segmentation                                          temporal scale t, controlling the size of the pixel volume
+We would like to see if statistical patterns in low-level video                    contributing to each interest point detection. As in Niebles et
+features correspond to the segmentation structure of human                         al. (2008), we run our detector at a single scale, and rely on
+actions, and whether this structure can be discovered directly                     the visual word vocabulary (described below) to capture any
+from video, in an unsupervised fashion. Topic modeling –                           scale variations within a given video.
+an approach to classifying language by subject matter – is
+                                                                                   Feature Descriptor After detecting the video feature
+an appealing starting point for action segmentation because
+                                                                                   locations, we extract a spatial-temporal cube of pixels
+it has already proven successful in modeling simultaneous
+                                                                                   around each feature center. To obtain a descriptor for each
+topic identification and segmentation in transcribed conver-
+                                                                                   cube, we calculate the brightness gradient and concatenate
+sations (Purver, Kording, Griffiths, & Tenenbaum, 2006), and
+                                                                                   it to form a vector. This descriptor is then projected to a
+because of established parallels between action segmentation
+                                                                                   lower dimensional space using PCA (for a full techinical
+and language segmentation (Baldwin et al., 2008; Buchs-
+                                                                                   description of the feature detector and descriptor see Dollár
+baum et al., 2009; Speer, Reynolds, Swallow, & Zacks, 2009).
+                                                                                   et al., 2005; Niebles et al., 2008). The intuition behind using
+    Recently, Niebles, Wang, and Fei-Fei (2008) demonstrated
+                                                                                   this type of feature descriptor over the raw pixel intensities,
+good action recognition results on several video data sets,
+                                                                                   is that it creates relative invariance to slight disparities in
+by using a combination of local video features and a topic
+                                                                                   appearance (e.g., small changes in motion or lighting).
+model. In this approach, topic modeling is applied to videos
+of human action, by constructing a set of “visual words”,                          Visual Words Finally, as in Niebles et al. (2008), we cluster
+corresponding to clusters of video features, and re-describing                     the feature descriptors into v, the vocabulary size, categories,
+each video as a document composed of these words. An                               to create the visual word vocabulary. Each detected feature
+action (or topic) is then a distribution over visual words, and                    is assigned a cluster label as its “word” type. Cluster
+a video (or document) is a distribution over actions (topics).                     assignments are made using the k-means algorithm, and the
+    While the Niebles et al. (2008) results demonstrate the fea-                   best (minimum overall distance) set of cluster assignments
+sibility of applying a topic model to videos of human action,                      from 10 runs of the algorithm is used.
+their model was primarily tested on stylized, pre-segmented,                          Qualitatively, the resulting feature clusters appear in-
+individual actions, and the results were not compared to                           tuitively meaningful, often corresponding to motion in a
+human judgments. Here, we would like to create a model                             particular direction, or of a specific body part. This results
+that segments and recognizes video sequences containing                            in a set of “utterances” for each processed video, where each
+multiple actions, performed in more naturalistic settings, and                     utterance is a frame of the input video, each word in the
+that is consistent with human action segmentation (for an                          utterance is a video feature occurring at that frame, and each
+overview of our approach see Figure 1).                                            vocabulary item is a cluster of video features with similar
+                                                                                   descriptors. Example videos of the detector response func-
+Feature Detection and Visual Word Representation                                   tion, detected features, and vocabulary clusters are available
+Computer vision approaches using local image and video                             at http://cocosci.berkeley.edu/videosegdemos.php
+features have proven surprisingly effective in a variety of
+scene, object and action recognition tasks (for a recent                           Topic Segmentation Model
+review see Tuytelaars & Mikolajczyk, 2008). Broadly, these                         Our generative model is the hierarchical Bayesian topic
+approaches work by searching images or videos for local                            segmentation model presented in Purver et al. (2006). In
+patches of interest (e.g., blobs, corners, periodic motion),                       this model, a meeting is composed of multiple conversations
+                                                                               3163
+
+                                                                           8#  #!!",-"#
+              !"        .#               .#!#9*+7!/-&/0"#
+                                                                                  distribution, conditioned on the observed frames of (unseg-
+                                                                             8#   mented and unlabeled) video. We can use Gibbs sampling
+                                                                                  to generate our samples from the posterior distribution, as
+              ##       *" #              *"#!#9*&452))%!."#                       described in Purver et al. (2006). Each sample is a complete
+                                                                                  assignment of the cu and zu,i variables for every frame u
+            #!!",-"#   !!""#         {!!""#,#!!"-."###############%/#*",0#
+                                      !!""#!#$%&%'()*+!#"##%/#*",.#
+                                                                                  in a video, specifying a set of inferred boundaries between
+                                                                                  video segments of single actions, along with the inferred
+                                                                                  distribution of topics within each frame of each action.
+              $#        %"&'#            %"&'#!#12)3456%7)!!#!""#"#               Implications for Action Segmentation The SLDA topic
+                                                                                  segmentation model infers boundary locations based on
+                                         "#!)"#!#$%&%'()*+!$"#                    changes in the distribution over topics between frames of
+             "#!)"#    ("&'#
+                                                                                  video. Therefore, it is sensitive to the patterns of video
+                                         ("&'#!#12)3456%7)#!"#!%"&'"#"#           features that appear together within versus across individual
+         +#                   !"# $#
+                                                                                  actions, and within actions versus at boundary points.
+                                                                                  However, the bag-of-visual-words approach means that
+      Figure 2: Variable dependencies in the SLDA model                           the model is not aware of spatial or temporal relationships
+                                                                                  between visual features within an action or a frame. To the
+(documents), where each conversation is a series of utter-                        extent that individual actions are characterized by particular
+ances all generated from the same distribution over topics. As                    statistical distributions over combinations of visual features,
+standard, topics are equated with discrete distributions over                     the model will be successful at discovering action structure.
+the set of vocabulary words. The intuition is that a single con-                  However, if some aspects of action segmentation require
+versation may contain a number of different topics, but that                      knowledge of spatial relations (e.g., between body parts) or
+these topics form a particular coherent group, different from                     of temporal relations (e.g., ordering of sub-goals), and are
+the topics the other conversations range over. Given an unseg-                    not also characterized by changes in local features, they will
+mented transcription of a meeting, the model infers the times                     not be captured by this model. The model is therefore a
+at which the distribution over topics has shifted, and therefore                  starting point for exploring the amount of representational
+where the segment boundaries between conversations are.                           structure required both to begin parsing human action, and to
+   For our purposes, we can think of a complete video of a                        eventually parse it with adult human accuracy.
+series of actions as a meeting, with individual actions being
+conversations. Similarly, topics are distributions over video                        Segmentation and Recognition Model Results
+words (as in Niebles et al., 2008). Just as certain topics tend
+to appear together during a conversation and shift between                        We tested our model on three video data sets of everyday
+conversations, perhaps certain video topics tend to appear                        human action, described below, and compared the model’s
+together in actions, and shift between actions.1                                  segmentation predictions to human judgments (and to ground
+   Figure 2 depicts the entire generative model, which we will                    truth boundary locations, when applicable). For the two data
+call Segmented Latent Dirichlet Allocation (SLDA). The pa-                        sets with repeating, identifiable actions, we also measured
+rameter π ∼ Beta(γ1 , γ2 ) is the probability that each frame u                   action recognition, by comparing the model’s per frame topic
+will begin a new action, in which case cu = 1. Otherwise,                         assignments to the true action labels for those frames.
+cu = 0, and the frame is a continuation of the previous action.                         All videos were converted to 256 grayscale and 160x120
+All the frames of an action share the same topic distribution,                    pixels in preprocessing, to speed feature detection. For each
+so that θ(u) = θ(u−1) if frames u and u − 1 are part of the same                  data set, we tested a small range of parameter values for the
+action (that is, if cu = 0), and θ(u) ∼ Dirichlet(α) if frame u                   spatial and temporal scale of feature extraction, and for the
+begins a new action (if cu = 1). Within a frame u, the ith vi-                    size of the visual word vocabulary, s ∈ {1, 2, 3}, t ∈ {2, 3, 4},
+sual word, wu,i , is generated by the topic zu,i , which is drawn                 v ∈ {25, 50, 100, 250, 500, 1000}, based on values used in
+from the topic distribution θ(u) specific to frame u. Each topic                  previous work (Dollár et al., 2005; Niebles et al., 2008). We
+ j has an associated multinomial distribution φ( j) over visual                   also varied the number of topics T used by the SLDA model,
+words, generated from a Dirichlet(β) distribution. So the vi-                     to match the number of action types present in the videos.
+sual word wu,i is drawn from the distribution φ(zu,i ) . The hier-                In all cases, SLDA model parameters of α = 0.1, β = 0.1,
+archical topic model has four parameters: α, β, γ1 , and γ2 .                     γ1 = 1 and γ2 = 5 were used, corresponding to a bias towards
+   Given an unsegmented video of multiple actions, we can                         having few words per topic, few topics per document, and
+invert the generative model to infer both video topics and                        a prior expectation of a segment boundary approximately
+segmentation boundaries by sampling from their posterior                          every six frames.
+                                                                                        For all results, we ran the Gibbs sampler for 24,000 iter-
+    1 This is somewhat different from the approach used by Niebles
+                                                                                  ations, with a burn-in period of 2000 iterations. Simulated
+et al. (2008), where an action is a topic and a complete video is a               annealing was used during the first 1000 iterations. Per-
+document. Here, a video contains multiple documents, with an ac-
+tion being a single document, and topics are at the sub-action level.             frame segmentation probabilities were estimated by averag-
+                                                                             3164
+
+      Model
+                                                                                Model           Walk Bend Draw
+      Human                                                                     SLDA            0.82     0.86     0.87
+                                                                                SVM-SMM 0.78             0.91     0.86
+                                                                   Table 1: Comparison of SLDA action recognition perfor-
+                                                                   mance, with the supervised model from Shi et al.(2008)
+                                                                   Segmentation Results Model segmentation probabilities
+                                                                   were calculated over a 5 frame window, in order to align them
+0        100     200     300 Frame 400   500      600      700
+                                                                   with the human data, resulting in human and model boundary
+Figure 3: Human boundary judgments and model predictions           judgments at a resolution of 0.17s. Pseudo-Gaussian smooth-
+for the WBD videos                                                 ing with a 0.5s kernel size was applied to the model out-
+                                                                   put, to obtain a more continuous distribution over boundary
+ing 2000 samples, evenly spaced after the burn-in period.          probabilities. There was a significant correlation between the
+Per-frame topic assignments were estimated by first assigning      model’s predictions and human boundary judgments, Pear-
+each frame within a single sample to the majority topic over       son’s correlation coefficient, r = 0.57 across all videos, p <
+its component words, and then counting the number of times         0.001. Model predictions and human boundary judgments for
+each frame was assigned to each topic, over the 2000 samples.      the concatenated WBD videos are shown in Figure 3.
+Segmenting and Identifying Repeated Actions                        Action Recognition Results Although our model does not
+                                                                   require that topics have a one-to-one correspondence with
+Recently, Shi, Wang, Cheng, and Smola (2008) presented a
+                                                                   actions, we expect few topics per document using our prior,
+supervised, discriminative approach to jointly recognizing
+                                                                   and so the extent to which topic assignments are consistent
+and segmenting human actions from video. They created
+                                                                   within actions is a reasonable proxy for action recognition.
+the Walk Bend Draw (WBD) data set, consisting of videos
+                                                                      To measure per-frame recognition accuracy, we first
+of three subjects, each performing three continuous actions:
+                                                                   assigned each video frame to the most common topic across
+slow walk, bend body and draw on board. Each subject
+                                                                   samples. We then computed the most common topic for each
+performed the action sequence 6 times, for a total of 18
+                                                                   action type, and the proportion of frames of each action type
+videos, averaging 8 seconds each. This data set of short,
+                                                                   assigned to this topic (we used hard boundaries located at the
+simple, repeated actions provides a good baseline to test
+                                                                   local maxima of human segmentation judgments for these
+our model. Since human segmentation judgments were not
+                                                                   calculations). Results are shown in Table 1. Recognition
+available for this data set, we conducted an experiment to
+                                                                   accuracy was high, and comparable to that achieved by Shi
+gather ground truth segmentations from human participants.
+                                                                   et al. (2008) using a supervised approach.
+Participants Participants were 50 English speakers on
+Amazon’s Mechanical Turk.                                          Hierarchical Statistically Grouped Actions
+Stimuli and Procedure For this experiment, we used the             The second test of our model used the video corpus from
+WBD data set from Shi et al. (2008), described above.              Experiment 1 of Buchsbaum et al. (2009). This video corpus
+Participants first viewed each movie in its entirety. They         was designed to replicate the structure of artificial language
+were then presented with an interface for stepping through         learning experiments. Since previous work (Baldwin et al.,
+every 5th frame of the video, and were instructed to to step       2008; Buchsbaum et al., 2009) has established that adults
+through the movie and mark the frame where the person first        are able to recognize artificial actions – triplets of smaller
+begins bending down, and the frame where they first begin          motion elements, grouped only by their statistical regularities
+drawing on the board (previous work has found boundary             – this corpus is an interesting test case for whether our model
+judgments gathered by paging through still frames to be            will also pick up on this hierarchical grouping of motions.
+reliable, e.g. Meyer et al., 2010; Hard et al., under review).        In this corpus, 12 individual video clips of object-directed
+Participants provided boundary judgments for all 18 videos,        motions (referred to as small motion elements or SMEs in
+and video order was randomized across participants. The            previous work) were used to create four actions composed
+experiment was run via a custom Flash program.                     of three SMEs each. A 25 minute corpus was created by
+                                                                   randomly choosing actions to add to the sequence, resulting
+Experiment Results Data from 7 participants who did not            in 90 appearances of each action and 30 appearances of each
+rate all the movies, or who placed the boundaries in incorrect     transition between pairs of actions. After viewing the corpus,
+order were discarded. Qualitatively, boundary choices were         participants were asked to rate individual actions, as well
+consistent across participants, and with our own judgments         as part-action and non-action comparison stimuli, on how
+of boundary locations.                                             meaningful and coherent they felt each combination of three
+Model Settings We ran our model on the concatenation of            SMEs was. As is standard in this genre of experiments, a
+all 18 WBD videos, using feature extraction and vocabulary         part-action was a combination of three SMEs that appears
+parameters s = 2, t = 3, v = 250, and number of SLDA               across a transition (e.g., the last two SMEs from the first
+topics, T = 3.                                                     action and the first SME from the second action), and a
+                                                               3165
+
+   1                                                                           1
+                                                     Model
+                                                                                                                                  Model
+                                                     True Boundaries
+                                                                                                                                  Human
+ 0.8                                                                         0.8
+ 0.6                                                                         0.6
+ 0.4                                                                         0.4
+ 0.2                                                                         0.2
+   0                                                                           0
+     0         100         200          300       400              500                    100        200       300          400         500
+                                 Frame                                                                   Frame
+Figure 4: True boundary locations and model predictions for                Figure 5: Human “fine” boundary data and model predic-
+the first 500 frames of the Buchsbaum et al. (2009) corpus                 tions. First 500 frames of Zacks, Braver, et al.(2001) video
+non-action was a combination of three SMEs that never
+appear together in the exposure corpus. Buchsbaum et al.                   tested it on a video of everyday activity, from Zacks, Braver,
+(2009) found that participants rated actions as more coherent              et al. (2001). The video is 336 seconds long, and shows a
+than part-actions and non-actions, suggesting they perceive                person making a large bed. Sixteen participants provided on-
+them as distinct, meaningful action segments.                              line segmentation data for this video, at two levels of action
+Model Settings We down-sampled the exposure corpus from                    granularity (“coarse” and “fine” boundaries respectively).
+30 to 5 fps, and ran our model on the complete 25 minute
+video, using feature extraction and vocabulary parameters                  Model Settings We down-sampled the exposure corpus from
+s = 2, t = 2, v = 500, and number of topics, T = 4.                        30 to 5 fps, and ran our model on the complete 336s video.
+                                                                           Since human boundaries were given in milliseconds, each
+Segmentation Results Since the corpus was artificially
+                                                                           human boundary was re-assigned to the closest following
+assembled, the true locations of transitions between actions
+                                                                           frame, resulting in human and model boundary judgments at
+are known. For this analysis, we consider the 2 frames
+                                                                           a resolution of 0.20s. Previous work on this type of natural-
+on either side of a boundary as the ground-truth frames.
+                                                                           istic video binned segmentation judgments at a 1s resolution
+Pseudo-Gaussian smoothing with a 0.8s kernel size was
+                                                                           (e.g., Zacks, Braver, et al., 2001; Zacks et al., 2009), so
+applied to the model output, to obtain a more continuous
+                                                                           Pseudo-Gaussian smoothing with a 1s kernel size was applied
+distribution over boundary probabilities.
+                                                                           to both human boundaries and model predictions. Since par-
+     There was a significant correlation between the model’s
+                                                                           ticipants provided online boundary judgments, there might
+boundary probabilities and human boundary judgments,
+                                                                           be a response time delay between the true boundaries, and
+Pearson’s correlation coefficient, r = 0.49, p < 0.001. The
+                                                                           human judgments. To account for this possibility, we looked
+first 500 frames of model predictions and ground-truth
+                                                                           at correlations between the model and human segmentation,
+boundaries are shown in Figure 4.
+                                                                           with the model shifted between 0 and 5 frames (0 to 1s).
+Action Recognition Results Per-frame recognition accuracy
+for actions was computed as for the WBD data set. Recogni-                 Fine Segmentation Results There was a significant cor-
+tion accuracy for non-actions and part-actions was computed                relation between the model’s boundary probabilities and
+in a similar manner, by looking at the most common topic                   human fine grain boundary judgments, Pearson’s correlation
+assignments for the component motions (without requiring                   coefficient, r = 0.31, p < 0.001, using feature extraction and
+these motions to appear sequentially). Results are shown in                vocabulary parameters s = 2, t = 3 v = 250, shift = 0, and
+Table 2. Overall, the model’s per-frame topic assignments                  number of topics, T = 10. The first 500 frames of model pre-
+were very similar to human coherence judgements from                       dictions and human “fine” boundaries are shown in Figure 5.
+Experiment 1 of Buchsbaum et al. (2009).
+                                                                           Coarse Segmentation Results There was a significant
+Segmenting Naturalistic Action                                             correlation between the model’s boundary probabilities and
+ The previous two data sets consist of a set of repeated actions,          human coarse grain boundary judgments, Pearson’s correla-
+performed in a relatively uncluttered environment. To look at              tion coefficient, r = 0.35, p < 0.001, using feature extraction
+whether our model can use low-level features to find structure             and vocabulary parameters s = 3, t = 2 v = 250, shift = 3,
+in more realistic action, at multiple hierarchical levels, we              and number of topics, T = 3. The first 500 frames of model
+                                                                           predictions and human “coarse” boundaries are shown in
+Table 2: Comparison of SLDA action recognition, with                       Figure 6. The greater lag between the model and participant
+human coherence ratings from Buchsbaum et al. (2009)                       responses seen here is consistent with previous work suggest-
+                                                                           ing that coarse grain boundaries may take longer to process
+                   Actions     Part-Actions  Non-Actions
+        SLDA       0.67        0.54          0.43                          than fine grain boundaries (e.g Meyer et al., 2010; Hard et
+        People     0.63        0.53          0.46                          al., under review). The smaller number of topics is consistent
+                                                                           with there being fewer, larger “coarse” versus “fine” actions.
+                                                                       3166
+
+    1
+                                                                     where additional knowledge may be required to fully parse
+                                                       Model
+  0.8                                                  Human         observed actions. We would like to explore the extent to
+                                                                     which adding representational (e.g., human pose), contextual
+  0.6
+                                                                     (e.g., object knowledge) and social (e.g., intentions and
+  0.4
+                                                                     goals) information improve results in future work.
+                                                                     Acknowledgments. We thank Jeff Zacks, Dare Baldwin, Meredith
+  0.2
+                                                                     Meyer, Misha Shashkov, and Andy Horng. This work was supported
+    0                                                                by an NSF Graduate Research Fellowship and grant FA-9550-10-1-
+               100         200       300         400         500
+                               Frame                                 0232 from the Air Force Office of Scientific Research.
+Figure 6: Human “coarse” boundary data and model predic-                                         References
+tions. First 500 frames of Zacks,Braver, et al.(2001) video          Baldwin, D., Andersson, A., Saffran, J., & Meyer, M. (2008).
+                                                                        Segmenting dynamic human action via statistical structure.
+Discussion                                                              Cognition, 106, 1382-1407.
+                                                                     Baldwin, D., & Baird, J. (2001). Discerning intentions in dynmic
+Across three sets of videos, our model’s action segmentation            human action. Trends In Cognitive Sciences, 5, 171-178.
+                                                                     Baldwin, D., Baird, J., Saylor, M., & Clark, A. (2001). Infants
+predictions were significantly correlated with human bound-             parse dynamic human action. Child Development, 72, 708-717.
+ary judgments and ground-truth boundary locations. The               Buchsbaum, D., Griffiths, T. L., Gopnik, A., & Baldwin, D. (2009).
+                                                                        Learning from actions and their consequences: Inferring causal
+model was able to discover relevant local visual features,              variables from continuous sequences of human action. Proc. of
+and statistical patterns over those features, for all videos,           the 31st Annual Conference of the Cognitive Science Society.
+                                                                     Dollár, P., Rabaud, V., Cottrell, G., & Belongie, S. (2005). Behavior
+even though they contained a variety of actors, were filmed             recognition via sparse spatio-temporal features. VS-PETS.
+from different angles, and encompassed actions performed at          Goldwater, S., Griffiths, T. L., & Johnson, M. (2009). A bayesian
+                                                                        framework for word segmentation: Exploring the effects of
+multiple time-scales and hierarchical levels. Despite having            context. Cognition, 112(1), 21-54.
+no a priori knowledge of person location or human pose,              Gómez, R. L., & Gerken, L. (2000). Infant artificial language
+                                                                        learning and language acquisition. Trends in Cognitive Sciences,
+the correlations between our model’s boundary predictions               4(5), 178-186.
+and human judgments were comparable to those found in                Hard, B., Recchia, G., & Tversky, B. (under review). The shape of
+                                                                        action.
+previous work looking at pre-selected movement features of           Hard, B., Tversky, B., & Lang, D. (2006). Making sense of abstract
+tracked people and body parts (Zacks et al., 2009; Meyer et             events: Building event schemas. Memory and Cognition, 34,
+                                                                        1221-1235.
+al., 2010). In the case of the Buchsbaum et al. (2009) data set,     Meyer, M., DeCamp, P., Hard, B. M., & Baldwin, D. A. (2010).
+our model was able to make reasonable boundary predictions,             Assessing behavioral and computational approaches to naturalis-
+even though the “actions” were artificially assembled, and              tic action segmentation. Proc. of the 33nd Annual Conference of
+                                                                        the Cognitive Science Society.
+were defined only by co-occurence probabilities of the lower         Newtson, D., Engquist, G., & Bois, J. (1977). The objective basis
+level motion units. Similarly, our model made meaningful                of behavior units. Journal of Personality and Social Psychology,
+                                                                        35(12), 847-862.
+boundary predictions for the Zacks, Braver, et al. (2001)            Niebles, J., Wang, H., & Fei-Fei, L. (2008). Unsupervised learn-
+“bed” video, for multiple hierarchical levels of segmentation.          ing of human action categories using spatial temporal words.
+                                                                        International Journal of Computer Vision, 79(3), 299-318.
+    In addition, our model was able to successfully identify         Purver, M., Kording, K. P., Griffiths, T. L., & Tenenbaum, J. B.
+repeated actions within the videos, assigning consistent topic          (2006). Unsupervised topic modelling for multi-party spoken
+                                                                        discourse. In Proceedings of COLING/ACL.
+labels to occurrences of the same action. On the WBD                 Saylor, M. M., Baldwin, D. A., Baird, J. A., & LaBounty, J. (2007).
+data set, the performance of our unsupervised approach was              Infants’ on-line segmentation of dynamic human action. Journal
+                                                                        of Cognition andDevelopment, 8(1), 113-128.
+comparable to that of earlier work using labeled training            Shi, Q., Wang, L., Cheng, L., & Smola, A. (2008). Discriminative
+examples (Shi et al., 2008), and on the Buchsbaum et al.                human action segmentation and recognition using a semi-markov
+                                                                        model. IEEE Conference on Computer Vision and Pattern
+(2009) corpus, our model’s performance was qualitatively                Recognition (CVPR).
+very similar to human judgments of action coherence.                 Speer, N., Reynolds, J. R., Swallow, K. M., & Zacks, J. M. (2009).
+                                                                        Reading stories activates neural representations of visual and
+    This model does not make explicit distinctions between              motor experiences. Psychological Science(20), 989-999.
+people and objects, or foreground and background. It also            Tuytelaars, T., & Mikolajczyk, K. (2008). Local invariant feature
+                                                                        detectors: A survey. Foundations and Trends in Computer
+does not look for pre-defined motion features, such as speed            Graphics and Vision, 3(3).
+or acceleration. Therefore, to the extent that our approach          Zacks, J. (2004). Using movement and intentions to understand
+                                                                        simple events. Cognitive Science, 28, 979-1008.
+was successful, it indicates that a portion of human action          Zacks, J., Braver, T. S., Sheridan, M. A., Donaldson, D. I., Snyder,
+structure is discoverable simply by attending to locally salient        A. Z., Ollinger, J. M., et al. (2001). Human brain activity time-
+                                                                        locked to perceptual event boundaries. Nature Neuroscience,
+visual cues within a broader visual scene. This suggests that           4(6), 651-655.
+attending to such cues is a potential mechanism by which             Zacks, J., Kumar, S., Abrams, R. A., & Mehta, R. (2009).
+                                                                        Using movement and intentions to understand human activity.
+learners (whether infants or computer vision algorithms)                Cognition, 112, 201-216.
+might bootstrap their way into action parsing.                       Zacks, J., Speer, N. K., Swallow, K. M., & Maley, C. J. (2010). The
+                                                                        brain’s cutting-room floor: segmentation of narrative cinema.
+    Finally, our model did not fully capture human bound-               Frontiers in Human Neuroscience, 4(1-15).
+ary judgments, and it performed more poorly on the less              Zacks, J., Tversky, B., & Iyer, G. (2001). Perceiving, remembering,
+                                                                        and communicating structure in events. Journal of Experimental
+repetitive, more naturalistic action sequence. Differences              Psychology: General, 130(1), 29–58.
+between our model and human performance indicate areas
+                                                                 3167
+

@@ -1,0 +1,379 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Sentence processing in spiking neurons: A biologically plausible left-corner parser
+Permalink
+https://escholarship.org/uc/item/4jm349xw
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 36(36)
+Authors
+Stewart, Terrence
+Choo, Feng-Xuan
+Eliasmith, Chris
+Publication Date
+2014-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                      University of California
+
+  Sentence processing in spiking neurons: A biologically plausible left-corner parser
+                                         Terrence C. Stewart (tcstewar@uwaterloo.ca)
+                                                 Xuan Choo (fchoo@uwaterloo.ca)
+                                           Chris Eliasmith (celiasmith@uwaterloo.ca)
+                                      Center for Theoretical Neuroscience, University of Waterloo
+                                                     Waterloo, ON, Canada N2L 3G1
+                              Abstract                                Left-Corner Parsing
+   A long-standing challenge in cognitive science is how              As more rules are included in the grammar, parsing
+   neurons could be capable of the flexible structured processing     becomes more complicated.           More rules mean more
+   that is the hallmark of cognition. We present a spiking neural     possibilities, and finding a tree that is consistent with the
+   model that can be given an input sequence of words (a              rules can become computationally expensive. For example,
+   sentence) and produces a structured tree-like representation
+   indicating the parts of speech it has identified and their         there may be the two rules VP → [V] and VP → [V
+   relations to each other. While this system is based on a           NP], leading to an explosion of possible structures to search
+   standard left-corner parser for constituency grammars, the         through. Furthermore, a single word may have multiple
+   neural nature of the model leads to new capabilities not seen      interpretations, such as N → “dog” and V → “dog”.
+   in classical implementations. For example, the model                 The Left-Corner parsing algorithm addresses this problem
+   gracefully decays in performance as the sentence structure
+   gets larger. Unlike previous attempts at building neural           by combining bottom-up and top-down information. The
+   parsing systems, this model is highly robust to neural damage,     top-down information is what part of speech we are
+   can be applied to any binary-constituency grammar, and             currently looking for (a sentence, a noun phrase, a
+   requires relatively few neurons (~150,000).                        determiner, etc.). The bottom-up information is the single
+   Keywords: Neural engineering framework; vector symbolic            word we are currently processing. So, if we are currently
+   architectures; left-corner parsing; syntax; binary trees;          looking for a noun, we will first try interpreting the word
+   computational neuroscience                                         “dog” as a noun, rather than a verb. If this does not lead to
+                                                                      a successful parse, then the algorithm will backtrack to this
+                          Introduction                                point and try the other option. This approach drastically
+Human language processing requires not only the ability to            reduces the amount of backtracking needed.
+represent complex structures, but also the ability to create            For “the dog ran”, the algorithm proceeds as follows:
+these representations out of a serial sequence of words.                   • Top-down: look for S
+This system is flexible enough to work for a huge variety of               • Bottom-up: see “the”
+possible sentences, including (crucially), novel sentences.                • Apply rule DT → “the”
+   Modern linguistics is founded on the principle that these               • Apply rule NP → [DT N]
+structured representations are tree-like, and that this tree               • Store the partially completed tree
+structure imposes useful order on the sentence. For                             ◦ Top-down: look for N for previous rule
+example, “the dog ran” can be parsed as follows:
+                                                                                ◦ Bottom-up: see “dog”
+                                                                                ◦ Apply rule N → “dog”
+                                                                                ◦ Merge with previously stored tree
+                                                                           • Apply rule S → [NP VP]
+                                                                           • Store the partially completed tree
+Here the sentence (S) is divided into a noun phrase (NP) and                    ◦ Top-down: look for VP for previous rule
+a verb phrase (VP). The noun phrase is divided into a                           ◦ Bottom-up: see “ran”
+determiner (DT) “the” and a noun (N) “dog”. The verb
+phrase consists of a single verb (V) “ran”.                                     ◦ Apply rule V → “ran”
+   To describe the space of possible trees we define                            ◦ Apply rule VP → [V]
+constituency rules indicating how the parts can fit together.                   ◦ Merge with previously stored tree
+For example, the above sentence is consistent with the                  As has been pointed out (e.g. Johnson-Laird, 1983), this
+following constituency grammar rules:                                 algorithm matches well with observed human sentence
+            S → [NP VP]                  DT → “the”                   comprehension. For example, it has difficulty with “garden-
+            NP → [DT N]                  N → “dog”                    path” sentences such as the classic “the horse raced past the
+            VP → [V]                     V → “ran”                    barn fell”, which is difficult for most people to interpret
+            (Structural rules)           (Vocabulary)                 even though it has a similar form as the easier sentence “the
+   By adding more structural rules (on the left), we can build        deer shot by the hunter fell”. A left-corner parser has the
+more complex sentences. By adding more words (on the                  same tendency as people do to connect the ambiguous word
+right), we can increase our vocabulary.                               “raced” as part of a S → [NP VP] rule.
+                                                                  1533
+
+Previous Models                                                    For example, a common cortical module is a buffer. This is
+Cognitive models of left-corner parsing already exist. For         a group of neurons whose purpose is to store a value over
+example, Lewis and Vasishth (2005) present an                      time. We formalize this by expressing it as a differential
+implementation using the ACT-R cognitive architecture. In          equation as follows: the value to be represented is x, and
+that work, a set of IF-THEN production rules (for selecting        there is some input to the group of neurons u. If we want a
+grammar rules to apply) are combined with a declarative            group of neurons that can store x over time, then we want x
+memory system (for storing the partially completed parts of        to not change at all when u is zero. In other words, if there
+the tree). The result is a computational model that shows          is no input, do not change the value, and if there is an input,
+how existing cognitive modules (for which there is strong          change the stored value by that much. Mathematically, this
+prior evidence they exist in the human brain) can be re-           can be written as dx =u .
+                                                                                       dt
+purposed to perform left-corner parsing. The model's                  The reason to express this as a differential equation is that
+reaction times and error patterns match well to human              any differential equation can be approximated by a group of
+subjects. However, this work does not offer a neural               spiking neurons using the Neural Engineering Framework
+explanation of how those particular modules and structures         (NEF; Eliasmith & Anderson, 2003). We do this by
+could be physically instantiated within the human brain.           randomly generating a tuning curve (the neural activity for a
+Indeed, the question of how language could be represented          given x value) for each neuron, consistent with observed
+and manipulated by interacting neurons is a long-standing          firing patterns from that cortical area. For example, one
+question in cognitive science (e.g. Jackendoff, 2002).             neuron may fire at 1Hz for x = -0.5, but fire at 10Hz for
+   For a neural explanation of this process, van der Velde         x=1.0. These tuning curves are randomly generated with a
+and de Kamps (2006) offer their Neural Blackboard                  distribution of firing patterns consistent with empirical data.
+Architecture. Here, a set of specific neural groups can            The NEF lets us do local optimization to find the optimal
+temporarily come to represent different nouns, verbs,              synaptic connections between two groups of neurons so as
+adjectives, and so on. This makes it possible to represent         to achieve the empirically identified tuning curves.
+structured information such as sentences. While we have               That is, if one group of neurons have a set of tuning
+previously argued (Stewart & Eliasmith, 2012) that the             curves dependent on x, while another group of neurons need
+neural structures proposed by this approach are inefficient        tuning curves based on y, then we can find a set of
+and do not correspond to those seen in real brains, the core       connection weights from x to y such that the neurons
+difference here is that they have only shown how specific          approximate the computation y=f(x). When recurrent
+cases of sentence patterns might be parsed, rather than            connections are introduced, the NEF allows for the
+presenting a general method for parsing arbitrary                  approximation of any function dx     =f(x,u). Importantly, the
+compositional grammar rules, as is attempted here.                                                   dt
+   Finally, we previously presented a system for parsing           accuracy of this approximation is dependent on the number
+highly specific sentence patterns, but using a biologically        of neurons and the complexity of the function (roughly, how
+realistic neural model (Stewart & Eliasmith, 2013). These          non-linear it is).
+parsed commands, such as “write two” or “if see eight write           Since x can be a vector, the NEF allows for the
+three”, could be successfully interpreted as commands and          implementation of neural models that manipulate vectors in
+used to guide action (Choo & Eliasmith, 2013). However,            desired ways. However, for a parsing system, we need to
+as with the work by van der Velde and de Kamps, this               manipulate symbolic structured information using vectors.
+model was restricted to parsing highly specific grammatical           For this, we turn to Vector Symbolic Architectures
+forms. The purpose of this paper is to generalize to               (VSAs; Gayler, 2003). These are a set of algorithms where
+significantly more complex grammars and to connect this            both symbols and symbol structures can be expressed as
+neural work to the grammatical structures seen in                  high-dimensional vectors. For example, we might have one
+established linguistic theory.                                     1000-dimensional vector that means “dog”, and another
+                                                                   that means N (noun), and even another that means “the”.
+         The Semantic Pointer Architecture                         These vectors can be randomly chosen (as they are here), or
+The core contribution of this paper is an implementation of        they can be chosen such that similar terms (“dog” and
+general-purpose left-corner parsing within a biologically          “wolf”, for example) could have similar vectors.
+realistic cognitive architecture. For that purpose, we use our        We now need a way to combine these vectors. We could,
+Semantic Pointer Architecture (Eliasmith, 2013), which has         for example, simply add them together to produce a new
+been previously used to build Spaun, the first large-scale         vector. However, this would result in lost information;
+brain simulation capable of performing multiple tasks              dogs+chase+cats would be the same as cats+chase+dogs.
+(Eliasmith et al., 2012). In the SPA, all parts of the model       Instead, VSAs introduce a binding operation. Different
+can be implemented using biologically realistic simulated          VSAs choose different binding operators, and for our work
+spiking neurons. For this paper, we use the standard Leaky         we chose circular convolution (Plate, 2003), written as ⊛, as
+Integrate-and-Fire (LIF) neuron model. Each module in the          it can be efficiently implemented with the NEF. We can
+SPA corresponds to a particular brain area, and the synaptic       now encode the sentence “dogs chase cats” as
+connections are optimized to compute some function.                S=dogs⊛subject+chase⊛verb+cats⊛object. Importantly,
+                                                               1534
+
+VSAs also define an inverse operation: given S we can                      The Model: Left-Corner Parsing in SPA
+determine the subject of the sentence by computing                   To develop a neurally plausible implementation of left-
+S⊛subject-1, which is approximately “dog”.                           corner parsing within the Semantic Pointer Architecture, we
+   Here, we extend this approach to full parse trees. For            need to define cortical modules, their functions, and the
+example, “the dog ran” is represented as follows:                    basal ganglia/thalamus rules that coordinate the flow of
+                                                                     information between these modules.
+                                S = the⊛DT⊛NPL⊛SL                       For cortical modules, we only need one basic component:
+                                       + dog⊛N⊛NPR⊛SL                a buffer capable of storing a semantic pointer. This is a
+                                       + ran⊛V⊛VP⊛SR                 module that stores a single high-dimensional vector (for this
+                                                                     model, 1000 dimensions is sufficient) over time. We need
+This computes a single vector S which stores that particular         three of these: one to store the tree being built (tree), one to
+tree. The terms “the”, “dog”, and “ran” are randomly                 store the current top-down goal (goal; what part of speech
+chosen vectors for each of those words. The terms DT, N,             we are looking for), and one to store the partially completed
+NPL, SR, and so on are also randomly chosen vectors. These           trees (partial). Note that the neural modules needed to
+are used to indicate the structure of the tree. Note that there      visually recognize words, or to move visual attention from
+are different vectors for taking the left or right branch of the     one word to the next, are not considered here (see Tang &
+tree (the R or L subscript). This is so that the vector for the      Eliasmith, 2010 and Bobier, Stewart & Eliasmith, 2011 for
+nonsensical “ran the dog” will be different than the vector          potential modules).
+for this tree (SL and SR would be swapped). A similar                   Since these buffers store vectors, we can use the approach
+approach could be used for more than just binary (left or            of Vector Symbolic Architectures to store a tree within
+right) branching, but only binary rules are considered here.         them. We assume words are presented sequentially, and that
+   Given the vector S, we can determine the verb, for                their vectors are stored in the buffer called tree.
+example, by computing S⊛(V⊛VP⊛SR)-1. A parse is only                    We now need rules for the basal ganglia and thalamus
+considered accurate if this vector is closer to “ran” than to        system that cause the model to implement the parsing
+any other word in its vocabulary. For this paper, vocabulary         algorithm. We start with simple rules of the form X → [Y].
+sizes are set at 10,000 other randomly chosen vectors.               For each of these, we need a system that says if we're
+   The Semantic Pointer Architecture uses vectors as a               currently parsing a Y, we should build a tree that consists of
+generic method for passing information between cortical              an X connected to a Y. In terms of vectors, this means
+modules. For example, buffers can store information,                 building a new vector that is X + tree⊛X. For example, if
+sensory areas can turn stimuli into the appropriate vector,          the tree buffer contains ran and we have a rule V → ran,
+and motor areas take vectors describing the desired action           we want to compute V + ran⊛V and store that in the tree
+and convert them into muscle movements (see Eliasmith,               buffer. This can be written in SPA form as follows:
+2013 for more details). However, it also needs a method for
+controlling the flow of information between these neural                Ui: tree∙Y
+modules. We achieve this via a model of the cortex-basal                Ei: tree ← X + tree⊛X
+ganglia-thalamus loop (Stewart, Choo, & Eliasmith, 2010).
+This acts as an action selection and action execution system.        Note that the utility of this rule is the dot product of
+Neural connections from the rest of the brain into the basal         whatever is in the tree buffer and the Y part of the rule, so it
+ganglia compute the utility of each of the possible actions          will only be active when the tree looks like Y.
+that could be taken. The basal ganglia determine which of               To see how this helps to build up the desired tree,
+those utility values is largest, and pass that information to        consider what happens if there is another similar rule
+the thalamus. In the thalamus, neurons for every action              implementing VP → [V]. Once the first rule is active, the
+except for the one that is chosen are suppressed.                    tree buffer will contain V + ran⊛V. This will cause the
+   To build a model with the SPA, we thus define a set of            rule for VP → [V] to have a high utility (since its utility is
+actions that can be performed. For each action i, we define          tree∙V). The effect of the rule is tree ← VP + tree⊛VP, so
+its effects Ei (what vectors should be sent from one cortical        the result will be VP + (V + ran⊛V)⊛VP. This vector is
+area to another) and its utility Ui (a function that should give     highly similar to ran⊛V⊛VP, which is part of what we
+a value near 1 when this action should be performed and              need for parsing the complete tree for “the dog ran”.
+smaller values otherwise). For example, the following rule              We also need to handle rules of the form X → [Y Z],
+would send the output from a memory module to the input              which gives the branching capability to the tree. Here we
+to a speech module whenever the vision module sees a dog:            need to not only build up a tree, but we also need to set a
+   Ui: vision∙dog        (this will be large when vision=dog)        new top-down goal to find a Z. The utility is the same as in
+   Ei: speech ← memory                                               the previous rule (we want the rule to be active when tree
+                                                                     contains a Y), but we also want to store the partially
+These rules are efficiently implemented via the NEF,                 completed tree and go on to processing the next word. An
+requiring ~300 basal ganglia neurons per rule (Stewart,              initial version of this rule's effect would be:
+Choo, & Eliasmith, 2010).
+                                                                 1535
+
+   Ei: partial ← X + tree⊛XL                                         Parsing Results
+       tree ← the next word                                          This biologically plausible left-corner parsing algorithm is
+       goal ← Z                                                      capable of computing the vector-based tree representation of
+                                                                     a sentence, given a set of constituency grammar rules.
+This rule would successfully store the partially completed           These rules are converted into connections between the
+tree in the partial buffer, and then would go on to start            cortex, basal ganglia, and thalamus, as per the Semantic
+trying to parse the next word, trying to find a Z. However,          Pointer Architecture. That neural structure is then capable
+setting this new goal in this way would completely replace           of parsing sentences consistent with those rules.
+the old value in goal. Indeed, setting the new partial tree             It must be remembered that implementing these rules
+would completely erase any previous partial tree.                    using semantic pointers results in an approximation of the
+   To deal with this, we use the vector to store a list of trees     traditional symbolic parsing system. As the sentence
+(akin to a “stack”). This list can all be stored as a single         structure becomes arbitrarily complex, it will fail to produce
+vector by combining with circular convolution. For                   an accurate parse. However, the existing model succeeds
+example, if the goal currently contains the vector for S (a          for sentences and rules sets such as “the dog chases the cat”.
+sentence), but due to a rule like NP → [DT N] we now need
+to look for an N (a noun), we can set the new goal to be                       VP → [V NP]                NP → [DET N]
+N+goal⊛STACK, where STACK is another random vector.                            S → [VP]                   NP → [N]
+In this case, the goal will now be N+S⊛STACK. If we now                        S → [NP VP]
+need to look for a V (a verb), we would compute
+V+goal⊛STACK, giving V+(N+S⊛STACK)⊛STACK, or
+V+N⊛STACK+S⊛STACK⊛STACK. Note that to remove
+an item from the stack, we can compute goal⊛STACK-1,
+which would give us back an approximation of
+N+S⊛STACK. This approximation will gradually become                  To demonstrate more complex parsing, we add rules for
+worse as the number of items in the stack increases.                 subordinate clauses. In previous work (Choo & Eliasmith,
+   The resulting rule for X → [Y Z] is as follows:                   2013) we had built neural models that could follow orders
+   Ui: tree∙Y                                                        of the form “if see square, press button”. Rather than using
+   Ei: partial ← X + tree⊛XL + partial⊛STACK                         the special-case neural parser we had built previously
+       tree ← the next word                                          (Stewart & Eliasmith, 2013), the parser presented here can
+       goal ← Z + goal⊛STACK                                         be extended by adding the following rules, where IN is a
+                                                                     subordinating conjunction (such as “if”), and SBAR is a
+Finally, we need a top-down rule to recognize when we                subordinating conjunctive phrase (“if see square”).
+have found a part of speech we are looking for. When it
+does so, we combine it with the partial tree on the stack,                     S → [SBAR VP]           SBAR → [IN S]
+remove it from the stack, and continue. For a rule of the
+form X → [Y Z], we get:
+   Ui: (partial∙X)(goal∙tree)
+   Ei: tree ← partial + XR⊛tree
+       goal ← goal⊛STACK-1
+       partial ← partial⊛STACK-1
+So, if we are on the last word of “the dog ran”, the stored          Importantly, this system can also parse more grammatically
+value in partial will be close to the⊛DT⊛NPL⊛SL +                    complete sentences. Indeed, if we also add the following
+dog⊛N⊛NPR⊛SL and the value in tree will get built up to              rule for PRP (personal pronouns), then the system is able to
+approximately ran⊛V⊛VP, as indicated previously. The                 successfully parse “if you see a square, press the button”.
+goal will be VP. This means that the utility for this top-
+                                                                                       NP → [PRP]
+down version of the S → [NP VP] rule will be high (since
+partial∙S will be large and goal∙tree will be large). The
+resulting tree will be partial + SR⊛tree, or approximately
+the⊛DT⊛NPL⊛SL + dog⊛N⊛NPR⊛SL + ran⊛V⊛VP⊛SR. This is
+the desired vector for the correct parse of the tree.
+   This algorithm will work for arbitrary binary construction
+grammar rules. However, it needs to be extended to deal
+with multiple possible rules that could be applied at once
+(ambiguous sentences), as is discussed below.
+                                                                 1536
+
+Parsing Accuracy
+While the model is capable of parsing the previous
+sentences, its capabilities are not perfect. Indeed, the
+accuracy of the parsing is dependent on the accuracy of the
+neural representation. This is a concrete example of the
+competence vs. performance distinction: while the
+underlying algorithm may be have the competence to parse
+those sentences, the neural implementation may not match
+that in terms of actual performance.
+   We can analyze this by determining the probability of
+correctly parsing the sentence as we increase the amount of             Figure 2: Amount of representational noise for different
+noise. A word is considered to be correctly parsed if we can           numbers of neurons. 95% confidence intervals are shown.
+extract it from the vector for the sentence, using the standard
+approach to extracting in Vector Symbolic Architectures.              Figure 2 shows that 50 to 100 neurons are needed per
+For example, for the “the dog ran” the ideal resulting vector         dimension to achieve noise levels around 0.15. Since
+is S = the⊛DT⊛NPL⊛SL + dog⊛N⊛NPR⊛SL + ran⊛V⊛VP⊛SR.                    Figure 1 indicates that performance is much improved with
+To determine if “the” was parsed correctly, we compute                noise below 0.15, and since we are using vectors with 1000
+S⊛(DT⊛NPL⊛SL)-1. If this vector is closer to the vector for           dimension, we build our final model with 50,000 neurons
+the than to any other vector in the vocabulary of 10,000              per buffer. The complete model has 3 buffers and 18 basal
+words, then the parse is considered to be correct. Noise is           ganglia/thalamus/cortex rules (300 neurons each), resulting
+adjusted by adding random values to the stored tree, partial,         in a parsing system with 155,400 neurons. Importantly,
+and goal vectors after every rule. Finally, if the algorithm          Figures 1 and 2 also show that the model exhibits graceful
+fails (i.e. no words can be extracted), then we retry it until it     degradation. If neurons are removed (or die), accuracy will
+succeeds. Figure 1 shows that performance gets much                   gradually decrease.
+worse with noise values of 0.15 or more, and that even
+small values of noise require an average of 0.6 retries.              Using Parsed Commands
+                                                                      While the model presented thus far is capable of parsing
+                                                                      sentences, the real test is to be able to parse a sentence and
+                                                                      then make use of that information. In previous work (Choo
+                                                                      & Eliasmith, 2013), we presented a spiking neural model
+                                                                      that is capable of following instructions of the form “If
+                                                                      <condition>, <do action>”. However, that model did not
+                                                                      perform the parsing itself. It relied on a special-case neural
+                                                                      parser that only worked on particular word patterns (Stewart
+                                                                      & Eliasmith, 2013). Since they both make use of the
+                                                                      Semantic Pointer Architecture, the general-purpose left-
+                                                                      corner parser presented here can be combined with the
+                                                                      instruction-following model.
+                                                                        In the instruction-following model, the instruction “if see
+                                                                      square, write two” was encoded as:
+   Figure 1: The probability of successful parsing and the
+ number of retries needed as the random noise varies. 95%               CONDITION⊛(SENSE⊛VISION + SENSE_DATA⊛SQUARE)
+                confidence intervals are shown.                           + ACTION⊛(MOTOR⊛WRITE + MOTOR_DATA⊛TWO)
+These results give us a lower bound on the accuracy of the              With the parser presented here, we can directly use the
+neural representation that is needed for the buffers. Since           parsed sentence as a command to the instruction-following
+the Neural Engineering Framework indicates that accuracy              model by making the following definitions:
+is increased as more neurons are added, we can find how                 CONDITION = SL
+many neurons are needed for each buffer to achieve this                 SENSE = V⊛VPL⊛S⊛SBARR
+level of accuracy. We do this by creating groups of neurons             SENSE_DATA = N⊛NP⊛VPR⊛S⊛SBARR
+with connection weights between them optimized via the                  ACTION = SR
+                                                                        MOTOR = V⊛VPL
+NEF to compute the function             (i.e. the value x that is       MOTOR_DATA = N⊛NP⊛VPR
+being stored should not change). The network is initialized
+to contain a randomly chosen vector x, and the model is run             The result is a biologically plausible neural model where
+for 50 milliseconds. We have previously shown that 50                 we can feed in a set of commands as sentences, and the
+milliseconds is the average amount of time taken between              model can parse those sentences, remember them, and apply
+rule activation (Stewart, Choo, & Eliasmith, 2010).
+                                                                  1537
+
+them to incoming stimuli. For example, Figure 3 shows the          reinforcement learning to situation, allowing it to learn to
+effect of a system configured to follow these instructions:        adjust the utility values Ui, opening up the possibility of
+   P1. If see square write 1                                       context-sensitive parsing.
+   P2. If see circle write 2                                          Other ongoing work is in improving the accuracy of the
+   P3. If hear one press button1                                   system. In particular, it appears that the parse accuracy
+   P4. If hear two press button2                                   (Figure 1) can be improved by increasing the dimensionality
+                                                                   of the vectors and at the same time decreasing the number of
+   The the visual and sensory inputs to the model change           neurons per dimension.
+(top four rows of Figure 3), the model successfully responds
+as appropriate (bottom two rows). Of course, the model                                      References
+presented here does not include all the details necessary to       Ball, J. (2011). A Pseudo-Deterministic Model of Human
+actually perform the motor actions or the visual processing           Language Processing. 33rd Cog. Sci. Society Conference.
+necessary to complete these tasks. The purpose here is to          Bobier, B., Stewart, T.C., and Eliasmith, C. (2011). The
+show that the model is capable of correctly selecting the             attentional routing circuit: receptive field modulation
+task to perform.                                                      through nonlinear dendritic interactions. Proceedings of
+                                                                      Cognitive and Systems Neuroscience.
+                                                                   Choo, X. and Eliasmith, C. (2013). General Instruction
+                                                                      Following in a Large-Scale Biologically Plausible Brain
+                                                                      Model. 35th Cog. Sci. Society Conference.
+                                                                   Eliasmith, C. (2013). How to build a brain. Oxford
+                                                                      University Press, New York, NY.
+                                                                   Eliasmith, C. and Anderson, C. (2003).                Neural
+                                                                      Engineering. Cambridge: MIT Press.
+                                                                   Eliasmith, C., Stewart, T.C., Choo, X., Bekolay, T.,
+                                                                      DeWolf, T., Tang, Y., and Rasmussen, D. (2012).. A
+                                                                      large-scale model of the functioning brain. Science,
+                                                                      338:1202-1205,.
+                                                                   Gayler, R. (2003). Vector Symbolic Architectures Answer
+  Figure 3: The instruction-following model. Each row is a
+                                                                      Jackendoff’s Challenges for Cognitive Neuroscience, in
+different group of neurons. Labelled lines indicate the value
+                                                                      Slezak, P. (ed). Int. Conference on Cognitive Science,
+represented by this group of neurons is close to the indicated
+                                                                      Sydney: University of New South Wales, 133–138.
+   vector. First the model is visually shown a SQUARE (top
+                                                                   Jackendoff, R. (2002). Foundations of language: Brain,
+   row), and it responds correctly with the motor action of
+                                                                      meaning, grammar, evolution. Oxford, UK.
+  WRITE⊛NUM1 (“write the number 1”; bottom row). It then
+                                                                   Johnson-Laird, P. N. (1983). Mental models. Cambridge,
+ hears a ONE, is shown a CIRCLE, and a SQUARE again. The
+                                                                      MA: Harvard University Press.
+           correct motor response is given each time.
+                                                                   Lewis, R. L. and Vasishth, S. (2005). An activation-based
+                                                                      model of sentence processing as skilled memory retrieval.
+         Conclusions and Future Directions                            Cognitive Science, 29:375-419.
+We have presented a basic version of left-corner syntactic         Plate, T. (2003). Holographic Reduced Representations,
+parsing that can be implemented in biologically realistic             CSLI Publications, Stanford, CA.
+spiking neurons. This makes use of the cortex-basal                Stewart, T.C., Choo, X., and Eliasmith, C. (2010). Dynamic
+ganglia-thalamus loop in the brain, and is compatible with            Behaviour of a Spiking Model of Action Selection in the
+our ongoing development of large-scale neural models                  Basal Ganglia. 10th Int. Conf. on Cognitive Modeling.
+capable of performing cognitive tasks. This shows how our          Stewart, T.C., and Eliasmith, C. (2012). Compositionality
+Semantic Pointer Architecture can be adapted to implement             and biologically plausible models. In Oxford Handbook
+cognitive algorithms, and that the resulting models can               of Compositionality. Oxford University Press, 2012.
+accurately manipulate complex structured representations           Tang, Y. and Eliasmith, C. (2010). Deep networks for
+like parse trees.                                                     robust visual recognition.          Proceedings of the
+   However, in order to truly model syntactic parsing, the            International Conference on Machine Learning,
+model needs to be able to deal with ambiguity. Right now,          Stewart, T.C. and Eliasmith, C.. (2013). Parsing sequentially
+if the parsing fails (due to it choosing the wrong rule to            presented commands in a large-scale biologically realistic
+apply when multiple rules could be applied at a given time),          brain model. In 35th Annual Conference of the Cognitive
+we simply reset the model and re-run it, hoping it will               Science Society, 3460-3467.
+choose the correct action next time. We are instead                van der Velde, F. and de Kamps, M. (2006). Neural
+exploring methods to suppress recently applied rules, so as           blackboard architectures of combinatorial structures in
+to encourage the use of alternatives and greatly improve this         cognition. Behavioral and Brain Sciences, 29, 37-70
+recovery process.        We are also examining applying
+                                                               1538
+

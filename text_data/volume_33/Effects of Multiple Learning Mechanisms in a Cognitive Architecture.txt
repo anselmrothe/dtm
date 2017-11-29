@@ -1,0 +1,378 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Effects of Multiple Learning Mechanisms in a Cognitive Architecture
+Permalink
+https://escholarship.org/uc/item/65k2f4jc
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 33(33)
+Authors
+Choi, Dongkyu
+Ohlsson, Stellan
+Publication Date
+2011-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+            Effects of Multiple Learning Mechanisms in a Cognitive Architecture
+                                                  Dongkyu Choi (dongkyuc@uic.edu)
+                                                   Stellan Ohlsson (stellan@uic.edu)
+                                                           Department of Psychology
+                                                        University of Illinois at Chicago
+                                       1007 W Harrison Street (M/C 285), Chicago, IL 60607 USA
+                              Abstract                                        I CARUS makes distinctions in two separate dimensions.
+                                                                           The first exists between concepts and skills. Concepts give
+   Human learning involves multiple sources of information.
+   Their ability to adapt to changes in the environment depends            I CARUS a language to describe its surroundings by enabling
+   on having such multiple learning modes. In this paper, we ex-           the system to infer beliefs about the current state of the world.
+   tend an existing cognitive architecture to have three distinct          Skills, on the other hand, are procedures that I CARUS believes
+   learning modes, in an effort to test the hypothesis that multiple
+   learning capabilities bring synergistic effect in the overall per-      to achieve certain concept instances. The second distinction
+   formance. We show experimental results in a simplified route            lies between long-term knowledge and short-term structures.
+   generation domain.                                                      Long-term concepts and skills are general descriptions of sit-
+   Keywords: cognitive architecture, learning, multiple                    uations and procedures, and I CARUS instantiates them for a
+   modes of learning, learning from success, learning from                 particular situation at hand. Instantiated concepts and skills
+   failures, learning declarative knowledge, skill acquisition
+                                                                           are short-term structures, in that they are constantly created
+                                                                           and destroyed as the situation changes. These two distinc-
+                          Introduction                                     tions result in four separate memories in I CARUS.
+People acquire knowledge from various sources. They learn
+from their own success and failures, by observing situations                  In its long-term conceptual memory, the architecture en-
+around them, and by imitating others’ behavior. Their abil-                codes concept definitions that are similar to Horn clauses
+ity to adapt to changing situations depends on such multiple               (Horn, 1951). As shown in Table 1, concepts include a head
+modes of learning (Ohlsson, 2011). There have been many                    and a body that includes perceptual matching conditions or
+previous work on each of such learning modes, but we are                   references to other concepts. The first concept with the head,
+particularly interested in their interactions and the synergy              (at ?location), matches against an object of type, self,
+among them.                                                                and its attribute, location, in its :percepts field. The
+   Since cognitive architectures (Newell, 1990) provide gen-               second concept, (connected ?from ?to), matches against
+eral framework for modeling cognition, they are suitable                   an additional object of type, location, and tests if its
+for our research on multiple learning modes and their in-                  accessible attribute is not null and the two locations, ?from
+teractions. In this work, we use one such architecture,                    and ?to, are different. These two concepts do not have any
+I CARUS, that supports both learning from success (Langley                 reference to other concepts in their definitions, so they are
+& Choi, 2006) and learning from failures (Choi & Ohlsson,                  primitive concepts. On the other hand, the third concept,
+2010; Ohlsson, 1996). We extended the architecture with a                  (not-dead-end ?location), matches against a location
+third mode of learning declarative knowledge in an effort to               object and refers to two subconcepts in addition to a test.
+broaden the scope of our research, although we do not yet                  This makes the last concept a non-primitive one. This way,
+perform a lesion study in the current work with this learning              I CARUS builds a hierarchy of concepts that provides multiple
+mode turned off.                                                           levels of abstraction.
+   In the following sections, we first review some basic as-                  Another long-term memory stores I CARUS’s skills that re-
+sumptions of I CARUS starting with its representation and                  semble S TRIPS operators (Fikes & Nilsson, 1971). The head
+memories and continuing to the inference and execution                     of each skill is the predicate it is known to achieve, making
+mechanisms. We then describe the three learning mecha-                     all skills indexed by their respective goals. Each skill has
+nisms in some detail and show experimental results that show               a body that includes perceptual matching conditions, some
+synergy in a route generation domain. We also discuss related              preconditions, and either direct actions to the world or a sub-
+and future work before we conclude.                                        goal decomposition. Skills with no references to subgoals
+                                                                           are primitive, while the ones with subgoals are non-primitive.
+              Representation and Memories                                  Table 2 shows some sample I CARUS skills. The first skill
+As with other cognitive architectures (Laird et al., 1986;                 that achieves (at ?location) has two preconditions, (at
+Anderson, 1993), I CARUS makes commitments to a specific                   ?from) and (connected ?from ?location), in its :start
+way to represent knowledge, infer beliefs, perform execu-                  field and an action in its :actions field. Without any ref-
+tion and learn new knowledge. In this section, we review                   erence to subgoals, this skill is primitive. The second skill,
+I CARUS’s representation of knowledge and the correspond-                  however, is a non-primitive one that provides a subgoal de-
+ing memories.                                                              composition to achieve (at B). Namely, this skill instructs
+                                                                      3003
+
+I CARUS to consider two ordered subgoals, (at W6) and (at           in the world. The system attempts to match its concept def-
+B), to achieve the eventual goal.                                   initions to the perceptual information and, when there is a
+                                                                    match, it instantiates the head of the definitions to compute
+                                                                    its current beliefs.
+Table 1: Some sample I CARUS concepts for a route genera-
+tion domain. Question marks denote variables.
+                                                                                                          Perceptual Buﬀer   Percep>on
+  ((at ?location)                                                       Long‐term       Categoriza>on
+                                                                    Conceptual Memory   and Inference      Belief Memory
+   :percepts ((self ?self location ?location)))
+  ((connected ?from ?to)                                                                                    Skill Retrieval Environment
+   :percepts ((self ?self location ?from)
+                    (location ?to accessible ?access))
+                                                                        Long‐term       Problem Solving
+   :tests          ((not (equal ?from ?to))                                            and Skill Learning  Goal Memory
+                                                                       Skill Memory
+                    (not (null ?access))))
+                                                                                                            Motor Buﬀer     Skill Execu>on
+  ((not-dead-end ?location)
+   :percepts ((location ?location))
+   :relations ((connected ?location ?to1)                           Figure 1: I CARUS’s memories and the processed that work
+                    (connected ?location ?to2))                     over them on each cycle.
+   :tests          ((not (equal ?to1 ?to2))))
+                                                                       Once the architecture computes all its beliefs, it starts the
+                                                                    skill retrieval and execution process. I CARUS’s goals guide
+                                                                    this process, and the system retrieves relevant long-term skills
+Table 2: Some sample I CARUS skills for a route generation          based on the current beliefs. When it finds an executable path
+domain. Question marks denote variables. The second skill           through its skill hierarchy, from its goal at the top to actions
+is a part of a specific route that is learned.                      at the bottom, I CARUS executes the actions specified at the
+                                                                    leaf node of the path. This execution, in turn, changes the
+      ((at ?location)                                               environment, and the system starts another cycle by inferring
+       :start        ((at ?from)                                    beliefs from new data received from the environment.
+                       (connected ?from ?location))
+       :actions ((*move-to ?location)))
+                                                                                      Learning Mechanisms
+      ((at B)
+       :subgoals ((at W6) (at B)))                                  The original I CARUS includes a single learning mechanism
+                                                                    that acquires new skills from successful problem solving
+                                                                    traces (Langley & Choi, 2006). It uses a version of means-
+   In addition, I CARUS has two short-term memories to store        ends problem solver to decompose its goals into subgoals and
+instantiated concepts and skills. While a short-term concep-        generate a solution trace. The system then uses it to compose
+tual memory holds the current beliefs of the system, its short-     a new skill for each subgoal. Our recent work added a second
+term skill memory stores the selected skill instances indexed       mechanism for learning from failures using a new constraint
+by their corresponding goals or subgoals. When I CARUS              language (Choi & Ohlsson, 2010). Given constraints that are
+works on complex problems, information on goals and sub-            expressed as relevance–satisfaction condition pairs, the sys-
+goals tends to dominate the short-term skill memory since it        tem revises its skills that cause violations of such constraints
+also serves as the goal stack for the system. Next, we ex-          by adding new preconditions to them.
+plain the processes that generate contents of these short-term         Although our previous observations showed that the two
+memories from their long-term counterparts.                         learning mechanisms yield some synergistic effects, we were
+                                                                    concerned that the overall system assumes fully observable
+                 Inference and Execution                            domains and this causes I CARUS’s problem solver to be
+I CARUS operates in cycles. On each cycle, it performs a se-        overly powerful. In response, we moved toward a partially
+ries of processes as shown in Fig 1. The system first instan-       observable domain and introduced a third learning mecha-
+tiates its long-term concepts based on the data from its sen-       nism to I CARUS that can handle this change. In this section,
+sors. The bottom-up inference of concepts creates beliefs in        we review the two existing learning mechanisms briefly and
+the form of instantiated conceptual predicates. The inference       explain the details of the new extension to I CARUS for learn-
+process starts with the perceptual information about objects        ing declarative knowledge.
+                                                                3004
+
+Learning from Problem Solving                                           corresponding skills. See Ohlsson (2011) for a more detailed
+When I CARUS hits an impasse with no executable skills for              description of this learning mechanism.
+the current goal, it invokes its means-ends problem solver to
+find a solution. As shown in Figure 2, the system has two               Table 3: Added preconditions computed differently based on
+options, either using a skill definition to propose an unsatis-         the type of the constraint violation. Cr , Cs , Oa , and Od de-
+fied precondition as the next subgoal (skill chaining), or using        note relevance conditions, satisfaction conditions, add list,
+a concept definition to decompose the current goal into sub-            and delete list, respectively.
+goals (concept chaining). By default, I CARUS gives priority
+to the former and proceeds to the latter only when there is no              Type \ Revision            1                   2
+skill chains available.
+                                                                                    A            ¬(Cr − Oa )    (Cr − Oa ) ∪ (Cs − Oa )
+                                                                                    B                 ¬Cr          Cr ∪ ¬(Cs ∩ Od )
+                                                                        Learning Declarative Knowledge
+                                 Skill                 Goal
+         Precondi*on
+                              deﬁni*on                                  The newest learning mechanism in I CARUS outputs a dif-
+                              skill chain
+                                                                        ferent kind of knowledge. Instead of creating or revising
+                                                                        skills, it remembers and maintains declarative knowledge in
+                                                                        the form of I CARUS beliefs. The original architecture per-
+            Subgoal                                                     forms bottom-up inference of its beliefs from scratch on every
+                                                                        cycle, but the extended system carries over some of previous
+                               Concept                 Goal
+            Subgoal                                                     beliefs while it still infers new ones based on the updated per-
+                              deﬁni*on
+                                                                        ceptual information on a cycle.
+                            concept chain                                  This process happens in a straightforward fashion. I CARUS
+            Subgoal
+                                                                        first performs the bottom-up inference with updates from the
+                                                                        environment. It then compares this belief state to the previous
+    level n+1 in goal stack                   level n in goal stack     one and finds conflicting beliefs in the previous state that get
+                                                                        removed. The rest of previous beliefs get added to the cur-
+Figure 2: Two types of problem solving chains in I CARUS.               rent belief state. What is crucial in this process is the mecha-
+For a skill chain, the system uses a skill definition to push the       nism for removing conflicting beliefs from the previous state.
+unsatisfied precondition as subgoal, while in a concept chain           I CARUS uses negations in the definitions of concepts to find
+it uses a concept definition to decompose a goal into subgoals.         the beliefs that are, in some sense, opposed to new beliefs in
+                                                                        the current state. However, this is not enough to find all con-
+   The architecture applies problem solving chains recur-               flicts, and it causes a catastrophic expansion of beliefs when
+sively until it finds a subgoal for which it can execute im-            it operates alone.
+mediately. When such a subgoal is found, I CARUS proceeds                  Therefore, the latest extension also includes a new field
+with the execution to achieve it. Once the system satisfies the         :delete in concept definitions that stores what is similar to
+subgoal in the world, it learns a new skill from this experience        a delete list. Since not all conflicting relations are explicitly
+by generalizing the situation and the procedures used.                  expressed in the form of negated subconcepts, developers can
+                                                                        manually add such relations in concept definitions. This is
+Learning from Constraint Violations                                     particularly useful to ensure uniqueness of some concept in-
+I CARUS has the notion of constraints, expressed as pairs of            stances like an agent’s current location. For example, in the
+relevance and satisfaction condition adopted from Ohlsson               definition for (at ?location) that shows the current loca-
+(1996). On every cycle, the system checks if the relevance              tion of the I CARUS agent in a route generation domain (see
+conditions of each constraint is true in its belief state, and          the first concept in Table 1), we can guarantee that only one
+if so, it also checks the satisfaction conditions. When a con-          instance of this concept exists in the belief state on a given cy-
+straint is violated, namely, when it is relevant but not satisfied,     cle by including (at ?other) in the delete list for this con-
+I CARUS invokes its constraint-based specialization mecha-              cept. This process is shown in Figure 3.
+nism to revise skills that caused the violation.
+   There are two different cases of violations. One is when a                                     Experiments
+constraint has been irrelevant but it becomes relevant and not          To prove the synergistic effect of having multiple learning
+satisfied, and the other is when a constraint has been relevant         mechanisms, we performed experiments in the route genera-
+and satisfied but it becomes unsatisfied. The system treats             tion domain we have developed for our previous work (Choi
+the two cases differently, using two distinct rules as shown            & Ohlsson, 2010) with some modifications to make it par-
+in Table 3 to compute additional preconditions it adds to the           tially observable. Instead of seeing all connections at all
+                                                                    3005
+
+       percepts on cycle n           percepts on cycle n+1             to random exploration. This gets the agent to a waypoint,
+                                                                       W1. From this location, the agent can see a direct connection
+       (self me loca0on A)           (self me loca0on W1)
+                  …                             …                      to its target, which it takes by executing its skill for moving
+                                                                       between neighboring locations (the first skill in Table 2).
+        bo@om‐up match                  bo@om‐up match                    Once the agent reaches the target, it is transported back to
+                                                                       its origin for repeated trials. During the first trial, the system
+         beliefs on cycle n           beliefs on cycle n+1
+                                                                       has remembered all the connectivity information it saw us-
+         (at A)                       (at W1)                          ing declarative learning. Therefore, on the second trial, the
+         (connected A W1)             (connected W1 W2)                problem solver can generate the route, A - W1 - B, from the
+         (connected A W3)             (connected W1 W4)
+                  …                                                    beginning. It then takes the route by executing its skill twice
+                                                 …                     for the two segments and achieves its goal. From this success,
+                                                                       the agent learns the route as specific skills like the second one
+             Process delete lists
+            and remove conﬂicts       (connected A W1)                 in Table 2.
+                                      (connected A W3)                    Before continuing subsequent trials, we designate the way-
+                                                                       point W1 as dangerous. This causes a violation of the con-
+                                                                       straint I CARUS is given, namely:
+Figure 3: After inferring the current beliefs from the percep-
+tual information on cycle n+1, I CARUS combines this result               (at ?location) → (not (dangerous ?location))
+with previous beliefs that are both not in conflict with the cur-
+                                                                       which simply says that it should not be at a location that
+rent ones and not removed while processing the delete lists.
+                                                                       is dangerous. During the next trial, the system attempts to
+In this example, only static beliefs for connectivity are main-
+                                                                       use the known route, A - W1 - B, but it realizes that taking
+tained in the belief state for cycle n+1.
+                                                                       this route would cause a constraint violation. In response,
+                                                                       I CARUS revises its skill to include an additional precondition,
+times, the agent can only see the connections from its current         which ensures that the location the skill takes it to is not dan-
+location to the neighboring ones. In this section, we describe         gerous. Then again, there is no executable skill from A, and
+our experimental setup and the results from our experiments            the system finds an alternate route A - W2 - B through prob-
+in this domain.                                                        lem solving and learns a specific skill for this route. Starting
+                                                                       from the next trial, the agent can simply execute its specific
+Experimental Setup                                                     route skills to get to the target without any problem solving.
+In our route generation domain, the agent starts at a location
+                                                                       Experimental Results
+on one side, and it has the goal to get to a target location on
+the other side. Using the connectivity information between             We ran similar experiments at two different levels of com-
+various neighboring locations, an agent should traverse from           plexity, with 100 simulated subjects for each. There are nine
+its origin to the target. Although there are multiple possible         waypoints and four different routes between the origin and
+routes in the environment, some of the routes might become             the target at the first level, while there are 12 waypoints and
+unavailable for travel due to various reasons such as criminal         eight possible routes at the second level. There were four con-
+activity or damage to a bridge. When this happens, the agent           ditions, in which 1) we turn on all learning modes, 2) turn off
+can encounter situations where it is unable to use routes it has       learning from constraint violations, 3) turn off learning from
+learned before, requiring it to adapt to the new situation.            problem solving, or 4) turn off both of these learning modes.
+   The domain is modified from its original form to give par-          Since turning off the declarative learning causes the system
+tial knowledge of the environment to I CARUS agents, restrict-         to fall back to exploration all the time, we did not include any
+ing the available connectivity information to the visible ones         conditions that involve turning off this learning mode.
+from the agent’s current location. We give only the basic con-            Figure 4 summarizes main findings. The measure of com-
+cept and skill sets to the system at the beginning, along with a       putational effort is the total number of cycles per trial. The
+constraint. This means that the system knows how to operate            first four trials show the initial learning of a route to target.
+in the world, but not at the level of expertise that enables it to     After the fourth trial, the learned route was declared out of
+satisfy the constraint at all times.                                   bounds by marking some waypoints on that route to have
+   A typical run in this domain goes as follows. We give the           become dangerous. The fifth trial is thus the one in which
+system a goal to get to a target location, B, starting from the        I CARUS discovers this change and faces the problem of adapt-
+initial location, A. The two locations are connected by two            ing to it. The subsequent trials trace the discovery and learn-
+alternate routes using waypoints W1 and W2, respectively.              ing of a novel route. The figure shows four curves for each
+From the location A, the agent sees connections to the neigh-          complexity level, corresponding to the four learning condi-
+boring locations, W1 and W2. Without a complete connec-                tions outlined above.
+tivity information from the current location to the target, both          The curve at the top of these graphs shows the result for the
+execution and problem solving fails, and the system falls back         fourth condition where only the declarative learning is active.
+                                                                   3006
+
+                                                                        straint violations than with either mechanism by itself. As
+                                                                        shown in Figure 5, the synergy is substantial: the number of
+                                                                        cycles is 17, compared to 19 for learning from constraint vi-
+                                                                        olations at complexity level 1 and the difference increases to
+                                                                        20 versus 26 at complexity level 2. These represents savings
+                                                                        of 10% and 22%, respectively. When compared to learning
+                                                                        from problem solving, the savings are even higher at 17%
+                                                                        and 32%.
+                                                                                             35
+                                                                                             30
+                                                                                             25
+                                                                            Learning Eﬀort
+                                                                                             20
+                                                                                                                               Both learning on
+                                                                                             15
+                                                                                                                               Learning from PS on
+                                                                                                                               Learning from CV on
+                                                                                             10
+                                                                                             5
+                                                                                             0
+                                                                                                    1                      2
+                                                                                                        Complexity Level
+Figure 4: Number of cycles taken to reach the target location
+in situations with three different levels of complexity. Four
+conditions are shown in different shapes and colors consis-             Figure 5: Learning efforts measured by the number of cycles
+tently throughout the three graphs.                                     at the fifth trial. The different between the two conditions
+                                                                        shows the synergistic advantage of adding another learning
+As one would expect, there is no change in effort across the            mode as complexity increases.
+four initial learning trials. Once the environment is changed,
+the system should perform search to find a path around the                 Both the performance differences at the final steady state
+dangerous waypoints, so computational effort is higher on the           and the learning effort measured at the fifth trials suggest syn-
+fifth trial, and then stays high because the system does not            ergistic effects of having multiple learning mechanisms in a
+acquire new skills from its experience.                                 single system. We found that the performance of the system
+   The next curve marked with triangular shapes is for the              when the mutiple mechanisms are active is distinctly better
+third condition, in which learning from constraint violations           than the performance with any one of the mechanisms.
+is active along with the declarative learning. Since the system
+does not learn any specific routes under this condition, there is                                 Related and Future Work
+no noticeable difference from the above condition on the first          This paper covers an ongoing research effort toward human-
+four trials. However, after the environment is changed, the             level variety of learning capabilities. In the current state, the
+system revises its skill for moving to a neighboring location           system includes three different modes of learning, each of
+based on the expected constraint violation of being at a dan-           which has a vast amount of related work in the literature.
+gerous location. For this reason, it performs noticeably better         First of all, learning from problem solving is closely related
+than the above condition where only the declarative learning            to previous research on macro-operators (Mooney, 1989;
+is turned on.                                                           Shavlik, 1989) among work on explanation-based learning.
+   In the other two conditions where learning from problem              The I CARUS approach shares the basic principle of compos-
+solving is active, the system rapidly learns an initial route           ing knowledge elements into larger structures. However, it
+in the first four trials. There is no measurable difference be-         support disjunctions and recursions in the skill hierarchy, in
+tween the two learning conditions with respect to the system’s          addition to the simple fixed sequences learned in systems with
+ability to learn an initial path, and the number of cycles re-          macro-operators.
+quired to traverse the landscape decreases about 50% from                  The mechanism for learning from constraint violations also
+the first trial to the fourth. After the peaks at their fifth tri-      has important similarities to previous work in explanation-
+als, the two conditions once again meet at roughly the same             based learning literature (Ellman, 1989; Wusteman, 1992).
+number of cycles in their steady states.                                These methods assume a significant amount of domain theo-
+   One crucial finding is that, on the fifth trial, the system          ries presumed to be perfect. To augment this limitation, re-
+adapts quicker to the changed environment when it runs with             searchers worked on the similar problems of blame assign-
+both learning from problem solving and learning from con-               ment and theory revision, although the exact formulations
+                                                                     3007
+
+were different from ours. Unlike most of these work, our ap-         Chi, M. T. H., & Ohlsson, S. (2005). Complex declarative
+proach includes explicit descriptions of constraints, which the        learning. In K. Holyoak & R. Morrison (Eds.), The Cam-
+system uses to detect failures and revise existing procedural          bridge handbook of thinking and reasoning (pp. 371–399).
+knowledge accordingly.                                                 Cambridge, UK: Cambridge University Press.
+   In contrast to the two learning methods above, the topic of       Choi, D., & Ohlsson, S. (2010). Learning from failures for
+learning declarative knowledge is significantly less studied.          cognitive flexibility. In Proceedings of the Thirty-Second
+Researchers agree on the fundamental differences between               Annual Meeting of the Cognitive Science Society. Portland,
+declarative and procedural knowledge (Anderson, 1976), and             OR: Cognitive Science Society, Inc.
+the both types of learning are popular research topics among         Ellman, T. (1989). Explanation-based learning: A survey
+neuroscientists in relation to particular brain regions (e.g.,         of programs and perspectives. ACM Computing Surveys,
+Weis et al., 2004; Quintero-Gallego et al., 2006). However,            21(2), 163–222.
+research for simulating declarative learning through compu-          Fikes, R., & Nilsson, N. (1971). STRIPS: a new approach
+tational means is not common. Chi and Ohlsson classified               to the application of theorem proving to problem solving.
+various types of changes to declarative knowledge as learn-            Artificial Intelligence, 2, 189–208.
+ing proceeds, but the work does not attempt to model them            Horn, A. (1951). On sentences which are true of direct unions
+computationally. We extended I CARUS to support declara-               of algebras. Journal of Symbolic Logic, 16(1), 14–21.
+tive learning, but the research is in a preliminary stage and        Könik, T., O’Rorke, P., Shapiro, D., Choi, D., Nejati, N., &
+requires further investigation.                                        Langley, P. (2009). Skill transfer through goal-driven rep-
+   Although our current work successfully shows the syner-             resentation mapping. Cognitive Systems Research, 10(3),
+gistic effects of multiple learning mechanisms in I CARUS,             270–285.
+this research is still at an early stage. We plan to extend the      Laird, J. E., Rosenbloom, P. S., & Newell, A. (1986). Chunk-
+architecture with yet another learning mechanism, possibly             ing in soar: The anatomy of a general learning mechanism.
+learning by analogy, to further verify our hypothesis of syn-          Machine Learning, 1, 11–46.
+ergy among learning mechanisms. As this paper suggests,              Langley, P., & Choi, D. (2006). Learning recursive con-
+it is not our focus to implement a powerful single learning            trol programs from problem solving. Journal of Machine
+mechanism. Rather, we aim to build a collection of distinct            Learning Research, 7, 493–518.
+learning capabilities that are written in a straightforward man-     Mooney, R. J. (1989). The effect of rule use on the util-
+ner. Learning by analogy will not be an exception, and we              ity of explanation-based learning. In Proceedings of the
+plan to start with a simple mechanism that maps objects to             Eleventh International Joint Conference on Artificial Intel-
+similar objects or predicates to to related ones. We find re-          ligence (pp. 725–730). Detroit, MI: Morgan Kaufmann.
+search on representation mapping by Könik et al. (2009) as a        Newell, A. (1990). Unified theories of cognition. Cambridge,
+good inspiration in this direction.                                    MA: Harvard University Press.
+                                                                     Ohlsson, S. (1996). Learning from performance errors. Psy-
+                          Conclusions                                  chological Review, 103, 241–262.
+The human ability to adapt to changing situations depends on         Ohlsson, S. (2011). Deep learning: How the mind overrides
+a variety of learning mechanisms. Therefore, an intelligent            experience. New York, NY: Cambridge University Press.
+agent cannot be limited to a single learning mode to simulate        Quintero-Gallego, E. A., Gómez, C. M., Casares, E. V.,
+human behavior properly. We extended I CARUS to support                Márquez, J., & Pérez-Santamarı́a, F. J. (2006). Declarative
+three different modes of learning to model this behavior. Our          and procedural learning in children and adolescents with
+initial results in a route generation domain show synergistic          posterior fossa tumours. Behavioral and Brain Functions,
+effects of having multiple learning mechanisms, especially             2(9).
+evident at higher levels of complexity in the environment. We        Shavlik, J. W. (1989). Acquiring recursive concepts with
+plan to continue exploring additional types of learning capa-          explanation-based learning. In Proceedings of the Eleventh
+bilities in this framework.                                            International Joint Conference on Artificial Intelligence
+                                                                       (pp. 688–693). Detroit, MI: Morgan Kaufmann.
+                     Acknowledgments                                 Weis, S., Klaver, P., Reul, J., Elger, C. E., & Fernández, G.
+                                                                       (2004). Temporal and cerebellar brain regions that support
+This research was funded by Award # N0001-4-09-1025 from               both declarative memory formation and retrieval. Cerebral
+the Office of Naval Research (ONR) to the second author. No            Cortex, 14(3), 256–267.
+endorsement should be inferred.                                      Wusteman, J. (1992). Explanation-based learning - a survey.
+                                                                       Artificial Intelligence Review, 6(3), 243–262.
+                           References
+Anderson, J. R. (1976). Language, memory, and thought.
+   Hillsdale, NJ: Lawrence Erlbaum.
+Anderson, J. R. (1993). Rules of the mind. Hillsdale, NJ:
+   Lawrence Erlbaum.
+                                                                 3008
+

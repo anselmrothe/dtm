@@ -1,0 +1,352 @@
+                     A Dynamic Neural Field Model of Speech Cue Compensation
+                                              Gavin W. Jenkins (gjenkins@sfu.ca)
+                                                     Paul Tupper (pft3@sfu.ca)
+                                         Department of Mathematics, 8888 University Drive
+                                                    Burnaby, B.C., V5A 1S6 Canada
+                               Abstract                               conveniently correlate with phoneme categories (though
+                                                                      there is some debate, see Stevens & Keyser, 2010). Rather,
+   Categorical speech content can often be perceived directly         most or all cue information shifts contingently based on the
+   from continuous auditory cues in the speech stream, but            contextual vowel sounds, speed of speech, or speaker.
+   human-level performance on speech recognition tasks                   Recent empirical and modeling evidence suggests that cue
+   requires compensation for contextual variables like speaker
+                                                                      invariance can be overcome by considering very large
+   identity. Regression modeling by McMurray and Jongman
+   (2011) has suggested that for many fricative phonemes, a           numbers (dozens) of speech cues and by actively identifying
+   compensation       scheme      can   substantially   increase      contexts then normalizing incoming speech compared to
+   categorization accuracy beyond even the information from 24        other contexts. Jongman, Wayland, and Wong (2000)
+   un-compensated raw speech cues. Here, we simulate the              gathered human listener identification data for eight
+   same dataset instead using a neurally rather than abstractly       fricatives (f, v, θ, ð, s, z, ʃ, ʒ) or henceforth (f, v, th, dh, s, z,
+   implemented model: a hybrid dynamic neural field model and         sh, zh) respectively, ranging from labiodental to post-
+   connectionist network. Our model achieved slightly lower
+   accuracy than McMurray and Jongman’s but similar accuracy
+                                                                      alveolar place of articulation and including both voiced and
+   patterns across most fricatives. Results also compared             voiceless fricatives at each place. Recordings of fricatives
+   similarly to more recent models that were also less neurally       spanned over 20 speakers and 6 vowel contexts. McMurray
+   instantiated but somewhat closer fitting to humans in              and Jongman (2011) then tested this corpus of data using an
+   accuracy. An even less abstracted model is an immediate            abstract logistic regression model. They tested the model
+   future goal, as is expanding the present model to additional       under several learning conditions, including a small
+   sensory modalities and constancy/compensation effects.             collection of 10 fricative-only cues, a large set of 24 cues
+   Keywords: Speech recognition, concepts and categories,             that also added vowel cues, and the same 24 cues, but with
+   neural networks, dynamic systems modeling, psychology,             expectation-based context compensation for vowel and
+   linguistics, cognitive science                                     speaker, using the formal regression compensation model C-
+                                                                      Cure (McMurray, Cole, & Munson, 2011). They determined
+   Constancy and Compensation in Perception                           that higher numbers of cues contributed to more accurate
+In most contexts, our senses provide more information than            identification per fricative, as did expectation-based context
+we require for a decision. This can make recognition tasks            compensation. Context compensation also allowed the
+difficult when the undesired, noisy information is not just           model to fit human behavior more closely.
+alongside but integrally mixed with desired information. As
+examples, the overall lighting of a scene as well as the               Neural Implementation of Cue Compensation
+reflectance or color of an object both affect the object’s            McMurray and Jongman’s (2011) results are a compelling
+perceived lightness and hue; the actual shape of an object            demonstration of the importance of a large number of cues
+and viewing angle both affect perceived shape; and a                  and of cue compensation for fricative identification.
+speaker’s gender and the content of his or her speech both            However, the model is abstract and mathematical in both
+affect sound pitch. Humans are adept at discounting noise             phoneme categorization and cue compensation. Such
+and ambiguities, achieving location, shape, or speech cue             models are important, but a model in a neural framework
+constancy (Schneegans & Schöner, 2012; Rock, 1983;                    offers a chance to discover and understand processes driving
+Bendor & Wang, 2005). Here, we present a neurally                     behavior that may derive from neural-level interactions not
+plausible, computational model potentially suitable for any           considered at an abstract level. Formal neural models also
+type of constancy that relies on discounting dimensional              generate testable and informative neural level tests and
+feature information such as hue, shape cues, or speech cues.          predictions. Apfelbaum and McMurray (2015) presented a
+   Specifically, we test the model by identifying fricative           neural two layer PDP neural network for phoneme
+consonants (‘fricatives’) from whole spoken syllables. We             categorization, which performed impressively and
+assume a speech cue to phoneme model, in contrast to a                comparably to McMurray and Jongman’s (2011) results, but
+more purely acoustic approach (Graves, Mohamed, &                     cue representation, context identification and context
+Hinton, 2013; Pisoni, 1997), but our model could adapt to a           compensation were all still abstracted mathematically.
+raw acoustic approach with very similar architecture.                    Here, we present a neural model to capture the same
+   In the speech cue approach, few, if any, speech cues for           behavioral data as McMurray and Jongman (2011) and to
+fricatives are considered “invariant.” That is, individual cues       further expand and supplement our understanding of speech
+like vowel duration do not statically, cleanly, and                   cue compensation from a neural perspective. We use a
+                                                                    508
+
+dynamic neural field (DNF) model for attention, memory,          input. These interactions keep peaks stable and localized yet
+and storage of known speaker speech profiles instead of          robust against noise. Fields can be parameterized to have
+direct coding of these steps into the model, a DNF cue           peaks collapse once input is removed (such as for attention)
+compensation mechanism instead of C-Cure, and a single           or to sustain themselves afterward (for memory).
+layer neural network to ultimately decide phonemes.                 Fields interact along shared dimensions. A field organized
+   The DNF architecture is described in detail below, but in     by pitch might send activation from above-threshold peaks
+general, DNF models involve fields of neural units whose         to contribute to corresponding peaks in other pitch fields. A
+receptive fields are systematically organized by dimensional     1-dimensional field projecting to a 2-dimensional one
+information like space, size, color hue, or pitch. The DNF       projects a “ridge” of activation across all units in the larger
+approach does not assume that all cognition is organized         field with the corresponding receptive fields and vice versa.
+this way, only a subset of representations and processing           Fields also receive spatially correlated noise “input.” This
+that involve dimensional data. This includes attention to        is insufficient to form peaks of activation alone, but is able
+certain dimension values (attending to particular colors or      to meaningfully influence other, stronger activity.
+points in space, for example), memory traces of those               Figure 1 shows the full layout of just one speech cue in
+values, or in the current model, shifting cue values along a     the model. That is, all of Figure 1 is repeated in the model
+dimension to compensate for speaker identity. Beyond these       for every speech cue. Initial input arrives at the input cue
+processes, connectionist networks often take control. Hybrid     field (black star icon, blue region). In the example shown,
+models can include both in simulations, such as McMurray,        the listener is hearing two different values of a cue. This
+Horst, Toscano, and Samuelson (2009) or the current model.       could be due to hearing two speakers simultaneously, for
+   DNF models have been used for simulating processes            example. This input projects to the adjacent attention field.
+ranging from word learning (McMurray, et al., 2009;              Attention is a competitive field, where above-threshold units
+Samuelson, Spencer, & Jenkins, 2013), to motor planning          project global inhibition to the rest of the field, leading to a
+(Erlhagen & Schöner, 2002), to object recognition (Faubel        winner-takes-all activation pattern.
+& Schöner, 2008) and more, and the current model uses               Both attention and input fields then project activation to a
+many of the same neural fields as do the above models in         working memory (WM) field. This is a field with self-
+the same layouts. Mechanisms for different cognitive             sustaining peaks, holding information for a time even after it
+processes provide testable predictions for one another and       has died away in temporary perception or attention fields.
+can potentially be considered together as a coherent whole       WM connects to a number of other fields of units
+and unified model. This is not an advantage exclusive to         representing long term memory (LTM) of speech cues.
+neural models, but it is natural to them, since a shared,        (right side of Figure 1). LTM fields are not dynamic; they
+fundamental language is encouraged by common neural              are feed-forward and activated in a 1:1 correspondence with
+level simulation.                                                working memory. Long term memory information is held in
+   Our model of fricative perception utilizes several already-   Hebbian connection weights between WM and LTM fields.
+established DNF and connectionist mechanisms. The core           Whenever peaks are active in WM fields, LTM units
+neural field dynamics are common to all DNF models; the          represent the mathematical product of recent memory
+perceptual and memory portions of the model are common           activation and LTM patterns. Thus, the total activation in
+to DNF models that involve categorization; the phonetic cue      LTM fields is effectively a similarity rating between recent
+compensation mechanism is inspired by a spatial                  speech cues and long term remembered patterns. If each
+transformation mechanism used in a DNF model of head             LTM field and its Hebbian weights hold information of the
+and eye gaze spatial adjustment (Scheegans & Schöner,            history of cue values of an individual speaker, this similarity
+2012); and the categorization step is performed by a             signal allows a listener to identify a known speaker’s voice
+sigmoidal connectionist network rather than logistic             by competitively comparing the summed activation of LTM
+regression, similar to Apfelbaum and McMurray (2015).            fields (top right of Figure 1).
+                                                                    Using speaker identity from above, the model activates a
+    Dynamic Neural Field Model Architecture                      corresponding memory of the correct adjustment for that
+The Dynamic Neural Field (DNF) model consists of many            speaker’s irregularities (green region, Figure 1). The 2-
+1- and 2-dimensional fields, shown as white rectangles in        dimensional transform field (green region) accepts input
+Figure 1. Units in fields are organized by one or two metric     from this adjustment value (top) and from the raw attended
+dimensions like cue values (such as voice onset time) or         value (right) and adds them into a normalized cue value
+amount of adjustment needed to a cue. Each unit in a field       (lower left). Addition is performed by the overlap in
+has a receptive field maximally sensitive to one input value     activation between raw and adjustment ridges creating an
+along its metric dimension(s) and less so to nearby values.      intersecting diagonal ridge that projects to the summed
+   Units within a field interact with one another, sending       value in the lower left diagonal neural field (red region of
+close, strong local excitation and weaker, more diffuse          Figure 1). The same mechanism is suggested by Schneegans
+lateral inhibition to neighbors. Both these interactions and     and Schöner (2012) for adding the angle of head rotation
+input receptive fields create Gaussian “peaks” and “ridges”      and angle of eye gaze to determine angles between body and
+of activation when a field is given even a single value of       objects in the visual environment. When an adjustment is
+                                                               509
+
+                                                                                                24) and compensation (24 without vs 24
+                                                                                                with) for accurate (and human behavior-
+                                                                                                fitting) phoneme categorization.
+                                                                                                   Differences in DNF model architecture
+                                                                                                compared to McMurray and Jongman’s
+                                                                                                (2011) model necessitated some lesser
+                                                                                                complexity in practical simulations. The
+                                                                                                DNF model compensated only for speaker
+                                                                                                context, not vowel context, due to the
+                                                                                                ability to only perform one compensation
+                                                                                                in a transform field at a time. Two or more
+                                                                                                compensations could simply and plausibly
+                                                                                                be performed in two or more fields in
+                                                                                                parallel, but would not better prove the
+                                                                                                concept initially and would take much
+                                                                                                longer to simulate. The neural transform
+                                                                                                field is also only capable of linear shifting
+                                                                                                adjustments along a dimension, which is
+                                                                                                less theoretically sophisticated than C-Cure
+                                                                                                compensation.
+Figure 1. Architecture of a single cue in the DNF model. The full model consists of either          The neural network (red) portion of the
+  10 or 24 copies of this entire figure, except for just one set of output nodes shown in the    DNF model was tuned first, without
+                     lower left corner. See text for detailed description.                       dynamic neural field input. Dynamic
+                                                                                                 fields involve highly parallel processing,
+ not known, a default adjustment of zero is used (suppressed                  and are thus unrealistically slow to simulate on computers.
+ otherwise).                                                                  Dynamic fields were therefore switched on during testing
+    The now-normalized cue information is transformed from                    only. Training of the network used two out of every three
+ dimensionally coded to rate coded format (red region of                      syllable tokens from the same dataset categorized by
+ Figure 1). A gradient of connection weights projects                         humans, pre-coded for speech cues. In each epoch of
+ stronger activation to the rate unit for peaks on one side of                training, the network received all training tokens once,
+ the cue dimension than the other. The sum of the                             blocked by speaker. The network received 2,000 epochs of
+ dimensionally coded field also projects to the rate unit,                    training in each condition, with a learning rate of 0.3 and
+ allowing it to distinguish between no peak and a peak at the                 sigmoidal activation function. Cues were (mathematically
+ weak end of the scale. An almost identical neural circuit for                during training) compensated during training for speaker
+ place-to-rate code conversions is suggested by Groh (2001).                  prior to the neural network, for conditions including
+    Finally, the normalized, rate-coded cue information feeds                 compensation.
+ across a single layer network to determine the model’s best                     The DNF long term memory fields were also pre-loaded
+ guess at a phoneme. This final portion of the model equates                  with memory traces matching each speaker’s cue profile
+ to the neural portion of Apfelbaum and McMurray’s 2015                       (representing our memories of specific people’s voices) and
+ PDP model of this data. Although only one cue node is                        each speaker’s adjustment value. Adjustments were chosen
+ shown, recall that all of the Figure 1 architecture is repeated              such that a linear shift would cause each speaker’s mean
+ per cue, creating a full [cues] x [phonemes] single layer                    value in a cue across recordings to equal the population
+ network with one set of weights across speakers.                             mean value in that cue among the whole set of speakers.
+                                                                              The model could capably establish this information itself
+                    Experimental Design                                       with DNF during training, but this was impractically slow.
+ We tested the DNF model using the fricatives phoneme                            At test, the entire model was connected and used as a
+ dataset from Jongman, Wayland, and Wong (2000),                              whole to categorize one epoch of the reserved generalization
+ including 8 fricatives spoken by 20 speakers each, in 6                      tokens, using the previously trained neural network.
+ vowel contexts (fricative + vowel syllables). McMurray and                      We recorded accuracy across test trials using two
+ Jongman (2011) analyzed this data in several ways, but we                    different  choice rules, as did McMurray and Jongman
+ focus here on neurally replicating three analyses in                         (2011). A discrete-choice rule always chose the phoneme
+ particular: phoneme categorization with 10 fricative-only                    with the highest activation in the output of the decision
+ cues and no compensation; with 24 cues to both fricative                     network. A probabilistic rule treated relative activation of
+ and accompanying vowel with no compensation, and with                        each output node as relative probability of choosing that
+ 24 cues and compensation. Together, these test the                           phoneme. The results figure (Figure 2) depicts colored
+ importance of number of cues and vowel information (10 vs                    regions bounded by these two different measures.
+                                                                            510
+
+                           Results                               For other cues, like fricative duration (right side of Figure
+                                                               3), there was a consistent relationship across speakers for
+Results of simulations are shown in Figure 2. Compared to
+                                                               one phoneme’s values versus another, and compensation
+McMurray and Jongman’s (2011) mathematical model, the
+                                                               helped across all speakers.
+neural implementation of phoneme perception performed
+                                                                 Running the DNF model without the worst cues did not,
+somewhat less absolutely accurately and somewhat less well
+                                                               however, increase model fits. The best results (by a small
+fitted to human performance across conditions. However,
+                                                               margin) were found when the worst nine cues were left
+the simulations were overall comparable while including
+                                                               uncompensated, but the overall improvement was not
+many neurally-implemented mechanisms previously only
+                                                               significantly better fitting than when compensating all cues,
+abstractly implemented.
+                                                               suggesting the network in the model is capable of
+   A large number of cues including vowel cues (24 cues,
+                                                               discounting unproductive cues sufficiently. Low DNF
+middle panel) provided moderate benefit compared to a
+                                                               accuracy for ‘f’ and ‘v’ fricatives remains unexplained.
+medium number of fricative-only cues (10 cues, top panel)
+in terms of raw accuracy (+8% McMurray and Jongman
+[M&J], +11% DNF). Fit to human data worsened for M&J
+(RMSE from 0.077 to 0.099). Fit remained steady for the
+DNF model (RMSE of 0.156 in both cases), but results
+broadly shifted in line with human results in both models.
+   The addition of a speaker compensation system boosted
+raw accuracy in both models (+8% M&J, +3% in the DNF
+model) and fit human data more closely for M&J (RMSE
+from 0.099 to 0.061) and more closely for the DNF model
+(RMSE from 0.1563 to 0.1231).
+   The bottom panel in Figure 2 includes two additional
+lines, representing results from Apfelbaum and McMurray
+(2015) models. The grey line shows the performance of
+their PDP neural decision network (but otherwise not
+neurally implemented) model. The PDP model performed
+well quantitatively but with a flat performance across
+fricatives. The green line shows the performance of an
+exemplar model that stored every individual syllable token
+from the training set in memory for use in categorizing test
+items. The exemplar model performed very well, but had no
+neural implementation, and storage of every individual
+syllable in memory is likely unrealistic.
+   Qualitatively, the pattern of accuracy in the DNF model
+fits human data in shape about as well as the other models.
+Non-sibilant fricatives ‘f’ and ‘v’ were routinely low
+accuracy compared to humans for the DNF model, but the
+‘th, dh, s’ dip shape is more accurately captured across
+conditions by the DNF model.
+   In an attempt to explore possible causes of our model’s
+consistently low accuracy for ‘f’ and ‘v’, we tested the
+model with portions of the data including only 2 phonemes
+and 1 cue at a time. Two examples of 2-phoneme, 1-cue
+results are shown in Figure 3. The top row is data before
+speaker compensation, and the bottom row after. Horizontal
+position is value along the listed cue dimension (measured
+from the normalized DNF cue field) and each thin rows of
+dots is a different speaker. For some cues like spectral
+kurtosis (left), linear speaker compensation was able to        Figure 2. Simulation results. Shaded regions in the top two panels
+actually lower accuracy in this analysis. One speaker may         represent the accuracy range bounded by discrete-choice and
+have had higher values for ‘v’ than ‘zh’ while another had      probabilistic accuracy. The bottom panel shows only the mean of
+not just a shifted but an opposite relationship between the       these two measures and dashed target line for easier reading.
+same phonemes. Thus, when speakers’ adjustments were
+chosen to match global means, some values for each
+phoneme shifted one direction, others shifted another, and
+confusion between the phonemes actually increased!
+                                                             511
+
+        Figure 3. Cue values for test speakers before and after speaker compensation in the DNF model. Spectral kurtosis
+                results in lower accuracy after compensation, while fricative duration results in higher accuracy.
+                                                                    DNF model naturally accounts for both prototype and
+                          Discussion                                exemplar memory representations, with no qualitatively
+The DNF model establishes a set of plausible neural                 different architecture than is described above. The
+mechanisms for categorizing speech cues and compensating            dimension-coded LTM fields (right side of Figure 1) can
+for variance between speakers. Accuracy was unsurprisingly          store a profile of information about a specific speaker’s
+lower than more abstract models, but only slightly so, and          history of one auditory cue’s values, but could as easily
+the qualitative pattern of DNF model results realistically          store a profile for “males” or “females” in general, or for a
+follows that of human behavior.                                     specific moment of speech in time. Such stored information
+   The weakest portion of the DNF model quantitatively is           should be able to capture known human behaviors. For
+its ‘f’ and ‘v’ accuracy. The possibility that some cues like       instance, Johnson, Strand, and D’Imperio (1999) presented
+spectral kurtosis were unhelpful for these phonemes when            discrimination results between speakers by gender that may
+compensating for speaker was investigated and rejected as a         be captured by DNF modeling. Artificial groups of
+hypothesis. An alternative explanation for this relative            phoneme tokens should also be able to be constructed
+weakness is a high priority for future modeling.                    grouped by a features beyond gender or speaker, such as
+   Other directions for future work involve capitalizing on         visual scene context, arbitrary label, or otherwise. The DNF
+the rich representations that exist in a neural implementation      model would predict that active compensation for any such
+and removing automated processes in model simulations.              grouping may be feasible, useful, and actually utilized by
+   The DNF model currently pre-loads some information               humans in categorizing those phonemes.
+into long term memory fields, like speaker adjustment                  The fact that the DNF model can represent 24-cue stimuli
+profiles (as do competitor models). One high priority for           at all in a neurally plausible way is an advantage over some
+model improvement is to remove this artificial seeding of           accounts of stimulus representation that will be explored
+information into the model and replace it with online               further. McMurray and Jongman (2011) established the
+learning of speaker adjustments. Speaker adjustments will           importance of considering many cues for accuracy. Many
+be learned when context clues in the speech environment             models have represented multidimensional stimuli,
+provide information about a speaker’s intended phoneme              however, only in an abstract, n-dimensional “feature space”
+beyond speech cues alone. Correct phoneme information               (Richardson, 1938; Nosofsky, 1986). Such a space cannot
+can activate expected values for speech cues for that               exist biologically, since a handful of dimensions requires
+phoneme. These values can then be subtracted from the raw,          more neurons than exist in the brain. The DNF model offers
+perceived speech cue values of the speaker, using a                 a solution to this problem: the architecture for a single cue
+transform field exactly like the one in the green region of         (Figure 1) need only be replicated linearly for additional
+Figure 1. The resulting adjustment value will then be stored        cues. 24-cue stimuli require only 24 times more neural
+for use later when context clues are unavailable (achieving         resources than single cue stimuli.
+the current starting point of the model).                              This advantage of easily incorporating many new
+   The DNF model also currently blocks trials by speaker in         dimensions of information extends beyond auditory cues to
+order to conveniently activate one speaker memory profile           dimensional information of nearly every other type. Visual
+at a time without rapid switching. Humans are able to utilize       dimensional features, for example, like size, orientation,
+speaker information per syllable, however, so adapting the          spatial frequency, or color hue can be represented in much
+model to have this capability is a third modeling priority.         the same way as speech cues. Critically, just as voice
+This improvement requires only parameterization and gating          features can be compensated and discounted, then, so can
+of existing units to achieve more reliable timing.                  environmental lighting, distance, or angle of view. The
+   Some of the DNF model’s features suggest testable                current model can therefore potentially provide a unified
+predictions for future investigation as well. For example, the      explanation of effects like shape or size constancy as a
+                                                                  512
+
+result of the same or a similar mechanism to phoneme                In IEEE International Conference on Acoustics, Speech,
+constancy shown here. The model may similarly be relevant           and Signal Processing, 6645-6649.
+to aftereffects in “high-level” sensory processing, like face     Groh, J. M. (2001). Converting neural signals from place
+distortion adaptation (Köhler & Wallach, 1944), as a result         codes to rate codes. Biological Cybernetics, 85, 159-165.
+of adjustment peaks requiring a short period of time to shift     Johnson, K., Strand, E. A., & D’Imperio, M. (1999).
+or die away when a stimulus is changed.                             Auditory-visual integration of talker gender in vowel
+   A final advantage of the DNF model is that it can process        perception. Journal of Phonetics, 27, 359-384.
+several feature or cue values at once through its                 Jongman, A., Wayland, R., & Wong, S. (2000). Acoustic
+compensation mechanism. Only one adjustment is used here            characteristics of English fricatives. Journal of the
+for practical simulation time during initial modeling, but          Acoustical Society of America, 108, 1252-1263.
+any number of parallel fields could be used with only             Köhler, W. & Wallach, H. (1944). Figural after-effects: An
+linearly increasing neural investment, allowing many types          investigation of visual processes. Proceedings of the
+of compensation at once. This is unlikely to help phoneme           American Philosophical Society, 88, 269-357.
+categorization further, but it would predict an advantage for     McMurray, B., Cole, J. S., & Munson, C. (2011). Features
+compensating for context information in whole “scenes” of           as an emergent product of computing perceptual cues
+information in other modalities, such as distinguishing             relative to expectations. In C.N. Clements and R.
+between “forest sounds” and “jungle sounds,” benefitting            Ridouane (Eds.), Where do Phonological Features Come
+from many parallel compensations along diverse dimensions           From? Cognitive, Physical, and Developmental Bases of
+at once. The DNF model not only predicts the capability of          Distinctive Speech Categories (197-236). Amsterdan,
+humans to perform normalized categorizations of this sort,          John Benjamins.
+but it predicts specific dynamics. If cue values are distinct,    McMurray, B. & Jongman, A. (2011). What information is
+they should not interfere with one another, but if near one         necessary for speech categorization? Harnessing
+another along a dimension, lateral dynamics within the              variability in the speech signal by integrating cues
+initial perceptual fields (blue region, Figure 1) fields should     computed relative to expectations. Psychogical Review, 2,
+sharpen both peaks, or cause them to merge, etc., leading to        219-246.
+distinct predicted categorization decisions.                      McMurray, B., Horst, J. S., Toscano, J. C., & Samuelson, L.
+   Overall, compensation performance in the DNF model is            K. (2009). Integrating connectionist learning and
+promising. Future work will focus on increasing the model’s         dynamical systems processing: Case studies in speech and
+self-sufficiency      without      pre-loaded      information,     lexical development. In Spencer, J. P., Thomas, S. C., &
+investigation of novel behavioral predictions of the model,         McClelland, J. L. (Eds.), Toward a Unified Theory of
+and expanding simulations to other sensory domains.                 Development (218-249). Oxford University Press.
+                                                                  Miller, J. L. (2001). Mapping from acoustic signal to
+                    Acknowledgments                                 phonetic category: Internal category structure, context
+This research was supported in part by a Discovery Grant            effects and speeded categorization, Language and
+awarded by NSERC Canada and a Tier II Canada Research               Cognitive Processes, 16(5/6), 683-690.
+Chair. The authors would like to thank Bob McMurray and           Nosofsky, R. M. (1986). Attention, similarity, and the
+Allard Jongman for their prior model and consultation.              identification-categorization relationship. Journal of
+                                                                    Experimental Psychology: General, 115(1), 39-57.
+                                                                  Pisoni, D. B. (1997). Some thoughts on “normalization” in
+                         References                                 speech perception. In K. Johnson & J. W. Mullennix
+Apfelbaum, K., & McMurray, B. (2015). Relative cue                  (Eds.), Talker variability in speech processing (9-32). San
+   encoding in the context of sophisticated models of               Diego, CA: Academic Press.
+   categorization:      Separating       information       from   Richardson, M.W. (1938). Multidimensional psychophysics.
+   categorization. Psychon Bull Rev, 22, 916-943.                   Psychological Bulletin, 35, 659-660.
+Bendor, D. & Wang, X. (2005). The neuronal representation         Rock, I. (1983). The logic of perception. Cambridge, MA:
+   of pitch in primate auditory cortex, Letters to Nature, 436,     MIT Press.
+   1161-1165.                                                     Samuelson, L. K., Spencer, J. P., & Jenkins, G. W. (2013).
+Erlhagen, W. & S. & Schöner, G. (2002). Dynamic field               A dynamic neural field model of word learning. In Gogate
+   theory of movement preparation. Psychological Review,            & G. Hollich (Eds.), Theoretical and computational
+   109, 545-572.                                                    models of word learning: Trends in psychology and
+Faubel, C. & Schöner, G. (2008). Learning to recognize              artificial intelligence. Hershey, PA, US: Information
+   objects on the fly: A neurally based dynamic field               Science Reference / IGI Global.
+   approach. Neural Networks, 98 (3), 419-456.                    Schneegans, S. & Schöner, G. (2012). A neural mechanism
+Goldinger, S. D. (1998). Echoes of echoes? An episodic              for coordinate transformation predicts pre-saccadic
+   theory of lexical access. Psych. Rev., 105, 251-279              remapping. Biological Cybernetics, 106, 89-109.
+Graves, A., Mohamed, A.-R., and Hinton, G. E. (2013).             Stevens, K. N. & Keyser, S. J. (2010). Quantal theory,
+   Speech recognition with deep recurrent neural networks.          enhancement and overlap. Journal of Phonetics, 38,10-19.
+                                                                513
+

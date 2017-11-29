@@ -1,0 +1,380 @@
+                                Teaching by Intervention: Working Backwards,
+                                    Undoing Mistakes, or Correcting Mistakes?
+                                                  Mark K Ho (mark ho@brown.edu)
+              Department of Cognitive, Linguistic and Psychological Sciences, Brown University, 190 Thayer Street
+                                                         Providence, RI 02912 USA
+                                           Michael L. Littman (mlittman@cs.brown.edu)
+                                Department of Computer Science, Brown University, 115 Waterman Street
+                                                         Providence, RI 02912 USA
+                                            Joseph L. Austerweil (austerweil@wisc.edu)
+                         Department of Psychology, University of Wisconsin-Madison, 1202 W Johnson Street
+                                                          Madison, WI 53706 USA
+                                Abstract                                & Barto, 1998). The first, backward chaining, is motivated
+   When teaching, people often intentionally intervene on a             by algorithms such as value iteration (Bellman, 1957) that
+   learner while it is acting. For instance, a dog owner might          solve multi-stage decision-problems by propagating informa-
+   move the dog so it eats out of the right bowl, or a coach might      tion about rewards to previous states that lead to those re-
+   intervene while a tennis player is practicing to teach a skill.
+   How do people teach by intervention? And how do these                wards. Intuitively, this is akin to teaching a task by “work-
+   strategies interact with learning mechanisms? Here, we ex-           ing backwards”, first ensuring that the learner knows how to
+   amine one global and two local strategies: working backwards         reach a goal from the penultimate state, and then reach the
+   from the end-goal of a task (backwards chaining), placing a
+   learner in a previous state when an incorrect action was taken       penultimate state from the antepenultimate state, and so on.
+   (undoing), or placing a learner in the state they would be in if     We consider this a global intervention strategy since it in-
+   they had taken the correct action (correcting). Depending on         volves changing the learner’s state in a manner that reflects
+   how the learner interprets an intervention, different teaching
+   strategies result in better learning. We also examine how peo-       the structure of the entire task, rather than a small part of it.
+   ple teach by intervention in an interactive experiment and find      The second strategy, undoing, is motivated by the intuition
+   a bias for using local strategies like undoing.                      that interventions prevent learners from executing an unde-
+   Keywords: teaching, intervention, reinforcement learning             sirable action by having them restart from the state they per-
+                                                                        formed the undesirable action. The third strategy, correcting,
+                           Introduction                                 intervenes on a learner when she executes an undesirable ac-
+When attempting to teach another agent, people have many                tion (like undoing), but places her in the state she would have
+tools at their disposal. They may choose to explain (Callanan           gone to if she had taken the desired action. Unlike backwards
+& Oakes, 1992), give a demonstration (Brugger, Lariviere,               chaining, undoing and correcting involve local changes to an
+Mumme, & Bushnell, 2007; Buchsbaum, Gopnik, Griffiths,                  agent’s state.
+& Shafto, 2011; Király, Csibra, & Gergely, 2013), or offer
+                                                                           How could a learner interpret an intervention? In a typi-
+rewards and punishments for taking certain actions (Knox &
+                                                                        cal reinforcement learning setting, an agent takes an action
+Stone, 2015; Ho, Littman, Cushman, & Austerweil, 2015).
+                                                                        in a state, and then the environment rewards or punishes her
+Another way in which people teach a learner is by interven-
+                                                                        and moves her to a new state (Figure 1). We formalize four
+ing on the learner or the learner’s environment. For example,
+                                                                        ways that an intervention can be interpreted. First, the inter-
+if a puppy urinates on the carpet when a person is trying to
+                                                                        vention may simply reset the learner in a new location from
+teach the puppy to urinate on a pad, a person might move
+                                                                        which the next action will be taken. Second, the next state
+the puppy to the pad or move the pad to the puppy. When
+                                                                        that the learner is moved to could be interpreted as part of a
+teaching another person a skill like tennis, a teacher might in-
+                                                                        transition in the environment. Third, the intervention could
+tervene on the trainee mid-movement and either adjust their
+                                                                        be treated as an interruption in a learner’s stream of behavior
+arm to match the target movement or stop them to start over.
+                                                                        such that the undesirable action just taken never happened.
+The space of possible ways in which a teacher could change
+                                                                        Fourth, the intervention could be treated as a disruption, in
+a learner’s situation for pedagogical purposes is large. This
+                                                                        which the intervention is experienced negatively. Each of
+raises several questions: First, what is the effectiveness of
+                                                                        these accounts may interact with a teacher’s training strategy
+different intervention strategies? Second, how could learners
+                                                                        in different ways, meaning that the best teaching strategy may
+interpret interventions and how does the interpretation affect
+                                                                        be dependent on the learner’s intervention interpretation.
+a teaching strategy’s efficacy? And, finally, what teaching
+strategies do people tend to use?                                          The outline of the paper is as follows. First, we review
+   In this work, we examine three teaching by intervention              the reinforcement learning framework. Second, we formalize
+strategies from a reinforcement learning perspective (Sutton            four different ways that a reinforcement learning algorithm
+                                                                    526
+
+                                            (b)              Reset                                          Interrupt
+         (a)          Standard
+              State-Action Sequence
+                                                             Transition                                       Disrupt
+Figure 1: (a) Standard state, action, reward, next state sequence of a Markov Decision Process at a given time step. (b) Four
+different interpretations of a teacher intervening to place the learner in state vt in response to a learner’s action at from state st .
+When interventions are interpreted as reset, transition, or disrupt, rt is respectively determined by the environmental next state,
+st0 , the teacher’s next state, st+1 , or the teacher’s intervention, vt . When the the intervention is treated as interrupt, no reward
+experienced and no learning occurs for that time step.
+could interpret an intervention and three teaching strategies.            Q-Learning One algorithm for learning an optimal policy
+Third, we conduct simulations to examine how efficacious                  is Q-learning, which is an off-policy temporal difference con-
+different teaching strategies are depending on how a learner              trol algorithm. Under mild assumptions, Q-learning con-
+interprets their interventions. Fourth, we conduct an exper-              verges to the true action-value function (Watkins & Dayan,
+iment to investigate how people teach by intervention. We                 1992). Moreover, humans and animals both engage in the
+find that undoing, a local intervention strategy, is often ef-            type of error-driven reward learning found in Q-learning,
+fective and that people tend to teach most often by undoing,              making it a useful model with which to test different human
+occasionally correcting, and rarely backward chaining.                    teaching strategies (Niv, 2009). We use one form of this algo-
+                                                                          rithm, one-step Q-learning, which is defined by the following
+                 Computational Modeling                                   update rule given a tuple (s, a, s0 , r):
+In this section we present the standard reinforcement learning
+(RL) formalism, discuss the four intervention interpretations,                Q(s, a) ← Q(s, a) + α[r + γ max Q(s0 , a0 ) − Q(s, a)].  (2)
+                                                                                                              a0
+and define the three teaching strategies.
+                                                                          where α is the learning rate. We convert the estimated action-
+Reinforcement Learning RL describes how an agent inter-
+                                                                          value function to a policy using the softmax decision-rule
+acts with an environment and learns reward-maximizing be-
+                                                                          π(a | s) = exp{Q(s, a)/λQ }/ ∑a0 exp{Q(s, a0 )/λQ }, where λQ
+haviors (Sutton & Barto, 1998). Formally, an RL algorithm
+                                                                          is a temperature parameter controlling the probability that an
+learns to take actions in a Markov Decision Process (MDP),
+                                                                          agent takes the action estimated to yield the largest reward de-
+defined by the tuple < S, A, T, R, γ >: a set of states in the
+                                                                          pending on the relative rewards she could get by taking other
+world S; a set of actions for each state A (s); a transition func-
+                                                                          actions.
+tion that maps state-action pairs to a probability distribution
+over next states, P(s0 | s, a); a reward function that maps states        Teaching by Intervention
+to scalar rewards, R : S → R; and a discount factor γ ∈ (0, 1].
+                                                                          Interpreting Interventions The standard RL formulation
+     At each time step t, an RL agent takes an action at from
+                                                                          does not define how interventions should be interpreted.
+a state st , which results in moving to next state st+1 and a
+                                                                          Thus, we posit four different possible interpretations here,
+reward rt+1 = R(st+1 ) (Figure 1). Actions are determined
+                                                                          depicted in Figure 1. The four interpretations are motivated
+by the agent’s policy π that maps states to distributions over
+                                                                          by formalizing the following two intuitions in different ways.
+actions. For a policy π, the value at each state, V π (s), is:
+                             "                      #                     First, a teacher could be treated as a part of the environment
+                                ∞                                         such that her intervention directly changes the next state of
+                V π (s) = Eπ   ∑ γk rt+k+1 | st = s   .          (1)      the learner (possibly stopping the feedback she would have
+                               k=0
+                                                                          received had she gone to the next state had the intervention
+The optimal policy, π∗ , is one that maximizes the value func-            not happened). Second, a teacher is distinct from the stan-
+tion in every state, V ∗ (s) = maxπ V π (s), ∀s ∈ S. An agent uses        dard MDP environment, and intervenes as a direct response
+state, action, next state, reward tuples to learn an optimal pol-         to a learner having taken an action and ended up in a next
+icy.                                                                      state.
+                                                                     527
+
+   Formally, at a time step t, the learner in state st takes an                                   Teacher’s Reward Function
+action at and ends up in new state st0 . If the teacher does not
+intervene, st+1 = st0 . Otherwise, a teacher intervenes to place                                  *                                *
+                                                                                                 -10                             +10
+the learner in state vt ∈ S. For all intervention types, st+1 = vt .
+However, if the teacher’s intervention is interpreted as a re-                                         -1 -1            -1 -1
+set, then the learner performs a Q-learning update using the
+tuple (st , at , st0 , R(st0 )), meaning that she still receives the re-                               -1 -1            -1 -1
+ward she would have gotten had she reached st0 as the next                                                        Start
+state. If it is interpreted as a transition, then the learner up-
+dates with (st , at , vt , R(vt )), meaning that she gets the reward                               Learner’s Reward Function
+had she taken the action that would move her from st to vt .
+If it is an interruption, then the learner does not update the                                    *                                *
+state-action value function the state-action pair that was in-
+                                                                                                 +10                             +10
+tervened on, and she takes her next action in st+1 = vt . If it
+is interpreted as a disruption, then the learner updates with
+(st , at , vt , −1).
+Teaching Strategies We discuss three teaching strategies:                                                         Start
+backward chaining, undoing, and correcting. A teacher
+using backward chaining has an n-length trajectory J =<                                                Experiment Interface
+(s1 , a1 ), ..., (sn , an ) > that she uses to teach the learner. We
+denote the states in the trajectory as SJ = {si : i = 1, 2, 3..., n}.
+The teacher also has a utility function over different inter-
+ventions, where initially U0 (si ) = i for i = 1, 2, 3, ..., n and
+U0 (s) = −∞ for s ∈ S \ SJ . On each time step, the teacher’s
+utility function is updated as:
+                                (
+                                  Ut (st ) − 1 if (st , at ) ∈ J
+                 Ut+1 (st ) =                                              (3)
+                                  Ut (st ) otherwise.
+                                                                                   Figure 2: Task used for simulations and experiment. Aster-
+Teachers only intervene when the agent performs an action                          isks (*) indicate absorbing states, both providing reward to
+inconsistent with the trajectory (i.e. (st , at ) ∈         / J) and place the     the learner, whereas the teacher received reward if the learner
+agent in a next state according to a softmax decision rule over                    entered the right door, but was punished if the learner entered
+their utilities: P(v) ∝ exp{Ut (v)/λ}, where λ is a tempera-                       the left door. The teacher received a mild punishment when-
+ture parameter. The backward chaining teacher is initially                         ever the learner entered a garden tile.
+more likely to move the agent closer to the end of a target
+trajectory, but as the agent shows they can perform the target
+                                                                                   Task
+action in a state the utility of moving the agent to that state de-
+creases. Meanwhile, the relative utility of placing the agent                      The task we used is shown in Figure 2. It consists of a 7 ×
+in a slightly earlier stage in the trajectory increases.                           4 gridworld where the learning agent always starts a round in
+   A teacher using an undoing strategy has a target policy π∗ :                    the center tile of the first row. At any given location, a sub-
+S → A that it is attempting to teach. On each time step, if an                     set of the four cardinal directions is available to the learning
+agent’s action at 6= π∗ (st ), then vt = st . That is, when an agent               agent (e.g. at the bottom edge, “down” is not available as
+takes an incorrect action, that action is undone by the teacher                    an action). On each episode, the learning agent starts in the
+and the agent is placed back in the state she took the incorrect                   bottom-middle tile and the upper-right and upper-left corners
+action. A teacher using a correcting strategy also has a target                    of the gridworld are absorbing states.
+policy π∗ that it is attempting to teach. However, if an agent’s                      In our task, the teacher and learner have different rewards
+action at 6= π∗ (st ), then vt = arg maxs T (s | st , π∗ (st )). That              for the learner’s actions in the MDP. In particular, the two ab-
+is, the teacher will move the agent to the state it would have                     sorbing states (goals) both have a +10 reward for the learner,
+been in had the agent taken the target action.                                     but for the teacher, only one has +10 while the other has −10.
+                                                                                   Additionally, there are several non-absorbing tiles that give
+                                 Simulations                                       the teacher −1 if the learner enters them. These features of
+                                                                                   the task are visualized in Figure 2.
+To understand the interaction of teaching strategy and learner                        All simulations used a Q-learning agent with a tabular rep-
+interpretation, we simulated the performance of a RL agent                         resentation of states (Q0 (s, a) = 0∀s, a, α = .9, and γ = .95).
+for each combination in a gridworld task.                                          Each simulated teacher interacted with the learner for 12
+                                                                               528
+
+                            10
+                                     Reset                    Transition                   Interrupt                   Disrupt
+                             5
+    Backward         Total
+                    Teacher  0
+     Chaining       Payoff
+                            -5
+                           -10
+                            10                                                                                                              Teacher Probability
+                             5
+                                                                                                                                              of Intervening
+                     Total
+     Undoing        Teacher  0                                                                                                                     0.25
+                    Payoff
+                            -5
+                                                                                                                                                   0.50
+                           -10
+                            10                                                                                                                     0.75
+                             5
+                     Total                                                                                                                         1.00
+    Correcting      Teacher  0
+                    Payoff
+                            -5
+                           -10
+                            10
+                             5
+    Simulated        Total
+                    Teacher  0
+    Participant     Payoff
+                            -5
+     Training
+                           -10
+                               1 2 3 4 5 6 7 8 9 10 11 12 1 2 3 4 5 6 7 8 9 10 11 12  1 2 3 4 5 6 7 8 9 10 11 12 1 2 3 4 5 6 7 8 9 10 11 12
+                                      Episode                    Episode                     Episode                    Episode
+Figure 3: Simulated backward chaining, undoing, and correcting results or different intervention interpretations and interven-
+tion probabilities (top three rows). Results of learners trained using participant responses on task (bottom). Total teacher payoff
+is the net reward of the learner’s behavior based on the teacher’s reward function during the evaluation phase of each episode.
+episodes. Each episode was divided into two phases: a teach-                          cause interventions act as impassable obstacles to the learn-
+ing phase and an evaluation phase. During the teaching phase,                         ing agent, which, combined with a discount rate, makes tak-
+the simulated teacher interacted with the Q-learner, which se-                        ing incorrect actions less beneficial than alternative actions
+lected actions using a softmax rule (λQ = .1) and engaged in                          that change the state and lead to reward. However, an excep-
+learning. During the evaluation phase, the learner performed                          tion is when the learner interprets interventions as disrupting,
+the task without teacher interaction or learning and used a                           where the average performance of the undoing teaching strat-
+greedy policy. Additionally, the performance was measured                             egy decreases quickly as intervention probability drops. This
+with respect to the teacher’s payoffs based on her reward                             is because the teacher is less likely to serve as an obstacle,
+function. Each episode phase ended after 25 time steps.                               which makes it less likely that the agent will learn that in-
+                                                                                      correct actions are less efficacious. Across all interpretations,
+Teaching Strategies and Interpretations                                               undoing outperforms correcting because undoing implicitly
+We tested all combinations of teaching strategy and interven-                         teaches the learner that the garden tiles are negative, whereas,
+tion interpretation ({backwards chaining, undoing, correct-                           correcting does not. Undoing also leads to more learning ex-
+ing} ×{resetting, transitioning, interrupting, disrupting}). In                       perience because correcting allows the agent to progress on
+natural situations, it is not likely that teachers intervene ev-                      the task without actually taking target actions.
+ery time a learner takes an incorrect action. Thus, we tested                            When the probability of intervention is high (1.0 − 0.75),
+the performance of the models given different probabilities                           the backward chaining strategy performs as well as or worse
+of intervening given that the learner performed an incorrect                          than the undoing strategy. Unlike undoing, a global strategy
+action: 0.25, 0.50, 0.75, 1.0. This allowed us to evaluate the                        like backward chaining’s efficacy is robust to less frequent
+robustness of different teaching method and intervention in-                          interventions. This is because these interventions ensure that
+terpretation combinations when feedback is imperfect. Each                            the learning agent has mastered a subset of states and ac-
+combination of teaching strategy, intervention type, and inter-                       quired an accurate value representation as opposed to acting
+vention probability were simulated 1000 times and teaching                            as a constraint on transitions in the environment.
+performance was based on the evaluation phase.                                           The different intervention types also interacted with the
+                                                                                      teaching strategies in important ways. First, undoing shows
+Results and Discussion                                                                identical patterns regardless of whether the intervention type
+Simulation results are plotted in Figure 3. When interaction                          is resetting, transitioning, or interrupting. When it is dis-
+probability is high, undoing is most effective. This is be-                           rupting, learners reach maximum performance even more
+                                                                                  529
+
+        (a)                                                                 (c)                                        Intervention
+                     1.00                                                            Intervention Pseudo-Counts         Probability
+                     0.75
+         Proportion                                                                                                        0.15
+             of      0.50
+       Interventions
+                     0.25
+                       0.0
+                            Correcting       Undoing         Other
+                                                                                                                           0.92
+       (b)
+           Learner
+           Actions
+           Teacher
+      Intervention
+              Start
+                                                                                                                           0.04
+           Teacher
+      Intervention
+               End
+Figure 4: Experimental results. (a) Boxplot of proportion of correcting, undoing, and other interventions performed by indi-
+vidual participants. For many participants, the majority of their interventions were to undo the learner’s action. (b) Graphical
+visualization of teacher-learner interaction during an episode (ε = 0.8) illustrating local interventions. Yellow numbers indicate
+order of interventions. (c) Graphical visualization of participant interventions for actions taken from the same state. For each
+episode, each participant has one pseudo-count that is divided among all of their interventions in that episode. The number in
+each tile represents the sum of these pseudo-counts over participants. The intervention probability is the proportion of times
+that action was subsequently intervened upon.
+quickly. Second, for the backward chaining strategy, all             Experimental Design
+strategies but transitioning led to learners acquiring policies
+that approached the target behavior. This is likely because          Participants and materials Thirty-five MTurk participants
+the transitioning interpretation results in learners using the       took a dog training study that used the interface shown in Fig-
+teacher’s interventions as a way to “teleport” to a desirable        ure 2. On each trial, the dog would start at a tile and then walk
+location on the grid and not properly learn the task.                to an adjacent tile. If the participant did not click on the dog
+                                                                     at any point during its movement or within 1s of the dog en-
+                          Experiment                                 tering the next tile, the next trial would start. If the participant
+                                                                     clicked on the dog, then the dog “paused” and they could drag
+How do people teach using interventions? Do they use a               it to any tile on the gridworld and drop it. The dog then “un-
+global strategy like backwards chaining or a local one like          paused” and the subsequent trial would then start at that tile.
+undoing or correcting? Our simulations suggest that undo-            When the dog reached either “dog bowl,” an animated dog
+ing is the best teaching strategy if teachers intervene when         treat would appear to indicate that the dog had experienced a
+the learner makes a mistake with high probability. However,          reward. Entering either dog bowl tile ended an episode.
+backwards chaining works better when the teacher intervenes          Procedure Before the main task, participants completed
+infrequently. Alternatively, it seems intuitive to intervene         training trials that taught them how to intervene on the dog’s
+such that the learner is shown the correct state she should have     behavior by picking it up. For the main experiment, they were
+gone to, and human teachers might use this strategy despite          told that they were trying to train a dog to perform a task on its
+its sub-optimality with Q-learners. To explore these possibil-       own. The task was for the dog to only go to its own dog bowl,
+ities, we had human teachers interact with agents that were          located in the upper-right tile, while avoiding their neighbor’s
+pre-programmed to improve over time. This gave us the op-            dog bowl, located in the upper-left tile, and also avoiding the
+portunity to view how people would teach by intervention in-         two lawns. Thus, the participants’ goal in the task maps onto
+dependent of the learning mechanism.                                 the teacher reward function shown in Figure 2. They had 12
+                                                                 530
+
+“days” (i.e. episodes) in which they could train the dog, and        less often than they should to train Q-learners (66%). Gener-
+they were told that each day ended once the dog became tired         ally, people make moderately frequent local interventions.
+after 25 steps or became satiated by eating a dog treat. Each           As this is a preliminary investigation into teaching by inter-
+trial, the dog was programmed to execute the target policy           vention, this work has limitations. We use Q-learning as the
+with a probability of 1 − ε and a random action otherwise. ε         learner, but other RL algorithms may respond better to human
+started at 1.0 for the first episode and then decreased by 0.1       interventions. And given previous work showing that people
+each subsequent episode until ε = 0.0. This gave the impres-         often teach with communicative intent (Shafto, Goodman, &
+sion that the dog was improving over time regardless of the          Griffiths, 2014; Ho et al., 2015), it may be that the standard
+intervention strategy used.                                          RL framework is inadequate for capturing peoples’ relatively
+   After the task was completed, participants were asked to          sparse, local interventions. Future work will also need to test
+answer several questions regarding their strategy, how well          a wider range of MDP tasks. Nonetheless, these simulations
+the dog responded, task difficulty, expected training efficacy,      and models are a first step towards understanding the every-
+expected efficacy with a real dog, dog ownership, dog training       day phenomenon of teaching by intervention in humans.
+experience, and several demographic questions.
+                                                                                          Acknowledgments
+Results                                                              MKH is supported by the NSF GRFP (DGE-1058262).
+Intervening People make relatively sparse, local interven-
+tions that match the undoing model. Participants intervened                                    References
+on learners’ behavior more when the learner performed a non-         Bellman, R. (1957). Dynamic programming. Princeton, NJ:
+target action than when they performed a target action (non-            Princeton University Press.
+target: M = 0.66, S.D. = 0.22; target: M = 0.06, S.D. = 0.10;        Brugger, A., Lariviere, L. A., Mumme, D. L., & Bushnell,
+paired t-test: t(34) = 13.77, p < .001). Additionally, the pro-         E. W. (2007). Doing the right thing: Infants’ selection of
+portion of non-target actions that were intervened upon was             actions to imitate from observed event sequences. Child
+between 0.5 and 0.75, the regime where backward chaining                Development, 78(3), 802–824.
+and undoing perform comparably. Interventions were also              Buchsbaum, D., Gopnik, A., Griffiths, T. L., & Shafto, P.
+fairly local and close to the final state that resulted in the          (2011). Children’s imitation of causal action sequences is
+learner’s action (Average Manhattan Distance between next               influenced by statistical and pedagogical evidence. Cogni-
+state and intervention: M = 1.64, S.D. = 0.49). This indicates          tion, 120(3), 331–340.
+that backwards chaining was not often used as a strategy since       Callanan, M. A., & Oakes, L. M. (1992). Preschoolers’ ques-
+that strategy requires making more global interventions. Fi-            tions and parents’ explanations: Causal thinking in every-
+nally, as Figure 4a reveals, many participants performed un-            day activity. Cognitive Development, 7(2), 213–233.
+doing interventions in which an agent that took a non-target         Ho, M. K., Littman, M. L., Cushman, F., & Austerweil, J. L.
+action was placed back into its original position (Correcting:          (2015). Teaching with rewards and punishments: Rein-
+M = 0.15, S.D. = 0.14; Undoing: M = 0.59, S.D. = 0.24;                  forcement or Communication. In D. C. Noelle et al. (Eds.),
+Other: M = 0.27, S.D. = 0.19; χ2 (2) = 335.89, p < .001).               Proceedings of the 37th annual meeting of the cognitive sci-
+                                                                        ence society (pp. 920–925). Austin, TX: Conference Sci-
+Teaching Q-learners To compare human and model strate-
+                                                                        ence Society.
+gies, we used participants’ responses to train Q-learners in the
+                                                                     Király, I., Csibra, G., & Gergely, G. (2013). Beyond ratio-
+same task. We approximated how participants would have
+                                                                        nal imitation: Learning arbitrary means actions from com-
+taught real learners by sampling from their responses to a
+                                                                        municative demonstrations. Journal of Experimental Child
+learner’s action in the task whenever a simulated learner took
+                                                                        Psychology, 116(2), 471–486.
+the same action. If a particular participant never observed an
+                                                                     Knox, W. B., & Stone, P. (2015). Framing reinforcement
+agent’s take a simulated action, the default response was to
+                                                                        learning from human reward: Reward positivity, temporal
+not intervene. These results are plotted in Figure 3 for com-
+                                                                        discounting, episodicity, and performance. Artificial Intel-
+parison with the simulation results.
+                                                                        ligence, 225, 24–50.
+                                                                     Niv, Y. (2009). Reinforcement learning in the brain. Journal
+                          Discussion
+                                                                        of Mathematical Psychology, 53(3), 139–154.
+Our simulations revealed important interactions among teach-         Shafto, P., Goodman, N. D., & Griffiths, T. L. (2014, June).
+ing strategy, intervention interpretation, and intervention             A rational account of pedagogical reasoning: Teaching by,
+probability. In particular, undoing, which involves local               and learning from, examples. Cognitive Psychology, 71,
+changes to an agent’s state, is an especially effective strat-          55–89.
+egy only when interventions are frequent, while backward             Sutton, R. S., & Barto, A. G. (1998). Reinforcement learning:
+chaining, which involves state-changes reflecting the global            An introduction. MIT press.
+structure of the task, is moderately effective regardless of in-     Watkins, C. J., & Dayan, P. (1992). Q-learning. Machine
+tervention frequency. Incidentally, when people teach by in-            learning, 8(3-4), 279–292.
+tervention, they typically engage in undoing, but they do it
+                                                                 531
+

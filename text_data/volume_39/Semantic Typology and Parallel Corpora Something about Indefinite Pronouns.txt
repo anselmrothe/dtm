@@ -1,0 +1,547 @@
+  Semantic Typology and Parallel Corpora: Something about Indefinite Pronouns
+              Barend Beekhuizen                                  Julia Watson                                     Suzanne Stevenson
+        Department of Computer Science                 Department of Computer Science                      Department of Computer Science
+               University of Toronto                          University of Toronto                               University of Toronto
+              barend@cs.toronto.edu                        j.watson@mail.utoronto.ca                            suzanne@cs.toronto.edu
+                               Abstract
+   Patterns of crosslinguistic variation in the expression of word
+   meaning are informative about semantic organization, but most
+   methods to study this are labor intensive and obscure the gra-                                     <on,shang,op,-ssa>
+   dient nature of concepts. We propose an automatic method for                                                      <on,shang,aan,-lla>
+   extracting crosslinguistic co-categorization patterns from par-
+   allel texts, and explore the properties of the data as a potential         <above,shang,boven,yläpuolella>                                  <in,li,in,-lla>
+   source for automatically creating semantic representations for                                                     English Mandarin   Dutch Finnish
+   cognitive modeling. We focus on indefinite pronouns, com-                   Horiz., no contact Lamp above table < above    shang      boven yläpuolella    >
+   paring our findings against a study based on secondary sources              Stable support     Cup on table      < on      shang      op    -ssa           >
+                                                                               Tenuous support    Coat on hook      < on      shang      aan   -lla           >
+   (Haspelmath 1997). We show that using automatic methods on                  Containment        Apple in bowl     < in      li         in    -lla           >
+   parallel texts contributes to more cognitively-plausible seman-
+   tic representations for a domain.                                       Figure 1: Representing the conceptual distance between situ-
+   Keywords: semantic typology; semantic representation; par-              ations as the number of languages co-categorizing them.
+   allel corpora
+                                                                           1969; Bowerman & Pederson, 1992) – terms describing non-
+                           Introduction                                    linguistic stimuli, obtained from informants – allows control
+An important goal of cognitive science is to determine                     in defining the set of stimuli for a domain, but is resource in-
+valid semantic representations, e.g., for use in computational             tensive and limited to concrete domains. Expert (Haspelmath,
+cognitive models of language acquisition and processing.                   1997) or automatic (Youn et al., 2016) analyses of secondary
+Semantic typology – which studies the patterns of cross-                   sources (such as dictionaries and grammars) don’t rely on ac-
+linguistic variation in what words and other linguistic ele-               cess to informants across many languages, but are focused on
+ments mean – reveals universal tendencies in how languages                 coarser-grained semantic distinctions than are found in elic-
+carve up the space of a semantic domain (Haspelmath, 2003;                 itation stimuli. Both of these methods lack the frequencies
+Regier, Kemp, & Kay, 2015). In particular, Bowerman (1993)                 and patterns of actual usages in natural communication.
+argues that (all else being equal) the greater the number of                  A complementary source of data recently used in seman-
+languages that label a pair of situations (objects, events, . . . )        tic typology is parallel text (e.g., Cysouw & Wälchli, 2007) –
+with the same word (called co-categorization), the more con-               i.e., the same text translated into different languages. While
+ceptually similar these situations are. For instance, many lan-            parallel text has its own potential disadvantages, such as a
+guages co-categorize situations of ‘stable support’ (see Fig. 1)           risk of “translationese” or mistranslations (Levshina, 2017),
+with those of ‘tenuous support’, but use a different term for              it can be applied to abstract domains that are hard to obtain
+‘containment’, reflecting that the first two situations are more           elicitation data for, and has actual usage tokens that can re-
+semantically similar than the last.                                        veal nuances of meaning not captured in dictionaries. This
+   More generally, such crosslinguistic co-categorization pat-             latter point is especially relevant for creating semantic spaces
+terns can define a geometric semantic similarity space (Levin-             for cognitive modeling, as semantic categories display proto-
+son et al. 2003). To obtain such a space, we first represent a             type structures with more and less central members (Rosch,
+situation as a vector of terms used to express that situation              1973). Deriving semantic representations from actual usages
+across languages (cf. the row of terms in Fig. 1). These vec-              can yield a continuous semantic similarity space which po-
+tors are then projected into a lower-dimensional space (cf.                tentially reflects such structures; training computational cog-
+the distances in the two-dimensional space of Fig. 1). This                nitive models on such representations thus has the potential
+insight has informed cognitive modeling work on spatial re-                to better match behavioural data. To exploit this potential of
+lations (Beekhuizen, Fazly, & Stevenson, 2014) and color                   parallel text, we need automatic methods for extracting the
+(Beekhuizen & Stevenson, 2016), where descriptions of situ-                co-categorization patterns – the terms used across multiple
+ations, elicited from speakers of a number of languages, were              languages for the same situation (cf. Fig. 1) – that can form
+used to create vector-based geometric semantic representa-                 the basis for such vector-based representations.
+tions. A computational learning model trained on those rep-                   In this paper we first propose an automatic method for ex-
+resentations successfully simulated developmental error pat-               tracting crosslinguistic co-categorization patterns from par-
+terns in word meaning acquisition.                                         allel texts, to complement elicitation data and secondary
+   In order to deploy such approaches to additional semantic               sources. Next, we explore the properties of the resulting
+domains, we need practical and robust methods for seman-                   data as a potential source for automatically creating seman-
+tic typological analysis. Elicitation data (e.g., Berlin & Kay,            tic spaces for cognitive modeling. We focus on indefinite
+                                                                       112
+
+ Acronym Semantic function       Example
+ SP-K      specific, known       I want to tell you something.
+ SP-U      specific, unknown     Someone broke into our apartment.
+ NS        irrealis non-specific I need someone strong for the job.
+ CD        conditional           Let me know if anybody shows up.
+ QU        question              Is anything bothering you?
+ IN        indirect negation     I don’t think anything matters.
+ DN        direct negation       Nobody came.
+ CP        comparison            She can run faster than anybody.
+ FC        free choice           You can pick anything!
+      Table 1: Haspelmath’s 9 functions with examples.
+pronouns as an abstract semantic domain for which elicita-
+tion would be a difficult method, but for which we have a               Figure 2: Semantic map from Haspelmath (1997) with En-
+good understanding of the typology from expert judgments                glish and Nanay terms.
+and secondary sources (Haspelmath, 1997). By using parallel
+texts, we are able to get a fuller picture of the semantic struc-          Despite the insight they provide, semantic maps do not
+ture of this domain, in particular seeing evidence for gradi-           capture certain properties of the underlying semantic space
+ence in multiple ways: finer-grained semantic functions that            that are important to semantic representation. Two related is-
+show gradient patterns across languages, and gradient rela-             sues in particular motivate our work here. First, there is no
+tionships (distances) among the semantic functions. We thus             indication of the distance in semantic space that an edge in
+show that using automatic methods on this complementary                 the map represents, although it is likely that some functions
+data source can contribute to more cognitively-plausible se-            connected to a node may be closer or further semantically
+mantic representations, by fleshing out expert analysis of sec-         than others. For example, although IN connects to both DN
+ondary sources with usage data that reflects the discourse use          and CP by a single edge in Fig. 2, it is likely more similar
+and frequency of the semantic functions.                                to DN. Second, the use of a single node for a function as-
+                                                                        sumes (instrumentally) that functions are internally homoge-
+                     Indefinite pronouns                                neous. However, functions may display a gradient internal
+Indefinite pronouns, such as somebody, anything, and                    structure – e.g., some cases of DN may be ‘better’ instances
+nowhere, are used to express indefinite reference – i.e., intro-        than others. Both of these factors may contribute to the cogni-
+ducing a discourse referent which the speaker typically does            tive plausibility of a semantic space for use in computational
+not intend the hearer to uniquely identify. Reference may               modeling.
+be to an entity from any of the major ontological categories               As discussed above, parallel usage data has the potential to
+such as PEOPLE, THINGS, and PLACES. Haspelmath (1997)                   address these issues by providing a more continuous repre-
+outlines 9 semantic functions that indefinite pronouns can ex-          sentation than secondary data. Actual usage data may reveal
+press; see Table 1. To identify the set of functions, he draws          how related Haspelmath’s various functions are, and how ho-
+on semantic motivation – whether a coherent functional defi-            mogeneous they are internally. Such insights are crucial for
+nition can be established for each. Importantly, linguistic ev-         the use of semantic-typological analyses in cognitive science,
+idence is considered for deciding whether two related func-             e.g., in modeling the acquisition of such terms.
+tions should be merged or split: specifically, if at least one
+language has a term that can be used for only one of the func-               Method: Translations from Parallel Text
+tions – i.e., if there is a language with a term that does not          Our goal is to construct geometric semantic spaces through
+co-categorize the two – then the two functions are considered           the use of parallel (translated) usage data. We draw on the
+distinct.                                                               patterns of how terms are translated across many languages to
+   The identified semantic functions are analogous to stim-             find co-categorization patterns, which can then be used to de-
+uli in an elicitation task, although at a coarser grain: each           rive a semantic space. We propose an automatic method that
+function represents a set of situations that are co-categorized.        extracts the translations of each occurrence of a seed word
+Like elicitation data, terms in each language are associated            (here, English indefinite pronouns) in every other language
+with each of the semantic functions they can express, and               in our corpus. These extracted arrays of translations form a
+patterns of crosslinguistic co-categorization can be revealed.          vector of terms across languages analogous to those obtained
+These patterns can be visualized in a graphical semantic map:           through elicitation data (cf. Fig. 1), and can be used to con-
+functions (nodes) are connected by edges such that connected            struct a geometric space.
+subgraphs correspond to sets of functions that can be co-               Corpus and language sample.                We extracted our
+categorized. The semantic map of Haspelmath (1997), in                  data from a sentence-aligned parallel corpus of subti-
+Fig. 2, shows that, in both example languages, the terms carve          tles of films and TV series (Lison & Tiedemann, 2016;
+out different, but in both cases connected, partitionings of the        www.opensubtitles.org). We selected the 30 (out of 65)
+graph.                                                                  languages across 9 language families for which the most
+                                                                    113
+
+                                                                                                     situations – i.e., exemplars of indefinite pronoun usage repre-
+      a   en     someone        is     here         nl     er      is       hier      iemand
+                                                                                                     sented by vectors of terms in 25-30 languages.
+          nl      er      is       hier     iemand  es   hay     alguien         aquí
+                                                                                                     Annotation. In order to compare the patterns in our usage
+          en     someone        is     here         nl     er      is       hier      iemand
+                                                                                                     data to Haspelmath’s (1997) analysis, it was necessary to
+          es    hay     alguien        aquí         sr    neko        je        tamo                 identify the semantic function (see Table 1) of the indefinite
+          en     someone        is     here         es   hay     alguien         aquí                pronoun usages in each of our situations. To do so, three an-
+          sr     neko       je        tamo         sr    neko        je        tamo
+                                                                                                     notators (the authors) labelled the English indefinite pronoun
+                                                                                                     in each situation with its Haspelmath function. Annotators
+       b                someone                        c              someone
+                                                                                                     were provided the sentence containing the pronoun, as well
+               iemand                 alguien                iemand                 alguien
+                                                                                                     as some context before and after. We merged Specific Known
+                           neko                                          neko
+       er
+               is                       here                  is                      here           and Specific Unknown into one function called Specific (SP),
+                              aquí                                         aquí
+       is                                     hier    is                                    hier     given the uncertainty in this task of judging whether some-
+                     hay                                          hay
+                                                                                                     thing is known to the speaker.4 152 cases consisted of neg-
+             je                     tamo                    je                     tamo
+                                                                                                     ative English indefinite pronouns like nothing and no one,
+       d       Utterance                      en         nl               es             sr          which we automatically marked as DN. On the remaining 546
+               someone is here                someone iemand              alguien        neko
+               anyone got 5 billion?          anyone     iemand           alguien        neko        exemplars, inter-annotator agreement was satisfactory for a
+               ....
+                                                                                                     task of this difficulty (pairwise Cohen’s κ = [.84, .80, .79]),
+                                                                                                     and the majority annotation was used for each situation.
+          Figure 3: Extraction of situation vectors; see text.
+                                                                                                     Further experimental set-up. Although the extracted situa-
+parallel data was available,1 and extracted all utterances for                                       tions are generally of a high quality,5 sometimes mistransla-
+which we found a translation into all languages.                                                     tions are extracted. To reduce noise, we only use those terms
+                                                                                                     that are statistically significantly associated with at least one
+Identifying translations across languages. We first ob-
+                                                                                                     of the annotated functions (using a Fisher Exact test). This
+tained automatic alignments of translated words for each pair
+                                                                                                     way, low-frequency translations that are dispersed over func-
+of languages in our corpus, using the HMM implementation
+                                                                                                     tions are filtered out. To avoid the risk of overinterpreting
+of Liang, Taskar, and Klein (2006) with the default settings;
+                                                                                                     patterns or overtuning models on the basis of a single sample,
+see Fig. 3(a) for an example with four languages. From the
+                                                                                                     we split the data set into a development (dev) and test set. The
+pairwise alignments, we created a graph, per utterance, with
+                                                                                                     examples and patterns reported below come from both the dev
+edges between all words that are aligned with each other,
+                                                                                                     and test set, but quantitative results are provided for the test
+(Fig. 3(b)). From this graph, we extracted the subgraphs that
+                                                                                                     set only. We conduct all analyses on PEOPLE and THINGS
+were densely connected (i.e., for which the words are often
+                                                                                                     separately, because we found in exploratory data analysis
+mutually aligned),2 and select those subgraphs that contain
+                                                                                                     that PEOPLE and THINGS showed differences in their patterns
+one of the indefinite pronouns in English (Fig. 3(c)). Each
+                                                                                                     which have potentially interesting cognitive implications.
+such subgraph is then linearized to form the vector represen-
+                                                                                                     The full data set, including stemming dictionary, annotation
+tation of a situation (Fig. 3(d)). The Table in Fig. 3(d) illus-
+                                                                                                     schemas, and all software used for the analyses, can be found
+trates the correspondence to semantic typology: Every row
+                                                                                                     at https://github.com/dnrb/indefinite-pronouns
+contains a ‘stimulus’, for which the various languages present
+elicited terms (cf. the table in Fig. 1). Note that sometimes re-                                                                  Results
+sponses are missing, or multiple words form the response.
+                                                                                                     With the extracted situation vectors, we can now study the se-
+Extraction of indefinite pronouns. We focus on the two
+                                                                                                     mantic space derived from parallel usage data, and see how
+ontological categories PEOPLE and THINGS; other categories
+                                                                                                     similar it is to Haspelmath’s (1997) semantic typology based
+(e.g., TIME and PLACE) were too infrequent. To identify
+                                                                                                     (primarily) on secondary sources. In particular, we are in-
+indefinite pronoun usages in our corpus, we extracted utter-
+                                                                                                     terested to see where the parallel usage data reveals charac-
+ances for which the English expression consists of any of the
+                                                                                                     teristics of the semantic space not observed in Haspelmath’s
+9 words combining some-, any-, no- with -thing, -body, -one
+                                                                                                     map.
+(cf. rows in bold in Fig. 3(d)). From among these situations,
+we selected only those that included an expression from each                                         Are all semantic functions equally important?
+of at least 25 languages, to ensure sufficient linguistic varia-
+                                                                                                     Table 2 presents the frequency of the semantic functions.
+tion for each situation.3 The resulting data consisted of 698
+                                                                                                     We see that most functions in the center of Haspelmath’s
+     1 The set of languages is (per language family, in ISO 639-2):                                      4 Annotation was done for English only. It is possible that
+(Semitic) ar, he; (Indo-European) bg, bs, cs, da, de, el, en, es, fr, hr,                            Haspelmath’s functions are not always translated: a conditional may
+it, nl, no, pl, pt, ro, ru, sl, sr, sv; (Finno-Ugric) et, fi, hu; (Austrone-                         be translated as an declarative. Being relatively infrequent, we con-
+sian) id; (isolate) ja; (Turkic) tr; (Vietic) vi; (Sino-Tibetan) zh.                                 sider these cases noise.
+     2 We used k-clique percolation (Palla et al., 2005) with k = 9.                                     5 Evaluating the method on a parallel Bible corpus against a gold
+     3 We used a manually compiled stemming dictionary to lemma-                                     standard of Strong number annotations gives a cluster purity of .89
+tize the words and correct spelling and alphabetic variation.                                        and a cluster recall of .90.
+                                                                                                 114
+
+               SP     NS     CD     QU      IN    DN      CP    FC                                   Function                      Evaluation
+  PEOPLE      .16     .20     .07   .16    .05     .28   .01    .08        Cluster    SP NS CD QU IN DN CP FC                      P   R    F1
+  THINGS      .28     .15     .05   .09    .02     .36   .00    .06
+                                                                                1      18  24    6     3   0 2        0      0    .91 .92  .91
+  Overall     .24     .17     .06   .11    .03     .33   .00    .06             2      1    0    2    15   1 4        0      2    .60 .83  .70
+                                                                                3      0    0    1     0   5 27       0      0    .97 .82  .89
+Table 2: Distribution of functions given ontological category.                  4      0    0    0     0   0 0        1      7    .80 1.00 .89
+             k=       2    3     4    5    6     7     8    9 10         Table 4: Correspondence table for the 8 functions with k = 4
+                                                                         clusters for PEOPLE; rightmost columns present cluster pre-
+  PEOPLE            .20 .25 .41 .35 .34 .34 .32 .30 .32
+                                                                         cision (P), recall (R) and F1 score for every cluster against
+  THINGS            .30 .38 .47 .36 .35 .35 .33 .39 .33
+                                                                         function tuples (SP,NS,CD); (QU); (IN,DN); (CP,FC).
+Table 3: Adjusted Rand index score for PEOPLE and THINGS
+with k-means clustering, given various values of k.
+                                                                                                            |Tl (s) ∩ Tl (s0 )|
+                                                                                            d(s, s0 ) = ∑                  0
+                                                                                                                                .            (1)
+(1997) semantic map are rather infrequent (CD, IN, CP). This                                            l∈L |Tl (s) ∪ Tl (s )|
+may explain Haspelmath’s observation that, across languages,             We assess the relative quality of different numbers of clusters
+there are no terms that solely apply to two functions in the             by comparing their fit to the annotations using the adjusted
+middle of the map: Languages typically co-categorize infre-              Rand index (Rand, 1971). Table 3 presents the results.
+quent functions with one of the more frequent neighboring                   If Haspelmath’s set of functions is the best way of describ-
+functions (e.g., NS or DN). It also explains aspects of the              ing the data, k-means clustering with k = 8 should be the k
+graphical structure of the map: low-frequency functions are              with the highest correspondence to the annotated functions,
+in the middle of the map because sometimes they share a term             partitioning the data into 8 clusters corresponding to the 8
+with the left side of the map, and sometimes with the right.             functions. However, with k = 8, a relatively poor Rand index
+    A notable exception is FC, located at the edge of the map            score is achieved, and rather than aligning with the semantic
+despite its low frequency. This suggests FC is conceptually              functions, the inferred clusters mostly cross-cut them (e.g.,
+different from the other functions (except CP). Many lan-                there are 2 clusters containing many DN). The fact that the
+guages co-categorize FC and universal quantification – unlike            optimal partitioning cross-cuts functions suggests that there
+English, which generally uses any- vs. every- respectively.              are finer semantic distinctions within the functions that play
+The use in many languages of a universal quantification term             out in the way languages label these.
+for the semantic function FC may account for its distinctive                Instead, we find that k = 4 gives the highest correspon-
+position in the map despite its low frequency.                           dence with the manually annotated clusters. The 4 clusters
+                                                                         correspond to 4 sets of related functions: (SP,NS,CD), (QU),
+Are the functions at the right level of granularity?                     (IN,DN), and (FC,CP); see Table 4. There is some leakage
+A second issue worth investigating is whether Haspelmath’s               between the clusters (see the non-boldface numbers in Ta-
+proposed functions constitute the best way of grouping the               ble 4), but the precision, recall, and F scores using these sets
+usage data into sets with related semantics: actual usage data           of functions as the target labels for the 4 clusters are very
+may reveal that the functions are not well discriminable or              high, showing these sets of related functions have a clear sim-
+have further coherent subdivisions. We explore this through              ilarity structure.7
+automatic clustering of the parallel usage data. Each of our                These results yield two distinct views of the data. On one
+extracted situations is a vector of mutually-translated indef-           hand, the typological usage data points to more fine-grained
+inite pronouns (see Fig. 3(d)); together they form a vector              semantic distinctions within some of the 8 functions. On the
+space within which we can measure situation (dis)similarity.             other hand, we find semantic similarity between the functions
+Thus we can determine the optimal partitioning of the data               that reveals a coarser grouping of the functions than is appar-
+into clusters and see how well those clusters correspond                 ent from the semantic map structure of Haspelmath (1997).
+to the gold annotation. Here, we use k-means clustering                  These findings point to a key role of gradience in understand-
+(MacQueen, 1967), an unsupervised technique that partitions              ing the semantic space of indefinite pronoun usage.
+the data into k clusters. The input for k-means is a distance            The perspective of a similarity space
+matrix between all pairs of situations belonging to either PEO -
+                                                                         The clustering over the parallel usage data suggests more gra-
+PLE or THINGS. The distance d between a pair of situations s,
+                                                                         dience in the semantic space underlying indefinite pronoun
+s0 is given by taking the Jaccard index over the sets of terms6
+                                                                         semantics, both within and between functions, than the se-
+Tl (s) and Tl (s0 ) used to express each of s, s0 in each of the
+                                                                         mantic map of Haspelmath (1997) suggests. We take a more
+languages l ∈ L, and summing over all languages l:
+                                                                             7 These clusters do not completely coincide with the further anal-
+    6 We use sets of translated terms, because an indefinite pronoun     ysis of Haspelmath (1997, par. 5.6), but we leave that comparison
+in English may be translated to multiple terms in other languages.       for future research.
+                                                                     115
+
+                                                                         0.5
+                                                          DNDN
+                                                             DN                              IN
+                                                           DN
+                                                          DN DN
+                                                            DN
+                                                          DN DN                             NS
+                                                             DN
+                           QUFC                              DN                            SP                                DN
+                                                                                                                              DN  DNDN
+                                                                                                                                    DN           0.4                         0.4                         0.4                       0.4
+                      SP QU                                                     NS NS   DNCD
+                                                                                        QU
+                                                                                        SP NS
+                                                                                           SP
+                                                                                            NS
+                                                                                             SP                               DN DN
+                                                                                                                             DN                                    keegi
+                                                                                                                                                                   keegi                        nitko
+                                                                                                                                                                                                nitko                    nobody
+                                                                                                                                                                                                                         nobody                       nič
+                                                                                                                                                                                                                                                    nihče
+                       CDQUQU
+                      QU                      DN                                SP         NS
+                                                                                           SP
+                                                                                           QU                                       DN
+                                                                                                                                     DN                             keegi
+                                                                                                                                                                   keegi
+                                                                                                                                                                    keegi                       nitko
+                                                                                                                                                                                                nitko
+                                                                                                                                                                                                nitko                    nobody
+                                                                                                                                                                                                                         nobody
+                                                                                                                                                                                                                         nobody                     nihče
+                             QU                                               SP                                                                                   keegi                        nitko                    nobody                     nihče
+         NS          CD
+                     SP
+                     CD
+                     QU
+                       CD
+                        DN
+                        QU
+                         QU          DN            QU                        SP
+                                                                                            NS
+                                                                                           SP                           DN DNDNDNDNDN DN
+                                                                                                                                       DN
+                                                                                                                                      DN
+                                                                                                                                      DN
+                                                                                                                                                                   keegi
+                                                                                                                                                                   keegi
+                                                                                                                                                                   keegi
+                                                                                                                                                                    keegi
+                                                                                                                                                                                                nitko
+                                                                                                                                                                                                nitko
+                                                                                                                                                                                               nitko
+                                                                                                                                                                                                nitko
+                                                                                                                                                                                                                         nobody
+                                                                                                                                                                                                                         nobody
+                                                                                                                                                                                                                         nobody
+                                                                                                                                                                                                                         nobody
+                                                                                                                                                                                                                                                    nihče
+                                                                                                                                                                                                                                                      nič
+                                                                                                                                                                                                                                                    nihče
+        SP SP CD  NS
+                  SP         QU           DN                                               SP                                 DN DNDN DN
+              SP NS                                             IN                SP
+                                                                                  NS       SPQU
+                                                                                            NS QU                           DN DN  DN
+                                                                                                                                    DNDN
+                                                                                                                                     DN DN                          keegi                       nitko                     nobody                     nihče
+         NS CD                                                                   NS
+                                                                                NS
+                                                                                 SP       CD         QU                               DN
+       SP
+        SP
+       QU
+           SP
+          SP
+          NS
+         CD   SP              QU
+                              IN
+                                                   DN   DNDNDNDN             SPNS SP SP
+                                                                                  SP      NSDN
+                                                                                       IN SP  NS
+                                                                                                       NS                        DN DNDN
+                                                                                                                                       DN
+                                                                                                                                       DN
+                                                                                                                                        DN
+                                                                                                                                                                    keegi                       nitko                     nobody                       nič
+  0.0  SP SP
+           SP     NS      SPQU   DN                           DN                QU
+                                                                               SP   SP SPDN
+                                                                                    NS                            DN                  DN
+                                                                                  QU
+                                                                                  SP                                      DN
+           SPNS NSNS
+             DN           NS                  DN                                SP
+                                                                                NS
+                                                                               NS  INSP
+                                                                                  DN    SPCD SP
+                                                                                          QU
+                                                                                          CD        DN                            DN                                                  netko                    anyone                       nič
+                                                                                                                                    DN DN
+                                                                         0.0   QUQU
+                                                                                SP
+                                                                                 NS
+                                                                                CD SP  SPQU
+                                                                                         NS                                       DN
+                                                                                                                                  DN
+            NS
+           NSNS                                                                  SP                                                              0.2                         0.2                         0.2                       0.2
+          NS
+           NS                                                     IN          SP FC SP     SP                          DN          DN                           keegi                       nitko                   anybody                       nič
+             NS
+            NS                                  IN                           SP          SP
+                                                                                        NS                        DN DN DN                                  keegi                       netko                     anyone                       nič
+              DN                                         DN                             NS
+                                                                                        SP                    SP
+                                                                                                              DN
+                 NS
+                 NS
+                           QUFC
+                              QU                                                           QU NS
+                                                                                          NS                 FC       DN
+                                                      INDN                   CD
+                                                                             SP
+                                                                             SP      SP         CD                   DN      DN
+                                                                                                                              DN
+                                                                                                                               IN
+                                                                                                                               DN                             keegi                       netko                    anybody
+                                                                             CD
+                                                                              SP                      DN                      DN                                     keegi                       nitko                    anybody                       nič
+                          SP                                                                                                DNDN
+                                    QU                                                   CD
+                                                                                         QU QU
+                                                           IN                  CD          FC
+                                                                                            FC                                                                     keegi                       nitko                    anyone                       nič
+                            QU      QU                                                 DN                        DN                              0.0
+                                                                                                                                                           keegikeegi
+                                                                                                                                                                    keegi    0.0
+                                                                                                                                                                                       netko nitko       0.0
+                                                                                                                                                                                                                 anyonenobody
+                                                                                                                                                                                                                         anyone    0.0                 nič
+                          CD                                                                                    DN                                   keegi        keegi          netko         nitko                    anyone
+                                                                                             QU
+                                                                                              DN                                                                     keegi                       nitko                    anyone                       nič
+ −0.5                                                                   −0.5
+                                                                                         QU      QU                                                                                                                 anybody                       nič
+                                                                                                 QU                                                  keegi                       netko
+                                                                                                                                                                  keegi                                                 anyone                       nič
+                                                       CP                                                                                       -0.2                        -0.2                        -0.2            anyone    -0.2               nič
+                                                                                                       FC
+                                         FC
+                                          FCFC
+                                             FC
+                                                                                                              FC
+                                                                                                             FCFC
+                                    FC
+                                      FC    FC                                                            FCFC
+                                                                                                          FC                                          -0.5  0.0   0.5  1.0        -0.5  0.0   0.5   1.0      -0.5  0.0   0.5  1.0      -0.5  0.0   0.5    1.0
+                                                                        −1.0
+            −0.5               0.0                0.5               1.0           −0.2              0.0              0.2               0.4
+                                                                                                                                               (c) Terms for DN THINGS in (left-to-right) Estonian,
+                           (a) P EOPLE                                                            (b) T HINGS                                  Croatian, English, Slovene.
+                                                        Figure 4: OC plots for indefinite pronouns (best viewed on screen).
+direct way of obtaining insight into this space by represent-                                                                                                        Language
+ing the similarity between all situations in a low-dimensional                                                                   bs         hr              en                sl                    pt              da Functions
+space. Visualizing this space can also be informative about                                                                     išta išta                                                                                    QU
+the use of such a space in a computational cognitive model.                                                                                što anything                    kaj alguma coisa                                   QU, CD
+      We apply 2-dimensional Optimal Classification (OC), a di-                                                                                                                                                   noget QU, CD
+                                                                                                                               nešto nešto something                                                                         QU, CD, NS
+mensionality reduction technique useful for typological data                                                                                                               nekaj                                               NS, SP
+(Croft & Poole, 2008). The input for this algorithm is the                                                                                                                                        algo                         NS, SP
+list of individual situations, each represented as a set of terms
+(across all languages) used for that situation. For each term                                                                      Table 5: A gradient for the (SP,NS,CD,QU) region.
+w across all languages, OC creates a cutting line in the 2-
+dimensional plane, which divides the situations into those ex-                                                           other in Haspelmath’s map are equidistant in the OC solu-
+pressed with w and those not expressed with it. This way,                                                                tion: QU has an edge to each of NS and IN in the map, but
+pairs of situations expressed with similar sets of terms will                                                            is closer to the former in the OC projection. The projection
+typically be located close together in the OC space. (In our                                                             furthermore displays gradience among the functions: some
+data, we have n = 303 cutting lines for PEOPLE and n = 435                                                               QU-labeled situations are closer to NS, whereas others are
+cutting lines for THINGS.) Our data yields very high accu-                                                               closer to IN, DN, or FC, suggesting that the functions are
+racy (proportion of situations being on the correct side of the                                                          more continuous than the graphical map suggests.
+cutting line, averaged over all cutting lines) of .94 (PEOPLE)                                                                Second, the functions display internal gradience. Fig. 4c
+and .95 (THINGS). Because each situation is represented by a                                                             shows terms in four languages for THINGS annotated as DN.
+set of terms across all languages, this result shows high agree-                                                         The gradient comes about because of languages whose terms
+ment among the languages in how they carve up the situations                                                             form supersets of each other: Estonian keegi is a superset of
+into functions – although, as we see next, they exhibit gradi-                                                           Croatian nitko, which is a superset of English nobody, which
+ence in the gradual shifting of terms for related situations.                                                            is a superset of Slovene nihče. Across languages there thus
+      The topology of the function annotations in the two-                                                               seems to be agreement about a scale of subtypes of DN, but
+dimensional space generally follows Haspelmath’s map, de-                                                                languages vary on the placement of the lexical boundaries.
+spite working from different data and with different methods                                                                  Finally, we find gradients that cross-cut the function
+(see Figures 4a and 4b): in the top-left corner, we find NS and                                                          boundaries. Table 5 illustrates a gradient of terms stand-
+SP followed by CD and QU towards the center; the top-right                                                               ing in a superset-subset relation to each other that cross-cuts
+cluster contains DN and IN, whereas the bottom cluster con-                                                              the functions SP, NS, CD, and QU. This gradient was ob-
+sists of CP and FC. 8 However, there are several aspects of                                                              tained by running a one-dimensional OC on the situations
+the functions that are observable in this continuous space that                                                          in the (SP,NS,CD,QU) region, which lays out all situations
+are not apparent in the graphical semantic map.                                                                          on one line so as to obtain a maximal accuracy in placing
+      First, we observe that not all functions that neighbor each                                                        cutting points for terms. This analysis yields an accuracy of
+                                                                                                                         .96, which suggests that languages strongly agree on having a
+      8 Here      and elsewhere, we observe evidence of a finer-grained se-                                              single dimension roughly cross-cutting the functions SP, NS,
+mantic space for PEOPLE than for THINGS, in line with typological
+observations such as Silverstein (1976): The distribution of func-                                                       CD, and QU on which they locate their term boundaries.
+tions given each ontological category is more spread out for PEOPLE                                                           Visualizing crosslinguistic usages in a continuous space
+than for THINGS (Tab. 2), and decreasing the number of clusters to                                                       gives further insight into the structure of the underlying se-
+3 or 2 deteriorates the Rand score less for THINGS than for PEOPLE
+(Tab. 3). We note that usage data reveals distinctions that remain                                                       mantic domain. The observed gradients call for further anal-
+obscured when glossing over ontological categories.                                                                      ysis and provide predictions for behavioural experiments. In
+                                                                                                                  116
+
+particular, if the patterns of crosslinguistic variation are in-     Berlin, B., & Kay, P. (1969). Basic color terms: Their uni-
+dicative of cognitive distinctions in semantic space, we expect             versality and evolution. Berkeley: UC Press.
+to see evidence in both adult behaviour and developmental            Bowerman, M. (1993). Typological perspectives on language
+patterns in children.                                                       acquisition: Do crosslinguistic patterns predict devel-
+                                                                            opment? In E. Clark (Ed.), Proceedings of the 25th
+                         Conclusions                                        annual Child Language Research forum (pp. 7–15).
+Crosslinguistic patterns of co-categorization yield insight into     Bowerman, M., & Pederson, E. (1992). Cross-linguistic stud-
+the semantic space underlying linguistic usages. We deploy                  ies of spatial semantic organization. In Annual report
+parallel usage data in the form of movie subtitles to study the             of the MPI for Psycholinguistics (pp. 53–56).
+patterns of crosslinguistic variation in the categorization of       Croft, W., & Poole, K. (2008). Inferring universals from
+indefinite pronouns. We find the cross-linguistic usages dis-               grammatical variation: multidimensional scaling for
+play a more fine-grained pattern than suggested by a study on               typological analysis. Theoretical Linguistics, 1–37.
+the basis of (primarily) secondary data (Haspelmath, 1997).          Cysouw, M., & Wälchli, B. (2007). Parallel texts: using
+In particular, the frequencies of the identified semantic func-             translational equivalents in linguistic typology. Lan-
+tions vary, the distances between the functions are not uni-                guage Typology and Universals, 60, 95–99.
+form, and within functions, coherent subgroupings could be           Haspelmath, M. (1997). Indefinite pronouns. Oxford: OUP.
+established. Our findings suggest the parallel usage data cap-       Haspelmath, M. (2003). The geometry of grammatical mean-
+tures something about the semantic space that is not repre-                 ing: semantic maps and cross-linguistic comparison. In
+sented in the more static secondary sources.                                M. Tomasello (Ed.), The new psychology of language
+   The current method can easily be applied to other domains,               (pp. 211–242).
+but also involves several restrictions. Using pairwise align-        Levinson, S. C., Meira, S., & The Language and Cognition
+ments on parallel texts makes the approach computationally                  Group. (2003). ‘Natural concepts’ in the spatial topo-
+intractable beyond 30–50 languages, as a set of alignments                  logical domain – Adpositional meanings in crosslin-
+has to be extracted for every language pair. We are looking                 guistic perspective: An exercise in semantic typology.
+into methods to circumvent this aspect of the method. The                   Language, 79(3), 485–516.
+inability of the model to go ‘below’ the word level is also          Levshina, N. (2017). Subtitles as a corpus: An n-gram ap-
+limiting, as many well-established patterns of cross-linguistic             proach. Corpora.
+semantic variation involve morphology (e.g., case marking,           Liang, P., Taskar, B., & Klein, D. (2006). Alignment by
+nominalization patterns).                                                   agreement. In Proceedings NAACL (pp. 104–111).
+   Furthermore, it is crucial to establish the cognitive plausi-     Lison, P., & Tiedemann, J. (2016). Opensubtitles2016: Ex-
+bility of the semantic similarity space independently by see-               tracting large parallel corpora from movie and tv subti-
+ing if it can predict behavioral experiments such as word us-               tles. In Proceedings LREC.
+age similarity judgments, or developmental patterns. For ex-         MacQueen, J. B. (1967). Some methods for classification and
+ample, we must explore whether, as for space and color, the                 analysis of multivariate observations. In Proceedings
+semantic space for indefinite pronouns predicts aspects of the              of 5th Berkeley Symposium on Mathematical Statistics
+acquisitional pattern of these words: Is English any-, for in-              and Probability (pp. 281–297).
+stance, hard to acquire because it covers a large, rather dis-       Palla, G., Derényi, I., Farkas, I., & Vicsek, T. (2005). Uncov-
+junct region of the semantic space? Are indefinite pronoun                  ering the overlapping community structure of complex
+systems in languages that follow the typologically more com-                networks in nature and society. Nature, 435, 814–818.
+mon patterns easier to acquire for first and/or second language      Rand, W. M. (1971). Objective criteria for the evaluation of
+learners? We hope these automatic methods for using parallel                clustering methods. Journal of the American Statistical
+text in semantic typology can help us further understand pat-               Association, 66, 846–850.
+terns of learning and usage in abstract domains of meaning.          Regier, T., Kemp, C., & Kay, P. (2015). Word meanings
+                                                                            across languages support efficient communication. In
+                     Acknowledgments                                        B. MacWhinney & W. O’Grady (Eds.), The handbook
+                                                                            of language emergence (pp. 237–263).
+We would like to thank Martin Haspelmath for sharing his
+                                                                     Rosch, E. (1973). Natural categories. Cognitive Psychology,
+indefinite pronoun data, and support from NSERC of Canada.
+                                                                            4, 328–350.
+                                                                     Silverstein, M. (1976). Hierarchy of features and ergativ-
+                         References
+                                                                            ity. In R. Dixon (Ed.), Grammatical categories in Aus-
+Beekhuizen, B., Fazly, A., & Stevenson, S. (2014). Learning                 tralian languages (pp. 112–171).
+       meaning without primitives: Typology predicts devel-          Youn, H., Sutton, L., Smith, E., Moore, C., Wilkins, J. F.,
+       opmental patterns. In Proceedings CogSci.                            Maddieson, I., Croft, W., & Bhattacharya, T. (2016).
+Beekhuizen, B., & Stevenson, S. (2016). Modeling devel-                     On the universal structure of human lexical semantics.
+       opmental and linguistic relativity effects in color term             PNAS, 113, 1766–1771.
+       acquisition. In Proceedings CogSci.
+                                                                 117
+

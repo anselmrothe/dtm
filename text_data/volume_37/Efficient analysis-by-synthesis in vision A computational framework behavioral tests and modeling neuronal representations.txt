@@ -1,0 +1,427 @@
+ Efficient analysis-by-synthesis in vision: A computational framework, behavioral
+                              tests, and comparison with neural representations
+                         Ilker Yildirim (ilkery@mit.edu)              Tejas D. Kulkarni (tejask@mit.edu)
+                      1 BCS,   MIT 2 Lab of Neural Systems, RU                         BCS, MIT
+            Winrich A. Freiwald (wfreiwald@rockefeller.edu)                      Joshua B. Tenenbaum (jbt@mit.edu)
+               Laboratory of Neural Systems, Rockefeller University                           BCS, MIT
+                               Abstract                                 Figure 1: Same scene viewed
+                                                                        at two different angles, illus-
+   A glance at an object is often sufficient to recognize it and
+   recover fine details of its shape and appearance, even under         trating level of viewing vari-
+   highly variable viewpoint and lighting conditions. How can           ability in everyday vision.
+   vision be so rich, but at the same time fast? The analysis-
+   by-synthesis approach to vision offers an account of the rich-       model: What would have been the most likely underlying
+   ness of our percepts, but it is typically considered too slow        scene that could have produced this image?
+   to explain perception in the brain. Here we propose a ver-
+   sion of analysis-by-synthesis in the spirit of the Helmholtz ma-        While analysis-by-synthesis is intuitively appealing, its
+   chine (Dayan, Hinton, Neal, & Zemel, 1995) that can be im-           representational richness is often seen as making inference
+   plemented efficiently, by combining a generative model based         highly impractical. There are two factors at work: First, in
+   on a realistic 3D computer graphics engine with a recognition
+   model based on a deep convolutional network. The recogni-            rich generative models a large space of latent scene variables
+   tion model initializes inference in the generative model, which      leads to a hard search problem in finding a set of parame-
+   is then refined by brief runs of MCMC. We test this approach         ters that explains the image well. Second, the posterior land-
+   in the domain of face recognition and show that it meets sev-
+   eral challenging desiderata: it can reconstruct the approximate      scape over the latent variables may have multiple modes or
+   shape and texture of a novel face from a single view, at a level     extended ridges of probability, making standard local search
+   indistinguishable to humans; it accounts quantitatively for hu-      or stochastic inference methods such as Markov Chain Monte
+   man behavior in “hard” recognition tasks that foil conventional
+   machine systems; and it qualitatively matches neural responses       Carlo (MCMC) slow to burn in or mix, and potentially highly
+   in a network of face-selective brain areas. Comparison to other      sensitive to the viewing conditions of scenes.
+   models provides insights to the success of our model.                   Here, we propose an efficient and neurally inspired im-
+   Keywords: analysis-by-synthesis, 3d scene understanding,             plementation of the analysis-by-synthesis approach that can
+   face processing, neural, behavioral.
+                                                                        recover rich scene representations surprisingly quickly. We
+                                                                        use a generic and powerful visual feature extraction pipeline
+                           Introduction
+                                                                        to learn a recognition model with the goal of approximately
+Everyday vision requires us to perceive and recognize objects           “recognizing” certain latent variables of the generative model
+under huge variability in viewing conditions. In a glance, you          in a fast feed-forward manner, and then using those initial
+can often (if not always) identify a friend whether you catch           guesses to bootstrap a top-down search for the globally best
+a good frontal view of their face, or see just a sliver of them         scene interpretation. The recognition model is learned in an
+from behind and on the side; whether most of their face is              entirely self-supervised fashion, from scenes and correspond-
+visible, or occluded by a door or window blinds; or whether             ing images that are hallucinations from the generative model.
+the room is dark, bright, or lit from an unusual angle. You             We apply our approach to the specific problem of face per-
+can likewise recognize two images of an unfamiliar face as              ception, and find that (1) our recognition model can identify
+depicting the same individual, even under similarly severe              scene-generic latent variables such as object pose and lighting
+variations in viewing conditions (Figure 1), picking out fine           in a single feed-forward pass, and (2) brief runs of MCMC in
+details of the face’s shape, color, and texture that are invariant      the generative model are sufficient to make highly accurate
+across views and diagnostic of the person’s underlying phys-            inferences about object-specific latents, such as the 3d shape
+iological and emotional state. Explaining how human vision              and texture of a face, when initialized by good guesses from
+can be so rich and so fast at the same time is a central chal-          the feed-forward recognition model.
+lenge for any perceptual theory.                                           Our approach is inspired by and builds upon earlier propos-
+   The analysis-by-synthesis or “vision as inverse graphics”            als for efficient analysis-by-synthesis such as the Helmholtz
+approach presents one way to think about how vision can be              machine and breeder learning (Dayan et al., 1995; Nair,
+so rich in its content. The perceptual system models the gen-           Susskind, & Hinton, 2008), but it goes beyond prior work
+erative processes by which natural scenes are constructed, as           in several ways:
+well as the process by which images are formed from scenes;
+this is a mechanism for the hypothetical “synthesis” of nat-             • We apply this approach to much richer generative mod-
+ural images, in the style of computer graphics. Perception                 els than previously considered, such as near-photorealistic
+(or “analysis”) is then the search for or inference to the best            graphics models of faces based on high-dimensional 3d
+explanation of an observed image in terms of this synthesis                shape and texture maps, lighting and shading models, and
+                                                                    2751
+
+                                                                                                         (b) Random
+   varying (affine) camera pose. This lets us perceive and rec-            (a) Generative model
+                                                                                                           samples
+                                                                                                                      (c) With recognition model
+   ognize objects under much greater variability in more nat-                                    face_id                                    face_id
+                                                                            Shape           Texture                       Shape        Texture
+   ural scenes than previous attempts.                                       - Nose          - Nose                        - Nose       - Nose
+                                                                             - Eyes          - Eyes                        - Eyes       - Eyes
+ • We directly compare human perceptual abilities with our                   - Outline       - Outline                     - Outline    - Outline
+                                                                             - Mouth         - Mouth                       - Mouth      - Mouth
+   model, as well as other recently popular approaches to vi-
+   sion such as convolutional neural networks (Krizhevsky,                                                                Light Pose
+   Sutskever, & Hinton, 2012).                                               Light     Pose
+ • We explore this approach as an account of actual neural
+   representations arising from single-unit cell recordings.          Approximate         Sample
+                                                                                                                    Approximate
+                                                                        renderer                                     renderer
+Face perception is an appealing domain in which to test our                             Likelihood
+approach, for several reasons. First, faces are behaviorally                            Observation
+                                                                                                                          Sample
+significant for humans, hence an account of face perception
+is valuable in its own right, although we also expect the ap-
+proach to generalize to other vision problems. Second, virtu-         Figure 2: (a) Overview of the inverse graphics model. (b)
+ally all approaches to computational vision have been tested          Random draws from the model. (c) Training and the use of
+on faces (e.g., Taigman, Yang, Ranzato, & Wolf, 2014), of-            the recognition model.
+fering ample opportunities for comparing different models.            and a covariance matrix to perturb the mean face to draw new
+Third, the shape and the texture of faces are complex and             faces by eigendecomposition. Accordingly, both the shape
+carry rich content. Therefore, it provides a good test bed for        and texture take the form of multivariate Gaussian random
+models with rich representations. Finally, recent neurophys-          variables: S ∼ N(µshape , Σshape ) and T ∼ N(µtexture , Σtexture ),
+iology research in macaques revealed a functionally specific          where µshape and µtexture are the mean shape and texture vec-
+hierarchy of patches of neurons selective for face process-           tors respectively, and Σshape and Σtexture are the covariance
+ing (e.g., Freiwald & Tsao, 2010). As far as high-level vi-           matrices, each of which is set to be a unit diagonal matrix.
+sion is concerned, this level of a detailed picture from a neural     The dimensionality of S and T are 200 each. The prior dis-
+perspective is so far unheard of. Therefore, faces provide an         tributions over lighting direction and head pose are uniform
+excellent opportunity to relate models of high-level vision to        over a discrete space (lighting direction could vary in eleva-
+neural activity.                                                      tion or azimuth in range −80◦ to 80◦ ; the head pose could
+   The rest of this paper is organized as follows. We first           vary along the z-axis in range −90◦ to 90◦ , or on the x-axis in
+introduce our efficient analysis-by-synthesis approach in the         range −36◦ to 36◦ ). Figure 2b shows several random draws
+context of face perception. Next, we test our model in a com-         from this model.
+putationally difficult task of 3D face reconstruction from a             Given a single image of a face as observation, ID , and an
+single image. We then describe a behavioral experiment test-          approximate rendering engine, g(·), face processing can be
+ing people’s face recognition abilities under “hard” viewing          defined as inverse graphics in probability terms:
+conditions, and show that our model best accounts for peo-
+ple’s behavior. Finally, we show that our model bears some               P(S, T, l, r|ID ) ∝ P(ID |IS )P(IS |S, T, l, r)P(S, T, l, r)δg(·) (1)
+qualitative similarity to neural responses in the Macaque face
+processing system. We conclude with a discussion of quan-             The image likelihood is chosen to be noisy Gaussian,
+titative comparisons between our model and alternatives that          P(ID |IS ) = N(ID ; IS , Σ). We set Σ to 0.05 in our simulations.
+use only variants of bottom-up, recognition networks.                 Note that the posterior space is of high-dimensionality con-
+                                                                      sisting of more than 400 highly coupled shape, texture, light-
+                            Model                                     ing direction, and head pose variables, rendering inference a
+Our model takes an inverse graphics approach to face pro-             significant challenge.
+cessing. Latent variables in the model represent facial shape,
+S, and texture, T , lighting direction, l, and head pose, r.          Recognition model
+Once these latent variables are assigned values, an approxi-          The idea of learning a recognition model to invert genera-
+mate rendering engine, g(·) generates a projection in the im-         tive models has been proposed in various forms before (e.g.,
+age space, IS = g({S, T, l, r}). See Figure 2a for a schematic        Dayan et al., 1995; Nair et al., 2008). We use a recognition
+of the model.                                                         model consisting of a generically trained deep Convolutional
+   Following (Kulkarni, Kohli, Tenenbaum, & Mansinghka,               network (ConvNet) and linear mappings from that network to
+2015), we use the Morphable Face Model (MFM; Blanz                    the latent variables in the generative model. To obtain this
+& Vetter, 1999) as a prior distribution over facial shapes            recognition model, we first used our generative model to hal-
+and textures, S and T , respectively. This model, obtained            lucinate images from 300 different faces (each defined by a
+from a dataset of laser scanned heads of 200 people, pro-             3d shape and texture vector), and rendered each distinct face
+vides a mean face (both its shape and texture) in a part-             at 225 different viewing conditions (25 possible head poses ×
+based manner (four parts: nose, eyes, mouth, and outline)             9 possible lighting directions). Second, we used a ConvNet
+                                                                  2752
+
+trained on ImageNet (a labeled dataset of more than million      (a)
+images collected from the internet, Deng et al., 2009) that
+is very similar in architecture to that of (Krizhevsky et al.,
+2012) to obtain features for each of images in our dataset at
+all layers of the network.1 In doing so, we first selected the
+“face-selective” units in each layer of the network by running
+a normal or a scrambled face test. The units that were acti-
+vated twice as much to normal faces than to scrambled faces
+on the average (out of responses to 75 normal + 75 scrambled
+= 150 faces) were designated as “face-selective.” Finally, we
+learn to construct bottom-up guesses for both scene-generic
+                                                                                                                                       Category     initialization with recognition model   random initialization
+variables (pose and lighting direction) and object-specific la-  (b)
+tents (3d face shape and texture) via linear mappings from
+face-selective units in intermediate layers of the ConvNet. We                                                 0e+00
+have found that we can extract pose and lighting from the top
+                                                                                              Log Likelihood
+convolutional layer (TCL) of the ConvNet, with close to per-
+                                                                                                               -2e+06
+fect accuracy, using a linear support vector machine (SVM)
+for each combination of scene generic variables. We use a lin-                                                              Category       initialization with recognition model            random initialization
+ear model with inputs from both TCL and the first fully con-                                                   -4e+06
+nected layer (FFL) of the ConvNet to predict the shape and
+texture variables using Lasso regression (a schematic shown0e+00                                                        0                    20                          40                         60              80
+                                                                                                                                                          Number of MCMC sweeps
+in Figure 2c).
+                                                                  Log Likelihood
+Inference                                                                          -2e+06
+                                                                                            Figure 3: (a) Top: input images from a held-out laser scanned
+Given an image, ID , the recognition model described above                                  dataset (Blanz & Vetter, 1999). Middle: Reconstructions on
+makes fast bottom-up guesses about all latent variables in                                  the basis of the initial bottom-up pass. We used our generative
+the generative model. Inference proceeds by fixing the head-4e+06                           process to visualize the shape and texture vectors obtained
+pose and the lighting direction variables to their “recognized”                             only from the recognition model. Bottom: Reconstructions
+values, and then performing multi-site elliptical slice sam-                                after MCMC iterations. (b) The average and individual log-
+pling (Murray, Adams, & MacKay, 2009), a form of MCMC,                                      likelihood
+                                                                                              0                20 arising from40randomly initialized
+                                                                                                          scores                               60     96 differ-
+                                                                                                                                                             80
+                                                                                                                       Number of MCMC sweeps
+on the shape and texture vectors. At each MCMC sweep,                                       ent chains vs. the recognition         model initialized 96 chains.
+we iterate a proposal-and-acceptance loop over eight groups                                 The recognition model initialized chains converge fast in less
+of random variables: four shape vectors and four texture vec-                               than 20 MCMC sweeps, and the variability across chains be-
+tors, with one vector pair for each of four face parts (For more                            comes much smaller.
+details see Kulkarni et al., 2015). In elliptical slice sampling,                           model can reconstruct the shape and the texture of images of
+proposals are based on defining an ellipse using an auxiliary                               faces under non-frontal lighting and non-frontal pose, demon-
+variable x ∼ N(0, Σ) and the current state of the latent vari-                              strating robustness to non-standard viewing conditions and
+ables, and sampling from an adaptive bracket on this ellipse                                motivating the behavioral studies we describe below.
+based upon the log-likelihood function.                                                         Initializing inference for latent shape and texture variables
+                                                                                            using the recognition model dramatically improves both the
+       3d reconstruction from single images                                                 quality and the speed of inference, as compared with the
+                                                                                            standard MCMC practice of initializing with random val-
+Humans are capable of grasping much of the 3d shape and
+                                                                                            ues (or samples from the prior). Figure 3b shows the log-
+surface characteristics of faces or other objects from a sin-
+                                                                                            likelihood traces of a number of chains for multiple input im-
+gle view, and can use that knowledge to recognize or imag-
+                                                                                            ages that were initialized either randomly, or from the recog-
+ine the object’s appearance from very different viewpoints.
+                                                                                            nition model. Recognition-initialized chains converge much
+We tested our model’s capacity to perform this challenging
+                                                                                            faster: In just a few MCMC sweeps, every chain reaches a
+task using a held-out set of faces (not among those used to
+                                                                                            log-likelihood that is almost as good as the best randomly
+build the generative or recognition models) from (Blanz &
+                                                                                            initialized inference chains reach after tens or hundreds of
+Vetter, 1999). Figure 3a shows several of these test faces
+                                                                                            sweeps. Furthermore, in comparison to the random initial-
+as inputs, reconstructions based on only the bottom-up pass
+                                                                                            ization, recognition-model initialization leads to much lower
+from the recognition model, and reconstructions from our full
+                                                                                            variance: Inferences become uniformly good, very quickly.
+model after initializing with the recognition model and run-
+ning MCMC to convergence. In addition to frontal faces, our                                                                        Behavioral experiment
+    1 We used the Caffe system to extract features, and also to train                       On common benchmark tasks for machine face recognition,
+alternative networks that we describe later (Jia et al., 2014).                             the best systems now regularly report near-perfect perfor-
+                                                                                   2753
+
+                                                     Percent correct
+                                                         100
+                                                                         90     80       70   60   50
+ (a)                                    (b)                                                                                    (c)                                                                                              (d)
+                                                                                                                                                 100
+                                                                                                                                                                                                                                                             Responses
+                                                                                                                                                                                                                                                 6
+                                              Top
+                                                                                                                                                                                                                                  Coefficients
+                                                                                                              LP               Percent correct
+                                                                                                                                   100                                                                                                5
+                                                                                                                                                                                                                                 Category
+                                                                                                              LH
+                                                                                                                               Percent correct
+                                                                                                                                                  80                                                                                       Behavior
+                                            Higher                                                                                                  90
+                                                                                                                                                                                                                                            4
+                                                                                                                  Pose                                                                                                                     Our model
+                                                                                                              F
+                                                                                                                                                                                                                                                 3
+                                    Light    Front                                                                                                  80                                                                                     CNN_optimized
+                                                                                                              RP RH
+                                                                                                                                                                                                                                                 2
+                                                                                                                                                                                                                                           CNN_faces
+                                                                                                                                                  6070
+                                                                                                                                                                                     CNN_optimized
+                                            Lower                                                                                                                                                                                          CNN_baseline
+                                                                                                                                                                                                                                                        l          d       e
+                                                                                                                                                                                                                 CNN_baseline
+                                                                                                                                                                                                                                                     de      i ze         lin
+                                                                                                                                                    60                                                                                                         fac
+                                                                                                                                                                                                     CNN_faces
+                                                                                                                                                                                                                                                     mo           es      se
+                                                                                                                                                                         Our model
+                                                     Top
+                                                                                                                                                                                                                                                          tim
+                                                                       Higher    Front    Lower    Bottom
+                                                                                                                                                              Behavior
+                                                                                                                                                                                                                                                                N_    ba
+                                            Bottom                                                                                                  50                                                                                           Ou       op
+                                                                                                                                                                                                                                                    r           CN
+                                                                                                                                                   Category
+                                                                                                                                                                                                                                                        N_           N_
+                                                                                                                                                  40
+                                                                                Light                                                                                                                                                                                CN
+                                                                                                                                                                                                                                                     CN
+                                                     RP RH                               F         LH            LP
+                                                                                 Pose
+Figure 4: (a) Stimuli from the experiment illustrating the variability of lighting, pose, and identities. (b) Participants’ average
+performance across all possible test viewing conditions. (c) Participants’ and models’ accuracy. (d) Coefficients of mixed
+effects logistic regression analyses. Error bars show standard deviations.
+mance (e.g., Taigman et al., 2014). However, Leibo, Liao,                                                   face images (study and test) belonged to the same person or
+                                                                                                                         100                                  80                                            60                             40
+and Poggio (2014) observed that most face databases are                                                     to two different people, by pressing keys “s” for same or “k”
+                                                                                                                                                          Percent correct
+“easy”, in the sense that the faces in the images are often                                                 for different on their keyboards.
+frontal and fully visible. They found increasing viewing vari-                                                 There were a total of 96 trials, with 48 of the trials being
+ability severely hurt the performance of these systems. Build-                                              same trials. Each test image viewing condition was repeated
+ing upon this observation, we asked how well people can per-                                                four times (4 × 24 = 96), split half between same and differ-
+form face recognition under widely varying pose and lighting                                                ent trials. The presentation order of the 96 pairs of images
+conditions. The task was a simple passport-photo verification                                               was randomized across participants. None of the identities
+task: participants saw images of two faces sequentially, and                                                was repeated except in the same trials, where the same iden-
+their task was to judge whether the images showed the same                                                  tity was presented between the study image and correspond-
+person or two different people. Explaining human behavior                                                   ing test image. On different trials, faces were chosen to be
+in this task provides a challenging test for our model, as well                                             as similar as possible while still remaining discriminable on
+as alternatives from the literature.                                                                        close scrutiny.
+Participants                                                                                                Results
+24 participants were recruited from Amazon’s crowdsourc-
+                                                                                                            Participants performed well despite the difficulty of the task:
+ing web-service Mechanical Turk. The experiment took
+                                                                                                            Performance was above chance for all possible test face view-
+about 10 minutes to complete. Participants were paid $1.50
+                                                                                                            ing conditions (Figure 4b), and ranged between 65% for light
+($9.00/hour).
+                                                                                                            at the bottom and right-profile pose to 92% for frontal light
+Stimuli and Procedure                                                                                       and right-half profile pose. Overall, participants performed at
+The stimuli were generated using our generative model de-                                                   an average accuracy of 78% (red dot and the associated er-
+scribed above (Figure 2a). A stimulus face could be viewed                                                  ror bars in Figure 4c), a level of performance that challenges
+at one of the five different poses (right profile to left profile)                                          even the most capable machine-vision systems.
+and under five different lighting directions (from top to from
+                                                                                                            Simulation details
+bottom), making a total of 25 possible viewing conditions.
+A subset of the facial identities and the 25 possible viewing                                               We ran our model on the same 96 pairs of images that ex-
+conditions are shown in Figure 4a.                                                                          perimental participants saw. We ran at least 18 and at most
+   On a given trial, participants saw a study image for 750ms.                                              24 chains for each of the study and test images. Once ini-
+After a brief period of blank interval (750ms), they saw                                                    tialized with the recognition model, each chain was run for
+the test image, which remained visible until they responded.                                                80 MCMC sweeps. Each chain simulated a participant in
+They were asked to fixate a cross in the center of the screen at                                            our study. For a given image, the values of the latent shape
+the beginning of each trial and between the study and the test                                              and texture variables from the last sample were taken as the
+stimuli presentations. The viewing condition for the study                                                  model’s representation of identity. We denote the representa-
+image was always frontal lighting at frontal pose (e.g., cen-                                               tion of the study image i as studyi , and of the test image i as
+ter image in Figure 4a). The viewing condition for the test                                                 testi for i ∈ 1, . . . , 96.
+image could be any of the remaining 24 possible combina-                                                       We calculated the performance of our model (and the alter-
+tions of lighting and pose. Participants judged whether two                                                 native models that we introduce later) in the following man-
+                                                                                              2754
+
+ner. We first scaled the study and the test image representa-             poses of 25 different identities under a fixed frontal lighting
+tions independently to be centered at 0 and have a standard               direction. We compared the representational similarity ma-
+deviation of 1.2 Then, for each pair i, we calculated the Pear-           trices of the population responses from Freiwald and Tsao
+son correlation coefficient between the representations of the            (2010) in patches ML/MF, AL, and AM, and the represen-
+study and the test images, denoted as corri . Below, we used              tational similarity matrices arising from the representations
+these pair-specific correlation values to model people’s binary           of the different components of our recognition model: face-
+responses (same vs. different) in regression analyses.                    selective TCL units, face-selective FFL units, and the fast
+   Finally, we need to obtain same vs. different judgments                bottom-up guesses for shape and texture vectors.
+from the model, to compare its performance with ground                       ML/MF representations were captured best by the TCL
+truth. Similar to an ROC analysis, we searched for a thresh-              activations (pearson correlation 0.67), suggesting that pose-
+old correlation ∈ [−1, 1] such that the model’s performance               specificity arises from a computational need to make inverse
+will be highest with respect to ground truth. Pairs of corre-             graphics tractable. Our results also suggest that this layer
+lation values lower than the threshold were called different,             might carry information about the lighting of the scene, which
+and the pairs of equal or higher correlation values than the              is experimentally not systematically tested yet. AL represen-
+threshold were assigned same. We report results based upon                tations were best accounted by the FFL activations (pearson
+the threshold that gave the highest performance.                          correlation 0.67). Our model also provides a reason why mir-
+                                                                          ror symmetry should be found in the brain: Computational
+Simulation results                                                        experiments showed that mirror symmetry arises only at fully
+Our inverse graphics model performs at 78% (see Figure 4c),               connected layers (i.e., dense connectivity) and only when the
+matching the participants’ average performance. Matching                  training data contains images of the same face from view-
+average level participant is an important criteria in eval-               points distributed across both left and right sides. Our model
+uating a model, but only a crude one. We also tested                      captures AM patterns best via inferred latent shape and tex-
+whether the internal representations of our model (corri for              ture representations. The shape and texture vectors obtained
+i ∈ 1, . . . , 96) could predict participants’ same/different re-         just using the recognition model (that is, without running any
+sponses on unique stimuli pairs. We performed mixed ef-                   MCMC iterations) captured AM responses best in compari-
+fects logistic regression from our model’s internal represen-             son to all other layers in the recognition model (pearson cor-
+tations (corri for i ∈ 1, . . . , 96) to participants’ judgments,         relation 0.42), suggesting the possibility of a generative 3D
+where we allowed a random slope for each participant us-                  representation of shape and texture in the patch AM.
+ing the lme4 package and R statistics toolbox (R Core Team,
+2013). The coefficient and the standard deviation estimated                     Discussion: Comparison to other models
+for our model are shown in Figure 4d. The internal repre-                 In comparing our model against other approaches, we con-
+sentations of our model can strongly predict participants re-             centrated on alternatives that are based upon ConvNets, due
+sponses, providing evidence for an inverse graphics approach              to their success in many visual tasks including face recog-
+to vision (βˆ = 5.69, σ = 0.26, p < 0.01).                                nition (DeepFace, Taigman et al., 2014), and the fact that
+                                                                          they are architecturally similar (or even identical, in some
+ Macaque face patch system as inverse graphics                            cases) to our recognition model.4 We considered three al-
+Encouraged by these behavioral findings, we next asked                    ternative models: (1) a baseline model, which simply is a
+whether our model could explain neural responses in the face-             ConvNet trained on ImageNet (CNN baseline), (2) a Con-
+processing hierarchy in the brain. Face processing is perhaps             vNet that is trained on a challenging real faces dataset called
+the best understood aspect of higher-level vision at the neu-             SUFR-W introduced in Leibo et al. (2014) (CNN faces), and
+ral level. The spiking patterns of neurons at different fMRI-             (3) a ConvNet that is selected from a number of networks that
+identified face patches in macaque monkeys show a hierarchi-              were all fine-tuned using samples from our generative model
+cal organization of selectivity: neurons in the most posterior            (CNN optimized).
+patch (ML/MF) appear to be tuned to specific poses, neurons                  We focused on these alternative models’ ability to explain
+in AL (a more anterior patch) exhibit specificity to mirror-              our behavioral data. But we should note that ConvNets, on
+symmetric poses, and those in the most anterior patch (AM)                their own, cannot do 3D reconstruction. Also, even though
+show specificity to individuals but appear largely viewpoint-             each ConvNet can partially account for the neural data such
+invariant (Freiwald & Tsao, 2010).3                                       as the pose specificity at patch ML/MF, they are worse at ex-
+   We ran our model on a dataset of faces generated using                 plaining the other two patches. The performance of all alter-
+our generative model, which mimicked the FV image dataset                 native models on our behavioral task was assessed just as for
+from Freiwald and Tsao (2010). Our dataset contained 7 head               our model, with the only difference being that internal repre-
+    2 This scaling step was not crucial for our model, but it was re-         4 We attempted to evaluate the DeepFace on our behavioral
+quired to obtain the best out of other models that we will introduce      dataset. However, email exchanges with its authors suggested that a
+below.                                                                    component of the model (3d spatial alignment) would not work with
+    3 Recent studies suggest homologue architecture between human         images of profile faces. Accordingly, we estimate the performance
+and macaque face processing systems.                                      of that model on our behavioral dataset to be around 65%.
+                                                                      2755
+
+sentations of images were obtained as the FFL layer activa-                                               Conclusion
+tions when that image is input to the model. For the mixed                  This paper shows that an efficient implementation of the
+effects logistic regressions, a given pair of study and test im-            analysis-by-synthesis approach can account for people’s be-
+ages is represented by the correlation of the FFL activations               havior on a “hard” visual recognition task. The same model
+for each of the two images.                                                 also solves a computationally challening task of reconstruct-
+   The baseline model (CNN baseline) performed at 67%                       ing 3d shape and texture from a single image. Finally, it ac-
+(Figure 4c). This is impressive given that the model was                    counts qualitatively for the main response characteristics of
+not trained to recognize faces explicitly, and arguably justi-              neurons in the face processing system in macaque monkeys.
+fies our use of ConvNets as good feature representations. The               None of the alternative ConvNet models, lacking a generative
+ConvNet trained on SUFR-W dataset (CNN faces) performed                     model and the capacity for top-down model-based inference,
+at 72% (Figure 4c), closer to but significantly worse than                  can account for all three of this phenomena. These results
+human-level performance. We should note that CNN faces                      point to an account of vision with inverse graphics at its cen-
+is remarkable for its identification performance on a held-out              ter, supported by bottom-up recognition models that can be
+portion of the SUFR-W dataset (67%; chance level = 0.25%).                  learned from generative model fantasies in a self-supervised
+The last ConvNet, CNN optimized, performed better than                      fashion, that allow top-down processing to refine their ini-
+people did with 86% (Figure 4c).                                            tial guesses but still do most of the work of inference in a
+   We are not the first to show that a computer system can                  bottom-up fashion, and that thereby enable even very rich
+top human performance in unfamiliar face recognition. How-                  model-based inferences to proceed almost as quickly as the
+ever, we argue that the discrepancy between people and                      fast feedforward processing of neural networks.
+CNN optimized points to the computational superiority of
+human face processing system: our face processing machin-
+                                                                                                    Acknowledgments
+ery is not optimized for a single bit information (i.e., identity),         We thank the reviewers for their helpful comments. This re-
+but instead can capture much richer content from an image of                search was supported by the Center for Brains Minds and Ma-
+a face. This comes with a cost of accuracy in our same vs.                  chines (CBMM), funded by NSF STC award CCF-1231216
+different task. Our model accounts for the rich content vs.                 and by ONR grant N00014-13-1-0333.
+accuracy trade-off by acquiring much richer representations
+from faces while performing only slightly worse on identity                                                References
+                                                                            Blanz, V., & Vetter, T. (1999). A morphable model for the synthesis
+matching than an optimized ConvNet. 5                                               of 3d faces. In Proceedings of the 26th annual conference on
+   But, do people actually undertake the difficult chal-                            computer graphics and interactive techniques (pp. 187–194).
+                                                                            Dayan, P., Hinton, G. E., Neal, R. M., & Zemel, R. S. (1995). The
+lenge of 3d reconstruction when they look at unfamiliar                             helmholtz machine. Neural computation, 7(5), 889–904.
+faces? Our data suggests so: internal representations of the                Deng, J., Dong, W., Socher, R., Li, L.-J., Li, K., & Fei-Fei, L.
+CNN optimized, corri for i ∈ 1, . . . , 96, is a worse fit to peo-                  (2009). Imagenet: A large-scale hierarchical image database.
+                                                                                    In Computer vision and pattern recognition, ieee conference
+ple’s responses (also using a mixed effects logistic regression                     on (pp. 248–255).
+model; βˆ = 3.97, σ = 0.22, p < 0.01; Figure 4d). Indeed,                   Freiwald, W. A., & Tsao, D. Y. (2010). Functional compartmen-
+none of the alternative models could account for participants’                      talization and viewpoint generalization within the macaque
+                                                                                    face-processing system. Science, 330(6005), 845–851.
+precise patterns of same/different responses as well as our                 Jia, Y., Shelhamer, E., Donahue, J., Karayev, S., Long, J., Girshick,
+model did(Figure 4d).                                                               R., . . . Darrell, T. (2014). Caffe: Convolutional architecture
+   Do our computational and behavioral approaches extend                            for fast feature embedding. arXiv preprint arXiv:1408.5093.
+                                                                            Krizhevsky, A., Sutskever, I., & Hinton, G. E. (2012). Ima-
+to other object categories? A representational aspect of our                        genet classification with deep convolutional neural networks.
+model that lets us account for behavioral and neural data at                        In Advances in neural information processing systems (pp.
+the same time is that it represents 3D content in the form                          1097–1105).
+                                                                            Kulkarni, T. D., Kohli, P., Tenenbaum, J. B., & Mansinghka, V.
+of a vector. Therefore, our approach should easily extend to                        (2015). Picture: An imperative probabilistic programming
+other classes of 3D objects that can be represented similarly                       language for scene perception. In Computer vision and pat-
+by vectors. Immediate possibilities include bodies, classes                         tern recognition, IEEE conference on.
+                                                                            Leibo, J. Z., Liao, Q., & Poggio, T. (2014). Subtasks of uncon-
+of animals such as birds, generic 3D objects such as vases,                         strained face recognition. In International joint conference
+bottles, and so on. These object classes, in particular bod-                        on computer vision, imaging and computer graphics.
+ies, are exciting future directions, where revealing neural re-             Murray, I., Adams, R. P., & MacKay, D. J. (2009). Elliptical slice
+                                                                                    sampling. arXiv preprint arXiv:1001.0175.
+sults have also been accumulating, our psychophysics meth-                  Nair, V., Susskind, J., & Hinton, G. E. (2008). Analysis-by-synthesis
+ods can be straightforwardly extended to, and a generalization                      by learning to invert generative black boxes. In Icann (pp.
+of our model already efficiently handles 3D reconstruction                          971–981). Springer.
+                                                                            R Core Team. (2013). R: A language and environment for statistical
+tasks (Kulkarni et al., 2015).                                                      computing [Computer software manual]. Vienna, Austria.
+                                                                                    Retrieved from http://www.R-project.org/
+                                                                            Taigman, Y., Yang, M., Ranzato, M., & Wolf, L. (2014). Deepface:
+    5 We should also note that if we average the results across all the             Closing the gap to human-level performance in face verifica-
+chains that we ran for each image, our model’s performance signifi-                 tion. In Cvpr (pp. 1701–1708).
+canly increases to 89% too.
+                                                                        2756
+

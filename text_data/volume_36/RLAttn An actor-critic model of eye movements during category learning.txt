@@ -1,0 +1,395 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+RLAttn: An actor-critic model of eye movements during category learning
+Permalink
+https://escholarship.org/uc/item/7mn7j995
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 36(36)
+Authors
+Barnes, Jordan I.
+McColeman, Caitlyn
+Stepanova, Ekaterina
+et al.
+Publication Date
+2014-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+      RLAttn: An actor-critic model of eye movements during category learning
+                                              Jordan I. Barnes1 (jordanb@sfu.ca)
+                                       1
+                                         Simon Fraser University, Department of Psychology
+                                         8888 University Dr., Burnaby, BC V5A1S6 Canada
+                                    Caitlyn McColeman1 (caitlyn_mccoleman@sfu.ca)
+                                           Ekaterina Stepanova2 (erstepan@sfu.ca)
+                                            2
+                                              Simon Fraser University, Cognitive Science
+                                         8888 University Dr., Burnaby, BC V5A1S6 Canada
+                                                Mark R. Blair1,2 (mblair@sfu.ca)
+                                         R. Calen Walshe (r.c.walshe@sms.ed.ac.uk)
+                                        University of Edinburgh, Department of Psychology
+                                         8888 University Dr., Burnaby, BC V5A1S6 Canada
+                             Abstract                                  Barto, 1998), and a number of different methods have been
+   Here we introduce a simple actor-critic model of eye
+                                                                       developed that properly apportion reward given a sequence
+   movements during category learning that we call RLAttn              of behaviours.
+   (Reinforcement Learning of Attention). RLAttn stores the              Of the several different kinds of reinforcement learning
+   rewards it receives for making decisions or performing              approaches, one in particular, the actor-critic method, has
+   actions, while attempting to associate stimuli with particular      stood out as having a plausible mapping on to the mid-
+   categories. Over multiple trials, RLAttn learns that a large        brain mesencephalic dopaminergic system (Holroyd &
+   reward is most likely when the values of the relevant               Coles, 2002). In this account, a recurrent loop between the
+   stimulus features have been revealed by fixations to them.
+   The model is able to approximate human learning curves in           anterior cingulate cortex and the basal ganglia works to
+   a common category structure while generating fixation               produce action signals that are then critiqued based on
+   patterns similar to those found in human eye tracking data.         differences in expected versus acquired reward. With
+   We additionally observed that the model reduces its fixation        uniform expectations, those differences are merely
+   counts to irrelevant features over the course of learning. We       proportional to the size of the reward. As experience
+   conclude with a discussion on the effective role eye                reveals the utility of particular actions, any differences in
+   movements might play in bridging structural credit
+                                                                       expectations modify the size of future weight adjustments;
+   assignment and temporal credit assignment problems.
+                                                                       should something good come along when something very
+   Keywords: Reinforcement learning; category learning;                bad was expected, this difference would have a larger
+   computational cognitive modeling; eye tracking; actor-critic;       reinforcing effect on the decision taken to get it than a
+   attention
+                                                                       more expected result. To reinforce the sequence of actions,
+                                                                       a small amount of that reward, known as the temporal
+                          Introduction                                 difference error, is passed back to the preceding actions
+                                                                       that got to the present decision. This is done not in one step
+   Researchers have known for decades that appropriate                 but as a function of what the system can expect by taking
+selective attention is needed to facilitate learning (Shepard,         that particular action the next time it finds itself in that
+Hovland & Jenkins, 1967) due in part to evidence showing               particular state. Once the chain is in place, following the
+that deficits in attention impair learning (Filoteo, Maddox,           sequence of actions simply collects the expected reward.
+Ing & Song, 2007). However, we are only just beginning to                While there is considerable evidence supporting the
+understand how selective attention itself is learned.                  notion that eye movements are sensitive to rewards
+Gottlieb (2012) has advanced the thinking about this issue             (Hikosaka, Sakamoto & Usui, 1989), models of
+and has outlined some of the important interactions                    categorization and attention have not comprehensively
+between learning, attention and eye movements. This work               investigated the implications of this. Most of the learning
+strongly motivates thinking of eye movements as both                   models built to explore various category structures employ
+aiding in learning, as well as implementing actions, by                methods meant to optimally assign blame for classification
+virtue of the rewards obtained by them. In general, the                errors based on physical features of the input without
+process of discovering optimal behaviours, given particular            regard for the temporal nature of information acquisition.
+rewards, is known as reinforcement learning (Sutton &
+                                                                  1892
+
+   In this paper we introduce an actor-critic reinforcement       the addition of a category decision state make a total of
+learning model of eye-movements in the context of                 S=28 states,          . The decision state is one in which the
+category learning that we call RLAttn (Reinforcement              agent makes a category choice. As an example, state k=27
+Learning of Attention). We demonstrate that the model             is the starting state on each trial and represents the state of
+qualitatively mimics several aspects of human eye-                not knowing anything about the features. It encodes the
+movement data, including the overall number of fixations          state of knowledge [3 3 3], which is to say that none of the
+and the relative number of fixations to relevant and              three features have been fixated. From this state, the agent
+irrelevant features. Finally, we consider the similarities and    might decide to look at feature 1. Having fixated the
+differences between RLattn and existing reinforcement             feature, the agent is in one of two possible initial “feature 1
+learning models, each of which, including RLAttn, has its         known” states, which, depending on the value of that
+own strengths and weaknesses.                                     feature, might move it to state k=25, (1 3 3), or state k=26,
+                                                                  (2 3 3). The values of features 2 and 3 are both coded to 3
+                 Structure of the model                           because they are still unknown after the first fixation.
+   In reinforcement learning, the agent improves its                 RLAttn selects an action based on the action
+performance by interacting with the environment in order          probabilities in its current state, where A=Qk,t The possible
+to achieve a goal. The agent is the learner, and the              actions for the agent in our environment are to fixate one
+environment is the set of all possible actions or interactions    of the three features, or to make a category decision. Upon
+that the agent faces. The actor-critic method of                  selecting an action, the agent is brought into a different
+reinforcement learning that RLattn uses is based on the           knowledge state, unless opting to fixate the same feature
+method of temporal differences (Sutton & Barto, 1998).            again. For that particular time step t, the agent is given a
+This is a class of dynamic programming methods that               reward r as a consequence of its chosen action.
+breaks up a problem into a set of possible states (S) with           RLAttn’s environment has three possible sources of
+associated actions (A) leading from one state into another        reward: access cost, and correct or incorrect decision
+ideally with optimal transition probabilities, without            rewards. In modelling human gaze data, access cost is a
+storing the entire history. The agent acts in the                 punishment that has been used to represent the bio-
+environment in discrete time steps. During each time step         mechanical energy cost of making an eye movement
+(t), the agent receives some information about the state of       (Nelson & Cottrell, 2007). Access costs, in the form of
+the environment.                                                  temporal delays, have been experimentally shown to
+                                                                  influence patterns of human eye movements in category
+                                                                  learning tasks (Meier & Blair 2013; Wood, Fry & Blair,
+                                                                  2010). In RLAttn, access costs are a small penalty for each
+                                                                  eye-movement. Correct and incorrect rewards are
+                                                                  relatively larger rewards/punishments that are collected as
+                                                                  function of whether or not the model made the correct
+                                                                  decision. The record of the reward for each action a in
+                                                                  each state is stored in a Q-matrix:
+                                                                                  Qk,t (a) = Qk,t (a) + αδ t             (1)
+                                                                  where      is the temporal difference error calculated by
+                                                                  differences in the state value record Vk. and α is a learning
+                                                                  rate. The Q-matrix has A columns and S rows; in our case
+Figure 1: Starting a trial from the state (k=27) of unknown       4 (one for each of the three features, and one for making a
+feature values [? ? ?], RLAttn selects an action, collects the    category decision) columns and 28 rows. The final, 28th
+associated rewards or punishments and transitions to a            row, contains the set of possible category choices, which
+different state.                                                  also happens to be A=4 in this particular case (one action a
+                                                                  for each of the four possible categories shown in Table 1).
+   The possible states in the category learning
+                                                                  The reward, rt, for a decision action, a ∈ A , is stored here.
+environments in the present investigation are based on
+three stimulus features and a category decision action. All       The relationship between the state Qk,t and the action a is
+three features can hold one of two possible values on any         called the policy. The policy is a mapping from each of the
+given trial: either 1 or 2. Additionally, each of the three       states and the selection of a possible action based on a set
+features can be unknown, which we coded as 3. As such,            of corresponding probabilities. Typically a policy might be
+there are three possible states resulting from each of the        set to greedy, i.e. select the most reinforced action, or be
+three features: known (1 or 2) or unknown (3).                    varying probabilistic to explore the space.
+Additionally, the three possible feature states over the three      Over time, the agent learns that it is more preferable to
+different features yield 33 = 27 possible combinations, and       be in some states as opposed to others. This is controlled
+                                                             1893
+
+by the value vector V. This value vector has one column             everyone received partial course credit for their
+which stores the value of the full state, and so contains S         participation.
+rows. In practice, the value of a state under a policy is the         Eye tracking data were converted into fixations using a
+expected return starting from state k and following the             modified version of the Salvucci-Goldberg dispersion
+policy to select an action, which in our case is the Luce           algorithm (2000). Additional methodological details are
+decision rule. The values within V are updated by:                  available along with the probability of fixating the
+                                                                    irrelevant feature, fixation durations, attention change and
+                     δ t = Vk+1 + rt+1 − c − Vk            (2)      error bias in McColeman, Barnes, Chen, Meier, Walshe &
+                                                                    Blair (2014). These data are available on the Simon Fraser
+where Vk is the value of the current state, rt+1 is the reward,     University Summit Repository system1.
+modulated by an access cost c, and Vk+1 is the value of the
+state that the agent is in after its action.                                          Table 1: Category Structure.
+                                                                           Feature 1       Feature 2    Feature 3  Category
+                          Vk = Vk + αδ t                   (3)
+                                                                                  0             0          0/1        A
+                                                                                  0             1          0/1        B
+   Given this formalization, it still has to be decided how                       1             0          0/1        C
+the action probabilities for particular unvisited states in the                   1             1          0/1        D
+Q matrix are initialized. We currently opt for simple
+generalization rules in RLAttn. If a particular knowledge
+state k has never been visited, all actions are equiprobable,       Accuracy
+however the decision action is defined by Vk=28. When               As can be seen in Figure 1, people quickly learn the
+initializing the category selection probabilities from state        category structure and maintain high accuracy for the
+Qk=28,t the average of all Qk,T is taken.                           duration of the experiment. Trials prior to achieving 9
+   The action probabilities are transformed by a modified           correct answers consecutively are deemed pre-learning,
+Luce decision rule, such that:                                      and those after 9 correct answers in a row, the criterion
+                                                                    point, are post-learning.
+                                  eQk ,t (a)/τ
+                p(a,Qk,t ) =                               (4)
+                               ∑ eQk ,t (b)/τ
+                                b∈A
+where Qk,t is the agent’s current state, e is Euler’s constant,
+a is the action whose odds of selection are being
+transformed, b is a member all possible actions for that
+state, and τ is a temperature constant, set to 1 for RLAttn.
+Over multiple time steps, the probability of selecting the
+action with the highest reward is higher than selection all
+of the other possible actions. In general, the agent’s goal is
+to maximize the reward that it receives overall - not just
+the immediate reward. The Luce decision rule acts as the
+policy for the model, and is among the simplest strategies
+for defining a policy (Sutton & Barto, 1998).
+                                                                    Figure 1: Accuracy is shown with standard error
+                        Human Data
+                                                                    represented as the shaded region around the mean accuracy
+In order to assess the performance of RLAttn we fit data            line.
+(Figure 2) from McColeman, Barnes, Chen, Meier, Walshe
+and Blair (2014). In this study, participants had to learn to       Fixation count
+sort images of fictitious micro-organisms into four possible
+                                                                    As with the participants’ accuracy, the fixation counts were
+categories. The images each contain three spatially
+                                                                    also reported in McColeman, Barnes, Chen, Meier, Walshe
+separated features, and the values of two of the features
+                                                                    & Blair (2014). Figure 2 depicts an example of one kind of
+indicate to which category the image belongs. The
+                                                                    attentional optimization, whereby participants reduce the
+remaining feature is irrelevant (Table 1). The data comes
+                                                                    overall number of fixations they make over the course of
+from 19 learners with high quality gaze data in the perfect
+                                                                    the experiment.
+feedback condition of an experiment manipulating
+feedback validity. All participants come from Simon
+Fraser University’s Research Participation pool, and                   1
+                                                                         http://summit.sfu.ca/item/12720
+                                                               1894
+
+                                                                  Fixation count
+                                                                  As with the human data, the mean fixation counts decrease
+                                                                  over the course of the experiment (Figure 4.).
+Figure 2: Fixation counts relative to the criterion point,
+shown as a dashed vertical black line, in the participant
+most similar to the mean criterion point (in this case trial
+71 compared to the mean criterion point of all participants
+of trial 75). Trials with gaze quality are not included, and      Figure 3: Fixation counts relative to the criterion point,
+are visible as gaps in the plot.                                  shown as a dashed vertical black line, in the best fitted
+                                                                  model for the same subject as that in Figure 2, with
+                         Model Data                               criterion point most similar to that individual from the
+The model was fit by minimizing the difference between            simulation distribution (trial 76 for this simulation).
+its accuracy and the human subject accuracy (see Figure 1)        Although the trials with fixation counts >20 are less in the
+on a trial-by-trial basis. The fitting procedure was initiated    model for this simulation (fixation counts were not fit
+with a simple grid search of several different levels of the      directly), the means are very similar (µSubject= 3.86 and
+two free parameters, learning rate, and reward. The best          µRLattn = 3.46).
+fitting parameters were chosen as the seeds for a simplex
+based minimization method implemented in MATLAB,                  In line with previous attentional efficiency results
+named fminsearch (Lagarias, Reeds, Wright & Wright,               (McColeman        et    al,    2014),     the    decrease   is
+1998). Because RLAttn is a stochastic model we ran the            disproportionately associated with the irrelevant feature.
+model 3 times before returning the average fit value from         As the values of particular eye movement decisions are
+these runs to fminsearch. Once the best fitting parameters        refined, access cost begins to outweigh the expected
+were found, we ran the model another 5 times under these          reward from looking at irrelevant information.
+parameters to generate 5 simulations for each of our 19
+human subjects upon which to base our analysis.
+Occasionally RLAttn would enter a pathological state,
+such as endlessly fixating features without making a
+decision. If such a state was entered using a set of best
+fitted parameters, the simulation was dropped. In this case
+we lost 3 simulations leaving 92 simulations. Despite a
+particularly conservative fit calculation, where we
+calculate the match in accuracy on each trial between the
+human and the model data, RLAttn matched of 81% (SD =
+0.12) of the total trials.
+Accuracy
+Overall RLAttn matches the qualitative features of human
+learning. As can be seen in Figure 1, RLAttn took slightly
+longer to attain the same level of accuracy as humans,
+likely due to the level of randomness in the Luce decision        Figure 4: The mean fixation counts to each feature are
+rule, governed by τ, which was not fit as a free parameter        comparable between the model and the human participants
+in this instantiation of RLAttn. Humans may also be               over the course of the experiment. Further, RLAttn is
+generalizing their category knowledge more efficiently            exhibiting the right kind of reduction in fixation count as it
+than the model.                                                   reduces its fixations to the irrelevant feature.
+                                                             1895
+
+                   Model Comparison                               did this by using temporal-difference error to solve what
+                                                                  would normally be a structural credit assignment problem
+Here we compare RLattN with two related models that
+                                                                  but posed in such a way as to allow a temporal credit
+attempt to address eye movements and attention during
+                                                                  assignment solution. To understand this, consider the
+category learning. The first is a Bayesian model developed
+                                                                  categorization problem they develop. The stimuli they use
+by Nelson and Cottrell (2007) which links the probability
+                                                                  have two parts, presented sequentially, where the action
+of making a query to a stimulus dimension to the
+                                                                  taken by the participant when viewing the first part
+probability that a particular dimension will improve a
+                                                                  modifies the available actions in the second part, thereby
+category decision. This estimation is added to the mutual
+                                                                  affecting the elicited reward. Learning as a function of
+information between that stimulus dimension and the
+                                                                  temporal difference error would predict that higher valued
+probability of a correct category determination, while the
+                                                                  actions taken in the first part of stimulus viewing would be
+energy cost of making an eye movement is subtracted. If
+                                                                  reinforced by the later reward and, perhaps unsurprisingly,
+the mutual information between a dimension and the
+                                                                  this is what was found in human participants doing the
+correct category decision is low, a function of the feature
+                                                                  same task (Cañas & Jones, 2010).
+being irrelevant, than the cost of making a movement will
+                                                                     The insightful part about this work is the way in which it
+outweigh the expected information gain of looking at that
+                                                                  uses the structure of the task to separate stimulus
+feature and no movement will be made. In this sense, the
+                                                                  dimensions in time to circumvent what could easily have
+model is an attempt to directly account for attentional
+                                                                  been a contemporaneous conjunctive rule problem, thus
+optimization results which show reduced fixations over the
+                                                                  allowing the temporal difference error to determine the
+course of learning to irrelevant dimensions. Apart from
+                                                                  correct structural relationships. There is very clearly an
+being easily interpretable, the use of mutual information as
+                                                                  important intuition about human learning being developed
+a metric for deciding an action is supported by research
+                                                                  in this model but it is never quite explicitly stated: all
+showing that human behaviours are often taken to reduce
+                                                                  structural problems have temporal contingencies as a
+uncertainty within a task (Renninger, Verghese &
+                                                                  consequence of serial selective attention. The primary
+Coughlan, 2007).
+                                                                  difference between RLAttn and Q-ALCOVE is that we see
+   Although RLAttn employs the idea of access cost and
+                                                                  the embodied sequential actions of the eyes as the primary
+can be interpreted as being influenced by probability gain,
+                                                                  conduit of these contingencies. Either way, this
+there are a number of interesting differences in model
+                                                                  contribution to the literature deserves to be recognized as
+behaviours and assumptions. For instance, Nelson and
+                                                                  an advancement of category learning models towards the
+Cottrell note that human learners often do not query all
+                                                                  general fact that any category decision is the result of a
+stimulus dimensions even prior to understanding the
+                                                                  serious of previous sub-decisions that share in rewards.
+category structure (Rehder & Hoffman, 2005). In RLAttn
+this kind of counter-intuitive behaviour is seen as a direct
+consequence of the agent not knowing the relative values
+                                                                                           Discussion
+of looking at information as opposed to making category           We have presented an actor-critic reinforcement learning
+decisions. Not until negative rewards have had a chance to        model of eye movements during category learning that is
+discourage this kind of ignorant decision making will the         able to approximate human learning curves while also
+participant settle in to a more consistent and useful fixation    improving their attentional efficiency based on previous
+pattern; this could be thought of as a simple rule testing        rewards. In addition to these qualities, the model offers a
+mechanism but more empirical research on this question            reason for the seemingly odd behaviour of participants to
+would be needed. Further, the inclination to make a               guess categories without fully exploring a stimulus, as had
+particular motor movement is not simply guided by                 been previously reported: until punished, decision actions
+probability gain concerns (Meier & Blair, 2013) but also          in a particular state are actions like any other. Thinking of
+by the reinforcement history (Holroyd & Coles, 2008).             behaviour in this way allows us to understand why people
+Overall, we see the use of mutual information as an               are sometimes prone to making objectively non-optimal
+important consideration to a more comprehensive model of          decisions. We see the creation of models like RLAttn as a
+eye movements and see RLattN as addressing a separate             useful first step towards bridging neurophysiological
+set of concerns pertaining to the reward responsive nature        research on reward processing, particularly with respect to
+of the saccadic system.                                           eye movements and attention, with the well-studied
+   One of the most influential models of attentional              category structures used in the category learning literature.
+learning in categorization is ALCOVE (Kruschke, 1992).            To our knowledge, only a few models have been presented
+In ALCOVE, attentional weight to particular stimulus              that have attempted to address these issues (see Barnes,
+dimensions (represented in the present work as features) is       Walshe, Blair & Tupper, 2013, in addition to the models
+tuned by errors during learning. Whereas ALCOVE was               looked at here) which is surprising given the longstanding
+developed to model human learning based on a                      interest in psychology in category learning and
+psychological reworking of the back-propagation                   computational modeling.
+algorithm, Jones and Cañas (2010) extended these ideas in            Finally, the relationships between category learning and
+Q-ALCOVE using reinforcement learning principles. They            sequencing behaviours are important to understand for a
+                                                             1896
+
+number of reasons. Not only do humans solve both                Holroyd, C. B., & Coles, M. G. H. (2008). Dorsal anterior
+structural and temporal credit assignment problems (the           cingulate cortex integrates reinforcement history to
+difference between what causes something and when                 guide voluntary behavior. Cortex. 44(5), 548–59.
+should something be done) but deficits in areas implicated      Jones, M. & Cañas, F. (2010). Integrating Reinforcement
+with reinforcement learning, like the basal ganglia, are          Learning with Models of Representation Learning
+observed to impair both category learning and sequencing          Proceedings of the 32nd Annual Meeting of the
+behaviours (Seger, 2006). The solution provided here,             Cognitive Science Society.
+which is to store information needed to solve classification    Kruschke, J K. (1992). ALCOVE: an exemplar-based
+problems over multiple, serially accessed states, fits will       connectionist model of category learning. Psychological
+with the ‘just-in-time’ representations posited by Ballard        review, 99(1), 22–44.
+and colleagues (1997). That is to say that working memory        Lagarias, J. C., Reeds, J. A., Wright, M. H., & Wright, P.
+resource constraints point to the need to dynamically             E (1998), Convergence Properties of the Nelder-Mead
+retrieve information as it is needed and actions like eye         Simplex Method in Low Dimensions. SIAM Journal of
+movements offer a method of pointing to the information           Optimization, 9(1), 112-147.
+needed. It seems plausible to think that computer models        McColeman, C. M., Barnes, J., Chen, L., Meier, K.,
+that learn category structures based on these principles          Walshe, R. C., & Blair, M. (2014). Learning-induced
+may one day contribute solutions to broader problems in           changes in attentional allocation during categorization: a
+cognitive science and psychology.                                 sizable catalog of attention change as measured by eye
+                                                                  movements. PLoS ONE 1(9).
+                   Acknowledgments                              Meier, K. M., & Blair, M. R. (2013). Waiting and
+We would like to thank the members of the Cognitive               weighting: Information sampling is a balance between
+Science Lab at SFU and our funding bodies: the National           efficiency and error-reduction. Cognition, 126(2), 319–
+Science and Engineering Research Council (NSERC), and             25.
+the Canadian Foundation for Innovation (CFI).                   Nelson, J. D., & Cottrell, G. W. (2007). A probabilistic
+                                                                  model of eye movements in concept formation.
+                                                                  Neurocomputing, 70(13-15), 2256–2272.
+                        References                              Rehder, B., & Hoffman, A. B. (2005). Eyetracking and
+                                                                  selective attention in category learning. Cognitive
+Ballard, D. H., Hayhoe, M. M., Pook, P. K., & Rao, R. P.          psychology, 51(1), 1–41.
+   (1997). Deictic codes for the embodiment of cognition.       Renninger, L. W., Verghese, P. & Coughlan, J. (2007).
+   The Behavioral and brain sciences, 20(4), 723–42.              Where to look next? Eye movements reduce local
+Barnes, J.I., Walshe, R.C., Tupper, P.F., & Blair, M.R.           uncertainty. Journal of Vision. 7(3), 1–17.
+   (2013) A dynamic neural field model of eye movements         Salvucci, D. D., & Goldberg, J. H. (2000). Identifying
+   during category learning tasks. Learning to Attend,            fixations and saccades in eye-tracking protocols.
+   Attending to Learn: Neurological, Behavioural, and             Proceedings of the symposium on Eye tracking research
+   Computational Perspectives.                                    & applications, 71–78.
+Cañas, F., & Jones, M. (2010). Attention and                    Seger, C. (2006). The basal ganglia in human learning. The
+   reinforcement learning: Constructing representations           Neuroscientist : a review journal bringing neurobiology,
+   from indirect feedback. Proceedings of the 32nd Annual         neurology       and     psychiatry,     12(4),    285–90.
+   Meeting of the Cognitive Science Society.                      doi:10.1177/1073858405285632
+Filoteo, J. V., Maddox, W. T., Ing, A. D., & Song, D. D.        Sutton, R. S., & Barto, A. G. (1998). Reinforcement
+   (2007). Characterizing rule-based category learning            Learning: An Introduction. Cambridge, MA: MIT Press.
+   deficits in patients with Parkinson’s disease.               Wood, M.J., Fry., M., & Blair, M.R. (2010). The price is
+   Neuropsychologia, 45(2), 305–20.                               right: A high information access cost facilitates category
+Gottlieb, J. (2012). Attention, Learning, and the Value of        learning. Proceedings of the 32nd Annual Meeting of the
+   Information. Neuron, 76, 281-295.                              Cognitive Science Society. 236-241.
+Hikosaka, O., Sakamoto, M., & Usui, S. (1989) Functional
+   properties of monkey caudate neurons. I. Activities
+   related to saccadic eye movements. Journal of
+   Neurophysiology, 61, 780-798.
+Hoffman, J. E., & Subramaniam, B. (1995). The role of
+   visual attention in saccadic eye movements. Perception
+   & psychophysics, 57(6), 787–95.
+Holroyd, C. B., & Coles, M. G. H. (2002). The Neural
+   Basis of Human Error Processing: Reinforcement
+   Learning, Dopamine, and the Error-Related Negativity.
+   Psychological Review, 109(4), 679–709.
+                                                           1897
+

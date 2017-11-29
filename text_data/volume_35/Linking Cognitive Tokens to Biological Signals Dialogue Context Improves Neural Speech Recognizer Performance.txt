@@ -1,0 +1,356 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Linking Cognitive Tokens to Biological Signals: Dialogue Context Improves Neural Speech
+Recognizer Performance
+Permalink
+https://escholarship.org/uc/item/9br6w075
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 35(35)
+Authors
+Veale, Richard
+Briggs, Gordon
+Scheutz, Matthias
+Publication Date
+2013-01-01
+Peer reviewed
+ eScholarship.org                                   Powered by the California Digital Library
+                                                                    University of California
+
+       Linking Cognitive Tokens to Biological Signals: Dialogue Context Improves
+                                    Neural Speech Recognizer Performance
+                                              Richard Veale (riveale@indiana.edu)
+                                               Indiana University, 841 Eigenmann Hall
+                                                      Bloomington, IN 47406 USA
+                                              Gordon Briggs (gbriggs@cs.tufts.edu)
+                                                   Tufts University, 200 Boston Ave.
+                                                        Medford, MA 02155 USA
+                                       Matthias Scheutz (matthias.scheutz@tufts.edu)
+                                                   Tufts University, 200 Boston Ave.
+                                                        Medford, MA 02155 USA
+                            Abstract                                      Hierarchical Bayesian modeling often focuses on the
+                                                                       “computational level” (Marr, 1982), showing how higher-
+   This paper presents a hybrid cognitive model engaged in ex-
+   periments demonstrating a successful mechanism for applying         level processes can influence lower levels (e.g., by showing
+   top-down contextual bias to a neural speech recognition sys-        how distributions of higher-level structures constrain distribu-
+   tem to improve its performance. The hybrid model includes           tions of lower-level items). In contrast, our approach attempts
+   a model of social dialogue moves, which it uses to selectively
+   bias word recognition probabilities at a low level in the neu-      to address all three levels and their mutual interactions. This
+   ral speech recognition system. The model demonstrates how           is because these levels cannot be considered in complete iso-
+   symbolic and neurologically inspired components can success-        lation in cases where higher-level processes have to interact
+   fully exchange information and mutually influence their pro-
+   cessing. Furthermore, the biasing mechanism is grounded in          with lower-level processes in real-time contexts with real-
+   brain mechanisms of perceptual decision making.                     world inputs. Specifically, we claim that the nature and time-
+   Keywords: Speech Recognition; Liquid State Machine; Dia-            course of low-level processes imposes significant constraints
+   logue Context; Top-Down Bias; Signal-to-Token Conversion            on the possible ways of exchanging information with higher-
+                                                                       level processes. Low-level processes will limit the types of
+                         Introduction                                  computations that are allowed in higher-level processes that
+Human cognition comprises high-level knowledge-based pro-              communicate with them, since they may have stringent tim-
+cesses as well as low-level perceptual and motor processes,            ing requirements and will not wait for a computation to finish
+both of which are implemented via electro-chemical mecha-              with a result. Proposals that do not incorporate those con-
+nisms in the brain. High-level cognitive processes are often           straints might result in models that produce correct results
+viewed as symbolic and discrete, while low-level perceptual            under some empirical regimes, but which are infeasible given
+and motor processes are subsymbolic and continuous. More-              implemenation constraints.
+over, high-level processes are taken to operate on structured
+                                                                          For example, a hierarchical Bayesian model of natural
+representations, while low-level processes will usually not
+                                                                       language processing might be able to show that high-level
+be representational at all. Two key challenges in cognitive
+                                                                       knowledge about grammar can successfully bias low-level
+science are thus to understand (1) how high-level processes
+                                                                       speech processing, but whether that particular computational
+are realized in “neural hardware” and (2) how they can in-
+                                                                       way of biasing is actually feasible and realistic in humans can
+teract with low-level processes (e.g., how discrete symbolic
+                                                                       only be determined by taking algorithmic and implementa-
+knowledge can influence continuous subsymbolic processes
+                                                                       tion constraints into account. These constraints include time
+and vice versa). We will focus on the second challenge in this
+                                                                       bounds caused by the incremental nature of the speech pro-
+paper.
+                                                                       cessor. In this case the high-level computation can not expect
+   Connectionist computational modeling has made signif-
+                                                                       to have access to a whole utterance before it starts biasing,
+icant progress in addressing (1) over the years, producing
+                                                                       since by that point the speech processor will already have ad-
+more and more refined neurologically plausible models of
+                                                                       vanced past the point where it is useful. Thus, although there
+cognitive functions which are verified physiologically (e.g.
+                                                                       are many ways in which higher levels could influence lower
+(Machens, Romo, & Brody, 2005)). However, fewer efforts
+                                                                       levels at the computational level, most of them are not re-
+have been made to address (2). Only recently, hierarchical
+                                                                       alized in humans because of implementation or algorithmic
+Bayesian models have been proposed as a natural, systematic
+                                                                       constraints.
+way to connect higher-level to lower-level processes (Kemp
+& Tenenbaum, 2008). Similar to the Bayesian approach, our                 This paper makes three contributions: first, we will present
+goal is to understand the interactions between these two types         a general way of integrating high-level processes operating
+of processes which operate at fundamentally different levels.          on structured symbolic knowledge with low-level neural pro-
+                                                                  3657
+
+cesses with unstructured signals; second, we will show in           asing of speech recognition probabilities have been investi-
+the specific context of real-time biologically plausible speech     gated in a traditional speech recognition system (e.g. (Young,
+recognition how high-level knowledge about diologues and            Hauptmann, Ward, Smith, & Werner, 1989)). Our work dif-
+mental states of interlocutors can be used to dynamically ad-       fers from this previous work in that the speech recognition
+just parameters in the neural speech recognizer to improve          system is built of biologically-plausible neural circuits mod-
+recognition performance; and third, we will provide results         elling the early human auditory system. Although the general
+from a real-time evaluation of the implemented model. The           concept of using context to bias state in the speech recognizer
+model includes a biologically plausible neural speech recog-        is similar, the non-symbolic nature of the speech recognizer
+nizer, a statistical/symbolic natural language understanding        in our system requires serious reconsideration of how to ac-
+system, and a logic-based model of pragmatical and mental           tually implement the top-down bias. In this paper we adopt a
+state inference. Previously, we have addressed the bottom-          simple approach and bias the temporal integrators represent-
+up transfer of information, i.e., conversion from the contin-       ing the competing word categories, which directly influences
+uous stream of auditory neural firings to symbolic word to-         the symbolic output of the speech recognizer.
+kens expected by a natural language processing system (Veale           The next section presents a short overview of the two most
+& Scheutz, 2012b). In this paper we address the reversed            relevant portions of the hybrid model used in this paper. It
+direction, the top-down transfer of information and biasing         describes the mechanism for top-down biasing of the neural
+of low-level processes. Specifically, high-level knowledge-         speech recognizer, and overviews how the system operates.
+based representations of dialogue and interaction context will
+be used to bias auditory neural activity to improve word                                 Model Overview
+recognition performance in spoken language dialogues.
+                                                                    The architecture of the cognitive model used for the experi-
+                                                                    ments in the Experiment Setup Section is summarized in Fig-
+                        Background                                  ure 1. The neural speech recognizer (LSM ASR) is responsi-
+In humans and other animals, perceptual decisions are mod-          ble for translating the acoustic signal into text tokens, which
+ulated by system state in a top-down manner. Top-down bi-           are sent to the NLP component. The NLP component parses
+ases have been documented empirically in a variety of con-          the text tokens, and performs semantic analysis and utterance
+texts such as vision search (Chen & Zelinsky, 2006), percep-        type classification. The dialogue system receives semantic
+tual decision about motion (Hanks, Mazurek, Kiani, Hopp,            information from NLP and updates the agent’s beliefs, based
+& Shadlen, 2011), auditory disambiguation (Hannemann,               on a pragmatic analysis (Briggs & Scheutz, 2011). The dia-
+Obleser, & Eulitz, 2007)), and others. Furthermore, we are          logue component also tracks the state of the current dialogue
+beginning to understand the mechanisms underlying these bi-         exchange, allowing for predictions about expected upcoming
+ases thanks to a combination of neurophysiological studies          utterance types. Details of how biasing is implemented in the
+and behavioral research (e.g. see (Hanks et al., 2011). Per-        speech recognizer and Dialogue components are presented in
+ceptual decisions can be well-modelled using parallel diffu-        the sections below. The model is implemented in the DIARC
+sion processes (Ratcliff, Gomez, & McKoon, 2004), and there         cognitive architecture (Schermerhorn et al., 2006), whose nat-
+is evidence that these processes are realized in the brain as       ural language capabilities have been demonstrated in human-
+neural integrators collecting evidence for each alternate hy-       robot interaction scenarios 1 (Cantrell, Scheutz, Schermer-
+pothesis independently. Prior probabilities influence the neu-      horn, & Wu, 2010; Cantrell, Schermerhorn, & Scheutz, 2011;
+ral integrators based on the past experience of the organism.       Briggs & Scheutz, 2012).
+These influences have been shown to be caused by top-down
+biases, although some evidence exists that sensory cortex           The Dialogue Component
+parameters also adapt to match environmental priors (Fiser,         The dialogue component contains knowledge of common di-
+Chiu, & Weliky, 2004), which are outside the scope of this          alogue exchange patterns, such as those in Table 1.
+paper (Veale & Scheutz, 2012a). The shape and parameters
+of the thresholds and the bias functions responsible for top-                     Table 1: Dialogue exchange patterns
+down biases on behavior are still under active investigation
+(Hanks et al., 2011). However, the detailed behavior of these                Exchange Pattern    Dialogue Move Sequences
+processes is not necessary to implement a working model that               Statement-Ack Pair    Stmt(α, β) → Ack(β, α)
+takes advantage of the general mechanism of top-down bias              Yes-No QA-Pair (pos)      AskY N(α, β) → ReplyY (β, α)
+to improve perceptual decisions.                                                                 → Ack(β, α)
+   In this paper we are specifically interested in top-down bi-        Yes-No QA-Pair (neg)      AskY N(α, β) → ReplyN(β, α)
+ases on auditory word recognition. Contextual biases on word                                     → Ack(β, α)
+recognition are ubiquitous in the everyday world. For exam-                           QA-Pair    AskW H(α, β) → Stmt(β, α)
+ple, visual context and gesturing can be used in noisy situ-                                     → Ack(α, β)
+ations to produce a sensible hypothesis for what a speaker
+is saying. This is not a novel observation. Top-down bi-                1 http://www.youtube.com/watch?v=RJ1VSIi1CM4
+                                                                3658
+
+Figure 1: Information flow through the natural language system. The blue arrow indicates the top-down dialogue context bias
+on the ASR component introduced in this paper.
+   Stmt(α, β) denotes a statement utterance direct from agent        activity patterns similar to liquid activity patterns evoked by
+α to agent β, while Ack(β, α) denotes an acknowledgment              the word examples they were trained on. Readouts are in-
+(e.g. “okay”) from β to α. AskY N and AskW H denote a yes-           tegrated over time with exponential decay (low-pass filtered,
+no question and general question, respectively.                      time constant 20 ms), and the value of these are continuously
+   In this paper we focus on sending bias information to the         summed into the diffusors (right). In the model, readouts,
+LSM ASR component in the case of yes-no question-answer              integrators, and diffusors are only updated every 20 ms. The
+(QA) pairs. When the dialogue component detects a yes-no             value of the readout integrator for readout r, σr is thus defined
+QA-pair has been entered, it sends a list of expected words          by the following equation (where τσ is the time constant and
+to the LSM ASR component, specifically “yes” (ReplyY ) and           Ir is the input from the corresponding readout):
+“no” (ReplyN). For each expected word xi , a weight value
+0 ≤ wi ≤ 1 is also sent to the LSM, denoting how much to                                      ∂σr     −σr
+                                                                                                   =       + Ir                     (1)
+weight xi relative to other biased words (where 0 is equivalent                                ∂t      τσ
+to no bias and 1 indicates maximum bias).
+                                                                        The diffusors compete with one another proportional to
+The Speech Recognizer                                                how strong their input is. The value of readout r’s diffusor,
+                                                                     ∆r , is updated according to the following rule:
+The neural speech recognition system employed in this pa-
+per has previously been used to perform speech recognition                                                           σr
+for real-time human-robot interaction tasks (Veale & Scheutz,                       ∆r (t) = (∆r (t − 1) + σr ) ·                   (2)
+                                                                                                                  ∑ j (σ j )
+2012b). The system converts from speech input streams to
+word tokens that can be used by other components of the                 This mechanism prevents the diffusion processes of am-
+cognitive model. The speech recognizer employs the liq-              biguous words from reaching threshold simultaneously. Us-
+uid state machine (LSM) computational paradigm (Maass,               ing this system, there must be the equivalent of 100 ms of
+Natschlager, & Markram, 2002) to perform recognition on              strong unambiguous evidence for a particular word category
+audio input streams. The LSM is implemented using spiking            before it crosses threshold. This evidence could be provided
+neurons, and readouts are trained via linear regression. Fig-        by longer but weaker evidence, or by top-down bias.
+ure 2 presents the main components of the speech recognizer.
+                                                                     Biasing Mechanism The biasing mechanism functions by
+   Sound is processed into auditory nerve firings correspond-
+                                                                     injecting energy into the readout integrators, i.e., one level be-
+ing roughly to the strength of frequency channels in audi-
+                                                                     fore the diffusion processes. The biaser specifies which cat-
+tory input (Figure 2, left). These neurons project to several
+                                                                     egories should be biased, and the relative strengths for those
+groups of pre-processing neurons (superior olivary complex)
+                                                                     biases. In the current paper, the amount of energy injected
+via groups of differently parameterized synapses, resulting in
+                                                                     with a unit strength of 1.0 is equal to amount that is injected
+neurons sensitive to the onset/offset/passthrough activity for
+                                                                     when the corresponding readout is active, thus up to “dou-
+each cochlear channel. These pre-processing neurons in turn
+                                                                     bling” the input to the integrator at times when its presynap-
+project randomly to the recurrent circuit (liquid), which is a
+                                                                     tic readout is active. Note that this implements the “simplest”
+large circuit of randomly connected spiking neurons. “Read-
+                                                                     diffusion model bias, involving linear bias to the diffusor’s
+outs” (discussed below) are trained via linear regression on a
+                                                                     input diffusing to a constant threshold.
+corpus of sound files, with supervisor vectors set to +1 for all
+                                                                        The result of bias is that biased words have “stronger” re-
+instances of the target category and −1 otherwise. Addition-
+                                                                     sponses from their internal integrators, which translates to
+ally, all readouts are counter-trained against a “noise” corpus
+                                                                     greater force of growth towards the diffusion threshold. This
+in which every readout’s supervisor vector is −1.
+                                                                     results in both faster reporting of the word (when the diffu-
+Signal-to-Token Conversion Readouts (perceptrons) are                sor crosses threshold), and also stronger “confidence” in the
+trained via linear regression to respond positively to liquid        word when the words offset is reported at the end of the word.
+                                                                 3659
+
+Figure 2: Visualization the neural model described in this paper. The pictured circuit has only 4 input channels, and a 3 × 3 × 10
+recurrent circuit. The actual circuit has 84 input channels and a 5 × 4 × 20 recurrent circuit.
+   The LSM ASR was trained on five spoken instances of              significantly between biased and unbiased trials, whereas re-
+eight different words from the same speaker: yes, no, guess,        sponse to the appropriate word (“no”, yellow) does. Similarly
+bess, jess, joe, bob and a null response (background noise).        for Figure 3a, the activation of the contextually-inappropriate
+The audio files used for testing are the same words spoken          yet similar-sounding word “jess” (teal) does not change sig-
+by a different speaker of the same gender. The words were           nificantly between the biased and unbiased cases, yet the ac-
+chosen because several rhyme or have similar phonetic com-          tivation of the contextually-appropriate yet incorrect word
+ponents to the “target” words “yes” (“guess”, “bess”, “jess”)       (“no”, yellow) is increased. Meanwhile, the activation of
+and “no” (“joe”), or share none (“bob”).                            the contextually-appropriate and correct word (“yes”, red) is
+   The scenario we examine in this study consists of a simple       stronger in the biased case and quickly advances to threshold.
+yes-no QA-pair. The system is initiated with an intention              As a control, a third set of experiments were run in
+to know whether its interlocutor possesses a particular             which the responder responded with the similar-sounding but
+mug in the belief component. The dialogue component,                contextually-inappropriate word “joe” (Figure 4). In this
+which queries the belief component for intentions to know           case, the trajectories for all words do not differ significantly
+information, generates the appropriate yes-or-no question:          between the bias and unbiased conditions. However, in the bi-
+                                                                    ased condition (Figure 4, bottom), a slight jump in the recog-
+   Robot:     Do you have the mug?                                  nition of the contextually-appropriate word “no”is seen near
+                                                                    the end of the utterance. This is expected because the tail end
+   After this NL reuest is generated, a response audio file is      of “no” is similar to “joe”, and the additional contextual bias
+presented to the system. These audio files consist of “yes”         on “no” was sufficient to produce a small amount of drift in
+and “no” responses recorded from a different speaker. Four          the diffusor for the period of similar sounds.
+conditions were examined: (1) “Yes” response, no bias; (2)
+“Yes” response, with bias; (3) “No” response, no bias; (4)                             Experimental Setup
+“No” response, with bias. Data from the LSM (integrated             In terms of quantifying the advantage, one can look at the
+readout activity and word recognition score) was recorded at        point at which recognition of the word reaches the confidence
+10 millisecond intervals over the duration of the input.            threshold (black horizontal bar). The diffusor in the “yes”
+                                                                    unbiased condition (Figure 3a, top) crosses the recognition
+                             Results                                threshold at approximately 540 ms, whereas with bias the dif-
+The time course of the diffusors (solid lines) and readout in-      fusor crosses the recognition threshold at approximately 470
+tegrators (dashed lines) for every word category are shown in       ms (bottom), demonstrating a reduced recognition time. Note
+Figures 3a (a “yes” trial) and 3b (a “no”trial). The primary        that the readout values for both “yes” and “no” responses are
+comparison to make is the difference in the trajectories be-        significantly increased in the biased condition compared to
+tween the biased (each figure, bottom) and unbiased (each fig-      the unbiased condition, as both are anticipated as possible
+ure, top) trials. If the top-down biasing is working correctly,     answers (whereas the readouts for the other word nodes re-
+one should see a jump in activity over the unbiased trials for      main relatively unchanged in amplitude). In the “no” unbi-
+the contextually-appropriate words (“yes” and “no”), and no         ased condition, the diffusor crosses the recognition thresh-
+corresponding jump in any other words. This is precisely            old at approximately 480 ms (Figure 3b, top), whereas with
+what is observed: even accidental weak responses to incorrect       bias the diffusor crosses the recognition threshold at approx-
+words (“bess” – purple in Figure 3b) do not seem to change          imately 360 ms, again demonstrating a a reduced recognition
+                                                                3660
+
+                   (a) Response to “yes” stimulus.                                    (b) Response to “no” stimulus.
+Figure 3: LSM ASR responses to “yes” and “no” stimuli in no bias condition (top) and bias condition (bottom). The trajectory
+of activity for the readouts and diffusors for all trained words in response to the injected sound is plotted over time after
+the question is asked. Dotted lines represent the individual readout integrators for each word, while solid lines represent the
+diffusors. In both cases, the diffusor for the correct word (red solid line on left, yellow solid line on right) crosses the threshold
+significantly quicker in the bias condition (bottom). The influence of the top-down bias mechanism can be clearly seen in the
+increased activity of the readout integrators for “yes” and “no” (red and yellow dotted lines, respectively) in the bias condition.
+time. Keep in mind that these are different words that be-           language system has mechanisms of recognizing and reason-
+gin at slightly different times and which extend for different       ing about such indirect speech acts (Briggs & Scheutz, 2013,
+amounts of time and have different volumes and distances             forthcoming), and therefore more precise biasing algorithms
+from the training corpus. Thus it is important to focus on the       are ripe for investigation.
+differences within a word to see the performance increases              A more theoretically interesting extension of the current
+resulting from top-down biasing.                                     work will more directly address the theoretical issues from
+                                                                     the introduction. In the current paper, only pseudo-symbolic
+                        Future Work                                  readout neurons were influenced by the top-down bias. This
+Expanding and refining the contexts in which top-down bi-            allowed us to explore the time-constraint theme, but not the
+asing of the speech recognizer will occur will provide am-           disconnects in representation between multiple levels. In the
+ple opportunities for future research. For instance, incremen-       future it will be interesting to directly bias the state of the au-
+tal parse hypotheses in the NLP component could be used to           ditory circuit, to further explore how such interactions could
+identity likely upcoming words. Certain sentential modifiers         take place.
+(e.g. “I am now at the store” vs. “I am still at the store”)
+can be used in conjunction with belief models and contextual                                   Conclusion
+knowledge for prediction purposes. If, for example, common           This paper introduced a hybrid neural-symbolic model that
+ground in the dialogue exchange was established such that            demonstrates not only the bottom-up communication of cog-
+both speaker and listener knew the speaker was at the store          nitive tokens from continuous sensory streams, but also the
+previously. The partial sentence, “I am still at–” would be          top-down biasing of neural speech recognition using predic-
+highly indicative of “..at the store”. These semantic and belief     tions based on expected dialogue moves. The top-down bias-
+model implications of these modifiers can be reasoned about          ing of the neural speech recognizer results in faster and more
+in our pragmatics system (Briggs & Scheutz, 2011). Addi-             confident word recognition for contextually appropriate word
+tionally, some yes-no questions are actually conventionally          categories during dialogue exchanges. The top-down biasing
+indirect forms of general questions. For instance, “Do you           mechanisms are biologically accurate in that the effect of the
+know who has the mug?” is often an indirect form of, “Who            top-down signal on high-level neurons in the speech recog-
+has the mug?” and may elicit a name in response. Our natural         nition circuit parallels that observed in “diffusion” neurons
+                                                                 3661
+
+                                                                        ings of the 2011 ieee symposium on robot and human inter-
+                                                                        active communication.
+                                                                      Cantrell, R., Scheutz, M., Schermerhorn, P., & Wu, X. (2010,
+                                                                        March). Robust spoken instruction understanding for HRI.
+                                                                        In Proceedings of the 2010 human-robot interaction con-
+                                                                        ference.
+                                                                      Chen, X., & Zelinsky, G. (2006). Real-world visual search is
+                                                                        dominated by top-down guidance. Vision research, 46(24),
+                                                                        4118–4133.
+                                                                      Fiser, J., Chiu, C., & Weliky, M. (2004). Small modulation of
+                                                                        ongoing cortical dynamics by sensory input during natural
+                                                                        vision. Nature, 431(7008), 573–578.
+                                                                      Hanks, T., Mazurek, M., Kiani, R., Hopp, E., & Shadlen, M.
+                                                                        (2011). Elapsed decision time affects the weighting of prior
+                                                                        probability in a perceptual decision task. The Journal of
+                                                                        Neuroscience, 31(17), 6339–6352.
+                                                                      Hannemann, R., Obleser, J., & Eulitz, C. (2007). Top-
+                                                                        down knowledge supports the retrieval of lexical informa-
+                                                                        tion from degraded speech. Brain research, 1153, 134–
+                                                                        143.
+                                                                      Kemp, C., & Tenenbaum, J. B. (2008). The discovery of
+Figure 4: LSM readout results for “joe” response for no bias            structural form. PNAS, 105(31), 10687–10692.
+condition (top) and bias condition (bottom). Conventions are          Maass, W., Natschlager, T., & Markram, H. (2002). Real–
+equivalent to figure 3. The diffusor for the actual uttered             time computing without stable states: A new framework for
+word “joe” does not significantly differ between the biased             neural computation based on perturbations. Neural Com-
+and unbiased conditions, crossing the threshold (black hori-            putation, 14(11), 2531-2560.
+zontal line) at roughly the same point in both conditions.            Machens, C., Romo, R., & Brody, C. (2005). Flexible con-
+                                                                        trol of mutual inhibition: a neural model of two-interval
+                                                                        discrimination. Science (New York), 307(5), 1121-1124.
+recorded from primate association cortex. The hybrid model
+                                                                      Marr, D. (1982). Vision: A computational investigation into
+presented in this paper engages interesting questions regard-
+                                                                        the human representation and processing of visual infor-
+ing interaction between different levels of abstraction. We use
+                                                                        mation. New York, NY, USA: Henry Holt and Co., Inc.
+this to highlight that implementation-level details can actually
+                                                                      Ratcliff, R., Gomez, P., & McKoon, G. (2004). A diffusion
+constrain the computational level in real-time real-world situ-
+                                                                        model account of the lexical decision task. Psychological
+ations. We believe that it is important to keep this relationship
+                                                                        Review, 111(1), 159.
+in mind when making claims about human cognition.
+                                                                      Schermerhorn, P., Kramer, J., Brick, T., Anderson, D., Din-
+                     Acknowlegements                                    gler, A., & Scheutz, M. (2006). Diarc: A testbed for natu-
+                                                                        ral human-robot interactions. In Proceedings of aaai 2006
+This research was in part supported by ONR grant #N00014-               robot workshop (pp. 1972–1973).
+11-1-0493. RV is an NSF GRF and NSF IGERT.                            Veale, R., & Scheutz, M. (2012a, November). Auditory ha-
+                                                                        bituation via spike-timing dependent. In Proceedings of the
+                         References                                     international conference on development and learning and
+Briggs, G., & Scheutz, M. (2011, June). Facilitating mental             epigenetic robotics. San Diego, CA.
+   modeling in collaborative human-robot interaction through          Veale, R., & Scheutz, M. (2012b). Neural circuits for any-
+   adverbial cues. In Proceedings of the sigdial 2011 confer-           time phrase recognition. In N. Miyake, D. Peebles, &
+   ence (pp. 239–247). Portland, Oregon.                                R. P. Cooper (Eds.), Proceedings of the 34th annual con-
+Briggs, G., & Scheutz, M. (2012). Multi-modal belief up-                ference of the cognitive science society (p. 1072-1077).
+   dates in multi-robot human-robot dialogue interaction. In            Austin, TX: Cognitive Science Society.
+   Proceedings of 2012 symposium on linguistic and cognitive          Young, S., Hauptmann, A., Ward, W., Smith, E., & Werner,
+   approaches to dialogue agents.                                       P. (1989). High level knowledge sources in usable speech
+Briggs, G., & Scheutz, M. (2013, forthcoming). A hybrid                 recognition systems. Communications of the ACM, 32(2),
+   architectural approach to understanding and appropriately            183–194.
+   generating indirect speech acts. In Proceedings of the 27th
+   aaai conference on artificial intelligence.
+Cantrell, R., Schermerhorn, P., & Scheutz, M. (2011, July).
+   Learning actions from human-robot dialogues. In Proceed-
+                                                                  3662
+

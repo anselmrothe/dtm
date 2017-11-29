@@ -1,0 +1,391 @@
+                                  Navigation with Learned Spatial Affordances
+                                      Susan L. Epstein (susan.epstein@hunter.cuny.edu)
+                                               Anoop Aroor (aaroor@gc.cuny.edu)
+                                          Matthew Evanusa (matthew.evanusa@gmail.com)
+        Department of Computer Science, Hunter College and The Graduate Center of the City University of New York
+                                                          New York, NY 10065
+                                           Elizabeth I. Sklar (e.i.sklar@liverpool.ac.uk)
+                                          Simon Parsons (S.D.Parsons@liverpool.ac.uk)
+                              Department of Computer Science, University of Liverpool, Liverpool, UK
+                              Abstract                                 abstractions remove perceived but irrelevant details from
+                                                                       spatial knowledge (Frommberger & Wolter, 2008). An af-
+   This paper describes how a cognitive architecture builds a          fordance is a relation that enables one to perform an action
+   spatial model and navigates from it without a map. Each con-        (Gibson, 1977). Here, a spatial affordance is a spatial ab-
+   structed model is a collage of spatial affordances that de-
+   scribes how the environment has been sensed and traversed.          straction that supports navigation. This paper focuses on
+   The system exploits the evolving model while it directs an          how a cognitive architecture combines a penchant for explo-
+   agent to explore the environment. Effective models are              ration (Speekenbrink & Konstantinidis, 2014) with the heu-
+   learned quickly during travel. Moreover, when combined with         ristic exploitation of learned spatial affordances.
+   simple heuristics, the learned spatial model supports effective        Navigation, as studied here, is in a world, a dynamic, par-
+   navigation. In three simple environments, these learned mod-        tially observable environment where maps are unreliable or
+   els describe space in ways familiar to people, and often pro-
+                                                                       unavailable, and landmarks may be absent, obscured, or
+   duce near-optimal travel times.
+                                                                       obliterated. Examples include complex office buildings,
+   Keywords: spatial cognition, cognitive architecture, spatial        warehouses, and search and rescue scenes. A traveler there
+   affordances, learning, exploration                                  may encounter unanticipated barriers or passageways.
+                                                                          SemaFORR is an application of the FORR cognitive ar-
+                          Introduction                                 chitecture to robot navigation (Epstein, 1994). FORR was
+People somehow find their way through unfamiliar territory             confirmed as cognitively plausible on human game players
+without a map, and with experience soon improve their abil-            (Ratterman & Epstein, 1995), and has since learned success-
+ity to navigate there. This paper describes a system that              fully in a variety of application domains. FORR relies on
+simulates that skill development in an agent subject to noise          multiple application-specific rationales, good reasons to se-
+and uncertainty. Our thesis is that learning to navigate is            lect an action. This makes it a particularly suitable cognitive
+based on commonsense, qualitative reasoning, exploration,              architecture for navigation, given that people also rely on
+and affordances derived from perception. Our approach re-              multiple wayfinding strategies to select routes (Takemiya &
+lies on devices well documented in people: a penchant for              Ishikawa, 2013; Tenbrink, Bergmann, & Konieczny, 2011).
+exploration and the representation and exploitation of per-            Moreover, SemaFORR’s rationales exploit research on the
+ceptual experience through heuristic reasoning. Two princi-            ways people perceive, envision, describe, and navigate
+pal results are reported here. First, a reusable, transferable,        through space (e.g., (Golledge, 1999)).
+human-friendly depiction of an environment can be learned                 SemaFORR makes navigation decisions for a simple au-
+quickly. Second, such a model supports navigation in time              tonomous robot. The robot has no map; instead, it has only a
+close to that realized by an optimal path planner that con-            local view of its immediate surroundings, a form of low-
+tends with similar noise and uncertainty.                              level sensorimotor perception. This view is provided by a
+   Spatial cognition learns, organizes, and applies know-              wall register, a set of limited-range sensors that calculate
+ledge about a spatial environment. People represent that
+knowledge internally as a spatial mental model, but the na-
+ture of that model remains an open question. Empirical evi-
+dence shows it is not an image-like metric map, even for a
+simple environment. Tversky’s subjects displayed systemat-
+ic errors incompatible with a map (Tversky, 1993). She sug-
+gested that their mental model was a gradually acquired col-
+lage of disparate knowledge types. In another study,
+subjects navigated no differently when their virtual                                    (a)                           (b)
+environments were metrically or topologically possible or               Figure 1: How SemaFORR perceives space and what it
+impossible (Zetzsche, Galbraith, Wolter, & Schill, 2009).               learns. (a) From its heading (arrow), the robot has only a lo-
+   Neurophysiologists have suggested that people use a sen-             cal view. The inferred region is shown as a circle. (b) A
+sorimotor or graph-like spatial mental model, where spatial             learned spatial model for world A. Dots are regions’ exits.
+                                                                   644
+
+the robot’s distance to the nearest wall in 10 directions, as in       input to a decision cycle is the current state, a set of possible
+Figure 1(a).                                                           actions, and world knowledge. In SemaFORR, the current
+   Through heuristic analysis of both the robot’s perception           state includes the wall register, the robot’s list of targets to
+and its travel in a world, SemaFORR quickly learns a spa-              visit, its current position, and a history of its decision points
+tial model as a set of spatial affordances. Figure 1(b) super-         on the way to its current target. For cognitive efficiency, ra-
+imposes an example of a learned spatial model on the true              ther than generate possible actions in a continuous space,
+map for a simple office space (world A). The circles and               SemaFORR has a discrete repertoire of qualitative actions: 5
+squares represent regions and conveyors, respectively. (Both           forward linear moves of various lengths (henceforward,
+are explained in the next section.) The model clearly cap-             simply moves), 10 clockwise or counterclockwise rotations
+tures world A’s rooms and hallway. Although this learned               of various degrees (turns), and a pause (do nothing).
+collage is only approximately correct, we show here that it               SemaFORR is implemented with a simulator that repli-
+supports effective navigation.                                         cates the errors observed in our laboratory on a Surveyor
+   SemaFORR is ultimately intended to make decisions for               SRV-1 Blackfin, a small robot platform with a webcam and
+the robots of HRTeam (Human-Robot Team) (Sklar et al.,                 802.11g wireless. Its larger moves and turns incur larger ac-
+2011). An HRTeam robot is autonomous, inexpensive, and                 tuator discrepancies. SemaFORR’s world knowledge is its
+has simple perceptual devices. It is challenged both by actu-          spatial model, represented as descriptives, described next.
+ator noise (imperfectly executed intended actions) and un-
+certainty (e.g., in its perceived location or from friction).          Descriptives capture affordances
+   Because a SemaFORR robot is also intended to collabo-               In FORR, a descriptive is a data item whose value is com-
+rate with a human team member, properties of our approach              puted on demand, with functions that determine how and
+become particularly important. SemaFORR’s decision struc-              when to update it. The current values of all descriptives are
+ture allows a robot to explain the reasons for its actions. Be-        computed as input at the beginning of each decision cycle.
+cause those reasons are readily understandable by people,              Spatial affordances are represented as descriptives that
+human-robot collaboration can be more natural for the per-             evolve as the robot travels to new targets.
+son. In addition, a cognitively plausible mental model can                When the robot reaches a target, SemaFORR reviews its
+be shared with the person at a level of abstraction that is            true path, the sequence of decision points that brought it
+both meaningful and parsimonious.                                      there and the wall register at each of them. SemaFORR then
+   The next section of this paper describes the navigation             revises the true path to reduce expended cognitive and phys-
+task, FORR, and SemaFORR. Subsequent sections include                  ical effort. (This is similar to people’s use of return paths in
+the experimental design and results for several navigators             (Hamburger, Dienelt, Strickrodt, & Röser, 2013), but with
+constructed within SemaFORR. The paper concludes with                  decision points rather than landmarks or viewpoints.)
+related research and a discussion that includes current work.          SemaFORR uses the wall register at each decision point to
+                                                                       identify a better (i.e., more direct) choice. In the resultant
+        Navigation, FORR, and SemaFORR                                 corrected path, edges represent better moves that were pos-
+For SemaFORR, a task requires the robot to visit (come                 sible actions, as in Figure 2(a).
+within ε of) a target. A location in a two-dimensional world              SemaFORR’s learned spatial model summarizes its per-
+is a real-valued pair (x,y) that denotes a point in a coordinate       ceptual and travel experience with three kinds of descrip-
+plane. At any instant, the robot’s position is its location and        tives: conveyors, regions, and exits. A conveyor grid covers
+its heading (allocentric forward direction). Given the tar-            the world with cells about 1.5 times the size of the robot’s
+get’s location and its own location (from overhead cameras),           footprint. It tallies how often all corrected paths intersect
+the robot can compute the Euclidean distance between them.             each cell. A conveyor is a cell with a high count; it repre-
+   Classical robot navigation either assumes a map or has the          sents an area through which many successful paths have
+robot navigate to construct one. In such a map, the A* algo-           traveled, as in Figure 2(b). A region approximates a con-
+rithm can find an optimal (i.e., shortest) path between any            fined, connected, open space (e.g., a room). As in Figure
+two locations (Hart, Nilsson, & Raphael, 1968). For A*, a
+continuous map is discretized, that is, a coordinate grid is
+superimposed on the environment and each cell is treated as
+a node in a graph. A* then finds a plan, the shortest path
+from the robot’s start cell to the target’s cell. A* is ill-suited
+to unknown territory, however, because it requires a com-
+plete and correct map. Many variations on A* address dy-
+namic or uncertain environments, but when a robot’s plan
+fails, the robot still must repair it or replan. This paper ex-
+                                                                                     (a)                             (b)
+plores what a robot can achieve without planning.
+                                                                       Figure 2: In world A, (a) a true path (dashed) to a target in
+   SemaFORR’s robot senses only at a decision point, its lo-
+                                                                       the upper center, and its corrected (solid line) version based
+cation when it selects its next action. In a FORR-based sys-
+                                                                       on local perception. (b) Conveyors after travel to 40 targets.
+tem, action selection is the product of a decision cycle. The
+                                                                       Corrected paths passed through darker cells more often.
+                                                                   645
+
+1(a), a region is a circle centered on the robot’s location,            Two SemaFORR rationales advocate exploration as a way
+with radius equal to the shortest wall-register distance. (Re-       to reduce uncertainty, a requisite human behavior in noisy,
+gions are reminiscent of areas in online mapping (Thrun et           dynamic domains (Speekenbrink & Konstantinidis, 2014).
+al., 1998), but do not require that the robot map all walls          EXPLORER encourages movement to novel (or rarely visited)
+first.) Larger regions subsume smaller ones, and regions do          locations, those that minimize the total Euclidean distance to
+not overlap. An exit from a region, shown here as a dot on           previous decision points in the current task only. NOTOPPO-
+its edge, is formed wherever a true path intersects its perim-       SITE prevents oscillation in place by vetoing turns that
+eter. To make a decision, SemaFORR applies commonsense               change the previous rotation direction after a pause.
+and its descriptives through its Advisors.                              GREEDY and the remaining rationales rely only on com-
+                                                                     monsense and local perception. When there is no interven-
+Advisors capture high-level reasoning                                ing wall, VICTORY supports a move directly to the target, or
+In FORR, an Advisor is a boundedly rational (i.e., resource-         a turn that aligns the robot’s heading with the target. When
+limited) procedure that represents a rationale. Given the cur-       the robot is near the target, CLOSEIN supports actions with
+rent state, world knowledge, and a possible action, an Advi-         comment strengths based both on distance to the target and
+sor produces its opinion on the action as a comment. The             the heading correction necessary to reach it. AVOIDWALLS
+strength of a comment reflects the degree to which the Ad-           opposes actions that would bring the robot too close to a
+visor’s rationale supports or opposes the action. SemaFORR           wall, and thereby risk collision due to noisy actuators. BIG-
+has 22 Advisors in all; Table 1 lists their rationales.              STEP supports the largest possible action in each direction,
+   Most rationales produce one Advisor for moves and an-             with comment strengths proportional to that action’s size.
+other for turns. A turn Advisor looks ahead to how it could          Because a broader expanse offers more alternatives and al-
+use the same rationale after a turn. For example, GREEDY‘s           lows larger movements, ELBOWROOM prefers actions that
+comments on moves have strengths proportional to how                 maintain a reasonable distance from any wall. Finally, when
+close the moves are expected to bring the robot to the target.       the robot is facing a wall, GOAROUND veers away from it,
+GREEDY’s comments on turns have strengths based on how               and prefers larger turns more strongly when a wall is closer.
+close the robot could come to the target if it were to turn that     Disagreements among Advisors are anticipated, and re-
+way and then move in the resultant direction. A turn deci-           solved during a decision cycle.
+sion is not a plan - it recommends a turn and anticipates a
+subsequent move, but does not commit to one.                         Hierarchical decision making
+   SemaFORR has three rationales that exploit its learned            To reach a target, SemaFORR repeatedly selects one action
+spatial affordances. CONVEY supports moves to high-count             at a time with the decision cycle shown in Figure 3.
+conveyors, with preference for those further from the robot.         SemaFORR alternately chooses a move (or pause) on one
+(When high-count conveyors are near one another, CONVEY              decision cycle and a turn on the next decision cycle. Pauses
+promotes travel through them rather than to them.) Exits             allow extended turns in one direction. If SemaFORR choos-
+support loose connectivity among the regions, as follows. If         es an action other than pause, it sends a command that
+the robot is in region R, a leaf region is one with exits only       drives the robot’s motors for some period of time. This ac-
+to R. (With perfect knowledge, a leaf region would be a              tuation either turns the robot or propels it forward, subject to
+dead-end.) If the target is in region T, UNLIKELY opposes ac-        the simulated actuator error described above.
+tions into a leaf region other than T, and EXIT supports ac-            FORR partitions Advisors into three tiers, which its deci-
+tions toward exits from R that do not go to a leaf other than        sion cycle treats hierarchically. Advisors assumed to be cor-
+T, in the spirit of (Björnsson & Halldórsson, 2006).                 rect are placed in tier 1. All other Advisors, in tier 3, are
+                                                                     heuristics. (Tier 2 is not used here; it includes planners, and
+Table 1. SemaFORR’s Advisor rationales. * = rationale uses
+spatial affordances. † = rationale applies only to turns.
+     Name              Rationale
+Tier 1 in the order Advisors are considered
+  VICTORY          Go to a target within range
+  AVOIDWALLS Do not go within ε of a wall
+ NOTOPPOSITE† Do not oscillate in place
+ Tier 3 heuristic Advisors vote to choose an action
+  *CONVEY          Go to frequent, distant conveyors
+  *EXIT            Leave a region via an exit
+  *UNLIKELY        Do not enter a target-free leaf region
+  BIGSTEP          Make a large move or turn toward one
+  CLOSEIN          When nearby the target, go closer
+  ELBOWROOM        Go where there is room to move
+  EXPLORER         Go to unfamiliar locations
+  GOAROUND†        Turn to avoid obstacles directly before you
+  GREEDY           Go closer to the target                                        Figure 3: The FORR decision cycle.
+                                                                 646
+
+                                                                      es the smallest moves and turns. When a waypoint is ob-
+                                                                      structed, or when noisy actuators drive the robot too far
+                                                                      from its next waypoint, SemaFORR-A* replans.
+                                                                         SemaFORR uses all the Advisors in Table 1. To evaluate
+                                                                      the impact of its components, we also tested ablated naviga-
+                                                                      tors with all the tier-1 Advisors but only subsets of the tier-3
+                                                                      Advisors. SemaFORR-B, for basic, uses only commonsense
+                                                                      and perception: BIGSTEP, CLOSEIN, ELBOWROOM,
+                  (a)                           (b)                   GOAROUND, and GREEDY. SemaFORR-E, for explore, is
+Figure 4: After navigation to 40 targets, a learned spatial           SemaFORR-B plus EXPLORER. SemaFORR-C and
+model superimposed on the true map for (a) world B and (b)            SemaFORR-R add to SemaFORR-E only the Advisors for
+world C. For a model of world A, see Figure 1(b).                     conveyors or regions, respectively.
+                                                                         Because SemaFORR is expected to improve its perfor-
+is the focus of current work.) In FORR, a comment from a
+                                                                      mance over a sequence of tasks in unfamiliar, unmarked ter-
+tier-1 Advisor either forces an action or vetoes one. If any
+                                                                      ritory, it should do lifelong (i.e., cumulative) learning. We
+tier-1 Advisor selects an action, it becomes the decision.
+                                                                      tested each navigator in three worlds (A, B, and C) shown in
+Otherwise, tier-1 Advisors may forbid some actions, and
+                                                                      Figures 1(b) and 4. A setting for a world is the robot’s start-
+FORR invokes tier 3 on the actions that remain.
+                                                                      ing location (here, always in the lower left) and a randomly
+   As a FORR-based system, SemaFORR consults its tier-1
+                                                                      ordered list of 40 randomly generated targets to visit. In a
+Advisors first, in the order shown in Table 1. For example,
+                                                                      trial, the robot begins a setting in its starting location and
+assume that the robot in Figure 1(a) is about to select a turn.
+                                                                      then attempts to travel from one target to the next, in order.
+If its target is not in range, VICTORY does not comment, and
+                                                                      There is a 250-decision limit to reach any one target. If the
+AVOIDWALLS vetoes those turns to the right that would
+                                                                      robot fails (does not reach a target), it begins travel toward
+bring it too close to the wall. Then, if the last turn was to the
+                                                                      the next target from its current position. Performance is av-
+right and the last move was a pause, NOTOPPOSITE vetoes
+                                                                      eraged over 5 trials in each of 5 settings, a total of 25 trials
+all left turns, and SemaFORR then invokes tier 3 on the re-
+                                                                      (1000 targets) per world for each navigator. Testing for the
+maining turns. Because no tier-1 Advisor ever vetoes pause,
+                                                                      data reported here was performed in simulation.
+there will always be at least one remaining action. If pause
+                                                                         In each world, each navigator is evaluated on its trial
+is selected or if only pause remains, the robot does nothing
+                                                                      time, the distance it travels, and the frequency with which it
+until the next decision cycle.
+                                                                      reaches its target within 250 decisions. Time includes time
+   Unlike tier 1, all tier-3 Advisors are consulted together. In
+                                                                      to sense (the wall register), to decide (consult the Advisors),
+tier 3, voting sums the comment strengths for each action,
+                                                                      to act (send and execute the command), and to learn (calcu-
+and the action with maximum total strength is the decision.
+                                                                      late the affordances). In the following, cited results are sta-
+(Ties are broken at random.) For example, a long (BIGSTEP)
+                                                                      tistically significant at p < 0.05 unless otherwise noted.
+move that gets close to the target (GREEDY) and goes where
+the robot has not traveled in the current task (EXPLORER) is
+                                                                                                   Results
+likely to have considerable support. Those Advisors also
+provide a human-friendly explanation for the decision.                Results appear in Table 2. SemaFORR-B, without explora-
+                                                                      tion or spatial affordances, is surprisingly effective in world
+                    Experimental design                               B; it finishes within 12% of the optimal travel time. None-
+                                                                      theless, it fails on nearly a third of its targets in world C.
+We tested multiple navigators. SemaFORR-A* is our gold
+                                                                      When encouraged to explore (SemaFORR-E), however, the
+standard. From the map, it uses A* to plan an optimal path
+                                                                      likelihood of success in worlds A and C improves consider-
+as a sequence of waypoints from the robot’s initial location
+                                                                      ably. Compared to SemaFORR-E, conveyors (SemaFORR-
+to its target. SemaFORR-A* avoids walls and selects the ac-
+                                                                      C) reduce the time and maintain the success rate in world C.
+tion that brings the robot closest to its next waypoint in the
+                                                                      Recall that SemaFORR-A* is limited to only the smallest
+plan. To limit actuator error, SemaFORR-A* always choos-
+                                                                      moves and turns. SemaFORR, however, takes larger steps
+      Table 2: Mean time in seconds, distance traveled, and the percentage of targets reached in 250 decision cycles. Only
+      SemaFORR-A* uses a map. All other navigators use some combination of commonsense, spatial affordances, and
+      exploration. Time includes time to sense, decide, move, and learn, where applicable.
+                                    World A                              World B                             World C
+         Navigator         Time    Distance     Success        Time      Distance    Success        Time    Distance     Success
+      SemaFORR-A*         1035.89  400.06 100.00%           884.58       335.14      100.00%      1119.93     437.87      100.00%
+      SemaFORR-B          1947.64  927.82     90.30%        991.97       501.14       98.40%      2999.65     880.08       71.40%
+      SemaFORR-E          1375.11  942.68     98.90%       1022.78       627.87       98.90%      1476.82     917.87       99.50%
+      SemaFORR-C          1243.31  885.04     99.60%        937.56       646.51       99.30%      1350.26     896.61       99.80%
+      SemaFORR-R          1330.93  920.29 100.00%           979.24       612.62       98.90%      1492.19     915.14       99.30%
+      SemaFORR            1279.04  915.89     99.50%       1010.99       686.24       99.30%      1458.90     967.27       99.40%
+                                                                  647
+
+that may incur larger actuator errors, and thus travels about       proved performance with spatial affordances, and with more
+twice as far to reach the same targets.                             of them, confirms much empirical work (e.g., (Battles & Fu,
+   Although how hard it is to travel in these worlds is clearly     2014; Tenbrink et al., 2011)).
+correlated with learning time, both SemaFORR-A* and                    Like SMX (Zetzsche, Gerkensmeyser, Schmid, & Schill,
+SemaFORR spend most of their time in travel. SemaFORR               2012), SemaFORR considers the actions it can perform and
+devotes 17%–18% of its time to decisions; SemaFORR-A*               has only a partial view of its environment. SMX’s af-
+devotes about 19%, including planning; Moreover,                    fordances are its landmarks; SemaFORR’s are its descrip-
+SemaFORR’s learning is relatively fast; it spends 0.78% of          tives. Moreover, SemaFORR learns its affordances and how
+its time learning in world A, 0.77% in B, and 0.89% in C.           to reason with them. Advisors that enter or exit from re-
+   From local perception, SemaFORR learns the global spa-           gions, without a plan for what to do next, emulate empirical
+tial models shown in Figures 1(b) and 4. Overall, after 40          observations on people (Battles & Fu, 2014). Finally, the
+targets these models varied little across settings and trials.      GREEDY Advisors represent subjects who navigated primari-
+Because wall register values depend upon the robot’s head-          ly by direction when they chose routes as they navigated
+ing, they are necessarily approximations (e.g., the region in       (Hölscher et al., 2011).
+the center of world C crosses undetected walls and an upper
+room in world B is not captured). Emphases (e.g., the upper                                  Discussion
+left conveyors in world A) are artifacts of the setting that        Worlds A, B, and C simulate office space, a rotunda, and a
+generated the model. Nonetheless, regions capture the               warehouse, “built” spaces familiar to people and constructed
+rooms in world A, and conveyors learn its hallway. In world         by them. For all our navigators, world B is the easiest and C
+B, SemaFORR learned a diagonal conveyor “highway”                   the most difficult. Commonsense reasoning without spatial
+along with regions that captured every room it entered. In          affordances suffices in world B. SemaFORR’s time there is
+world C, conveyors learned the center aisle and the periph-         close to optimal, and the model it provides is human-
+ery, with regions chained together by their exits.                  friendly. In world C, however, exploration was essential to
+                                                                    reach the targets. Conveyors further improved time in both
+                       Related Work                                 A (p < 0.08) and C (p < 0.05).
+An early application of FORR to navigation (Epstein, 1998)             With experience, SemaFORR reaches its targets faster.
+was restricted to a grid world, where the robot occupied an         By design, however, some targets are more difficult to
+entire cell. Its sensors had no range limit, its actuators were     reach. To demonstrate online learning, Figure 5 normalizes
+perfect, and it moved only orthogonally. Because its learn-         task time by how difficult it is to reach each target, underes-
+ing was not based on what is now known about human spa-             timated (because it excludes turns) as the distance to the tar-
+tial perception, that system did best in grids with randomly        get in an A* plan. SemaFORR’s regression trend lines for
+generated obstructions or centralized open space. Built             the ratio of task time to the A* distance (y-axis) decline
+spaces like those here proved considerably more difficult.          across 40 targets (x-axis). In other words, on results con-
+   SemaFORR draws from both empirical and theoretical re-           trolled for task difficulty, SemaFORR improves its perfor-
+search on spatial mental models and navigation. It embodies         mance over 40 tasks in worlds A and C. In contrast, the
+this knowledge in how it perceives its environment, in what         trend lines for SemaFORR-E show no improvement.
+it learns, and in the multiple ways it integrates that infor-          We also experimented with learning during travel to a
+mation with high-level reasoning. SemaFORR is similar in            target, rather than learning once the robot arrived there. Use
+spirit to the Spatial Semantic Hierarchy (Kuipers, 2000).           of the corrected path, however, significantly improves con-
+SemaFORR also considers moves and turns separately, and             veyors, and the corrected path is only available once the tar-
+senses at the lowest level (the wall register) to build more        get is reached. (Data omitted.) This interplay between re-
+complex representations (corrected paths and regions, which         membered perception and reasoning over it is, we believe,
+in turn support conveyors). Rather than culminate in places         both novel and important.
+and paths with a single control rule, however, SemaFORR’s
+multiple rationales use spatial affordances: empty spaces
+and ways to move through and among them.
+   SemaFORR’s sensorimotor experience uses a simple
+view (its wall register), similar to human reference frames
+(Meilinger, 2008). The construction of a corrected path from
+a true one and the wall registers recorded along it are a form
+of incremental model development that relies on human
+memories of visited locations (Battles & Fu, 2014). Two of
+SemaFORR’s spatial affordances are well documented in
+people. Regions are often noted as fundamental to wayfind-
+ing (e.g., (Hölscher, Tenbrink, & Wiener, 2011; Reineking,
+Kohlhagen, & Zetsche, 2008)), and conveyors are similar to          Figure 5: Regression trend lines show that SemaFORR’s
+activation spread for navigation (Meilinger, 2008). Im-             normalized time (y-axis) improves across 40 tasks (x-axis),
+                                                                    but SemaFORR-E’s (dashed) trend lines do not.
+                                                                648
+
+   Current work includes planning and multiple robots. Sim-          Paths. IEEE Transactions on Systems Science and
+ple reactive planners will be rationales for tier-2 Advisors         Cybernetics, 4(2), 100–107.
+that exploit the learned spatial model with situated cognition     Hölscher, C., Tenbrink, T., & Wiener, J. M. (2011). Would
+(Tenbrink et al., 2011). SemaFORR-A* now controls au-                you follow your own route description? Cognitive
+tonomous Blackfins on our laboratory floor, each with its            strategies in urban route planning. Cognition, 121, 228-
+own copy of the software but a shared knowledge of their             247.
+environment. A team of these robots addresses a setting            Kuipers, B. (2000). The Spatial Semantic Hierarchy.
+simultaneously, with each assigned some of the 40 points.            Artificial Intelligence, 119(1-2), 191-233.
+To adapt SemaFORR for multiple robots, we have designed            Meilinger, T. (2008). The Network of Reference Frames
+several additional Advisors to avoid robot-robot collisions          Theory: A Synthesis of Graphs and Cognitive Maps.
+and discourage crowding.                                             Paper presented at Spatial Cognition VI, Freiburg.
+   When people navigate in unfamiliar territory, they pro-         Ratterman, M. J., & Epstein, S. L. (1995). Skilled like a
+cess local percepts to construct representations that support        Person: A Comparison of Human and Computer Game
+their goal. SemaFORR produces rapid skill development,               Playing. Paper presented at the Seventeenth Annual
+and translates perceptual signals into symbolic representa-          Conference of the Cognitive Science Society, Pittsburgh.
+tions that become a long-term collage of semantic infor-           Reineking, T., Kohlhagen, C., & Zetsche, C. (2008).
+mation. This spatial model supports effective navigation and         Efficient Wayfinding in Hierarchically Regionalized
+can readily be conveyed to people.                                   Spatial Environments. Paper presented at Spatial
+                                                                     Cognition VI, Freiburg.
+                    Acknowledgments                                Sklar, E. I., Ozgelen, A. T., Munoz, J. P., Gonzalea, J.,
+This work was supported by the National Science Founda-              Manashirov, M., Epstein, S. L., & Parsons, S. (2011).
+tion under #IIS-1117000 and #IIS-1116843, and by a CUNY              Designing the HRTeam Framework: Lessons Learned
+Collaborative Incentive Research Grant, #1642. We thank              from a Rough-and-Ready Human/Multi-Robot Team.
+A. Tuna Ozgelen for the three world maps.                            Paper presented at the Autonomous Robots and
+                                                                     Multirobot Systems workshop, Taipei.
+                         References                                Speekenbrink, M., & Konstantinidis, E. (2014). Uncertainty
+                                                                     and exploration in a restless bandit task. Paper presented
+Battles, A., & Fu, W.-T. (2014). Navigating Indoor with              at the 36th Annual Conference of the Cognitive Science
+   Maps: Representations and Processes. Paper presented at           Society, Austin.
+   the 36th Annual Meeting of the Cognitive Science                Takemiya, M., & Ishikawa, T. (2013). Strategy-Based
+   Society, Quebec City.                                             Dynamic Real-Time Route Prediction. In T. Tenbrink, J.
+Björnsson, Y., & Halldórsson, K. (2006). Improved                    Stell, A. Galton, & Z. Wood (Eds.), COSIT 2013 (pp.
+   Heuristics for Optimal Path-finding on Game Maps.                 149-168). Heidelberg: Springer.
+   Paper presented at the AIIDE, Marina del Rey.                   Tenbrink, T., Bergmann, E., & Konieczny, L. (2011).
+Epstein, S. L. (1994). For the Right Reasons: The FORR               Wayfinding and description strategies in an unfamiliar
+   Architecture for Learning in a Skill Domain. Cognitive            complex building. Paper presented at the 33rd Annual
+   Science, 18(3), 479-511.                                          Conference of the Cognitive Science Society.
+Epstein, S. L. (1998). Pragmatic Navigation: Reactivity,           Thrun, S., Bücken, A., Burgard, W., Fox, D., Fröhlinghaus,
+   Heuristics, and Search. Artificial Intelligence, 100(1-2),        T., Hennig, D.,…,Schmidt, T. (1998). Map Learning and
+   275-322.                                                          High-Speed Navigation in RHINO. In D. Kortenkamp, R.
+Frommberger, L., & Wolter, D. (2008). Spatial Abstraction:           P. Bonasso, & R. Murphy (Eds.), AI-based Mobile
+   Aspectualization,      Coarsening,     and      Conceptual        Robots: Case Studies of Successful Robot Systems (pp.
+   Classification 311-327. In C. Freksa, N. S. Newcombe, P.          21-52): MIT Press.
+   Gardenfors, & S. Wolfl (Eds.), Spatial Cognition VI (pp.        Tversky, B. (1993). Cognitive Maps, Cognitive Collages,
+   311-327). Heidelberg: Springer.                                   and Spatial Mental Models. In A. U. Frank & I. Campari
+Gibson, J. J. (1977). The theory of affordances. In R. Shaw          (Eds.), Spatial information theory: A theoretical basis for
+   & J. Bransford (Eds.), Perceiving, Acting, and Knowing:           GIS (Lecture Notes in Computer Science 716, pp. 14-24).
+   Toward an Ecological Psychology (pp. 67–82). Mahwah:              Berlin: Springer-Verlag.
+   Lawrence Erlbaum.                                               Zetzsche, C., Galbraith, C., Wolter, J., & Schill, K. (2009).
+Golledge, R., G. (1999). Human Wayfinding and Cognitive              Representation of Space: Image-like or Sensorimotor? .
+   Maps. In R. Golledge, G. (Ed.), Wayfinding Behavior (pp.          Spatial Vision, 22(5), 409-424.
+   5-45). Baltimore: Hopkins University Press.                     Zetzsche, C., Gerkensmeyser, T., Schmid, F., & Schill, K.
+Hamburger, K., Dienelt, L. E., Strickrodt, M., & Röser, F.           (2012). Sensorimotor Representation of Space:
+   (2013). Spatial cognition: the return path. Paper                 Application in Autonomous Systems and in a Wayfinding
+   presented at the 35th Annual Conference of the Cognitive          Assistant for Alzheimer's Disease. Paper presented at the
+   Science Society, Austin.                                          11th IEEE/ACIS International Conference on Computer
+Hart, P. E., Nilsson, N. J., & Raphael, B. (1968). A Formal          and Information Science.
+   Basis for the Heuristic Determination of Minimum Cost
+                                                               649
+

@@ -1,0 +1,430 @@
+                                        Coordinate to cooperate or compete:
+                         Abstract goals and joint intentions in social interaction
+                   Max Kleiman-Weiner1 (maxkw@mit.edu), Mark K. Ho (mark ho@brown.edu)2 ,
+   Joseph L. Austerweil2 (joseph austerweil@brown.edu), Michael L. Littman3 (mlittman@cs.brown.edu),
+                                               Joshua B. Tenenbaum1 (jbt@mit.edu)
+                   1 Brain  and Cognitive Sciences, Massachusetts Institute of Technology, Cambridge, MA 02139
+       2 Cognitive,   Linguistic, and Psychological Sciences / 3 Computer Science, Brown University, Providence, RI 02912
+                               Abstract                                   will have to develop a detailed plan of action to realize that
+                                                                          cooperative intention. Likewise for a person intent on com-
+   Successfully navigating the social world requires reasoning
+   about both high-level strategic goals, such as whether to co-          peting. In this work we aim to bridge high-level strategic
+   operate or compete, as well as the low-level actions needed            decision making over abstract social goals such as coopera-
+   to achieve those goals. While previous work in experimental            tion and competition with low-level planning over actions to
+   game theory has examined the former and work on multi-agent
+   systems has examined the later, there has been little work in-         actually realize those goals.
+   vestigating behavior in environments that require simultaneous            The ability to form these hierarchical joint intentions is a
+   planning and inference across both levels. We develop a hierar-
+   chical model of social agency that infers the intentions of other      key component of social behavior. The motivated instinct
+   agents, strategically decides whether to cooperate or compete          to both infer and evaluate complex social plans emerges in
+   with them, and then executes either a cooperative or competi-          early childhood (Warneken & Tomasello, 2006; Hamann,
+   tive planning program. Learning occurs across both high-level
+   strategic decisions and low-level actions leading to the emer-         Warneken, Greenberg, & Tomasello, 2011). Young children
+   gence of social norms. We test predictions of this model in            not only rapidly infer the goals of other agents, but sponta-
+   multi-agent behavioral experiments using rich video-game like          neously execute complex plans to cooperate with others. For
+   environments. By grounding strategic behavior in a formal
+   model of planning, we develop abstract notions of both co-             instance, a cooperative intention might generalize to include
+   operation and competition and shed light on the computational          not just the low-level details of a joint task but also tell how
+   nature of joint intentionality.                                        to share the spoils. The ability to infer the intentions of oth-
+   Keywords: joint intention, cooperation, coordination, rein-
+   forcement learning, teams
+                           Introduction                                                            Stochastic Games
+Our most important relationships involve understanding                                   Cooperate
+when to cooperate and when to compete. From siblings to                                  Compete                       10
+coworkers, humans rely on both planning and context to know
+                                                                                    10                                                                     10
+which situations they should cooperate in and which they
+should compete in (Galinsky & Schweitzer, 2015; Rand &                                                                 10
+Nowak, 2013). And yet in real life, unlike a behavior eco-
+nomics experiment, cooperation and competition are abstract
+                                                                                                                                Yellow
+with respect to a given situation. A cooperative or competitive                                                   Cooperate                Compete
+interaction unfolds over time – there isn’t a single moment                                                   z
+                                                                                                                    
+                                                                                                                        }|
+                                                                                                                           
+                                                                                                                                    { z
+                                                                                                                                          
+                                                                                                                                               }|
+                                                                                                                                                  
+                                                                                                                                                         {
+                                                                                                                ← →                     ← ←
+where competition or cooperation “happens”. Even if the de-                                                                            
+                                                                                                              
+                                                                                                                0/   →
+                                                                                                                        
+                                                                                                                                ...
+                                                                                                                                      
+                                                                                                                                        ↓  0 /
+                                                                                                                                               
+                                                                                                                                                     ...
+cision to cooperate or compete has been made, efficiently im-                                                 
+                                                                                                              
+                                                                                                              
+                                                                                                                      
+                                                                                                                 ..   .. 
+                                                                                                                                      
+                                                                                                                                      
+                                                                                                                                      
+                                                                                                                                            
+                                                                                                                                        ..   .. 
+plementing those strategies can be difficult. A person deter-                                                  .      .               .      .
+mined to cooperate and knowing what the other person wants                                ←, ←, . . .
+                                                                                          
+                                                                                                                  7,7 6,7 . . .        -1,8 -2,7 . . .
+                                                                                Cooperate →, 0,  / ↑, . . .         7,6 6,6 . . .        -2,8 -2,6 . . .
+                                                                                              ..
+                                                                                                                    ... ... ...           ...  ... ...
+                                                                                          
+                                                                                                .
+                                                                                          
+                                                                             Blue                         
+                    Matrix-Form Games                                                     
+                                                                                          
+                                                                                          
+                                                                                            →, ↑, . . .
+                                                                                                                 8,-1 8,0 . . .         -1,8 -2,7 . . .
+                                                                                  Compete →, 0,  / ...            7,-1 8,-2 . . .        -2,8 -2,6 . . .
+                                                                                               .
+                                                                                                ..
+                                         Yellow                                                                    ...  ... ...           ...  ... ...
+                                                                                          
+                                                                                          
+                                 Cooperate Compete                        Figure 2: Two-player stochastic games. (top) Grid form represen-
+                                                                          tation of the stochastic game. The arrows show example strategies
+                 Cooperate          7,7            -1,8                   that can be used to realize both cooperative and competitive out-
+          Blue
+                   Compete         8, -1            4,4                   comes. (bottom) Matrix representation of the strategy space, with
+Figure 1: A social dilemma written as a normal-form game. The             low-level strategies sorted by a high-level goal. The arrows corre-
+numbers in each square specify the payoff in terms of utility to the      spond to moving in a specific direction and the 0/ corresponds to
+blue and yellow player respectively for choosing the action corre-        waiting. Note that the action space is effectively unbounded but the
+sponding to that square’s row and column. If both agents choose           strategies naturally cluster into a small number of high-level goals.
+cooperate they will collectively be better well off than if they both     If both agents go to the sides then they will both score the reward
+choose compete. However in any single interaction, either agent           but if they fight for the middle in hopes of using less moves they
+would be materially better off by choosing to compete.                    will collide and only one will get any reward.
+                                                                      1679
+
+ers and participate in a dynamic joint endeavor (sometimes            we can use these games to start to investigate the mechanisms
+called the “we-mode”) is thought to be a key building block of        people use to coordinate on cooperative and competitive out-
+large scale collaborative culture (Tomasello, Carpenter, Call,        comes. Furthermore, they allow us to study how humans in-
+Behne, & Moll, 2005).                                                 novate to find these strategies out of such a large possible
+                                                                      space of action plans.
+Naturalistic Games
+Game-theoretic investigations of social behavior often repre-                                           Model
+sent strategic interactions as matrix-form games like the one
+                                                                      Hierarchical Social Planning
+shown in Figure 1. In these games, the rows and columns
+correspond to the action space of the two players and the             We develop a hierarchical model of strategic planning that
+cells describe the payoffs to each agent that would result from       unifies low-level action planning with high-level strategic rea-
+those actions. While useful as a succinct representation of a         soning and allows for learning across both levels. In brief,
+social decision, these games lack the ecological validity of          agents have two “modes” of low-level planning: a coopera-
+real social decisions which require planning across space and         tive mode and a competitive mode. These two modes are con-
+time. When presented to participants, it can be difficult to          nected through a high-level strategic planner that determines
+extract the right information and even after significant train-       which mode should be deployed based on previous interac-
+ing, many people don’t even look at the payoffs most relevant         tions. After each round, agents use Bayesian theory-of-mind
+for strategic reasoning (Costa-Gomes, Crawford, & Broseta,            to determine whether or not the other agent’s low-level ac-
+2001). When the number of decisions grows beyond two de-              tions are consistent with the cooperative planning mode vs.
+cisions per agent, these problems are exacerbated.                    the competitive planning mode. The agent can then condition
+   Instead we use a paradigm commonly deployed in multi-              their own next actions on the inferred high-level intentions of
+agent systems research which has not been explored behav-             the other agent realizing a sophisticated strategic response.
+iorally (De Cote & Littman, 2008). In this paradigm, strate-             Both modes include forms of model-based learning which
+gic interactions are represented as naturalistic spatial environ-     allows for learning to generalize across environments as well
+ments that people play intuitively like video-games. Figure 2         as model-free reinforcement of actions. In this work we focus
+shows an example of one of these multi-agent planning en-             specifically on the high-level goals of cooperation and com-
+vironments that is conceptually related to the social dilemma         petition but other high-level goals such as teaching, punishing
+shown in Figure 1. Unlike the matrix-form game, these envi-           or communication are also relevant in these games and will
+ronments also require low-level planning over spatial actions         be investigated in future work. The challenge of hierarchical
+to realize a strategic goal. The action space of these games          planning is to link these high-level goals to a lower-level plan
+is much larger than those typically studied in matrix-form            of action.
+games but the strategies are still intuitive.                            Our work builds on and is inspired by classical for-
+   Each player controls the movement of one of the colored            malisms of intention and joint planning from the AI liter-
+circles. On each turn players choose to either move their cir-        ature (Levesque, Cohen, & Nunes, 1990; Grosz & Kraus,
+cle into an adjacent square (not including diagonal moves) or         1996) as well as more modern formulations for planning
+to remain in the same position. Attempting to move is costly          under uncertainty such as DEC-POMDPs and I-POMDPs
+resulted in the loss of one point. Choosing to remain in the          (Gmytrasiewicz & Doshi, 2005; Gal & Pfeffer, 2008; De Cote
+same position did not incur any cost. Both players select an          & Littman, 2008). However the earlier models do not han-
+action during the same turn and their positions are updated           dle uncertainty in a probabilistic way and hence struggle with
+simultaneously. Each square can only be occupied by one               quantitative predictions about behavior while the later are of-
+player at a time so if both players try to move to the same           ten intractable over long planning horizons and don’t explic-
+square, one of the players chosen by chance will enter the            itly represent abstract social goals.
+contested square while the other remains in place. However               We briefly introduce stochastic games following the no-
+both pay the cost for attempting to move. If one player stays         tation of De Cote and Littman (2008) and then discuss re-
+in the same position and the other player tries to move into          peated stochastic games. A two-player stochastic game is:
+their square, no movement occurs. Finally, players cannot             hS, s0 , A1 , A2 , T,U1 ,U2 , γi where S is the set of all possible
+move through each other and switch places.                            states with s0 ∈ S the starting state. Each agent can choose
+   The colored squares are the goals. When either player              from a set of actions A1 and A2 which together form a
+reaches a square with the same color as their avatar, that            joint action space A1 × A2 . The state-transition function,
+player receives ten points and the round ends. Thus the               T (s, a1 , a2 ) = P(s0 |s, a1 , a2 ) maps a state and joint action to
+only way for both players to receive points is if they both           a distribution over new states. The utility functions of the two
+enter squares that match their avatar’s color on the same             agents U(s0 , s, a1 , a2 ) = R describe the agent’s goals in terms
+turn. These dynamics were chosen to be identical to those             of quantitative costs and rewards. Finally 0 ≤ γgame ≤ 1 is
+in (De Cote & Littman, 2008) so that our data can also be             the discount rate of reward. In repeated stochastic games, a
+compared to the models of that work. Because each interac-            series of stochastic games are played one after another in suc-
+tion generates data about both the action plan and the payouts,       cession between the same pair of players. We now discuss the
+                                                                  1680
+
+cooperative and competitive modes of planning in detail.                        other agent reach certain states. This “meshing” of plans be-
+                                                                                tween the two agents has been called a key component of joint
+Cooperative Planning                                                            and shared intentionality (Bratman, 1993, 2014). Unlike so-
+Since there is no specific action that corresponds to cooper-                   cial preference based accounts of cooperative behavior where
+ation in these stochastic games (all actions are spatial move-                  each agent individually plans to maximize joint utility, in this
+ments), we develop an abstract notion of cooperation which                      account, cooperation is a built in cognitive feature of planning
+generalizes across contexts. We postulate that a cooperative                    itself – agents plan together.
+action is one that is good for the group i.e., efficiently max-                    When there is a single unambiguous action for both players
+imizes the utility of all agents. Since under this assumption,                  that maximizes joint utility, coordination is readily achieved.
+the goal of cooperation is to rationally achieve a group goal,                  However in the environments we investigate, there are often
+we consider a group-agent that optimizes a utility function                     multiple actions that can generate optimal rewards for the
+composed of the utility of all agents (Sugden, 1993, 2003;                      group-agent. We now discuss two mechanisms for learning
+De Cote & Littman, 2008).                                                       social norms that can break these symmetries and lead to ro-
+   Computationally, we represent this group utility function                    bust coordination on a single jointly optimal plan.
+as a linear weighting of the utility of the two agents: U G =
+(w)U1 + (1 − w)U2 where w ∈ [0, 1] controls how the two                            We first consider the case where two different actions
+agents are relatively valued by the group-agent. For example                    are equally good from the perspective of a group-agent that
+when w = 0.5 the group-agent impartially weighs the utility                     weighs the utility of the two agents equally but the rewards
+of both agents equally. We are not implying that this group-                    will be allocated unequally. For example, consider game (C)
+agent actually exists but rather that each player can simulate                  in Figure 3 where one agent needs to go around the other.
+the same group-agent by taking an objective view of the plan-                   Because moving costs 1 point, the agent who goes around the
+ning environment outside and separate of their own personal                     other will only earn 7 points while the agent who waits will
+goals (Nagel, 1986). We note that this utility function can                     earn 9 points. From the perspective of the group-agent with
+include other social preference such as inequality aversion or                  w = 0.5, it doesn’t matter who goes around since the joint
+merit based allocations.                                                        utility is equal. However if one agent was favored over the
+   Since the group-agent can directly control the actions of                    other (w 6= 0.5) this symmetry would be broken and the disfa-
+both players (like a “we” agent), it can treat the stochastic                   vored agent would take the long route. Thus prior knowledge
+game as a single-agent MDP. Rational planning over joint ac-                    about asymmetries in how the group should operate can lead
+tions (a1 , a2 ) is achieved through value-iteration:                           to more robust coordination although potentially at the cost
+                                                                                of less fair cooperation.
+                                           G (s,a ,a ))
+   P(a1 , a2 |s) = πG (s, a1 , a2 ) ∝ e(βQ       1 2                               The two agents may start with a different prior on the value
+     G                       0               G    0
+   Q (s, a1 , a2 ) = ∑ P(s |s, a1 , a2 )[U (s , s, a1 , a2 )+                   of w and thus when simulating the group-agent will fail to
+                       s0                                                       coordinate. Consider the case where both agents think they
+                                                                                should be valued more than the other and hence expect the
+                                              γ max QG (s0 , a01 , a02 )]
+                                                (a01 ,a02 )                     other player to go around them. We propose a mechanism
+                                                                                based on “virtual bargaining” accounts of social choice that
+where the group-agent policy, πG (s), is to choose actions                      lead to each agent’s w to converge over time to the same
+with probability proportional to their future expected util-                    value without any explicit communication (Binmore, 1998;
+ity. A high value of β means that the group-agent is more                       Misyak, Melkonyan, Zeitoun, & Chater, 2014). After each in-
+likely to select the action with the highest Q-value and a low                  teraction, agents can infer the w that best explains the joint be-
+value of β means that the group-agent is more likely to select                  havior of their previous interaction: P(w|H) ∝ P(H|w)P(w)
+suboptimal-actions. In all experiments we used a relatively                     where H are the data from previous interactions and the like-
+high value of β = 4. We note that πG is not only a policy                       lihood of those interactions is defined by the marginalized
+for action, but also includes the future-oriented intentions of                 joint policies generated from planning with a specific w: πG    1
+what the two agents should do once they get to a new state.                     and πG 2 . In our analysis, each agent starts out with a prior of
+These intentions include how to recover from failed coordi-                     w = 0.5 and updates it after each round based on the inferred
+nation attempts. We used a discount rate of γ = 0.9 in all the                  w of the previous interaction. Thus over time w will converge
+models presented here.                                                          and as predicted by the theory of virtual bargaining, more pa-
+   Although each agent might consider the policy of the                         tient agents who insist on the advantage will gain a greater
+group-agent, the individual agents can only control their own                   share of the joint reward in future coordinated interactions
+actions. To transform this group-agent policy into an in-                       where an equitable split isn’t possible. For example, if in a
+dividual policy, individual agents marginalize out the ac-                      previous interaction agent 1 took a more costly route, then in
+tions of the other player from the joint policy: πG             1 (s, a1 ) =    the next round agent 1 will be more likely to take the costly
+∑a2 πG (s, a1 , a2 ) and πG 2  (s, a2 ) = ∑   a1 π G (s, a , a ).
+                                                            1 2       These     route again generating a social norm for cooperative coordi-
+policies contain intertwined intentions, not only an inten-                     nation. Since w is an input to the planning process itself, it
+tion to take a specific action but also the intention that the                  allows for generalizing these norms to new environments.
+                                                                            1681
+
+   Finally, in some environments, there are multiple plans that                     Since the other agent is treated as a knowable stochastic
+are equally good for both agents, creating a different type of                   part of the environment, the dynamics of the other player are
+symmetry which cannot be broken by w. For example, the                           encapsulated in P(s0 |s, ai ) which are marginalized out using
+decision to go clockwise or counterclockwise in game (A) of                      the k − 1 player: P(s0 |s, ai ) = ∑a−i P(s0 |s, ai , a−i )P(a−i |s, k =
+Figure 3 is equally good for both players as long as they both                   k − 1) where −i is a shorthand to refer to the “other” player.
+go in the same direction. To capture the intuition that once                     Because of the maximization operator, a level-K agent imple-
+agents successfully coordinate, they should continue to coor-                    ments a best response to a level-K − 1 agent. Thus zeroth-
+dinate in that way e.g., after luckily choosing to go clockwise                  order agents have their own goals but ignore the other player,
+in game (A), they will go clockwise again on the next round,                     first-order agents act on their own goals but assume that the
+agents learn a function N G (s, a1 , a2 ) based on the frequency                 other agent is ignoring their existence and so on. In our ex-
+of previous joint actions which is added to the state-action                     periments we used K = 1 although results were similar with
+QG -value used by the group-agent. This norm based rein-                         higher values of K.
+forcement affects the policies of the individual agents through                     Even when competitively planning, agents can still im-
+marginalization. The norms reinforced by this mechanism                          prove their behavior through learning and can even develop
+do not generalize across environments although feature based                     certain conventions when they serve mutual self-interest such
+norms can generalize when there are features in common be-                       as symmetry breaking in coordination games. Again we con-
+tween two environments e.g., see Ho et al. in this years pro-                    sider two mechanisms. The first mechanism improves agent
+ceedings.                                                                        i’s model of agent −i by using the frequency of i’s previously
+                                                                                 successful behavior to modify the state-action Q-values of −i
+Competitive Planning                                                             such that previously successful action are more likely to oc-
+As before, in these stochastic games there is no action that                     cur again. This model-based mechanism, improves agent i’s
+directly corresponds to “compete”. Instead, we ground com-                       policy since she will best-respond to a more accurate model
+petitive planning as each agent attempting to maximize their                     of agent −i. The second mechanism is model-free reinforce-
+individual utility under the assumption that the other agent is                  ment of player i’s state-action Q-values when player i herself
+doing the same. To tractably realize this game-theoretic best-                   successfully reaches a goal. Neither of these norms trivially
+response, we extend the cognitive hierarchy / level-K formal-                    generalize across different planning environments that don’t
+ism used in behavioral game theory to temporally extended                        share states.
+polices instead of just actions (Camerer, Ho, & Chong, 2004).
+In brief, a level-K agent best responds to a level-(K −1) agent                  Coordinating Cooperation and Competition
+which grounds out in the level-0 agent. Specification of the                     Finally, we describe how agents can use both the coopera-
+level-0 agent is sufficient to specify the full hierarchy.                       tive and competitive modes of planning to decide whether to
+   In this work we use a level-0 agent that doesn’t consider                     cooperate or compete. Since these modes of planning ab-
+the existence of the other player and tries to efficiently reach                 stract away the details of cooperation and competition, high-
+her goal without taking any strategic consideration of how the                   level strategic planning can use these low-level planners with-
+other player might affect her progress. This level-0 agent is                    out considering their details. Agents first use these planning
+more naturalistic than randomly acting agents which are com-                     modes to infer the high-level intention I of the other player
+monly used in behavioral modeling (Camerer et al., 2004;                         (i.e., their planning mode) using Bayesian theory-of-mind:
+Yoshida, Dolan, & Friston, 2008). A level-0 agent of this type                   P(I|D) ∝ P(D|I)P(I) where P(D|I) are just the cooperative
+only makes sense in these naturalistic environments since one                    or competitive policies. This probabilistic approach is justi-
+can easily imagine acting alone unlike in matrix-form games.                     fied because intentions can be ambiguous. For instance, when
+The level-0 agent for player i is:                                               both agents reach the goal in a coordination game it could just
+                                                                                 be because of luck so the behavior isn’t very diagnostic of the
+                                        0
+                                                                                 intention. Yet in social dilemma only the cooperative inten-
+    P(ai |s, k = 0) = π0i (s) ∝ eβQi (s,ai )                                     tion is consistent with behavior where both reach the goal.
+    Q0i (s, ai ) = ∑ P(s0 |s, ai )(Ui (s, ai , s0 ) + γ max Q0i (s0 , a0i ))     Using these inferred strategic intentions, a high-level planner
+                   s0                                    a0i                     can take a simple and intuitive form such as reciprocal coop-
+                                                                                 eration (e.g., tit-for-tat) or reinforcement learning at the level
+where P(s0 |s, ai ) represents transition dynamics that do not                   of strategy rather than actions (Fudenberg & Levine, 1998).
+depend on the other player. Having defined the level-0 player
+we can recursively define all of the other levels in the hierar-                                  Behavioral Experiments
+chy in terms of lower levels:                                                    We developed client/server software that allows for real-
+                                                                                 time interactions between two participants randomly matched
+                                  k                                              through mTurk. All participants went through a short single
+    P(ai |s, k) = πki (s) ∝ eβQi (s,ai )                                         player tutorial that familiarized them with the controls of the
+    Qki (s, ai ) = ∑ P(s0 |s, ai )(U(s, ai , s0 ) + γ max Qki (s0 , a0i )))      games, the dynamics of the game environment, the costs of
+                   s0                                   a0i
+                                                                                 movement and value of the goals. After the tutorial, pairs of
+                                                                             1682
+
+                                                                 Data             Model                 Data             Model                                          R: 0.97
+                                Reached Goal Jointly
+                                                                                                 8                                                                                      R: 0.72
+                                                                                                                                       Data Cooperation %
+                                                       1.0                                                                                                  1.0
+           10         10
+                                                       0.5                                       4                                                          0.5
+                                                                                                                                                                                        R: 0.78
+                                                       0.0                                       0                                                          0.0
+                (A)                                          1     15      30 1     15      30   0.0     0.5   1.0 0.0    0.5    1.0                              0.0     0.5     1.0
+                                                                 Trial #          Trial #        % Cooperation % Cooperation                                 Model Cooperation %
+                                                                                                                                                                        R: 0.97
+                                Reached Goal Jointly
+                                                                                                 8                                                                                       R: 0.6
+                                                                                                                                       Data Cooperation %
+                                                       1.0                                                                                                  1.0
+           10         10
+                                                       0.5                                       4                                                          0.5
+                                                                                                                                                                                        R: 0.91
+                                                       0.0                                       0                                                          0.0
+                (B)                                          1     15      30 1     15      30   0.0     0.5   1.0 0.0    0.5    1.0                              0.0     0.5     1.0
+                                                                 Trial #          Trial #        % Cooperation % Cooperation                                 Model Cooperation %
+                                                                                                                                                                        R: 0.96
+                                Reached Goal Jointly
+                                                                                                 8                                                                                      R: 0.45
+                                                                                                                                       Data Cooperation %
+                                                       1.0                                                                                                  1.0
+                                                       0.5                                       4                                                          0.5
+            10 10                                                                                                                                                                        R: 0.3
+                (C)                                    0.0                                       0                                                          0.0
+                                                             1     15      30 1     15      30   0.0     0.5   1.0 0.0    0.5    1.0                              0.0     0.5     1.0
+                                                                 Trial #          Trial #        % Cooperation % Cooperation                                 Model Cooperation %
+                                                                                                                                                                        R: 0.97
+                                Reached Goal Jointly
+                                                                                                 8                                                                                      R: -0.09
+                                                                                                                                       Data Cooperation %
+                                                       1.0                                                                                                  1.0
+      10
+10                         10                          0.5                                       4                                                          0.5
+      10                                                                                                                                                                                R: -0.03
+                                                       0.0                                       0                                                          0.0
+                (D)                                          1     15      30 1     15      30   0.0     0.5   1.0 0.0    0.5    1.0                              0.0     0.5     1.0
+                                                                 Trial #          Trial #        % Cooperation % Cooperation                                 Model Cooperation %
+     Figure 3: Participant data and model predictions for four environments. Each row shows data and model predictions for the environment
+     in column 1 which was repeated 30 times. Rows 1 and 2 are coordination games and rows 3 and 4 are social dilemmas. Column 2 shows
+     the average rate of cooperation for each round of play averaged over the high-cooperating cluster of participants (blue), low-cooperating
+     cluster of participants (green) and all participants (red). Column 3 are histograms of the proportion of cooperation for all pairs of participants.
+     Column 4 quantifies the model predictions where each point represents the frequency of cooperation for a given dyad observed in the data and
+     as predicted by the model. The inset shows correlations of the two lesioned models with the same human data: (top) only compete (bottom)
+     only cooperate.
+     participants were matched together and played 30 rounds of                                      samples a prediction for the behavior of the pair in the next
+     the same game with the same partner. Subjects were not told                                     round. We compare this sampled prediction with actual hu-
+     the exact number of rounds they would play together in order                                    man behavior to assess model performance. The same model
+     to prevent horizon effects from backward induction. Once                                        parameters were used for all pairs of participants.
+     both participants submitted moves, the game state and score                                        Figure 3 shows the results of the behavioral experiments
+     were updated and the process continued until the end of the                                     and the model predictions for four environments (≈ 50 par-
+     round. Participants had 30 second for each move and the                                         ticipant pairs per environment), two coordination games and
+     game ended if a participant exceeded their 30 second time                                       two social dilemma. Since model predictions were made at
+     bank two moves in a row. We only analyzed data from com-                                        the level of each pair of participants, averaging the behav-
+     plete interactions where the pair of participants completed all                                 ior and model predictions across dyads obscures individual
+     30 rounds of the game together. All experiments were in-                                        differences in the dynamics of cooperative and competitive
+     centivized with bonuses proportional to the number of points                                    learning. To investigate the model predictions in a more fine-
+     accumulated.                                                                                    grained way, we used unsupervised clustering to split the
+        To compare model predictions with human behavior, we                                         pairs of participants into two group. In short, for each pair
+     first focused on analyzing whether or not both players reached                                  of participants we construct a 30-dimensional binary vector
+     a goal on a given round, a behavioral signature of coopera-                                     where each dimension corresponds to one of the 30 rounds.
+     tion in these games. For each pair of participants, the model                                   Each element is set to one if both participants reached a goal
+     observes the interaction in the previous rounds, performs in-                                   in the round corresponding to that dimension and set to zero
+     ference on the latent high-level goal and social norms, and                                     otherwise. We ran K-means clustering with K = 2 which split
+                                                                                             1683
+
+the data into a high-cooperating cluster and a low-cooperating       might enable more effective teamwork e.g., boss-employee
+cluster allowing for better visualization of the data and model      relations (Galinsky & Schweitzer, 2015). Finally, in our cur-
+prediction and gave some rough indication about the model            rent paradigm, the desires of all agents are common knowl-
+ability to handle individual differences.                            edge. Investigating environments that require jointly infer-
+    In all four environments, some of the pairs converged on         ring the goals of others and the plan needed to help realize
+a cooperative plan but the incentive structure of the game           a cooperative outcome will be examined in future work. By
+i.e., whether or not the game was a coordination game or             grounding strategic social reasoning in a theory of planning
+social dilemma affected the likelihood that both participants        we can begin to investigate the mechanisms of joint intention-
+jointly reached a goal. Overall, participants jointly reached        ality and how these joint intentions enable the scale and scope
+the goal more frequently in coordination games than in the           of human cooperative behavior (Tomasello, 2014).
+social dilemma. As shown in Figure 3 the model qualitatively
+captures the rate of cooperation and competition in both the         Acknowledgement This work was supported by a Hertz Foun-
+high-cooperating cluster and the low-cooperating cluster as          dation Fellowship, NSF-GRFP, the Center for Brains, Minds and
+                                                                     Machines (CBMM), NSF STC award CCF-1231216 and by an
+well as the average over all participants. Another coarse mea-       ONR grant N00014-13-1-0333. We thank Alejandro Vientós, Banti
+sure of behavior in these games is the distribution of the fre-      Gheneti, and Paul Masterson.
+quency of cooperative behavior across pairs of participants.
+In coordination games, the distribution was left-skewed and                                      References
+                                                                     Binmore, K. G. (1998). Game theory and the social contract: just
+in social dilemma the distribution was right-skewed. These              playing (Vol. 2). Mit Press.
+distributions were captured both qualitatively and quantita-         Bratman, M. E. (1993). Shared intention. Ethics, 97–113.
+tively across these games by the model.                              Bratman, M. E. (2014). Shared agency: A planning theory of acting
+                                                                        together. Oxford University Press.
+    We compared the full model which included both modes of          Camerer, C. F., Ho, T.-H., & Chong, J.-K. (2004). A cognitive
+planning and strategic reasoning over those two modes with              hierarchy model of games. The Quarterly Journal of Economics,
+two lesioned models which just used one of the two plan-                861–898.
+                                                                     Costa-Gomes, M., Crawford, V. P., & Broseta, B. (2001). Cogni-
+ning modes. One lesioned model always used the competitive              tion and behavior in normal-form games: An experimental study.
+planning mode and the other lesioned model always used the              Econometrica, 1193–1235.
+cooperative planning mode. Overall, neither lesioned model           De Cote, E. M., & Littman, M. L. (2008). A polynomial-time nash
+                                                                        equilibrium algorithm for repeated stochastic games. In 24th con-
+could capture the rates of cooperation between the two clus-            ference on uncertainty in artificial intelligence.
+ters and qualitatively failed to explain the distribution of co-     Fudenberg, D., & Levine, D. K. (1998). The theory of learning in
+operative behavior in each game. Both lesioned models failed            games (Vol. 2). MIT press.
+                                                                     Gal, Y., & Pfeffer, A. (2008). Networks of influence diagrams: A
+to predict the dynamics of strategic reasoning between coop-            formalism for representing agents’ beliefs and decision-making
+eration and competition in social dilemma and had weaker                processes. Journal of Artificial Intelligence Research, 33(1), 109–
+correlation with participants’ behavior in the coordination             147.
+                                                                     Galinsky, A., & Schweitzer, M. (2015). Friend and foe: When to
+games.                                                                  cooperate, when to compete, and how to succeed at both. Random
+                                                                        House.
+                         Discussion                                  Gmytrasiewicz, P. J., & Doshi, P. (2005). A framework for sequen-
+                                                                        tial planning in multi-agent settings. J. Artif. Intell. Res.(JAIR),
+                                                                        24, 49–79.
+In this work we developed a hierarchical model of social plan-       Grosz, B. J., & Kraus, S. (1996). Collaborative plans for complex
+ning to understand how humans coordinate their low-level ac-            group action. Artificial Intelligence, 86(2), 269–357.
+tion plans to realize high-level strategic goals such as cooper-     Hamann, K., Warneken, F., Greenberg, J. R., & Tomasello, M.
+                                                                        (2011). Collaboration encourages equal sharing in children but
+ation and competition. We formalize cooperation and compe-              not in chimpanzees. Nature, 476(7360), 328–331.
+tition as abstract planning procedures over low-level actions.       Levesque, H. J., Cohen, P. R., & Nunes, J. H. (1990). On acting
+Both model-based and model-free learning can create social              together. In Aaai (Vol. 90, pp. 94–99).
+                                                                     Misyak, J. B., Melkonyan, T., Zeitoun, H., & Chater, N. (2014).
+norms which facilitate robust and stable coordination. One of           Unwritten rules: virtual bargaining underpins social interaction,
+our main contributions is formalizing how cooperative norms             culture, and society. Trends in cognitive sciences.
+can make cooperation more robust across environments, a key          Nagel, T. (1986). The view from nowhere. Oxford University Press.
+                                                                     Rand, D. G., & Nowak, M. A. (2013). Human cooperation. Trends
+step for long-lasting collaborative endeavors. While we only            in cognitive sciences, 17(8), 413.
+had space to show a subset of our full results, we are currently     Sugden, R. (1993). Thinking as a team: Towards an explanation of
+looking at how agents use these planning programs and the               nonselfish behavior. Social philosophy and policy, 10(01), 69–89.
+                                                                     Sugden, R. (2003). The logic of team reasoning. Philosophical
+norms that they learn to generalize cooperation to completely           explorations, 6(3), 165–181.
+new environments with the same partner. We will also use             Tomasello, M. (2014). A natural history of human thinking. Harvard
+these models to study how observers attribute cooperative and           University Press.
+                                                                     Tomasello, M., Carpenter, M., Call, J., Behne, T., & Moll, H. (2005).
+competitive intentions to other agents.                                 Understanding and sharing intentions: The origins of cultural
+    One interesting feature of the model is how an asymmetric           cognition. Behavioral and brain sciences, 28(05), 675–691.
+w in the cooperative planner can break symmetries making             Warneken, F., & Tomasello, M. (2006). Altruistic helping in human
+                                                                        infants and young chimpanzees. Science, 311(5765), 1301–1303.
+successful coordination more likely. In future work we’d like        Yoshida, W., Dolan, R. J., & Friston, K. J. (2008). Game theory of
+to explore how priors on this parameter in social hierarchies           mind. PLoS Computational Biology, 4(12).
+                                                                 1684
+

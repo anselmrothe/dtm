@@ -1,0 +1,510 @@
+  Mechanisms for storing and accessing event representations in episodic memory,
+                      and their expression in language: a neural network model
+                     Martin Takac (takac@cs.otago.ac.nz)1,2 , Alistair Knott (alik@cs.otago.ac.nz)1
+Dept of Computer Science, University of Otago, New Zealand1 , Centre for Cognitive Science, Comenius University, Bratislava2
+                              Abstract                                the semantics of linguistic expressions should ultimately be
+                                                                      given in terms of a model of episodic memory, as components
+   We present a neural network model of how events are stored
+   in and retrieved from episodic long-term memory (LTM). The         of, or contributions to, episodic memory structures. Formal
+   model is novel in giving an explicit account of the working        accounts of discourse structure have many striking similar-
+   memory (WM) medium mediating access to episodic mem-               ities with models of episodic memory (van Lambalgen and
+   ory: it makes a specific proposal about how representations of
+   events and situations in WM interface with representations of      Hamm, 2005): in particular they employ the notion of dis-
+   events and situations in episodic memory. It also provides the     course contexts, that obtain at reference times. The context
+   framework for an account of how operations accessing tempo-        and reference time can be updated incrementally, or set to an
+   rally remote situations are reported in language.
+                                                                      arbitrary point in the past or future, by temporal adverbials
+   Keywords: episodic memory; working memory; discourse               (e.g. in the afternoon) or temporal subordinators (e.g. when
+   models, neural networks
+                                                                      John arrrived). However, there is no neural network model
+                                                                      of episodic memory that provides a platform for investigating
+                          Introduction
+                                                                      these similarities. What is needed is a model of how episodic
+In this paper, we present a new neural network model of               memory interfaces with linguistic mechanisms, and in partic-
+episodic long-term memory (LTM). Like all computational               ular with linguistic devices for manipulating the context and
+models in cognitive science, its purpose is to make sense of          reference time, so we can ask whether episodic memory pro-
+a large body of experimental data, to provide a framework             vides a substrate for any components of the linguistic system.
+within which some of the questions raised by this data can be            Our model focusses on the storage of events in episodic
+resolved. The influential network models of episodic mem-             memory. An event is a sentence-sized semantic unit centred
+ory have all done this in different ways. Moll and Miikku-            around an action and its participants: we allow for an AGENT
+lainen (1997) clarified how episodic memories can be stored           and optionally a PATIENT. Events can be represented from
+as pointers to first-order sensorimotor (SM) representations;         several different perspectives, which are conveyed linguisti-
+Howard and Kahana (2002) showed how a recurrent network               cally by different aspectual types: for instance progressive
+can account for the sequential structure of episodic memo-            (John is arriving) or perfective (John has arrived). We focus
+ries; Norman and O’Reilly (2003) gave insights into the dis-          on the storage of events observed as wholes, which take time
+tinct roles of the hippocampus and cortex in storage and con-         to occur and have a determinate endpoint (e.g. John arrived).
+solidation of episodic memories; Rolls and colleagues (e.g.           We call these events episodes.
+Kesner and Rolls, 2015) hypothesised roles for specific cir-
+                                                                         The main novelties of our model are in the way the LTM
+cuits within the hippocampus and cortex. Our model, which
+                                                                      system interfaces with WM representations and with lan-
+builds on these earlier models, is intended to address two re-
+                                                                      guage. In the next section we describe the architecture of
+cent questions in the experimental literature.
+                                                                      the model, considering these two issues in turn.
+   One question concerns the relationship between episodic
+LTM and working memory (WM). There is good evidence
+                                                                                      Architecture of the model
+that material to be stored in episodic memory is first main-
+tained in WM (see e.g. Baddeley, 2000), as are queries to             The WM system and its interface with LTM Our model
+episodic memory, and the responses they retrieve (Fletcher            of episode representations in LTM extends a model of episode
+and Henson, 2001). But there is debate as to whether ma-              representations in WM that is described in a companion paper
+terial in WM occupies a dedicated neural medium (Badde-               (Takac and Knott, this volume). The WM model makes two
+ley, 2000; Shivde and Anderson, 2011), or whether the con-            important assumptions about how episodes in the world are
+tents of WM are simply those components of the LTM sys-               perceived. The first of these is that experiencing an episode
+tem that are currently activated or attended to (Cowan, 1999;         in the world involves a well-defined sequence of discrete SM
+D’Esposito, 2007). There is strong experimental evidence for          operations: first attention to the agent, then attention to the
+both positions; a model is needed to reconcile the two com-           patient (if there is one), then activation of a motor schema.
+peting conceptions of WM.                                             Evidence for this is summarised in Knott (2012). Given this
+   The other question concerns the relationship between               assumption, we propose that episodes are represented in WM
+episodic memory and language. Episodic memory does not                as prepared sequences of SM operations. On this proposal,
+depend on language, but language is by far the most common            the WM representation of an episode is an executable struc-
+medium for expressing its contents (Suddendorf and Corbal-            ture, that allows the experience of an episode to be relived, or
+lis, 2007). For many recent theorists (e.g. Zwaan, 2008),             replayed. Our second assumption is that each individual par-
+                                                                  532
+
+              Language                       Noun phrases    Temporal referring expressions     When / In                        Clauses
+               LTM system
+                                                                                            current             candidate episodes
+                             "WM INDIVIDUAL" (WMI)
+                                                                                            situation SOM       (c-ep) SOM
+                                            token LTM                       token
+                                            individuals                     times
+                                                                                           "WM EPISODE"
+               WM
+               buffers         location   number     type/properties    time types                    agent WMI    patient WMI   action
+               SM system                                                                POINTER OPERATIONS
+                        Figure 1: Architecture of the model of LTM and its interface with WM and language
+ticipant in an episode is also perceived in a discrete sequence                 represents it as a type, and the LTM medium represents it as
+of SM operations: (i) attention to a spatial location, (ii) estab-              a token. We call this composite pattern a WM individual.
+lishment of a cardinality (singular or plural), and (iii) identi-               The AGENT and PATIENT fields, which occupy a dedicated
+fication of the object’s type and intrinsic properties (Walles et               WM medium, each hold, and can recreate, a pattern in this
+al., 2014). In our model, individuals are also represented in                   composite WM/LTM area. Note this method of represent-
+WM as prepared, replayable sequences of SM operations.                          ing episode participants thoroughly blends the two competing
+   The architecture of our network is shown in Figure 1. We                     conceptions of WM representations (as active LTM represen-
+first focus on representations of individuals in WM and LTM.                    tations and as patterns in a dedicated WM medium): we see
+The prepared SM sequence associated with an individual is                       them as complementary, rather than as alternatives.
+stored as a sustained pattern of activity in WM media hold-                        The three fields of the WM episode medium provide in-
+ing location, number and type/properties (see the bottom left                   put to a LTM medium representing episodes, the candidate
+of the figure). LTM representations of token individuals are                    episodes (c-ep) medium. This is a self-organising map or
+held in a separate medium, using a convergence-zone scheme                      SOM, whose units hold localist representations of particular
+(Moll and Miikkulainen, 1997). A LTM individual is repre-                       episodes or episode types. When trained on a set of episodes,
+sented as a sparse distributed assembly of units holding asso-                  the SOM adapts its weights to represent the most frequently
+ciations between location, number and type/properties, stored                   encountered episodes or episode types. If capacity is limited,
+in long-term synaptic weights.                                                  it learns generalisations over episodes: for instance, if dogs
+   We now consider how episode representations make refer-                      often chase cats, it will learn to represent the generic episode
+ence to individuals. Crucially, this reference must link indi-                  ‘a dog chases a cat’, abstracting away from token dogs and
+viduals to roles such as AGENT and PATIENT. In our system,                      cats. This learning happens gradually, through incremental
+this role-binding is done in a WM buffer holding episode rep-                   alterations of the SOM’s long-term synaptic weights, which
+resentations: the WM episode buffer (see the bottom right of                    is what makes it part of the LTM system rather than the WM
+Figure 1). Within this buffer, we posit separate fields for each                system. At the same time, it is useful to think of the current
+role: the AGENT and PATIENT fields of a WM episode each                         pattern of activity in the SOM as a WM representation, using
+hold a rich system of pointers back to the memory media rep-                    the activity-based conception of WM.
+resenting an individual.1 During experience of an episode,                         The WM episode also provides input to the other main
+these pointers are initialised at different times: the AGENT                    component of the LTM system: a medium representing the
+representation is created when the agent is attended to, and                    current situation. The pattern of activity in this medium can
+later, the PATIENT representation is created when the patient                   also be thought of as being held in WM: during experience,
+is attended to. A complete WM episode representation is also                    it encodes something like the agent’s ‘cognitive set’, creating
+an executable structure, that can be replayed. This replay pro-                 expectation and/or readiness for some episodes over others.
+cess can provide top-down expectations for the different se-                    At the same time, the network that generates these expecta-
+quential stages of episode perception (see Takac and Knott,                     tions is the product of long-term learning: situations are com-
+this volume). It is also involved in the interface to language,                 plex, high-level representations, integrating information from
+as we describe later.                                                           many learning episodes. How to learn situation representa-
+   Importantly, the AGENT and PATIENT fields of a WM                            tions is a matter of considerable debate. Our network imple-
+episode point to a mixture of WM and LTM representations.                       ments a novel method, made possible by the use of localist
+When an individual is attended to, it is encoded by a pattern of                representations of episodes in the c-ep SOM. Since individ-
+activity across both WM and LTM media: the WM medium                            ual units in this SOM represent whole episodes, it is able to
+    1 The AGENT and PATIENT fields are isomorphic with their WM                 represent a large probability distribution over episodes, in a
+counterparts, with 69 units each. The WM episode also has 33 units              pattern of activity over all its units. In our model, the medium
+representing the action. For details see Takac and Knott (2016).                encoding the ‘current situation’ is the hidden layer of a net-
+                                                                          533
+
+work that is trained to predict the next episode, after the com-         token times. Just as the c-ep SOM can learn generalisations
+pletion of each episode. This layer takes inputs from the WM             over episodes, the situation SOM can learn generalisations
+episode medium (holding the completed episode), and from                 about the types of episode that occur at particular time types,
+a copy of its previous state (see the blue arcs in Figure 1).            and about the types of episode that typically follow one an-
+It is implemented as a recurrent SOM, specifically a ‘merge              other. In fact, while these generalisations can be thought of
+SOM’ (Strickert and Hammer, 2005).2 When trained on a                    as summary statements about past experiences, they are also
+sequence of episodes, its units come to encode localist repre-           the basis on which the agent makes predictions about forth-
+sentations of commonly-occurring sequences of episodes or                coming episodes, to inform SM experience: it is by general-
+episode types: these serve as representations of situations in           ising over token episodes that the agent can use knowledge of
+our model. A separate layer of perceptrons is trained to pre-            the past to make predictions about the present. In our model,
+dict the next episode in the c-ep SOM from activity in the               therefore, the circuits responsible for establishing cognitive
+situation SOM. After training, the combined networks gener-              set during SM experience are identical to the circuits respon-
+ate a distribution of possible next episodes in the c-ep SOM.            sible for storing sequentially structured episodic memories.
+During experience, this distribution can be used to reconstruct             This is a point of difference with most existing models.
+patterns of activity in the WM episode medium (and sub-                  Cognitive set and episodic memory are normally seen as sep-
+sequently in the WM individual medium), which guide the                  arate neural mechanisms, the former involving prefrontal cor-
+agent in her experience of the next event. This mechanism                tex (PFC) (Miller and Cohen, 2001), the latter involving hip-
+is discussed in Takac and Knott (this volume). In the present            pocampus and associated cortex (Kesner and Rolls, 2015).
+paper, our focus is on how the situation SOM can play a role             But there is recent evidence that hippocampal assemblies also
+in episodic LTM and its interface with language.                         hold stimuli during the delay period of WM tasks (e.g. Olsen
+                                                                         et al., 2012), and that PFC and hippocampal activity is tightly
+                                                                         coupled when material is maintained in WM, in a manner pre-
+Episodic LTM model As shown in Figure 1, the current sit-
+                                                                         dictive of retention success (Battaglia et al., 2011). Similarly,
+uation SOM also takes input from media representing times.
+                                                                         while episodic memory is often distinguished from ‘semantic
+There are two of these, holding representations of token
+                                                                         memory’, defined to include memory for generic episodes,
+times and time types. Token times are representations of
+                                                                         recent evidence suggests the hippocampal region encodes
+unique times. Each token time is a sparse distributed code
+                                                                         generic episodes as well as specific ones (St-Laurent et al.,
+of 10 neurons (in a field of 20 neurons); a new token time
+                                                                         2009; Ryan et al., 2008). We envisage that the WM/LTM
+is selected after each episode. Time types are localist repre-
+                                                                         media in our model are all implemented in circuits jointly re-
+sentations of times of day (morning, afternoon and evening):
+                                                                         cruiting PFC and the hippocampal region.3 Both regions en-
+they update more slowly, once every 20 episodes, in a cyclical
+                                                                         code stimuli using sparse distributed representations (Wixted
+fashion. In our model these updates happen using an internal
+                                                                         et al., 2014), which are similar to those evoked in our SOM
+timer, but in a full model, perception would also obviously
+                                                                         media and WM media (see below). And there are monosy-
+play a role; we thus envisage the type-token relation for times
+                                                                         naptic connections linking PFC and hippocampus, allowing
+is somewhat similar to that for physical individuals, hence
+                                                                         the formation of neural ensembles spanning the two regions
+their parallel representation in Figure 1.
+                                                                         (Dégenètais et al., 2003).
+   Because the situation SOM takes the current token
+time/time type as input in addition to the current episode
+and previous situation, it does not only learn to make pre-              Retrieval from episodic LTM A key property of episodic
+dictions which inform SM processing: it also creates mem-                LTM is its support of ‘mental time travel’: a process whereby
+ories about episodes in the past. Most concretely, it can                the agent re-establishes a cognitive state that was active at
+learn associations between specific episodes and specific to-            some time in the past, and relives episodes experienced at that
+ken times. Since these associations provide recurrent input              time. This involves suspending SM experience, and entering
+to the SOM, its memories of specific episodes in the past are            a special ‘retrieval mode’ (Buckner and Wheeler, 2001). Our
+naturally organised into sequences. This sequential organisa-            model has a very natural implementation of retrieval mode:
+tion is characteristic of episodic memory, and has frequently            an active representation in the situation SOM can be used to
+been modelled using recurrent networks; see e.g. Howard                  activate semantic material without engaging SM processes.
+and Kahana (2002). Using a recurrent SOM has two par-                    Most directly, we can use a pattern of activity in the situation
+ticular benefits. First, it learns localist representations that         SOM to reconstruct material in the SOM’s input media. We
+support very flexible queries: the trained SOM can be pre-               can reconstruct the episode that led to the situation in the WM
+sented with any partially-specified pattern of inputs, and the           episode buffer, and we can reconstruct an associated time
+pattern of activity over SOM units can be used to reconstruct            in the token time/time type media. (We will call the recon-
+a complete pattern. Second, it can learn generalisations over            structed episode the antecedent, and the reconstructed time
+                                                                             3 The perirhinal cortex perhaps has a particular role in represent-
+    2 The c-ep and situation SOMs each have 400 units. These sizes       ing LTM individuals (Kesner and Rolls, 2015), and PFC has a recog-
+were chosen in proportion to the number of object and action types       nised role in post-retrieval processes (Ranganath and Knight, 2003),
+used in the model. Full details are given in Takac and Knott (2016).     which we will discuss below.
+                                                                     534
+
+the temporal reference.) We can also retrieve the episode               The LTM/WM network presented in the current paper allows
+that happened ‘in’ the situation (which we will term the con-           us to extend this model in several ways. Firstly, it allows us
+sequent). This is reconstructed from the probability distribu-          to model a multi-sentence discourse, reporting a sequence of
+tion generated by the retrieved situation in the c-ep SOM.              episodes. In a standard model of discourse structure, sen-
+   In our model, the process of entering retrieval mode be-             tences in a discourse add material to a temporally structured
+gins with a representation of the ‘current situation’ in the sit-       database of event representations, indexed by representations
+uation SOM. This is a pattern of activity over many local-              of discourse context and reference time, and each sentence
+ist SOM units, encoding a mixture of token situations and               updates the context and reference time (see e.g. van Lam-
+generic situations that are similar to the present situation (in        balgen and Hamm, 2005). There are natural analogues of
+that a similar sequence of episodes preceded them), with ac-            all these structures in our network: the situation SOM rep-
+tivity proportional to similarity. The next episode is predicted        resents discourse contexts, the weights of its incoming and
+from the distribution of activity over all these units. But each        outgoing links hold the database of episodes, and the token
+individual unit represents a specific past situation or situa-          time/time type media hold the reference times that index the
+tion type, which is associated with specific episodes from the          database. Secondly, the network allows us to model sentences
+agent’s past. We assume each situation SOM unit is associ-              that query a database of episodes, or that respond to queries
+ated with an emotional valence (not shown in Figure 1), as              (i.e. questions and answers), as well as assertive sentences.
+suggested by Labar and Cabeza (2006). In our model, if the              This is because the medium holding sentence meanings, the
+summed valences of the active situation SOM units exceed a              WM episode, can also hold queries to the situation SOM, and
+threshold, retrieval mode is established, and the situation unit        responses to these queries (as we will show below).
+with highest aggregate similarity/emotional valence is acti-               Finally, the network lets us model linguistic devices that
+vated by itself. From this situation unit, we can reconstruct           reset the reference time to some arbitrary point, such as those
+an antecedent unit, or a temporal reference, or a consequent            mentioned earlier, in the afternoon and when John arrived.
+unit, as described above.                                               It is easiest to approach these first from the perspective of
+   In this model, the process of remembering what happened              sentence generation. Consider an agent who has just been re-
+in a retrieved situation is formally identical to the process of        minded of a past situation, and wishes to convey this process
+predicting what will happen in the current situation, in line           in language. Recall the agent can retrieve the time associ-
+with a constructivist account of LTM recall (Schacter, 1998).           ated with this situation (the temporal reference) or the episode
+Note that what is retrieved in the c-ep SOM is in fact a distri-        which led to it (the antecedent). To communicate the retrieved
+bution of possible episodes. The agent can use this distribu-           situation, the agent can choose to retrieve either piece of in-
+tion to reconstruct as best as possible the episode that actually       formation and then express the retrieved information in lan-
+happened in the remembered situation. But interestingly, she            guage, generating either a temporal referring expression or an
+can also use it to simulate what ‘might’ have happened. In              antecedent clause. These are distinct communicative strate-
+either case, she can use the recurrent circuitry of the situation       gies, that initiate different LTM queries, and enable different
+SOM to play forward the real or imagined episode, and re-               linguistic interfaces. We suggest that the operations execut-
+trieve/imagine an arbitrary sequence of subsequent episodes.4           ing these strategies can trigger linguistic side-effects in their
+                                                                        own right: specifically, the word in for the temporal refer-
+                                                                        ence strategy and the word when for the antecedent strategy.
+The network’s interfaces to language The links between
+                                                                        These words then naturally combine with words expressing
+WM/LTM media and language are shown with blue lines in
+                                                                        a time, or an antecedent episode, to create a phrase like in
+Figure 1. The key structures are the WM episode and the
+                                                                        the afternoon or when John arrived.5 The hearer of such a
+WM individual. Recall these WM media both encode pre-
+                                                                        phrase can use the strategy-signalling word to initiate a con-
+pared SM sequences, that can be actively replayed. In a
+                                                                        trol process of his own, to enable an appropriate interface and
+model we developed earlier (Takac et al., 2012; Takac and
+                                                                        build a representation in the relevant query medium, and then
+Knott, 2016) generating a clause involves replaying a WM
+                                                                        use this representation to retrieve a situation. The speaker
+episode and generating a NP involves replaying a WM indi-
+                                                                        can then produce a clause asserting (or querying) the conse-
+vidual, in a special mode where active SM/WM/LTM repre-
+                                                                        quent episode, that happened ‘in’ the retrieved situation, and
+sentations can trigger output phonology. In this model, NPs
+                                                                        the hearer can assert this episode in the retrieved situation, or
+and clauses denote rehearsed cognitive routines rather than
+                                                                        execute a query about it, as appropriate. Note the speaker can
+static mental representations. Our existing model focusses
+                                                                        generate the antecedent and consequent clauses in either or-
+on generation of a single clause, from a single WM episode.
+                                                                        der from a retrieved situation, since neither operation alters
+    4 Of course it is important to distinguish between remembered       the situation representation: so our network naturally sup-
+and imagined situations. In our model, we take actual memories          ports both preposed and postposed antecedent clauses.
+to be those with strong links to a token time, and which predict an
+episode distribution with low entropy (i.e. high confidence). These         5 On this account, temporal reference phrases like in the after-
+measures stand in for the ‘feeling of familiarity’ that accompanies     noon / when John arrived result from the execution of sequentially
+actual memories in people. The measures are not fully reliable—but      structured cognitive routines, so fit well with our general model of
+(notoriously) neither is the feeling of familiarity in people.          semantic representations as dynamic entities rather than static ones.
+                                                                    535
+
+                                                                                                                                  1                                                                          1
+                  1                                                    1                      Morning                                                                 AG
+                                                                                            Afternoon                                                                PAT
+   Probability                                          Probability                                              Probability                                                                 Probability
+                                                                                              Evening
+                                                                                                                                 0.5                                                                       0.5
+                 0.5                                                  0.5
+                  0                                                    0                                                          0                                                                          0
+                                                                                                                                       Person
+                                                                                                                                                 Dog   Cat   Bird   Cup    Ball
+                                                                                                                                                                                                                   Grab
+                                                                                                                                                                                  Chair
+                                                                                                                                                                                                                     Hit
+                                                                                                                                                                                                                   Push
+                                                                                                                                                                                                                   Walk
+                                                                                                                                                                                                                    Jog
+                       Morning    Afternoon   Evening                       Male   Female
+                                                                                                                                                                                                                     Lie
+                                                                                                                                                                                                                      Sit
+                                                                                                                                                                                                                   Sing
+                                                                                                                                                                                                                    See
+                                                                                                                                                                                                                 Sneeze
+                                                                                                                                                                                                                  Snore
+                                                                                                                                                                                                                  Sleep
+                                                                                                                                                                                                                   Hold
+                                                                                                                                                                                                                    Lick
+                                                                                                                                                                                                                    Bite
+                                                                                                                                                                                                                    Kick
+                                                                                                                                                                                                                  Break
+                                                                                                                                                                                                                   Stop
+                                                                                                                                                                                                                   Hide
+                                                                                                                                                                                                                     Go
+                                                                                                                                                                                                                     Pat
+                                                                                                                                                                                                                   Feed
+                                                                                                                                  1                                                                          1
+                                 (a)                                                (b)                                                                               AG
+                                                                                                                                                                     PAT
+                                                                                                                 Probability                                                                 Probability
+                                                                                                                                 0.5                                                                       0.5
+Figure 2: (a) Distribution of type times for the query [Bird
+sings]. (b) Distribution of gender for the query [Person jogs]                                                                    0                                                                          0
+in the morning, afternoon, and evening.
+                                                                                                                                       Person
+                                                                                                                                                 Dog   Cat   Bird   Cup    Ball
+                                                                                                                                                                                                                   Grab
+                                                                                                                                                                                  Chair
+                                                                                                                                                                                                                     Hit
+                                                                                                                                                                                                                   Push
+                                                                                                                                                                                                                   Walk
+                                                                                                                                                                                                                    Jog
+                                                                                                                                                                                                                     Lie
+                                                                                                                                                                                                                      Sit
+                                                                                                                                                                                                                   Sing
+                                                                                                                                                                                                                    See
+                                                                                                                                                                                                                 Sneeze
+                                                                                                                                                                                                                  Snore
+                                                                                                                                                                                                                  Sleep
+                                                                                                                                                                                                                   Hold
+                                                                                                                                                                                                                    Lick
+                                                                                                                                                                                                                    Bite
+                                                                                                                                                                                                                    Kick
+                                                                                                                                                                                                                  Break
+                                                                                                                                                                                                                   Stop
+                                                                                                                                                                                                                   Hide
+                                                                                                                                                                                                                     Go
+                                                                                                                                                                                                                     Pat
+                                                                                                                                                                                                                   Feed
+                                                                                                              Figure 3: Distribution of agents and patients (left) and actions
+                                       Training and testing                                                   (right) for morning (top) and evening (bottom) episodes.
+To test the system’s ability to answer questions and retrieve
+remote reference times, we exposed it to a stream of episodes                                                                      1
+                                                                                                                                                              evening...
+                                                                                                                                                                                                            1
+                                                                                                                                                                                                                             evening...
+with the following regularities. In the morning, 4 episode                                                                                               evening+dog...                                                 evening+dog...
+                                                                                                                   Probability                                                             Probability
+                                                                                                                                                                                                                 evening+dog+person...
+                                                                                                                                 0.5                                                                       0.5
+types were generated with equal probability: [Bird sings],
+[Man jogs], [Person sleeps], [Default]. [Person sleeps] was                                                                        0                                                                        0
+always followed by [(the same) Person sneezes]. [Default]
+                                                                                                                                        Person
+                                                                                                                                                 Dog   Cat   Bird   Cup    Ball
+                                                                                                                                                                                                                   Grab
+                                                                                                                                                                                   Chair
+                                                                                                                                                                                                                     Hit
+                                                                                                                                                                                                                   Push
+                                                                                                                                                                                                                   Walk
+                                                                                                                                                                                                                    Jog
+                                                                                                                                                                                                                     Lie
+                                                                                                                                                                                                                      Sit
+                                                                                                                                                                                                                   Sing
+                                                                                                                                                                                                                    See
+                                                                                                                                                                                                                 Sneeze
+                                                                                                                                                                                                                  Snore
+                                                                                                                                                                                                                  Sleep
+                                                                                                                                                                                                                   Hold
+                                                                                                                                                                                                                    Lick
+                                                                                                                                                                                                                    Bite
+                                                                                                                                                                                                                    Kick
+                                                                                                                                                                                                                  Break
+episodes were of two types. One type featured a random
+                                                                                                                                                                                                                   Stop
+                                                                                                                                                                                                                   Hide
+                                                                                                                                                                                                                     Go
+                                                                                                                                                                                                                     Pat
+                                                                                                                                                                                                                   Feed
+combination of agent (Person/Dog/Cat/Bird), action (10 tran-                                                  Figure 4: Change of distribution of patients (left) and actions
+sitive, 6 intransitive, 4 causative), and patient (if appropriate:                                            (right) for progressively refined queries.
+Person/Dog/Cat/Bird/Cup/Chair/Ball). The other type was
+the episode [Person kicks dog], followed by [(the same) Dog
+bites (the same) Person], or the episode [Person pats Dog],                                                   either Morning, Afternoon or Evening. After retrieval, we in-
+followed by [(the same) Dog licks (the same) Person]. In the                                                  spected the distribution of activities in the gender part of the
+afternoon, only [Default] episodes were generated. In the                                                     agent. The system correctly responds that morning joggers
+evening, 4 episode types were generated with equal probabil-                                                  are men, and evening joggers are women (Figure 2b). Inter-
+ity: [Person lies-down], [Woman jogs], [Person sleeps], [De-                                                  estingly, it remains agnostic about the gender of joggers in
+fault]. [Person sleeps] was always followed by [(the same)                                                    the afternoon, when no-one jogged.
+Person snores]. Properties of episode participants not speci-
+fied above (Number, Location, Colour, Gender) were gener-
+ated stochastically as described in Takac and Knott (2016).                                                   What happens in the morning/evening? For this ques-
+The system was trained on a continuous stream of 20000                                                        tion, we specified only a time type (morning or evening)
+episodes, divided into 40 epochs of 500 episodes each. Then                                                   and left the whole WM episode unspecified. The distribu-
+the situation SOM was presented with queries in its input me-                                                 tions retrieved in the WM episode are clearly distinct for
+dia, encoding the semantics of questions, according to the                                                    the two times (see Figure 3). But in each case they are
+scheme described above. A response was retrieved by prop-                                                     too broad to retrieve specific episodes, featuring particu-
+agating the query to the SOM (ignoring its recurrent input)                                                   lar combinations of agent, patient and action. However,
+to generate a pattern of activity in the SOM, then propagating                                                given that episodes are experienced sequentially in our model
+this activity back into the input media as an activity-weighted                                               (agent→patient→action), there is a natural way for a query to
+linear combination of the weight vectors of all SOM units.                                                    be progressively refined, by first selecting an agent from the
+Again see Takac and Knott (2016) for details.                                                                 agent distribution, then issuing another query featuring this
+                                                                                                              agent, then iterating this process on the patient and action
+                                                                                                              fields. (This kind of query refinement is exactly the kind of
+When do birds sing? For this question, we presented the                                                       ‘post-retrieval process’ envisaged by Ranganath and Knight,
+situation SOM with a partial query [AG=bird, PAT=empty,                                                       2003.) Figure 4 shows how patient and action distributions
+ACT=sing] and an unspecified time. After retrieval, we                                                        change when the query is progressively refined in this way:
+inspected the distribution of activities in the ‘time type’                                                   there are no binding errors in the episode eventually returned
+medium. As shown in Figure 2a, the system correctly re-                                                       ([Dog licks/bites Person]), and this episode is indeed a com-
+sponds that birds sing in the morning.                                                                        mon occurrence in the morning/evening.
+Who jogs in the morning/evening? For this question, we                                                        When P kicks a dog, what happens next? This question
+presented the situation SOM with a partial query [AG=Person                                                   targets the next episode prediction system. Recall that when
+(unspecified for gender), ACT=jog], with the time-type set to                                                 a person kicks a dog, the dog always bites that person. For
+                                                                                                        536
+
+                  1                                                                     1
+                                                     AG
+                                                                                                              Buckner, R. and Wheeler, M. (2001). The cognitive neuroscience of
+                                                    PAT                                                          remembering. Nature Reviews Neuroscience, 2, 624–634.
+   Probability                                                           Probability
+                 0.5                                                                   0.5                    Cowan, N. (1999). An embedded-process model of working mem-
+                                                                                                                 ory. In A. Miyake and P. Shah, editors, Models of working mem-
+                  0                                                                     0                        ory, pages 62–101. Cambridge University Press, Cambridge, UK.
+                       Person
+                                Dog   Cat   Bird   Cup    Ball
+                                                                                               Grab
+                                                                 Chair
+                                                                                                 Hit
+                                                                                                              Dégenètais, E., Thierry, A.-M., Glowinski, J., and Gioanni, Y.
+                                                                                               Push
+                                                                                               Walk
+                                                                                                Jog
+                                                                                                 Lie
+                                                                                                  Sit
+                                                                                               Sing
+                                                                                                See
+                                                                                             Sneeze
+                                                                                              Snore
+                                                                                              Sleep
+                                                                                               Hold
+                                                                                                Lick
+                                                                                                Bite
+                                                                                                Kick
+                                                                                                                 (2003). Synaptic influence of hippocampus on pyramidal cells
+                                                                                              Break
+                                                                                               Stop
+                                                                                               Hide
+                                                                                                 Go
+                                                                                                 Pat
+                                                                                               Feed
+                                                                                                                 of the rat prefrontal cortex. Cerebral Cortex, 13, 782–792.
+Figure 5: Distribution of agents and patients (left) and actions                                              D’Esposito, M. (2007). From cognitive to neural models of working
+(right) in the episode predicted following [Person kicks dog].                                                   memory. Phil. Transactions of the Royal Society B, 362, 761–772.
+                                                                                                              Fletcher, P. and Henson, R. (2001). Frontal lobes and human
+                                                                                                                 memory—Insights from functional neuroimaging. Brain, 124,
+                                                                                                                 849–881.
+this question, we presented the situation SOM with the (fully                                                 Howard, M. and Kahana, M. (2002). A distributed representation of
+specified) episode [Person kicks dog], and computed the pre-                                                     temporal context. Journal of Math. Psychology, 46, 269–299.
+dicted distribution for the next episode in the c-ep SOM, from                                                Kesner, R. and Rolls, E. (2015). A computational theory of hip-
+which we reconstucted distributions in the WM episode. As                                                        pocampal function, and tests of the theory: New developments.
+                                                                                                                 Neuroscience and Biobehavioral Reviews, 48, 92–147.
+shown in Figure 5, these are correctly weighted towards [Dog                                                  Knott, A. (2012). Sensorimotor Cognition and Natural Language
+bites Person]. As an extension of this, we asked a final ques-                                                   Syntax. MIT Press, Cambridge, MA.
+tion: When P sleeps in the morning/evening, what happens                                                      Labar, K. and Cabeza, R. (2006). Cognitive neuroscience of emo-
+next? The system correctly answered [Person sneeze] for                                                          tional memory. Nature Reviews Neuroscience, 7(1), 54–64.
+                                                                                                              Miller, E. and Cohen, J. (2001). An integrative theory of prefrontal
+the morning query and [Person snore] for the evening query                                                       cortex function. Annual Review of Neuroscience, 24, 167–202.
+(along with other actions associated with morning/evening, at                                                 Moll, M. and Miikkulainen, R. (1997). Convergence-zone episodic
+lower probabilities).                                                                                            memory. Neural Networks, 10(6), 1017–1036.
+                                                                                                              Norman, K. and OReilly, R. (2003).               Modeling hippocam-
+                                      Summary and discussion                                                     pal and neocortical contributions to recognition memory: A
+                                                                                                                 complementary-learning systems approach. Psychological Re-
+In this paper we presented a model of episodic LTM with                                                          view, 110, 611–646.
+two novel features. One regards the interface between LTM                                                     Olsen, R., Moses, S., Riggs, L., and Ryan, J. (2012). The hippocam-
+                                                                                                                 pus supports multiple cognitive processes through relational bind-
+and WM. Our model reconciles the idea of a dedicated buffer                                                      ing and comparison. Frontiers Hum. Neurosci, 6, Article 146.
+for WM representations with the conception of WM repre-                                                       Ranganath, C. and Knight, R. (2003). Prefrontal cortex and episodic
+sentations as active LTM representations. The other regards                                                      memory. In E. Wilding et al., editors, Memory encoding and
+the interface between LTM/WM and language. The model                                                             retrieval, pages 1–14. Psychology Press, New York.
+                                                                                                              Ryan, L., Cox, C., Hayes, S., and Nadel, L. (2008). Hippocampal
+allows several elements of a linguistic theory of discourse                                                      activation during episodic and semantic memory retrieval. Neu-
+structure (discourse contexts, reference times and temporally                                                    ropsychologia, 46(8), 2109–2121.
+structured semantic representations) to be identified directly                                                Schacter, D., Norman, K., and Koutstaal, W. (1998). Cognitive neu-
+with components of the episodic LTM system. And it ex-                                                           roscience of constructive memory. Ann Rev Psych, 49, 289–318.
+                                                                                                              Shivde, G. and Anderson, M. (2011). On the existence of seman-
+plains how sentences can query this LTM system, and use it                                                       tic working memory: Evidence for direct semantic maintenance.
+to reactivate memories of temporally remote situations.                                                          JEP: Learning, Memory, and Cognition, 37(6), 1342–1370.
+   There are many issues to discuss about the design of the                                                   St-Laurent, M., Moscovitch, M., et al. (2009). Determinants of au-
+model—most importantly, its space requirements. The c-ep                                                         tobiographical memory in patients with unilateral temporal lobe
+                                                                                                                 epilepsy or excisions. Neuropsychologia, 47, 2211–2221.
+and situation SOMs must hold localist representations of a                                                    Strickert, M. and Hammer, B. (2005). Merge SOM for temporal
+very large set of possible episodes and situations. At the                                                       data. Neurocomputing, 64, 39–71.
+same time, their ability to self-organise means they only need                                                Suddendorf, T. and Corballis, M. (2007). The evolution of foresight:
+to represent those episodes/situations that occur, which are a                                                   What is mental time travel, and is it unique to humans? Behav-
+                                                                                                                 ioral and Brain Sciences, 30, 299–351.
+very small subset of those that are possible. And their abil-                                                 Takac, M. and Knott, A. (2016). A simulationist model of
+ity to learn generalisations over episodes/situations makes                                                      episode representations in working memory. Technical Report
+them efficient encoders. We provide an extended discussion                                                       OUCS-2016-01, Dept of Computer Science, University of Otago.
+                                                                                                                 www.cs.otago.ac.nz/research/publications/OUCS-2016-01.pdf.
+of space requirements in Takac and Knott (2016).
+                                                                                                              Takac, M., Benuskova, L., and Knott, A. (2012). Mapping senso-
+                                                                                                                 rimotor sequences to word sequences: A connectionist model of
+Acknowledgements                                                                                                 language acquisition and sentence generation. Cognition, 125,
+This work was supported by the New Zealand Marsden Foun-                                                         288–308.
+dation through Grant 13-UOO-048. Martin Takac was also                                                        van Lambalgen, M. and Hamm, F. (2005). The Proper Treatment of
+                                                                                                                 Events. Blackwell, Oxford.
+partially supported by Slovak grant VEGA 1/0898/14.                                                           Walles, H., Robins, A., and Knott, A. (2014). A perceptually
+                                                                                                                 grounded model of the singular-plural distinction. Language and
+                                                          References                                             Cognition, 6, 1–43.
+Baddeley, A. (2000). The episodic buffer: A new component of                                                  Wixted, J., Squire, L., Jang, Y., et al. (2014). Sparse and distributed
+  working memory? TICS, 4(11), 417–423.                                                                          coding of episodic memory in neurons of the human hippocam-
+Battaglia, F., Benchenane, K., Sirota, A., Pennartz, C., and Wiener,                                             pus. PNAS, 111(26), 9621–9626.
+  S. (2011). The hippocampus: hub of brain network communica-                                                 Zwaan, R. (2008). Time in language, situation models, and mental
+  tion for memory. Trends in Cognitive Sciences, 15(7), 310–318.                                                 simulations. Language Learning, 58, 13–26.
+                                                                                                        537
+

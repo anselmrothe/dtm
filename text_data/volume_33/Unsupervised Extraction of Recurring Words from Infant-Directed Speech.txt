@@ -1,0 +1,512 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Unsupervised Extraction of Recurring Words from Infant-Directed Speech
+Permalink
+https://escholarship.org/uc/item/6h94524c
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 33(33)
+Authors
+McInnes, Fergus
+Goldwater, Sharon
+Publication Date
+2011-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+       Unsupervised Extraction of Recurring Words from Infant-Directed Speech
+         Fergus R. McInnes (Fergus.McInnes@ed.ac.uk) and Sharon J. Goldwater (sgwater@inf.ed.ac.uk)
+                    School of Informatics, University of Edinburgh, 10 Crichton Street, Edinburgh EH8 1AB, UK
+                               Abstract                                   a specified form and a small vocabulary. Second, P&G’s al-
+                                                                          gorithm (the only other one to be tested on unscripted speech)
+   To date, most computational models of infant word segmenta-
+   tion have worked from phonemic or phonetic input, or have used         processes the entire input corpus at once, searching for acous-
+   toy datasets. In this paper, we present an algorithm for word          tically similar fragments. Here, we develop an incremental
+   extraction that works directly from naturalistic acoustic input:       version of the algorithm that processes only a few utterances
+   infant-directed speech from the CHILDES corpus. The algo-
+   rithm identifies recurring acoustic patterns that are candidates       at a time, simulating the limited memory of an infant learner.
+   for identification as words or phrases, and then clusters together     Although the incremental algorithm does not perform as well
+   the most similar patterns. The recurring patterns are found in         as the batch algorithm, it is still able to extract a number of
+   a single pass through the corpus using an incremental method,
+   where only a small number of utterances are considered at once.        words and phrases from the input. This success is due in part
+   Despite this limitation, we show that the algorithm is able to         to the structure of infant-directed speech: since words are
+   extract a number of recurring words, including some that infants       often repeated close together, a simple matching algorithm
+   learn earliest, such as Mommy and the child’s name. We also
+   introduce a novel information-theoretic evaluation measure.            can find and extract such repetitions even when only a few
+   Keywords: language acquisition; word segmentation; speech              utterances are considered at a time. Although we do not claim
+   recognition; computational modelling.                                  that the particular matching procedure used here is necessarily
+                                                                          similar to one used by infants, our results do suggest that an in-
+                           Introduction                                   cremental acoustic matching procedure could be a successful
+One of the first problems children face in learning language is           way to extract words despite variability in the speech signal.
+how to segment individual words from the continuous stream                   In addition to these simulation results, we develop a novel
+of acoustic input they hear. Experimental evidence suggests               entropy-based evaluation measure. Previous researchers work-
+that infants are sensitive to the statistical patterns created by         ing with P&G’s algorithm have mostly used qualitative evalu-
+strings of words in a nonsense language (Saffran, Newport, &              ation; quantitative evaluation was slow, limited in scope, and
+Aslin, 1996), and can use these statistical cues to distinguish           often subjective because it required examining the output by
+words from non-words at an earlier age than other cues such               hand. An exception is presented by Jansen, Church, and Her-
+as stress (Thiessen & Saffran, 2003). Since this evidence be-             mansky (2010), but their method depends on an information-
+gan to surface, a number of computational models have been                retrieval task. Our evaluation method can be applied automat-
+proposed to explain how infants might exploit the statistical             ically (assuming a phonemic forced alignment is available),
+information in the speech input in order to identify words                which makes quantitative comparisons between different con-
+or word boundaries (e.g., Brent, 1999; Christiansen, Allen,               ditions or learning algorithms much easier.
+& Seidenberg, 1998; Goldwater, Griffiths, & Johnson, 2009;                   In the remainder of the paper, we first present the pattern
+Rytting, 2007). Nearly all such models have assumed a string              extraction algorithm and the evaluation measure. We then de-
+of phonemic or phonetic symbols as input, though recently                 scribe our experiments, presenting both qualitative and quanti-
+some researchers have begun to explore the problem of word                tative results. We conclude with a discussion of our findings
+identification in a less idealized scenario, using acoustic fea-          and directions for further work.
+ture vectors as input (Aimetti, 2009; Driesen, ten Bosch, &
+Van hamme, 2009; Räsänen, 2010). The work described here                             Pattern Extraction Algorithm
+falls into the latter category, and is motivated by evidence that         Our algorithm is a modification of the segmental dynamic
+infants begin to segment some words as early as six months                time warping (DTW) algorithm of P&G. The input is a set
+old, while their native language phonology is still incomplete            of utterances, each represented by a sequence of acoustic
+(Bortfeld, Morgan, Golinkoff, & Rathbun, 2005). This sug-                 frames (MFCC feature vectors, as standardly used for auto-
+gests the possibility that some early words may be learned as             matic speech recognition). The output is a set of clusters, with
+a whole from the acoustic signal, without any sub-word level              each cluster consisting of a set of acoustically similar speech
+of representation.                                                        fragments (subsequences of frames from the input). The inten-
+   The algorithm we present is similar to that of Aimetti (2009),         tion is that each cluster should contain instances of a single
+in that both are based on recent work by Park and Glass (2008)            word or phrase that occurs repeatedly in the input.
+(henceforth, P&G). However, our work differs from these and                  The algorithm has two stages (described in more detail in
+other recent papers in two important ways. First, we use a                the following subsections): DTW matching, in which pairs
+corpus of naturalistic infant-directed speech as input. This              of utterances are compared to identify any similar fragments;
+contrasts with P&G, who use adult-directed speech, and with               and clustering, in which the matched fragments are grouped
+Aimetti (2009), Driesen et al. (2009), and Räsänen (2010),              together across the whole set of utterances using a graph-based
+who all use a carefully constructed corpus of utterances with             clustering method. In P&G’s original algorithm, every utter-
+                                                                      2006
+
+  of the
+             (2008), and has the advantage that multiple regions can be
+ of Park
+             found within one diagonal band. The path segments are then
+ s, each
+             extended to include any nearby low-distortion segments,
+ rs. The
+             where up to max_hi consecutive points with higher
+sting of
+             distortion are allowed between low-distortion regions.
+grouped
+ tivation
+e which                                                                                                    utive frames in one utterance are matched to the same frame
+                 | rolled      | away |
+                                                                                                           in the other (allowing for duration differences). If the two
+ hing, in                                                                                                  utterances were identical, then the best alignment would be
+ rated in                                                                                                  a single diagonal line from the origin to the upper right cor-
+ ring, in                                                           overlap between                        ner of the graph. P&G’s algorithm works by first identifying
+ ross the                                                             extracted                            the optimal alignment path within each diagonal band (dashed
+                                                                      paths
+                  r ow l vcl d ax w ey
+                                                                                                           lines; these bands constrain the algorithm so that only a certain
+ , every                                                                                                   amount of time offset is allowed in the alignment – otherwise
+ s in the                                                                                                  it would be possible to align all frames of one utterance to the
+ utation                                                                                                   first frame of the other, or similar trivial solutions). It then
+ t is also                                                                                                 extracts fragments of the alignments that have low spectral
+                                              ih        cl t    r ow    l    vcl d ax w ey
+ n, since                                                                                                  distortion – good matches.
+                                          |        it          | rolled            | away       |
+ ory for                                                                                                      We made a number of small modifications to the P&G
+ emental
+                 Figure1:1:DTW
+               Figure            matching of
+                            DTWmatching       a pair
+                                           of an     of utterances
+                                                 utterance         (shown
+                                                             pair (with ortho-                             matching procedure to improve its performance before imple-
+ ll DTW
+                    with  orthographic and phonetic  transcriptions).
+               graphic and phonemic transcriptions). See explanation in text.                              menting the incremental version. First, we constrain align-
+  against
+                                                                                                           ment paths so that any horizontal or vertical step must be
+ tterance        (3) Any extracted path segments in adjacent diagonal
+ esented                                                                                                   preceded by a diagonal step (as in the “Type I” constraints
+               ance which
+             bands             overlapagainst
+                       is compared          in bothevery
+                                                       the x other      directionsin
+                                                               and y utterance           (asthe  DTW
+                                                                                              shown        of Myers, Rabiner, & Rosenberg, 1980), in order to mini-
+  in it by     matching      stage.     As  a possible      model
+             in Figure 1) are merged, with a length-weighted averagingof  whole-word          segmen-      mize distortion in the time alignment. Second, to extract
+             oftation
+                 their by
+                        mean human
+                                 distortions.      this method
+                                         infants,This      allows the  is implausible
+                                                                           final path segment because      fragments with low spectral distortion, we take those paths of
+  terance    toitcross   diagonal
+                  requires              band boundaries,
+                              all utterances      to be stored    which     may beatimportant
+                                                                     in memory              once, and
+   other                                                                                                   at least length min path len in which all the frame-to-frame
+             particularly
+               because thefor   amountlongofwords
+                                               computation         grows aswhose
+                                                          and phrases            the square duration
+                                                                                                 of the
+  tering –                                                                                                 distortions are below a threshold core thr. This replaces the
+             varies
+               number substantially
+                           of utterances  from  one instance
+                                              heard.                     another.
+                                                         Here, wetopresent         an incremental          length-constrained minimum average algorithm of P&G, and
+                The output
+               version                  this stage
+                          of theofmatching              is a setwhere
+                                                  algorithm           of segments
+                                                                            utterancesinareeach   only     has the advantage that multiple matching regions can be found
+               comparedwith
+             utterance,       to othereachutterances
+                                              segment within being alinked         to onewindow.
+                                                                        fixed recency           other
+             segment      (usually       in amore
+                                               different                                                   within one diagonal band. The matching regions are then ex-
+               Any utterance       in the           distantutterance)
+                                                                past (outside   and thehaving
+                                                                                          window)  anis
+                                                                                                           tended to include any nearby low-distortion matches, where
+   in the    associated
+               represented  mean     distortion.
+                                in memory        only by the fragments already found
+  to find       When      a word      or phrase      is repeated                                           up to max hi consecutive points with higher distortion are al-
+               in  it. Our     complete       algorithm       is not several
+                                                                        yet fullytimes         in the
+                                                                                        incremental,       lowed between low-distortion regions. Finally, we merge any
+ g for a     input
+               becausedata,individual      fragmentsisareliable
+                              each occurrence                               generate inmultiple
+                                                               storedtoseparately             memory
+ he time     segments                                                                                      matched regions in the adjacent diagonal bands that overlap in
+               until the(linked        to different
+                            entire corpus      has been segments       elsewhere)
+                                                              processed,      at which    which   areall
+                                                                                              point        both the x and y directions (as shown in Figure 1). This allows
+  hose of    similar    but   not    identical    in   their    start   and   end      times.    This
+               fragments are clustered. However, this already represents a                                 the final path fragment to cross diagonal band boundaries,
+ iagonal     leads
+               large to     complications
+                       decrease      in memoryinover    thestoring
+                                                                extraction        of nodes
+                                                                                         corpus,for
+                                                                         the entire                and     which may be important for longer words and phrases whose
+ etween      clustering and in the transcription of the nodes. To avoid
+               we anticipate that further modifications to implement incre-                                duration can vary substantially.
+  the two    these consequences, the algorithm was refined to include a
+  mming        mental clustering would be possible.
+             segment adjustment process in which temporally similar                                           The above algorithm produces a set of matched fragment
+ atching     segments
+               DTW Matchingare conflated so that each occurrence of a word or                              pairs, each with a known mean distortion. However, common
+   to that   phrase yields a single start-end pair. The windowing of the                                   words tend to create multiple overlapping fragments in the
+ t with a                    time warping
+               Dynamicsequence,
+             utterance                           is a standard
+                                           described      above, was algorithm        in the speech
+                                                                           also introduced         as
+               recognition       literature,    used      to  align    sequences         of acoustic       same utterance, each linked to a different instance of the word
+             a refinement to the original algorithm. With                                       these      elsewhere in the data. For example, the words it rolled away
+ rizontal      frames in such
+             refinements,      theasequence
+                                       way as toof  minimize
+                                                        processing the spectral
+                                                                         for the ith distortion    (the
+                                                                                           utterance
+               sum    of the   distances     between       aligned    frames).      It  is a dynamic       might contain two fragments with slightly different start and
+ ecutive     in the input is as follows.
+               programming          algorithm,       conceptually                                          end points, one linked to an utterance with another instance
+ r) must        1. Match utterance          i against     all segmentssimilaralreadytoextracted
+                                                                                            weighted
+ ype I”        minimum-edit-distance              string    matching.       The     segmental      ver-    of it rolled away, and one linked to a different utterance with
+             from previous utterances. (The utterance-to-segment
+0). This       sion   introduced      by   P&G    is  intended      to  identify     and    align only     the words rolled away. Even if all three utterances contain the
+             matching uses a form of DTW which finds, for each
+             possible      end frame ofinframes
+               those subsequences                           that are relatively
+                                                   the utterance,            the start   similar,  and
+                                                                                               frame       same words, the start and end points for each pair of matching
+ed from        thereforethe
+             achieving       might
+                                bestbematchdifferent
+                                                between instances      of the same
+                                                               the interval                word.and
+                                                                                 [start,end]               fragments might not be exactly the same.
+ se path     the Figure
+                   predefined       segment;using
+                             1 illustrates,       a matchthe utterances
+                                                                 is recorded  rolled at away     and it
+                                                                                          any local           This proliferation of largely overlapping fragments not only
+_len, in     minimum
+               rolled away. of the The resulting     mean distortion
+                                          actual acoustic        frames are    thatnotisshown,
+                                                                                            below buta     seems cognitively implausible, but also complicates the clus-
+ elow a      specified
+               would rangevalue.)along the x-axis for one utterance (earlier frames                        tering step of the algorithm, discussed below. We therefore
+               to the left), and along the y-axis for the other (earlier frames                            refined the algorithm to include a fragment adjustment process
+               at the bottom). Transcriptions are shown for illustration only,                             in which temporally similar fragments are conflated so that
+               and are not used as input to the algorithm (although the phone-                             each extracted word or phrase is associated with a single start
+               mic transcripts are used during evaluation). The solid lines                                and end point in the data. With this change, an incremental
+               represent alignments between the two utterances, with diago-                                version of the algorithm can be developed which stores in
+               nal parts indicating matches where consecutive frames in one                                memory only a single fragment for each extracted word or
+               utterance are matched to consecutive frames in the other, and                               phrase, along with a small number of complete utterances
+               horizontal or vertical parts indicating matches where consec-                               inside the current processing window W . The final algorithm
+                                                                                                       2007
+
+ processes the current utterance u as follows:                            algorithm works in a greedy fashion, at each step maximizing
+                                                                          the increase in the modularity defined as
+1. Match u against all previously extracted fragments.          1
+                                                                                                             ∑i eii
+2. Match u against all previous utterances in W and against                                             Q=                                   (2)
+                                                                                                             ∑i a2i
+    itself (disallowing overlapping fragments in the latter case).
+    Extract only those fragment pairs where the fragment in the           where eii is the fraction of all edges (weighted by strength) that
+    previous utterance does not clash with a fragment existing            connect nodes within the ith cluster, and ai is the (weighted)
+    before step 1. Two fragments are deemed to clash if neither           fraction of all ends of edges that are attached to nodes within
+    has at least a specified proportion (min frac distinct) of its        cluster i. The motivation for this measure is that ∑i eii is the
+    duration outside the other, i.e., they have a high degree             proportion of all edges that are within clusters and ∑i a2i is the
+    of overlap. (The rationale is that the relevant part of the           expected proportion of edges that would fall within clusters
+    previous utterance has already been matched against the               if the ends were connected at random. Thus Q is a ratio
+    current utterance in step 1.)                                         measuring how much better than random the fit between the
+                                                                          current clustering and the edge strengths is.3
+3. Sort the fragments from u in ascending order of mean dis-
+    tortion, and test for clashes between fragments; in case of a             Information-Theoretic Evaluation Measure
+    clash, adjust the start and end points of the higher-distortion
+                                                                          Having defined our learning algorithm, we are left with the
+    fragment y to match those of the lower-distortion fragment
+                                                                          question of how to evaluate its performance. The most obvious
+    x, and perform a new DTW match between x and the frag-
+                                                                          measures include the number, sizes, and purities of the output
+    ment or region to which y was originally matched. If y’s
+                                                                          clusters, and the proportion of frequently occurring content
+    matched fragment was from an utterance in W , then this new
+                                                                          words that are found. While these measures are intuitive, for
+    match may change the start and end points of that fragment,
+                                                                          this task they involve some subjective decisions (e.g., how to
+    otherwise it just recomputes the mean distortion.
+                                                                          define cluster purity given that some fragments in the clusters
+4. Repeat step 3 for the remaining utterances in W .                      correspond to partial words, while others may be complete
+                                                                          words). Moreover, they require examining the algorithm out-
+    This algorithm is designed to operate with a limited window           put and transcripts by hand, which slows down comparisons
+ size, but can also be applied to the case with unlimited memory          between versions of the algorithm during development.
+ by setting the window size to include all previous utterances               To address these problems, we developed a new evaluation
+ in the data set. In either case, the output is a set of matched          measure based on the idea that fragments within a cluster
+ fragment pairs with no clashes between fragments.                        should be more phonemically similar to each other than to the
+                                                                          average speech in the corpus. Put another way, we should be
+ Clustering
+                                                                          able to predict the phonemic content of a fragment better by
+ Once the DTW matching has been completed for all the input               using knowledge gleaned from other fragments in the same
+ utterances, the mean distortions are converted to similarity             cluster. Specifically, we compute the phonemic entropy of
+ scores between pairs of fragments, and then the fragments                each fragment both with and without using cluster-based in-
+ are clustered using a graph-based clustering algorithm. The              formation; the difference between the two gives a measure of
+ graph contains a node for each fragment, and an edge be-                 the information provided by the clustering. We assume that
+ tween each pair of DTW-matched fragments.2 Each edge is                  a time-aligned phonemic transcription of the data is available
+ assigned a weight according to the similarity between the pair           for evaluation purposes (we use an automatic forced align-
+ of fragments it connects. Similarity is computed as                      ment in our experiments), and we compute the entropies of
+                                                                          the phonemic transcripts of each extracted fragment. The en-
+                       S(P) = (θ − D(P))2 /θ2                      (1)
+                                                                          tropy of a fragment without cluster information is computed
+where D(P) is the mean distortion for the DTW alignment path              using a phone bigram model trained on the full corpus. The
+ P between the two fragments (for 0 ≤ D(P) ≤ θ), and θ is a               entropy with cluster information is computed by estimating
+ distortion threshold, so that paths with D(P) > θ are assigned           the probability of the fragment’s phone sequence based on the
+ similarity 0 or (equivalently) ignored in the clustering.                phone sequences of the other fragments in the same cluster.
+    Given the weighted graph, we follow P&G in using the                  The computations are described in more detail below.
+ agglomerative clustering algorithm of Newman (2004). The                 Entropy without Cluster Information
+     1 The utterance-to-fragment matching uses a form of DTW which        Given a set of speech fragments with phonemic transcripts, we
+ finds, for each possible end frame in the utterance, the start frame     use a phone bigram model to compute the total entropy (neg-
+ achieving the best match between the interval [start,end] and the
+ predefined fragment; a match is recorded at any local minimum of         ative log probability) of the transcripts without using cluster
+ the resulting mean distortion that is below a specified value.               3 P&G
+     2 Because we eliminated overlapping fragments in the matching                   used a slightly different Q measure, taking the difference
+ phase, this method of graph construction is much simpler than the        between ∑ eii and ∑ a2i rather than the ratio. We found that using the
+ one presented by P&G.                                                    ratio reduced the incidence of large clusters of low purity.
+                                                                      2008
+
+information. Specifically, we compute the bigram probability              Entropy Reduction
+of the ith fragment transcript ti , consisting of phones x1 . . . xm ,    For fragment transcript ti , the reduction in entropy obtained
+as Pbg (ti ) = ∏mj=1 P(x j |x j−1 ). The probabilities P(x j |x j−1 )     by using the clustering information to augment the baseline
+are estimated from the corpus of phonemic transcripts, using              bigram model is given by
+smoothing to avoid setting any probability to 0. The entropy                                                                             
+                                                                                                             n−1               Htot (ti )
+of ti is then                                                                        Hbg (ti ) − Hcl (ti ) =       Hbg (ti ) −              , (6)
+                                                                                                              n                 n−1
+                        Hbg (ti ) = − log2 Pbg (ti )               (3)
+                                                                          with the total entropy reduction over a set of utterances being
+and the total entropy of all fragment transcripts is ∑i Hbg (ti ).        the sum of the above quantity over all the extracted and clus-
+                                                                          tered fragments. Expressing the reduction in this form makes
+Entropy using Cluster Information
+                                                                          clear its dependence both on the consistency of the transcripts
+To compute the fragment transcript probabilities (and thus                within the cluster (which will tend to increase the probabilities
+entropies) using cluster information, we assume an ordering               Pal (ti |t j ) from Eq. 5, in turn increasing the parenthesized fac-
+on the fragments in each cluster. We compute the probability              tor in Eq. 6) and on the cluster size n (which, as it increases,
+of the first fragment using the bigram model above, and then              will push the (n − 1)/n factor closer to 1). Internally consis-
+compute the probability of each subsequent fragment using                 tent clusters are better than inconsistent ones; and, for a given
+the transcript of the previous fragment, as described below.              level of within-cluster consistency, large clusters are better
+The resulting negative log probabilities are averaged across all          than small ones, so that it is better to generate a single cluster
+possible orderings of the fragments within the cluster.                   containing (n1 + n2 ) instances of the same word or phrase than
+   The model for predicting a phone sequence (the current                 separate clusters of n1 and n2 instances.
+fragment transcript) given another phone sequence (the tran-
+script of the predecessor fragment) incorporates probabilities                                            Experiments
+for all possible phone insertions, deletions, and substitutions           Data
+(including substituting a phone for itself, which usually has             The data for our experiments comes from the Brent cor-
+a high probability). A recursion on possible alignments of                pus (Brent & Siskind, 2001) in the CHILDES database
+the predictor and predicted phone sequences is performed                  (MacWhinney & Snow, 1985), which consists of recordings
+to obtain the sum of the probabilities corresponding to all               of mothers speaking to their infants (aged nine to 15 months)
+sequences of substitutions, insertions and deletions which                in a naturalistic setting. We used the “Brent33” subset of the
+transform the predictor sequence into the predicted one. The              corpus defined by Rytting (2007), which contains 7811 utter-
+substitution, insertion and deletion probabilities are estimated          ances from 15 recording sessions (three or four from each of
+from a corpus of transcript pairs representing within-cluster             four mother-infant dyads). This subset also contains a forced
+pairs of fragments, by an iterative process in which alignment            time-alignment of the audio to a phonemic transcript, which
+of the transcripts (by dynamic programming) alternates with               was produced by Rytting (2007) and which we use for evalua-
+reestimation of the probabilities until the estimates converge.           tion purposes. The forced alignment uses a standard American
+   When a cluster consists of fragments with identical or near-           English phone set, except that voiced and unvoiced closure are
+identical transcripts, the cluster-based prediction gives a higher        treated as phones in their own right, yielding transcripts such
+probability than the bigram-based prediction; but when a clus-            as /l eh cl s vcl g ow/ (let’s go).
+ter contains phonemically mismatched fragments the cluster-                  The acoustic feature representation used in segmental DTW
+based probability can be substantially lower than the bigram-             consisted of a vector of 12 mel cepstral coefficients (computed
+based one. To obtain a more robust prediction of the tran-                in a 20ms window) and 12 delta coefficients every 5ms. The
+scripts, we interpolate the cluster-based and bigram-based                delta coefficients accompanying the cepstral vector cn at frame
+prediction probabilities, yielding the following expression for           n were derived as 0.3 × (cn+1 − cn−1 ).
+the entropy of the ith fragment transcript:
+                                                                          Procedure
+                                1                                         We ran our algorithm separately on the data from each session,
+                    Hcl (ti ) = (Hbg (ti ) + Htot (ti ))           (4)
+                                n                                         using the following parameters: core thr = 1.2, min path len
+                                                                          = 90 (i.e., 0.45 seconds), max hi = 2, min frac distinct = 0.5,
+with
+                                                                          θ = 0.6. This yielded a set of clustered fragments for each
+        Htot (ti ) = ∑ − log2 (αPal (ti |t j ) + (1 − α)Pbg (ti )
+                                                                 
+                                                                   (5)    session, which were transcribed using the forced alignments.
+                     j                                                    A phone spanning the beginning or end of a fragment was
+                                                                          included in its transcript if at least half of the phone’s duration
+where n is the size of the cluster containing ti , α is an in-            was within the fragment or if (as occurred for some very long
+terpolation weight, Pal (ti |t j ) is the probability of ti obtained      phones) the phone contained the whole fragment.
+by deriving it from t j using the align+edit method described                For the entropy reduction measure, probabilities for the
+above, and j ranges over the n − 1 other fragments in the                 bigram-based and cluster-based prediction models were esti-
+cluster.                                                                  mated per dyad. The bigram estimation data consisted of the
+                                                                      2009
+
+Table 1: Per-phone entropy reduction results for different                 Table 2: Clusters of size ≥ 3 from dyad c1, session 4.
+window sizes w on the original and randomly permuted corpus.
+                                                                        Word(s)        Purity   Segment transcriptions
+  Condition                       Per dyad                Overall       look at the        67   look at the look at the
+                       c1        f1      f2       q1                                            look at the -s look at the
+  w=∞                .0486     .0077 .0187      .0000      .0231                                you’re just taking book is tha-
+  w = 20             .0401     .0067 .0135      .0000      .0185        sweetie or         33   sweetie sweetie -e page
+  w = 10             .0373     .0075 .0131      .0000      .0177          Mommy                 -ng swee- -t’s Mommy go-
+  w=5                .0341     .0037 .0117      .0000      .0153                                -t’s Mommy
+  w=2                .0269     .0043 .0091      .0000      .0124        yeah              100   yeah is th- yeah that’s
+  w = 20, perm.      .0126     .0000 .0001      .0000      .0040                                yeah d- yeah yeah is th-
+  w = 10, perm.      .0078     .0002 .0001      .0000      .0025        [that’s the      [60]   -t’s the ye- -’s the ye- -t’s the ye-
+  w = 5, perm.       .0079     .0002 .0001      .0000      .0025          yellow]               -t’s play a g- -t’s a pret-
+  w = 2, perm.       .0075     .0000 .0000      .0000      .0023        -                   -   oh you s- uh-oh what do we
+                                                                                                turn the -th Mommy
+                                                                        [fun]            [40]   do- fu- fu- down -s and lo-
+phonemic transcripts of all the utterances. The cluster-based
+                                                                        book              100   book book book books
+estimation data consisted of the transcripts of the extracted and
+                                                                        sweetie           100   -ng sweetie -ng sweetie
+clustered fragments, combined into all possible within-cluster                                  a sweetie -ng sweetie
+pairs, with weight 1/(n − 1) on each pair in a cluster of size
+                                                                        Morgan            100   -t Morgan Morgan Morgan
+n. The interpolation weight α was set for each dyad so as to                                    Morgan
+minimize the total entropy ∑i Hcl (ti ).
+                                                                        read               50   Morg- -n’t w- gonna read th-
+Results and Discussion                                                                          -n you read th-
+Table 1 shows results for a fixed window size w ranging from            on                 50   -elf h- -ay -ot on on
+2 to 20, as well as for w = ∞ (batch processing: each utterance         [points]        [100]   -oints -oints -oints -oints
+is matched against all other utterances in the session). For            [book]          [100]   a boo- -n’s boo- -n’s boo-
+comparison, we also show results for w = 2 to 20 when the                                       -ther boo-
+order of utterances is randomly permuted within each session.           [lots]           [50]   -own off the sh- -ots a-
+For each condition, entropy reductions are shown for each of                                    and lots of -ong swee-
+the four dyads (c1, f1, f2, and q1) and overall, normalized by          yeah              100   yeah yeah yeah i-
+the total numbers of phones in the utterances.                          kitty-cat         100   kitty-ca- kitty-ca- kitty-ca-
+   Several trends are worth noting. First, although the results         ball              100   ball ball -ow ball
+with fixed window sizes are not as good as the batch pro-               points            100   points points points
+cessing algorithm, the difference is not great, especially for          two points        100   two poi- two poi- two poi-
+the larger window sizes. Results on the permuted corpus are             yeah              100   yeah yeah yeah
+uniformly bad, with results for w = 20 generally worse than             books              67   books d- what fu- books d-
+even the smallest window size (w = 2) on the corresponding              [doggie]        [100]   -gie -gie -gie
+correctly ordered corpus. These results are consistent with the         [what’s in       [67]   yeah -’s in he- -’s in he-
+hypothesis that frequent nearby repetitions in infant-directed            here]
+speech are useful for extracting words, especially for an in-           [yay]            [67]   hea-    -ay   -ay
+cremental learner. Unfortunately, due to the small number of
+dyads, the statistical significance of these results is weak. The
+recordings for dyad q1 are somewhat noisier than the others,          other fragments in the cluster. Scores in brackets indicate that
+which may explain the null results on this dyad.                      a substantial part of the word or phrase is missing from some
+   Although we cannot draw statistical conclusions from the           or all of the fragment transcriptions.
+entropy reduction numbers, we can gain further insight into               Looking at Table 2, we can see that although the algorithm
+the algorithm by examining its output in more detail. Table 2         does not extract a large number of words (either types or
+shows the clusters of size ≥ 3 obtained in the w = 10 condition       tokens), most of the clusters it finds are lexically consistent,
+from a typical c1 session (containing 547 utterances; entropy         i.e., have a high purity. This is true also of the 32 clusters of
+reduction = .0273 per phone). The word or phrase shown in             size 2 found in this session (not shown for reasons of space),
+the first column is the most frequent word or phrase in the           of which 23 (72%) had a consistent lexical or phrasal identity.
+cluster; the purity is the percentage of fragments matching           The algorithm is not entirely successful at pinpointing the
+this word or phrase. As noted above, purity scores necessarily        exact start and end points of the words, but does surprisingly
+involve subjective judgements since fragment start and end            well given the unconstrained nature of the task. It is also worth
+points may not correspond exactly to word boundaries or to            noting that of the 14 content words that occurred more than 10
+                                                                  2010
+
+times in the data for this session, the algorithm detected at least                               References
+some occurrences of 10 of them. As far as the particular words          Aimetti, G. (2009). Modelling early language acquisition
+that are found, we see that some words (e.g., book and ball)              skills: Towards a general statistical learning mechanism. In
+reflect specific activities during the session, whereas others            Proceedings of the student research workshop at EACL.
+(e.g., Mommy and the child’s name Morgan) are common to                 Bortfeld, H., Morgan, J., Golinkoff, R., & Rathbun, K. (2005).
+many sessions’ results. Out of the 15 total sessions, the child’s         Mommy and me: Familiar names help launch babies into
+name was detected in 11 of them, and the words Mommy or                   speech stream segmentation. Psychological Science, 16(4),
+Mama in eight. This is particularly notable since these words             298–304.
+constitute some of infants’ earliest vocabulary, and have been          Brent, M. (1999). An efficient, probabilistically sound al-
+shown to help them segment other words as early as six months             gorithm for segmentation and word discovery. Machine
+(Bortfeld et al., 2005).                                                  Learning, 34, 71–105.
+                                                                        Brent, M., & Siskind, J. (2001). The role of exposure to
+                    General Discussion                                    isolated words in early vocabulary development. Cognition,
+The algorithm presented here represents one possible way                  81(2), B33–44.
+to begin the process of extracting and learning words from              Christiansen, M., Allen, J., & Seidenberg, M. (1998). Learning
+continuous speech. As an incremental algorithm, it is more                to segment speech using multiple cues: A connectionist
+cognitively plausible than the original P&G version, and we               model. Language and Cognitive Processes, 13, 221–268.
+have shown that it is sufficient to extract at least a small number     Driesen, J., ten Bosch, L., & Van hamme, H. (2009). Adaptive
+of high-frequency words. Like the models of Aimetti (2009),               non-negative matrix factorization in a computational model
+Driesen et al. (2009), and Räsänen (2010), it operates directly         of language acquisition. In Proceedings of interspeech.
+at the acoustic level, without using intermediate-level units           Goldwater, S., Griffiths, T., & Johnson, M. (2009). A Bayesian
+such as phonemes or syllables (in contrast to the algorithm of            framework for word segmentation: Exploring the effects of
+Neubig, Mimura, Mori, and Kawahara (2010), for example);                  context. Cognition, 112(1), 21–54.
+this accords with the observation that familiarity effects in           Jansen, A., Church, K., & Hermansky, H. (2010). Towards
+infant listening behavior appear to operate at a whole-word               spoken term discovery at scale with zero resources. In
+rather than subword level (Jusczyk, Houston, & Newsome,                   Proceedings of Interspeech (pp. 1676–1679).
+1999). Unlike these previous models, however, ours has been             Jusczyk, P., Houston, D., & Newsome, M. (1999). The
+shown to work on real child-directed speech, not just hand-               beginnings of word segmentation in English-learning infants.
+built test corpora. It is selective rather than exhaustive, in the        Cognitive Psychology, 39, 159–207.
+sense that it extracts selected intervals as instances of recurring     MacWhinney, B., & Snow, C. (1985). The child language data
+patterns rather than attempting a complete segmentation of                exchange system. Journal of Child Language, 12, 271–296.
+the input utterances; this seems plausible as a model of word           Myers, C. S., Rabiner, L. R., & Rosenberg, A. E. (1980). Per-
+segmentation in the early stages of learning, when only a                 formance tradeoffs in dynamic time warping algorithms for
+few words are known. The patterns discovered are a mixture                isolated word recognition. IEEE Transactions on Acoustics,
+of words, parts of words, and sequences of words or part-                 Speech, and Signal Processing, 28, 623–635.
+words; further processing, perhaps using relative frequencies           Neubig, G., Mimura, M., Mori, S., & Kawahara, T. (2010).
+and partial similarities between patterns, would be required to           Learning a language model from continuous speech. In
+                                                                          Proceedings of Interspeech (pp. 1053–1056).
+distinguish the words from the other patterns.
+                                                                        Newman, M. (2004). Fast algorithm for detecting community
+   As developed here, our algorithm is exemplar-based: all
+                                                                          structure in networks. Physical Review E, 69(066133).
+the extracted fragments are individually stored and compared
+                                                                        Park, A. S., & Glass, J. R. (2008). Unsupervised pattern
+against each new utterance. Thus, although only a fixed num-
+                                                                          discovery in speech. IEEE Transactions on Audio, Speech
+ber of utterances are held in memory, memory and processing
+                                                                          and Language Processing, 16, 186–197.
+requirements still grow fairly rapidly with the amount of data.
+                                                                        Räsänen, O. (2010). Fully unsupervised word learning from
+One way to reduce these requirements would be to develop
+                                                                          continuous speech using transitional probabilities of atomic
+a more compact representation of the extracted fragments,                 acoustic events. In Proceedings of interspeech.
+similar to a prototype-based model. This could be achieved              Rytting, A. (2007). Preserving subsegmental variation in
+either by creating a statistical model for each pattern as soon           modeling word segmentation (or, the raising of Baby Mon-
+as it is discovered (combining the information from the initial           degreen). Unpublished doctoral dissertation.
+two instances of the pattern) and then incorporating further            Saffran, J., Newport, E., & Aslin, R. (1996). Word segmenta-
+instances into the model; or by starting with exemplars (as               tion: the role of distributional cues. Journal of Memory and
+now) but then deriving a single model for each pattern when               Language, 35, 606–621.
+sufficient evidence has accumulated.                                    Thiessen, E., & Saffran, J. (2003). When cues collide: Use
+                                                                          of stress and statistical cues to word boundaries by 7- to
+                     Acknowledgments                                      9-month-old infants. Developmental Psychology, 39(4),
+We thank Anton Rytting and John Pate for providing the forced             706–716.
+alignments, and Oliver Watts for help with signal processing.
+                                                                    2011
+

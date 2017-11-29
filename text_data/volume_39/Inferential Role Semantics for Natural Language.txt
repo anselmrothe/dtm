@@ -1,0 +1,361 @@
+                                 Inferential Role Semantics for Natural Language
+                                                  Peter Blouw (pblouw@uwaterloo.ca)
+                                             Chris Eliasmith (celiasmith@uwaterloo.ca)
+                                        Centre for Theoretical Neuroscience, University of Waterloo
+                                                      Waterloo, ON, Canada N2L 3G1
+                                 Abstract
+   Cognitive models have long been used to study linguistic phe-
+   nomena spanning the domains of phonology, syntax, and se-
+   mantics. Of these domains, semantics is somewhat unique in
+   that there is little clarity concerning what a model needs to be
+   able to do in order to provide an account of how the mean-
+   ings of complex linguistic expressions, such as sentences, are
+   understood. To help address this problem, we introduce a tree-
+   structured neural model that is trained to generate further sen-
+   tences that follow from an input sentence. These further sen-
+   tences chart out the “inferential role” of the input sentence,
+   which we argue constitutes an important part of its meaning.
+   The model is trained using the Stanford Natural Language In-
+   ference (SNLI) dataset, and to evaluate its performance, we re-
+   port entailment prediction accuracies on a set of test sentences      Figure 1: Sentence encoding with a dependency tree recur-
+   not present in the training data. We also report the results of a     sive neural network (DT-RNN). A dependency parser is used
+   simple study that compares human plausibility ratings for both        to produce the computational graph for a neural network,
+   ground-truth and model-generated entailments for a random
+   selection of sentences in this test set. Finally, we examine a        which is then used to produce a distributed representation of
+   number of qualitative features of the model’s ability to gener-       sentence by merging distributed representations of individual
+   alize. Taken together, these analyses indicate that our model         words. Figure adapted from Socher et al. (2014).
+   is able to accurately account for important inferential relation-
+   ships amongst linguistic expressions.
+   Keywords: natural language inference; recursive neural net-
+   works; language comprehension; semantics                              comprehending its meaning, it follows that meaning of an ex-
+                                                                         pression is at least partly determined by the inferences it li-
+                             Introduction                                censes (Brandom, 1994)
+By most accounts, linguistic comprehension is the result of                 To motivate this inferential approach to semantics, we in-
+cognitive processes that map between sounds and mental rep-              troduce a neural network model that learns to generate sen-
+resentations of meaning (Christiansen & Chater, 2016; Pick-              tences that are the inferential consequences of its inputs. The
+ering & Garrod, 2013; Smolensky & Legendre, 2006). An                    model functions by first encoding a sentence into a distributed
+obvious challenge for these accounts is to provide a good the-           representation, and then decoding this representation to pro-
+oretical characterization of the relevant representations. Nu-           duce a new sentence. The encoding procedure involves dy-
+merous proposals can be found in the literature, but there is            namically generating a tree-structured network layout of the
+no obvious consensus regarding their relative merits.                    sort depicted in Figure 1. Once a sentence encoding is pro-
+   Arguably, the reason for this lack of consensus is that lin-          duced using this network, it is fed through an “inverse” tree-
+guistic comprehension is itself a somewhat vague and ill-                structured network to produce a predicted sentence. Inter-
+defined phenomenon. In the context of efforts to model lin-              estingly, different inverse or decoding networks can be used
+guistic comprehension, for instance, it is not entirely obvious          to generate different sentences from a single encoding. To
+what a model needs to be able to do in order to provide an               train the model parameters (i.e. the network weights shared
+account of how people understand complex linguistic expres-              across different tree structures) we use the Stanford Natural
+sions such as phrases and sentences.                                     Language Inference dataset (Bowman et al., 2015).
+   In this paper, we argue that one thing models of linguis-                In what follows, we first describe the model and then em-
+tic comprehension need to be able to do is generate predic-              pirically evaluate its ability to produce plausible entailments
+tions about what follows from a given sentence during a con-             for sentences unseen in the training data. We present experi-
+versation. For example, to understand the statement “The                 mentally produced plausibility ratings for a random collection
+dancers parade down the street”, one must be able recog-                 of generated sentences, and from these ratings conclude that
+nize that the dancers are outside, that they are not standing            the model captures something important about the inferential
+still, that there is likely a surrounding audience, along with           roles of ordinary linguistic expressions. We further contend
+various other things. Comprehending a sentence therefore                 that the model motivates the view that understanding a lin-
+involves drawing inferences that identify the expected con-              guistic expression is not (as is typically thought) a matter of
+sequences of the occurrence of the sentence in the linguistic            mapping it onto a representation that somehow constitutes its
+environment. And since comprehending a sentence involves                 meaning. Rather, understanding a linguistic expression is a
+                                                                     142
+
+matter of inferring the expected consequences of its occur-                      dings are recursively assigned to all of the non-leaf nodes by
+rence in the linguistic environment. The reason for drawing                      composing the embeddings of their children as follows:
+this conclusion is that the expected consequences of a sen-
+tence cannot be “read off” of any single representation in
+the model. Instead, these consequences are derived from the                                      hi = f (Wv xi +  ∑     WR(i, j) · h j + b)        (2)
+global behavior of the model and the processes that it imple-                                                    j∈C(i)
+ments.                                                                           where hi is again the embedding for some node i in the tree,
+                                                                                 xi is the embedding for the word corresponding to this node,
+           Tree-Structured Neural Networks
+                                                                                  j is an index that ranges over the children, C(i), of the node i,
+To build our model, we take advantage of recently developed                      and WR(i, j) is a matrix associated with the specific dependency
+techniques for using neural networks to define composition
+                                                                                 relation between node i and its jth child. h j is the embedding
+functions that merge distributed representations of words into
+                                                                                 corresponding to this child. So, in the example tree in Figure
+distributed representations of phrases and sentences (Socher
+                                                                                 1, the embeddings for nodes 1, 4, and 6 would be computed
+et al., 2012, 2014). The core idea behind these techniques is
+                                                                                 first, since these nodes have no children. Then, embeddings
+to produce a parse tree for a sentence, and then transform the
+                                                                                 will be computed for any nodes whose children now all have
+tree into a neural network by replacing its edges with weights
+                                                                                 assigned embeddings (in this case, nodes 2 and 7). And so
+and its nodes with layers of artificial neurons. Activation is
+                                                                                 on, until an embedding is computed for every node.
+then propagated up the tree by providing input to layers that
+                                                                                     Model training is done via backpropogation and requires
+correspond to certain nodes, as shown in Figure 1. The input
+                                                                                 that a cost function be defined for the sentence embeddings
+at each node is typically a distributed representation or “em-
+                                                                                 produced at the root of each tree. The free parameters are
+bedding” corresponding to a single word (see Mikolov et al.,
+                                                                                 the weights Wv and Wr∈R , along with the bias term b. Word
+2013).
+                                                                                 embeddings can also be fine-tuned over the course of training.
+   This general method can be applied using arbitrary tree
+structures, and we adopt a dependency-based syntax in the                                          Generating Entailments
+experiments described below. There are three reasons for this
+                                                                                 Choosing an appropriate cost function for a recursive neu-
+choice (Socher et al., 2014). First, the assignment of different
+                                                                                 ral network can be difficult, since it is not always clear what
+network weights to different dependency relations allows for
+                                                                                 makes for a “good” sentence embedding. It is accordingly
+the creation of networks that are more sensitive to syntactic
+                                                                                 common to see these networks applied to narrow classifica-
+information. Second, the semantic role of an individual word
+                                                                                 tion tasks such as the prediction of sentiment ratings (e.g.
+can often be read off of the dependency relation it bears to a
+                                                                                 Socher et al., 2012). Our goal is define an optimization ob-
+head word, which allows for the creation of networks that are
+                                                                                 jective that accounts for the principle that understanding a
+also sensitive to semantic information. Finally, dependency
+                                                                                 linguistic expression involves drawing inferences about what
+trees are less sensitive to arbitrary differences in word order,
+                                                                                 follows from it.
+which helps to ensure that simple variations of a sentence get
+                                                                                     To accomplish this goal, we define a model composed of
+mapped to similar distributed representations. The model we
+                                                                                 two DT-RNNs, one that encodes an input sentence into a dis-
+adapt - the dependency tree recursive neural network (DT-
+                                                                                 tributed representation, and another that decodes this repre-
+RNN) - is introduced in Socher et al. (2014)
+                                                                                 sentation into a new sentence that is entailed by the input sen-
+   Some formal details concerning the behavior of DT-RNNs
+                                                                                 tence. This model is inspired by Iyyer et al.’s (2014) work us-
+are helpful at this point. First, an input sentence s is converted
+                                                                                 ing DT-RNNs analogously to autoencoders, but introduces a
+into a list of pairs, such that s = [(w1 , x1 ), (w2 , x2 ), ...(wn , xn )],
+                                                                                 decoding procedure that computes an appropriate response to
+where w is a word and x is the corresponding word embed-
+                                                                                 the input sentence, rather than merely reconstructing it. Other
+ding. Next, a dependency parser is used to produce a tree that
+                                                                                 related work is described in (Kolesnyk et al., 2016).
+orders the words in the sentence in terms of parent-child rela-
+                                                                                     The model is trained on pairs of sentences standing in en-
+tions. Each node in this tree is then assigned an embedding in
+                                                                                 tailment relations. A dependency parser1 is again used to pro-
+a two-step manner. First, all of the leaf nodes in the tree (i.e.
+                                                                                 duce a tree-structured network for each sentence, but the net-
+nodes that do not depend on other nodes) are assigned embed-
+                                                                                 work associated with the second sentence is run in reverse, as
+dings by applying a simple transformation to their underlying
+                                                                                 shown in Figure 2. A word prediction is generated at each
+word embeddings:
+                                                                                 node in this second tree using a softmax classifier, which al-
+                                                                                 lows us to define a cross-entropy loss function over nodes and
+                         hi = f (Wv xi + b)                            (1)       trees as follows:
+where hi is the embedding for some leaf node i in the tree, xi                                                       (i)          (i)
+                                                                                                   J(θ) = − ∑ ∑ t j log p(c j |si )                (3)
+is the embedding for the word corresponding to this node, Wv                                                   i  j
+is a matrix that transforms word representations, b is a bias
+term, and f is an element-wise nonlinearity. Second, embed-                      1 We  use the SpaCy python library, available at https://spacy.io
+                                                                             143
+
+Figure 2: Generating entailments with paired encoder and decoder DT-RNNs. The decoder network computes a probability
+distribution over words at each node, conditioned on the sentence representation produced by the encoder. The parameters of
+both the encoder and decoder are trained via backpropogation through structure using error derivatives supplied at each node in
+the decoding tree. The encoder and decoder trees are dynamically generated for each pair of sentences in the training data.
+         (i)
+where t j is the target probability (i.e. 1) for the correct word        entailments from a given input sentence that delineate simple
+                                                      (i)                inferential roles. Finally, we analyze the effect of substitut-
+at the jth node in the ith training example,      p(c j |si ) is the
+                                                                         ing individual words in an input sentence. The goal of this
+computed probability for this word given the input sentence
+                                                                         analysis is to evaluate the extent to which the model is able
+si , and θ is the set of combined parameters for the encoder
+                                                                         to learn indirect inferential roles for words and appropriately
+and decoder DT-RNNs.
+                                                                         generalize to a wide range of novel sentences that can be sub-
+    We train the model via stochastic gradient descent by back-
+                                                                         stitutionally derived from a single familiar sentence.
+propogating through both the decoder and encoder tree for
+each training example. The result of training is a set of                Training Data
+weights associated with dependencies for both encoding and               To train encoder and decoder networks, we use a subset of the
+decoding, a set of weights for predicting a distribution over            Stanford Natural Language Inference dataset introduced in
+words from a node embedding for each dependency, a set of                Bowman et al. (2015). This dataset consists of approximately
+biases (we allow dependency-specific biases), and the input              570,000 sentence pairs with labeled inferential relationships.
+transformation matrix Wv . When the trained model is used to             Specifically, the first sentence in each pair can either entail,
+perform inference using a novel input sentence, the encoder              contradict, or be neutral with respect to the second sentence,
+DT-RNN is assembled into a tree using the learned encoding               and since our interest is generating entailments, we restrict
+weights. The decoder DT-RNN is then also assembled into                  our attention to pairs labeled with the entailment relation.
+a tree using the learned decoding weights, and activation is                 To reduce the amount of noise and complexity in the
+propagated through the encoder and into the decoder to pro-              dataset, we also perform some simple pre-processing steps.
+duce a probability distribution over words at each tree node.            First, we screen for misspelled words,2 and eliminate all sen-
+The words with the highest probability at each node are then             tence pairs containing a misspelling. Second, we eliminate all
+used to construct the predicted entailment for the input sen-            sentence pairs containing a sentence longer than 15 words in
+tence. The tree structure for the decoder can either be selected         order to avoid fitting model parameters to a small number of
+randomly or stipulated ahead of time.                                    very long sentences that produce highly complex dependency
+                                                                         trees. After preprocessing, the data consists of 106,288-pair
+                        Experiments                                      training set, a 1701-pair development set, and 1666 pair test
+In the remainder of the paper, we describe a number of basic             set. We train on the training set and use the development set
+experiments that illustrate how this general modeling frame-             for tuning hyperparameters such as the learning rate and the
+work can be used to illuminate the phenomenon of language                number of training epochs. The vocabulary used during train-
+comprehension. We first perform a basic evaluation of how                ing and testing consists of 22,555 words.
+well the decoder model is able to generate entailments by
+                                                                         Quantitative Evaluations
+measuring the percentage of correct word predictions over
+all decoding tree nodes in both the training set and an un-              To evaluate the ability of the model to generate plausible en-
+seen test set. We then present the results of an experiment              tailments, we first measure the proportion of correct word-
+designed to evaluate the quality of the entailments generated            level predictions during decoding in both the training set and
+by our model. Next, following Kolesnyk et al. (2016), we it-             2 We     use the PyEnchant python         library, available  at
+erate the encoding-decoding procedure to generate chains of                http://pythonhosted.org/pyenchant/.
+                                                                     144
+
+                             Table 1: Examples of Entailments Generated From Novel Test Sentences.
+       Sentence     A boy and girl child swing together on a swing set.          A young blond boy is eating cake with a spoon.
+      Entailment                 Two kids swing on a swing.                                      A boy is eating a cake.
+       Sentence              A young man sleeping next to a dog                  A surfer is performing a jump stunt in the ocean.
+      Entailment                     A man is near a dog.                                A surfer and a surfboard is outside.
+  Table 2: Word-Level Accuracy for Entailment Generation               Table 3: Plausibility Ratings for Inferential Relations.
+           Model      Training Set (%)      Test Set (%)                 Source             Status       Mean Likert Rating (1-5)
+          Chance              6.0                5.9                     Human          Entailment                4.05 ± 0.09
+          DT-RNN             66.7               61.8                     Model          Entailment                3.53 ± 0.12
+                                                                         Human        Contradiction               2.05 ± 0.12
+                                                                            * Margins are bootstrapped 95% confidence intervals.
+the test set. We provide the tree structure of each entailed
+sentence during decoding, so inference involves propagating
+activities through paired trees of the sort depicted in Figure 2      sentences introduced as true captions for unseen images.3
+to generate a set of word predictions. Some example entail-           For each caption, the participants are shown an alternate cap-
+ments produced from sentences drawn from the test set are             tion and asked to evaluate the likelihood that it is also true
+listed in Table 1. The decoding tree used to produce each             of the corresponding image. Evaluations are recorded using
+entailment is chosen randomly in these examples.                      a five point Likert scale that ranges from “Extremely Un-
+   The word vectors that provide input to the encoder are             likely” (1) to “Extremely Likely” (5). The original caption
+initialized using 300-dimensional Word2Vec embeddings                 in each case is the first sentence in a pair randomly chosen
+(Mikolov et al., 2013), while biases are initialized as the zero      from the SNLI test set, while the alternate captions are ei-
+vector. Each set of weights associated with a syntactic de-           ther (a) model-generated entailments, (b) human generated
+pendency is initialized as a 300 × 300 identity matrix with           entailments drawn from the test set, or (c) human generated
+mean-zero Gaussian noise for both the encoder and decoder.            contradictions also drawn from the test set. This between-
+The word transformation matrix, Wv , is initialized in the same       subjects experimental design is similar to the method used by
+way. During learning, all of these matrices are updated using         Bowman et al. (2015) to validate human-generated sentence
+stochastic gradient descent, along with the Word2Vec embed-           pairs during the creation of SNLI. The main difference is that
+dings and the biases. We perform approximately 5 epochs of            we evaluate model-generated sentences in addition to human-
+training using an initial learning rate of 6 × 10−4 , and we pro-     generated sentences.
+gressively anneal this rate over the course of training.                  Seventy-five participants from the United States were re-
+   To collect accuracy measures, we simply tally the propor-          cruited through Amazon’s Mechanical Turk and split evenly
+tion of nodes in the decoding trees for which the predicted           into the three conditions. The main captions were identical
+word is the same as the actual word given in the relevant test        across conditions, and each participant was asked to rate 20
+set; the decoding tree is determined by a parse of the correct        caption pairs.4 Participants were paid $1.00 for their time.
+entailment in every case. We compare against a baseline ac-           Two of the seventy-five participants failed to complete the
+curacy of chance. As shown in Table 2, The DT-RNN model               study and did not have their responses included in the results.
+performs considerably better. It is worth noting that gener-          Repeat participation was blocked by screening Mechanical
+ated sentences containing words not present in the correct en-        Turk worker IDs.
+tailment may still be appropriate, given that no entailment is            The Likert ratings collected during the study are assess-
+uniquely correct. It is also worth noting that prior work in-         ments of the plausibility of the inferential transition from one
+volving SNLI has almost uniformly focused on the problem              sentence (the main caption) to another (the alternate caption).
+of classifying sentence pairs. Given that our interest is in gen-     3 Note   that all of the sentence pairs in SNLI were generated by pro-
+eration rather than classification, we cannot easily draw com-          viding subjects with a caption for an unseen image and asking them
+parisons to earlier work, and therefore use novel methods of            to produce a further caption that is either true, false, or maybe true
+                                                                        of the image. So all of the sentences in SNLI can be described as
+evaluation.                                                             image captions. The point of using this caption-based strategy in
+                                                                        the construction of the dataset is to eliminate co-reference ambigu-
+Empirical Evaluations                                                   ities that make it difficult to determine the appropriate inferential
+                                                                        relationship between two sentences. See Bowman et al. (2015) for
+Next, we conduct a simple study in which human subjects                 more details.
+are asked to evaluate the plausibility of model-generated sen-        4 Two of the main captions had no associated contradictions in SNLI,
+tences. During the study, participants are shown a series of            so subjects in the contradiction condition only rated 18 captions.
+                                                                  145
+
+Figure 3: A model-generated inferential network around the sentence “A man is outside”. Each inferential transition is the
+result of generating a predicted entailment after encoding the sentence at the beginning of each arrow. The entire network is
+generated starting with only the four outermost sentences, which are drawn from the SNLI test set.
+The transitions involving sentence pairs drawn directly from          the inferences that are licensed by a particular sentence. In
+SNLI offer a kind of gold standard for both good and bad              Figure 4, for instance, the replacement of a subject noun or
+transitions. The results shown in Table 2 indicate that model-        the main verb can be seen to have significant effects on the
+generated transitions are seen to be almost as plausible as the       kinds of entailments that are generated. The model is im-
+gold-standard transitions drawn from SNLI. We take this to            pressively sensitive to sophisticated linguistic cues concern-
+be preliminary evidence that model is able to capture cer-            ing agreement. For instance, the model correctly infers that
+tain tacit inferential relationships between natural language         “boy” should be paired with the male possessive “his”, while
+expressions.                                                          “girl” should be paired with the female possessive “her”. It
+                                                                      is worth emphasizing that all of the sentences that result from
+                  Qualitative Extensions                              substitution are completely novel from the model’s perspec-
+In order to further analyze the model’s behavior, we exam-            tive. The fact that the model is able to generate reasonable
+ine a number of qualitative features of the inferential re-           entailments for many of these sentences suggests that it is
+lationships it is able to learn. First, we examine iterative          able generalize beyond the training data quite successfully.
+applications of the model to its own predictions, following              A further application of substitutional analysis involves ex-
+similar work by Kolesnyk, Rocktäschel, and Reidel (2016)             amining a model’s ability to learn about theoretically inter-
+that makes use of a sequential LSTM. Next, we examine the             esting constructions involving negations, quantifiers, and nu-
+model’s ability to disciminate the inferential significance of        merals. For instance, the model exhibits a rudimentary ability
+lexical items by performing simple word-by-word substitu-             to handle numerals appropriately, as is shown by the inference
+tions in an input sentence. The point of these analyses is to         from “A boy and a girl...” to “Two kids...” Negations are a bit
+demonstrate that models of the general class we are proposing         more troublesome: the model correctly infers “not outside”
+are useful tools for both formalizing and learning the inferen-       from “in a car”, but incorrectly infers “not indoors” from
+tial roles of a wide variety of linguistic expressions.               “in a store”. Quantifiers, finally, are an open question: the
+                                                                      model correctly infers “The women” from “Many women”,
+Iterative Inferences                                                  but it is not clear that this is the result of learning a relation
+Once an input sentence has been passed through the model to           between “Many” and the plural forms of nouns. Examining
+generate an entailment, it is possible to use this entailment as      specific linguistic constructions in this substitutional manner
+a new input to the model. Repeated applications of the model          is a promising avenue for future research.
+accordingly make it possible to chart out an “inferential net-
+work” around a particular starting sentence. Figure 3 offers                                    Discussion
+a simple model-generated example of an inferential network            Overall, the point of this work is to motivate an approach to
+in which numerous sentences describing men doing things               semantics based on inferential relationships amongst linguis-
+outdoors are eventually mapped to the sentence “A man is              tic expressions (Brandom, 1994). Our use of the encoder-
+outside”.                                                             decoder DT-RNN model is designed to illustrate how general-
+   In general, predicted entailments that are shorter than an in-     ized inferential roles can be learned for arbitrary linguistic ex-
+put sentence tend to be more abstract and general, while pre-         pressions from examples of how sentences are distributed as
+dicted entailments that are longer than an input sentence tend        tacit “premises” and “conclusions” in a space of inferences. It
+to introduce plausible elaborations (Kolesnyk et al., 2016).          is accordingly possible to characterize this work as an exten-
+For instance, the sentence “A bird is in a pond.” can be used         sion to the well-known distributional approach to semantics
+to generate the sentence “A little bird is outside in a small         (Turney & Pantel, 2010), wherein we replace the generic no-
+pond.” by using a decoding tree with nodes for two additional         tion of a linguistic context with the more fine-grained notion
+adjectives and an additional adverb.                                  of an inferential context.
+                                                                         As with most natural language generation systems, many
+Substitutional Analysis                                               of the sentences produced by our model are defective in some
+If individual words in an input sentence are replaced, it be-         way. As can be seen in the examples in Table 1, our gener-
+comes possible to identify the impact of particular words on          ated entailments are almost always thematically appropriate,
+                                                                  146
+
+Figure 4: Substitutional analysis using the sentence “A boy in a beige shirt is sleeping in a car”. The model is able to predict
+appropriate entailments for a range of sentences that are similar to this initial sentence shown at the top left. The fact that these
+substitutionally-derived sentences are not present in SNLI dataset indicates that our model is able to generalize by interpolating
+between the example inferential transitions found in the training data.
+but sometimes contain agreement errors or misplaced words             Brandom, R. (1994). Making it explicit: Reasoning, repre-
+that render the entailment as a whole ill-formed. And, not in-          senting, and discursive commitment. Harvard University
+frequently, the model produces entailments that are more or             Press.
+less incomprehensible. There are two ways to address these            Christiansen, M., & Chater, N. (2016). The now-or-never
+problems. The first involves the use of increased amounts               bottleneck: A fundamental constraint on language. Behav-
+of training data to provide the model with a more points in             ioral and Brain Sciences, 1-72.
+the “space of inferences” to interpolate between. The second          Iyyer, M., Boyd-Graber, J., & Daume III, H. (2014). Generat-
+involves the use of more sophisticated network architectures            ing sentences from semantic vector space representations.
+that help the model to learn to more selectively make use of            In Nips workshop on learning semantics.
+only the input information that is most relevant to generating
+                                                                      Kolesnyk, V., Rocktäschel, T., & Reidel, S. (2016). Gen-
+a good entailment. LSTM network architectures, such as the
+                                                                        erating natural language inference chains. arXiv preprint
+Tree LSTM (Tai et al., 2015), are likely to provide improve-
+                                                                        arXiv:1606.01404..
+ments on this second front.
+   Finally, an important limitation of our work is that we do         Mikolov, T., Sustkever, I., Chen, K., Corrado, G., & Dean, J.
+not consider the relationship between linguistic expressions            (2013). Distributed representations of words and phrases
+and the non-linguistic world. A natural way to account for              and their compositionality. In Advances in neural informa-
+this relationship is to suppose that a sentence’s occurrence in         tion processing systems 28.
+the linguistic environment licenses certain expectations about        Pickering, M., & Garrod, S. (2013). An integrated theory of
+what can be seen, heard, or otherwise perceived. To return              language production and comprehension. Behavioral and
+to our initial example, if one understands the statement “The           Brain Sciences, 36, 329-392.
+dancers parade down the street”, one will expect to see and           Smolensky, P., & Legendre, G. (2006). The harmonic mind:
+hear dancers upon going to the relevant street. We accord-              From neural computation to optimality-theoretic grammar
+ingly suggest that if an individual can adequately infer all that       (Vol. 1). MIT Press.
+follows from a given linguistic expression, both linguistically       Socher, R., Huval, B., Manning, C., & Ng, A. (2012). Se-
+and non-linguistically, then there is nothing further they need         mantic compositionality through recursive matrix-vector
+to be able to do to count as understanding what the expression          spaces. In Proceedings of the 2012 joint conference on em-
+means. The main consequence of this view is that inference              pirical methods in natural language processing and com-
+should be at the core of any theory of semantic cognition.              putational natural language learning (p. 1201-1211). As-
+                                                                        sociation for Computational Linguistics.
+                     Acknowledgments
+                                                                      Socher, R., Karpathy, A., Le, Q., Manning, C., & Ng, A.
+This work was supported by an Ontario Graduate Scholarship              (2014). Grounded compositional semantics for finding and
+and the Canada Research Chairs program.                                 describing images with sentences. Transactions of the As-
+Code                                                                    sociation of Computational Linguistics, 2, 207-218.
+All of the simulations described in this paper were imple-            Tai, K., Socher, R., & Manning, C. (2015). Improved
+mented using a neural network library written by the first au-          semantic representations from tree-structured long short-
+thor, available online at https://github.com/pblouw/pysem.              term memory networks. In Proceedings of the 53rd an-
+                                                                        nual meeting of the association for computational linguis-
+                          References                                    tics (p. 1556-1566). Association for Computational Lin-
+Bowman, S., Angeli, G., Potts, c., & Manning, C. (2015). A              guistics.
+   large annotated corpus for learning natural language infer-        Turney, P., & Pantel, P. (2010). From frequency to meaning:
+   ence. In Proceedings of the 2015 conference on empirical             Vector space models of semantics. Journal of Artificial
+   methods in natural language processing. Association for              Intelligence Research, 37, 141-188.
+   Computational Linguistics.
+                                                                  147
+

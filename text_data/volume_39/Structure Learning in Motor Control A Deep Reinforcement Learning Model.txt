@@ -1,0 +1,324 @@
+                                        Structure Learning in Motor Control:
+                                       A Deep Reinforcement Learning Model
+                                              Ari Weinstein (ariweinstein@google.com)
+                                                           Deepmind, London, UK
+                                          Matthew M. Botvinick (botvinick@google.com)
+                                                           Deepmind, London, UK
+                                  Gatsby Computational Neuroscience Unit, University College London
+                               Abstract                                 trials. In one condition, which we will refer to as Rot, sub-
+                                                                        jects dealt with a series of rotations (though never the one
+   Motor adaptation displays a structure-learning effect: adapta-
+   tion to a new perturbation occurs more quickly when the sub-         presented at test). In a comparison condition Rot+, subjects
+   ject has prior exposure to perturbations with related structure.     dealt with a more diverse set of transformations, each made
+   Although this ‘learning-to-learn’ effect is well documented, its     up of a rotation along with shear and scale components. Re-
+   underlying computational mechanisms are poorly understood.
+   We present a new model of motor structure learning, approach-        sults showed that subjects in the Rot group adapted faster to
+   ing it from the point of view of deep reinforcement learning.        the probe rotation problem (Figure 1). Braun et al. (2009) in-
+   Previous work outside of motor control has shown how recur-          terpreted this as learning-to-learn effect, which they referred
+   rent neural networks can account for learning-to-learn effects.
+   We leverage this insight to address motor learning, by import-       to as “motor structure learning”: Subjects in the Rot group ev-
+   ing it into the setting of model-based reinforcement learning.       idently learned that the transformations being presented were
+   We apply the resulting processing architecture to empirical          restricted to a particular structurally coherent set (rotations),
+   findings from a landmark study of structure learning in target-
+   directed reaching (Braun et al., 2009), and discuss its implica-     and this allowed them to infer and adapt rapidly to the probe
+   tions for a wider range of learning-to-learn phenomena.              transformation. This structure learning was less feasible in
+   Keywords: motor adaptation; reinforcement learning; learn-           the Rot+ condition because the structure underlying the train-
+   ing to learn; structure learning; system identification              ing set was more complex, thus offering weaker constraint on
+                                                                        inference when facing a new transformation.
+                           Introduction
+                                                                           In the present study, we consider the computational mech-
+Learning can be defined as a process that improves perfor-
+                                                                        anisms underlying motor structure learning, treating it as a
+mance as exposure to a task increases. However, research
+                                                                        case study in learning-to-learn. Despite widespread agree-
+on human and animal learning makes clear that this simple
+                                                                        ment that learning-to-learn effects are both real and impor-
+definition is not quite enough to explain the observed rela-
+                                                                        tant, the precise computational processes underlying such
+tionship between experience and performance. The full pic-
+                                                                        effects are poorly understood. The most widely proposed
+ture must also include ‘learning-to-learn,’ a process whereby
+                                                                        idea comes from a Bayesian perspective, and proposes that
+growing experience causes learning itself to become more ef-
+                                                                        learning-to-learn involves refining the structure and hyper-
+ficient (Harlow, 1949). More specifically, learning-to-learn
+                                                                        parameters of a generative model of the relevant task do-
+(also referred to as meta-learning and structure learning) oc-
+                                                                        main (Lake et al., 2015). Braun and colleagues initially pro-
+curs in settings where the learner encounters a series of tasks
+                                                                        posed, and later investigated (Genewein et al., 2015) a model
+that share some underlying structure, and gains from these an
+                                                                        of this sort to account for their structure learning results.
+ability to quickly adapt to a new task that displays the same
+general form (Thrun & Pratt, 1998).                                        A different computational proposal, which has been less
+   A vivid example of learning-to-learn, which provides a               widely considered in cognitive science, comes from neural
+concrete focus for the present research, comes from research            network or deep learning research. In classic work, Hochre-
+on motor adaptation. Many studies have documented the                   iter and colleagues (2001) showed how a recurrent neural
+ability of human subjects to adapt to perturbations of mo-              network (RNN) can learn to learn, by integrating informa-
+tor dynamics or kinematics, as for example in prism adap-               tion about past outcomes into predictions concerning new
+tation (Harris, 1963). However, a series of studies by Braun            observations. Recent applications of this idea (Wang et al.,
+and colleagues (Braun et al., 2009, 2010; Braun & Wolpert,              2016; Duan et al., 2016) have treated the RNN in Hochre-
+2012) went beyond this to show that adaptation can occur                iter’s scheme as a mechanism for directly selecting actions.
+faster when the subject has prior exposure to perturbations             In the present work, we leverage Hochreiter’s (2001) insight
+that share structure with the final test conditions. In one             in a different way, using an RNN as an adaptive model of
+specific experiment, upon which we will continue to focus,              the task domain, which is leveraged by a separate action-
+Braun and colleagues (2009) studied reaching under visuo-               selection mechanism. In this sense, the aim of our work is to
+motor rotation. They examined the speed with which target-              bridge Bayesian and deep learning perspectives on learning-
+directed reaching adapted to a 60-degree rotation, manipulat-           to-learn. On a more immediate level, we show how the result-
+ing between subjects the content of a preceding set of training         ing approach can be used to account for the findings of Braun
+                                                                    1327
+
+Figure 1: Results redrawn from Braun et al.(2009), showing           Figure 2: Model-based reinforcement learning with a fixed
+mean cumulative error on a series of five reaches under a 60-        model (left) and an adaptive model (right).
+degree visuomotor rotation.
+                                                                     taken as much data as it needs or due to some outside pressure
+and colleagues (2009) in motor adaptation.                           such as a time limit, it returns an action a which is executed
+   The motor control literature suggests that actions such as        in M, which results in a new state and reward and the process
+reaching are based, at least in part, on an internal predic-         repeats.
+tive or forward model of reaching dynamics (Wolpert et al.,             In the architecture shown in Figure 2 (left), one way of im-
+1995; Miall & Wolpert, 1996), and analyses of motor adap-            plementing the forward model M is as a feed-forward neural
+tation have portrayed adaptation as reflecting a progressive         network. This approach has been explored in a number of
+adjustment of this internal model to fit with current observa-       previous studies (Jordan & Rumelhart, 1992; Hamrick et al.,
+tions (Berniker & Kording, 2008; Haith & Krakauer, 2013).            2016). However, a feed-forward neural network will not suf-
+Following this idea, and a great deal of previous work in com-       fice to address the learning-to-learn phenomena we are con-
+putational motor control, we construe action selection as a          cerned with here. Indeed, the overall architecture must be
+form of model-based reinforcement learning (RL).                     fundamentally changed in order to address the learning-to-
+   Formulating the problem in this way begins by casting it          learn problem.
+as a finite-time Markov decision process (MDP) M, which is              As introduced earlier, learning-to-learn arises in a setting
+made of a set of states S, a set of possible actions A, a tran-      where the learner encounters a series of interrelated problems
+sition function T , and reward function R (in many settings          or tasks, and must adapt to each one in turn. Using our termi-
+a discount factor γ is included, but since we formulate the          nology, each task Mn , n = 1...N becomes a sample from a task
+task as a finite-time problem this is unnecessary). The goal is      distribution M. As such, the properties of each Mn must be
+to select actions that maximize the cumulative reward up to          inferred based on observed action-outcome pairs (a process
+                   T                                                 referred to in the engineering literature as system identifica-
+some time T : ∑t=0    rt+1 , where t indexes discrete time steps
+up to some maximum T , and rt is the reward received on each         tion). On a formal level, this demand changes the MDP we
+step. Focusing on target-directed reaching, the task studied         have been considering into a partially observable Markov de-
+by Braun and colleagues (2009), the problem is defined as            cision process (POMDP). By definition, a POMDP is an MDP
+follows: M is the entire reaching task; S are possible arm           which additionally has an observation space O and observa-
+configurations; A are possible motor inputs; T defines the           tion function Ω which takes its internal state and outputs an
+dynamics of the arm based on motor inputs; R is the negative         observation o to the agent. Instead of the true state, an agent
+distance from the cursor to the target. In order to be consis-       only has access to observations, which unlike state, is gen-
+tent with the literature on structure learning in motor control,     erally insufficient to act optimally when considered in isola-
+we will use the terms reward maximization and penalty (or            tion. In order for M̂ to adjust to each Mn , it must have some
+error) minimization interchangeably.                                 form of memory α to keep a relevant summary of interactions
+   In model-based RL, a model M̂ of the environment M is             with the environment, allowing for integration over previous
+built, and then used by a planner P in order to construct an         timesteps in order to accurately estimate problem dynamics.
+action-selection policy. The general form of a model-based              These requirements yield the interaction and planning
+learning architecture is diagrammed in Figure 2, left. Here          structure diagrammed in Figure 2 (right). Instead of states
+a planner P is informed of a current state s by the true MDP         s, information presented is in terms of observations o. The
+M. Based on the particular policy of P, the planner queries          model M̂ must now directly consume o and r from Mn at ev-
+the model M̂ with a series of state-action pairs (st , at ), and     ery time step, which causes it to update its memory α. P
+in turn receives an estimated next state st+1 and reward rt+1 .      now only passes a sequence of actions along trajectories to
+After the planner completes querying M̂, either because it has       the model. This is because it does not have access to the
+                                                                 1328
+
+true state, and because observations alone are not sufficient               estimate velocities), and the goal. The two dimensional ac-
+for planning or modelling1 . Additionally, during the plan-                 tion space sets the angular accelerations of the joints, and the
+ning trajectories, the P must signal to M̂ when its evaluation              reward is the negative Euclidean distance of the cursor from
+of a simulated trajectory is complete so that α can be reset                the center of the goal region.
+(omitted from figure for clarity).                                             In the reaching task, the cursor is always initialized at the
+   Note that, unlike in the simpler MDP, in the POMDP set-                  origin and is controlled by the transformation of the underly-
+ting the internal model M̂ cannot be accurately implemented                 ing position of the simulated hand. Before each trial a goal
+as a feed-forward neural network, because such networks do                  location is selected which is set to be 8 cm from the origin at
+not have memory or persistent internal state. The key move                  a uniformly distributed angle.
+in the present work is to substitute for the feed-forward net-
+work a RNN, whose recurrent connectivity endows it with                     Training and testing procedure
+the memory needed to support system identification and, as                  The simulation study, like the experiment by Braun et
+we will show, learning-to-learn.                                            al. (2009) was divided into training and testing phases. Dur-
+                                                                            ing training, the RNN model was trained to predict each se-
+                       Simulation Study                                     quential outcome observation exactly along a trajectory con-
+                                                                            sisting of observations and randomly selected actions, that is,
+We predicted that the proposed architecture, if trained in
+                                                                            following a random walk. Again as in the empirical study,
+an appropriate multi-task setting, would display learning-to-
+                                                                            two versions of the model were trained in different environ-
+learn, leveraging experience with past tasks to adapt rapidly
+                                                                            ments. One model, which we label (in a minor abuse of ter-
+to a new task sharing in the same structure. In order to test
+                                                                            minology) Rot, was trained on a series of visuomotor rota-
+this idea, we applied the architecture to the task paradigm em-
+                                                                            tions, simulated by appropriately transforming the observed
+ployed in they study of motor structure learning by Braun and
+                                                                            cursor coordinates. The second model instance, Rot+, was
+colleagues (2009).
+                                                                            trained on a combination of rotations, shears, and scales (fol-
+Model implementation and task design                                        lowing the design described in Braun et al., 2009, Supple-
+                                                                            mental Data). Following the design imposed by Braun and
+We implement the architecture shown in Figure 2 (right), in-                colleagues, when the rotation to be presented to Rot+ fell
+stantiating the forward model in the form of a recurrent neural             between ±50◦ and 70◦ , a rotation of ±60◦ was substituted
+network (which is naturally deep as it is unrolled over time).              and no linear transform was applied. As a result, both Rot
+More specifically, this involves one LSTM layer (Hochre-                    and Rot+ had roughly equal exposure to the transformation
+iter & Schmidhuber, 1997) followed by two more fully con-                   used during test trials. In both conditions, the model was
+nected layers containing rectified linear units (Nair & Hin-                trained by backpropagation through time on 2,000 trajectories
+ton, 2010), where each layer contains 100 units. The planner                of random-walk data, with each trajectory containing three
+is an open-loop planner based on cross-entropy optimization,                seconds of simulation time, and training starting from the ini-
+as described in Weinstein & Littman (2013), with the addition               tial observation of each trajectory.
+of “warm starting.” In warm starting, planning is done from                    In the testing phase the RNN weight parameters were
+scratch on the first step of a trajectory, but all subsequent steps         frozen and reaches were elicited only under only pure ro-
+in the actual domain initiate planning with the result from the             tations of ±60◦ , as in the testing phase of the experiment
+previous step. At each time step only the first action in the               by Braun and colleagues. Goal locations were placed at a
+current plan is executed in the true domain before partial re-              randomly selected angle 8 cm from the start location of the
+planning in this manner occurs. For simplicity, we assume                   cursor. The radius of the goal region is 1.6 cm. In order
+(without loss of generality) that M̂ has access to the reach-               to simulate a series of reaches, the angle of the imposed vi-
+target coordinates and can compute the reward function.                     suomotor rotation was held constant while the position of the
+   In order to model target-directed reaching, we imple-                    goal varied between reaches. Test reach trajectories ran for a
+mented a simple arm model. While not intended to offer a                    maximum of two seconds, terminating early if the cursor was
+detailed model of biomechanics, this was intended to capture                brought within the goal region for 500 ms.
+the most important aspects in terms of possible arm geom-
+etry, velocity, and acceleration (Nagasaki, 1989). As simu-                 Results
+lated, the underlying state space of the problem has four di-               Training of models for both the Rot and Rot+ conditions were
+mensions: horizontal shoulder angle, elbow angle, and cor-                  successful, but the model trained on Rot was able to achieve
+responding angular velocities. Observations emitted are the                 an average error of about 0.002 cm per time step for trajecto-
+Euclidian position of the cursor controlled by the arm’s tip                ries in the training set, while Rot+ an error of about 0.03 cm
+as seen in the experiment (meaning that M̂ must also learn to               by the same metric. In the Rot condition, the RNN model
+                                                                            learned to act as an adaptive forward model, adjusting its
+    1 Belief states (Kaelbling et al., 1998) or predictive state repre-     predictions to fit with accumulating action-outcome obser-
+sentations (Littman et al., 2001) are sufficient for planning, but can
+be computed internally in each module and do not need to be com-            vations. Figure 3 shows the average observation-prediction
+municated.                                                                  errors of both Rot and Rot+ models during an initial random-
+                                                                        1329
+
+            Figure 3: Model errors by step in initial trial.                  Figure 4: Average cumulative penalty by
+                                                                              trial.
+walk trajectory which was not part of the training set. The            this improvement, the agent frequently falls short of reaching
+initial data-point is the error of the model prior to any ex-          goal region (which would allow for an early termination of
+perience in the test MDP. In interpreting the values on the            distance penalties). This is most likely due to the fact that on
+y-axis of the plot, it should be taken into account that in our        average testing data in Rot+ has a scaling amount of roughly
+simulation two seconds of time takes 28 discrete time steps,           1.3 (this design is part of the original human study), and in-
+and error compounds over these steps. In contrast to the Rot           deed Rot+ almost uniformly tells the planner that actions will
+model, the Rot+ model adapts much less successfully, despite           result in greater changes in location than actually occur.
+having been trained on an identical amount of data.                       Although Rot+ was less effective at structure learning than
+   Figure 4 shows the mean cumulative penalty when the                 Rot, it is not the case that it failed entirely. The average
+model is coupled with a planner, for each reach at test for            penalty of a trajectory for agent using a uniform random pol-
+both models. This is intended for comparison with the empir-           icy is approximately 220 units which is significantly poorer
+ical data from humans in preceeding work shown in Figure 1.            than what Rot+ was able to achieve.
+As predicted, Rot is better able to conduct structure learning,           We note that our goal was not to fit the results from the
+by adapting more rapidly and completely to the test rotation           human data quantitatively, but rather to demonstrate the same
+(the manipulation both models were exposed to during train-            phenomenon which is that structure learning becomes more
+ing) than Rot+. This qualitatively replicates the experimental         difficult as the the amount of variability in the problem in-
+findings from Braun et al. (2009).                                     creases. And although Rot+ was not able to perform well,
+   Figure 5a shows average trajectories for five successive            the overall architecture does have the capacity to do effective
+reaches (normalized by rotation and goal angles), for both Rot         structure learning; expanding the data corpus size by a fac-
+and Rot+ models. Both models adapted across reaches (start-            tor of five produces models that have statistically equal, high
+ing with smaller initial angular errors after the initial reach),      quality performance on test tasks for both Rot and Rot+.
+but the effects were stronger in the Rot model. Quite striking
+is the standard deviation of the final position of the first trial                              Discussion
+of Rot, and Rot+ in cyan and magenta, respectively. Although           Learning-to-learn is a fundamental aspect of human behav-
+on average Rot+ tracked toward target, there is a tremendous           ior, but its computational basis is not yet well understood.
+amount of variability in its trajectories, and was not able to         We have presented a new model of learning-to-learn in the
+consistently reach the goal region, whereas Rot usually ter-           setting of motor adaptation. This task, defined by Braun and
+minated within the target.                                             colleagues (2009) involves learning to learn in the sense that
+   We also consider other indirect metrics of performance              the subject must gather data on a current situation in order
+which are presented in the human studies such as initial an-           to infer the hidden parameters of the dynamics, and indeed
+gular error, velocity, and minimum distance to goal region,            Braun and colleagues state that learning to learn can be recast
+which are presented in Figures 5b through 5d, respectively.            as structure learning. On the other hand, a stronger defini-
+In general the results with these metrics are similar to the           tion of learning to learn could require learning to adapt to a
+previous plots, with Rot improving quickly and performing              situation it has not experienced in the past, perhaps in terms
+better than Rot+. We also note the higher variance of Rot+,            of new objects to interact with that follow some prelearned
+which manifests itself in wider confidence intervals across all        rules (Harlow, 1949). This has been considered in a different
+Figures, especially Figure 5d. These results are qualitatively         simulated setting in RL where the agent learns policies (Wang
+aligned with those reported in the experimental study.                 et al., 2016), as opposed to models of the environment as is
+   In fact, of these metrics, the only one which shows im-             done here.
+provement by Rot+ is the initial angular error. Even with                 Adopting the standard approach, we assume that motor
+                                                                   1330
+
+            Figure 5a: Average trajectories by trial.
+            Standard deviation of final position of first                  Figure 5b: Average angle error from goal af-
+            trial in shaded region. Goal region in black.                  ter 200 ms of simulated time.
+                                                                           Figure 5d: Average minimum distance to
+                Figure 5c: Average velocities by trial
+                                                                           goal by trial
+adaptation involves updating an internal forward model of            attention.
+reaching dynamics. Our novel contribution is to instantiate
+this internal model as a recurrent neural network. Through              As noted earlier, our use of RNN dynamics to capture
+simulations of a key experimental study, we have shown that          learning-to-learn effects builds directly on pioneering work
+the resulting system not only learns to adapt to changing per-       by Hochreiter and colleagues (2001), in which an RNN model
+turbations, but also that its adaptation becomes more effective      was applied to the problem of function induction (see also
+when there is prior exposure to structurally related conditions,     Wang et al., 2016; Santoro et al., 2016). In contrast to that
+as seen empirically in motor structure learning. Importantly,        work, we deployed our RNN as a forward model situated
+no special measures were required in order to secure this            within a larger model-based RL system. In this sense, our im-
+learning-to-learn effect. Through error-correcting learning,         plementation bridges between Hochreiter’s original proposal
+the parameters of the RNN are, perforce, fit to the structure        and models of motor adaptation that have embedded an adap-
+of the pre-training data. That same structure is thus naturally      tive Bayesian model of limb dynamics (e.g. Berniker & Ko-
+– indeed inevitably – expressed in its later inferences at test.     rding, 2008; Genewein et al., 2015). The approach we have
+                                                                     introduced also relates to other work in which RNNs have
+   We consider learning to learn as refining a (potentially im-      been used as forward models in support of motor adaptation,
+plicit) hypothesis set based on experience. If the problem has       but where multiple fixed models are assumed (Haruno et al.,
+a large underlying dimension, then the hypothesis set learned        2001; Pitti et al., 2013), rather than a single adaptive model
+by the model must be of corresponding size. This is in turn          used here. These fixed models lack memory, meaning that
+fundamentally linked to the amount of data required to both          reweighing fixed models aside, adaptation is only possible by
+train the model, as well as do inference, accurately. For these      retraining the system. Implicitly, our work implements a sort
+reasons, it is to be expected that when comparing the data           of Kalman filter which has also been considered previously
+requirements of doing both in Rot versus Rot+, Rot leads to          in recurrent networks (Wolpert et al., 1995). Undertaking a
+lower data requirements. Just as is the case with Braun and          careful comparison between these related approaches and the
+colleagues (2009), we do not attempt to disentangle these is-        one we have introduced here offers an important objective for
+sues, although a more detailed investigation warrants future         next-step research.
+                                                                 1331
+
+   Our implementation of the reaching task was deliberately            making with physical models in deep neural networks. In
+minimal, simplifying both the underlying biomechanics and              NIPS 2016 workshop on intuitive physics.
+the motor planning process, in order to foreground our cen-         Harlow, H. F. (1949). The formation of learning sets. Psy-
+tral computational proposal. Naturally, a more detailed eval-          chological Review, 56(1), 51–65.
+uation of the approach, incorporating a higher degree of em-        Harris, C. S. (1963). Adaptation to displaced vision: Visual,
+pirical constraint, will be desirable in further evaluating the        motor, or proprioceptive change? Science, 140(3568),
+viability of our approach as a theory of motor adaptation. A           812–813.
+related opportunity is to consider the potential parallel be-       Haruno, M., Wolpert, D. M., & Kawato, M. (2001). Mo-
+tween the recurrent connectivity underlying the function of            saic model for sensorimotor learning and control. Neural
+our adaptive model and the recurrent connectivity inherent in          Computation, 13, 2201–2220.
+biological neural circuits underlying motor control and adap-       Hochreiter, S., & Schmidhuber, J. (1997). Long short-term
+tation, including circuits running through the basal ganglia           memory. Neural Computation, 9(8).
+and cerebellum.
+                                                                    Hochreiter, S., Younger, A. S., & Conwell, P. R. (2001).
+   At the same time, however, we feel it may also be fruit-
+                                                                       Learning to learn using gradient descent. In Artificial neu-
+ful to apply the model-based framework we have introduced
+                                                                       ral networks ICANN (Vol. 2130, pp. 87–94).
+here in domains beyond motor control, in particular other do-
+                                                                    Jordan, M. I., & Rumelhart, D. E. (1992). Forward mod-
+mains that display the characteristics of a POMDP and where
+                                                                       els: Supervised learning with a distal teacher. Cognitive
+learning-to-learn effects have been observed. Such tasks are
+                                                                       Science, 3, 307–354.
+indeed ubiquitous, ranging from structured bandit tasks to
+video-game play (Wang et al., 2016; Lake et al., 2015). To          Kaelbling, L. P., Littman, M. L., & Cassandra, A. R. (1998).
+the extent that the framework we have presented here can               Planning and acting in partially observable stochastic do-
+be adapted and (more challenging) effectively scaled to these          mains. Aritficial Intelligence, 1–2.
+other settings, it offers to provide a more general new per-        Lake, B. M., Salakhutdinov, R., & Tenenbaum, J. B. (2015).
+spective on the problem of learning-to-learn.                          Human-level concept learning through probabilistic pro-
+                                                                       gram induction. Science, 350(6266), 1332–1338.
+Acknowledgements                                                    Littman, M. L., Sutton, R. S., & Singh, S. (2001). Predictive
+We would like to thank Daniel Braun and Konrad Kording for             representations of state. In Neural information processing
+valuable feedback.                                                     systems (Vol. 14).
+                                                                    Miall, R., & Wolpert, D. (1996). Forward models for physio-
+                         References                                    logical motor control. Neural Networks, 9(8), 1265 - 1279.
+Berniker, M., & Kording, K. (2008). Estimating the sources          Nagasaki, H. (1989). Asymmetric velocity and acceleration
+   of motor errors for adaptation and generalization. Nature           profiles of human arm movements. Experimental Brain
+   Neuroscience, 11, 1454–1461.                                        Research, 74(2), 319–326.
+Braun, D. A., Aersten, A., & Wolpert, D. M. (2009). Motor           Nair, V., & Hinton, G. E. (2010). Rectified linear units im-
+   task variation induces structural learning. Current Biology,        prove restricted boltzmann machines. In International con-
+   19, 352–357.                                                        ference on machine learning (pp. 807–814).
+                                                                    Pitti, A., Braud, R., Mah, S., Quoy, M., & Gaussier, P. (2013).
+Braun, D. A., Mehring, C., & Wolpert, D. M. (2010). Struc-
+                                                                       Neural model for learning-to-learn of novel task sets in the
+   ture learning in action. Behavioural Brain Research, 206,
+                                                                       motor domain. Frontiers in Psychology, 22.
+   157–165.
+                                                                    Santoro, A., Bartunov, S., Botvinick, M., Wierstra, D.,
+Braun, D. A., & Wolpert, D. M. (2012). Structural learning             & Lillicrap, T.         (2016).     One-shot learning with
+   in sensorimotor control. In Encyclopedia of the sciences of         memory-augmented neural networks.            arXiv preprint
+   learning (pp. 3208–3211).                                           arXiv:1605.06065.
+Duan, Y., Schulman, J., Chen, X., Bartlett, P. L., Sutskever,       Thrun, S., & Pratt, L. (Eds.). (1998). Learning to learn.
+   I., & Abbeel, P. (2016). RL2 : Fast reinforcement learning          Kluwer Academic Publishers.
+   via slow reinforcement learning. CoRR, abs/1611.02779.           Wang, J. X., Kurth-Nelson, Z., Tirumala, D., Soyer,
+Genewein, T., Hez, E., Razzaghpanah, Z., & Braun, D. A.                H., Leibo, J. Z., Munos, R., . . . Botvinick, M.
+   (2015). Structure learning in bayesian sensorimotor inte-           (2016). Learning to reinforcement learn. arXiv preprint
+   gration. PLoS Computational Biology, 11(8).                         arXiv:1611.05763v2.
+Haith, A. M., & Krakauer, J. W. (2013). Model-based                 Weinstein, A., & Littman, M. L. (2013). Open-loop planning
+   and model-free mechanisms of human motor learning. In               in large-scale stochastic domains. In AAAI conference on
+   Progress in motor control: Neural, computational and dy-            artificial intelligence (Vol. 27, pp. 1436–1442).
+   namic approaches (pp. 1–21).                                     Wolpert, D., Ghahramani, Z., & Jordan, M. (1995). An
+Hamrick, J. B., Pascanu, R., Vinyals, O., Ballard, A., Heess,          internal model for sensorimotor integration. Science,
+   N., & Battaglia, P. W. (2016). Imagination-based decision           269(5232), 1880–1882.
+                                                                1332
+

@@ -1,0 +1,506 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+A Model of Concept Generalization and Feature Representation in Hierarchies
+Permalink
+https://escholarship.org/uc/item/9jh229xv
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 33(33)
+Authors
+Rubin, Timothy
+Zeigenfuze, Matthew
+Steyvers, Mark
+Publication Date
+2011-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+    A Model of Concept Generalization and Feature Representation in Hierarchies
+                                                Timothy N. Rubin (trubin@uci.edu)
+                                   Department of Cognitive Sciences, University of California, Irvine
+                                           Matthew D. Zeigenfuze (mzeigenf@msu.edu)
+                                           Department of Psychology, Michigan State University
+                                                 Mark Steyvers (msteyver@uci.edu)
+                                   Department of Cognitive Sciences, University of California, Irvine
+                              Abstract                                 approaches to modeling hierarchical relationships between
+   We present a novel modeling framework for representing cat-         categories in that learns a distributed representation for each
+   egory exemplars and features. This approach treats each cat-        exemplar for a category. Specifically, an underlying assump-
+   egory exemplar as a probability distribution over a hierarchi-
+   cally structured graph. The model jointly learns the mixture        tion behind many such approaches is that an exemplar’s fea-
+   of each exemplar across categories in the graph, and a fea-         tures are inherently tied to only the category to which the
+   ture representation for each node in the graph, including nodes     exemplar belongs. This assumption underlies many classi-
+   for which no data is directly observed. We apply this model
+   to two distinct types of data: (1) Animal by Feature matri-         cal approaches to modeling hierarchical relationships, such as
+   ces from the Leuven Natural Concept Database, and (2) docu-         hierarchical clustering methods (e.g., Shepard, 1980), as well
+   ments from Wikipedia. We demonstrate that this model is use-        more recent advances which learn the basic structural form
+   ful for learning feature representations for nodes in the graph
+   that are not assigned any data (i.e. for generalization to new      of these relationships (of which a hierarchy is just one possi-
+   categories). Additionally this model improves the specificity       bility), in addition to the graph itself (Kemp & Tenenbaum,
+   of feature representations for the nodes with observed data by      2008). One notable exception is the approach to distributed
+   explaining away more general features to parent nodes within
+   the graph. Furthermore, we illustrate that this model is useful     representations of semantic memory proposed by Collins &
+   for understanding additional psychological aspects of concept       Quillian (1969). Although Collins & Quillian (1969) did not
+   representation, such as typicality ratings.                         address the problem of learning their proposed representa-
+   Keywords: Concepts; Category Learning; Graphical Models;            tions, and the topic of their paper is somewhat different from
+   Hierarchical Models; Bayesian; Generalization
+                                                                       our own, the underlying approach of the model we present is
+   Suppose you were presented with an unfamiliar concept,              very much in the spirit of their work.
+blorg. Despite having no experience with blorgs, if you were              We apply our model to two highly distinct datasets. First,
+told a blorg is an animal you would know that it eats and that         using Animal by Feature matrices from the Leuven Natural
+it breathes. If you were told a blorg is a mammal you would            Concept Database (de Deyne et al., 2008), we learn featu-
+know that it has hair and births live young, as well as that it        ral representations of animals at the species (e.g., DOGS),
+eats and breathes, since mammals are also animals. Finally, if         animal-category (e.g., MAMMALS), and domain (i.e., A N -
+you were told that a blorg is a dog you would know that it can         IMALS ) levels of abstraction (despite there being no data
+bark, as well as that it possesses all of the features of animals      directly assigned at either the animal-category or domain
+and mammals. Clearly, both the categories to which an exem-            level). We then show that the representation of exemplars
+plar belongs and the hierarchy in which those categories re-           as probability distributions across the hierarchy naturally cap-
+side carry considerable information about the features of that         tures psychological phenomena such as an animal’s perceived
+exemplar. Alhough some work has been done looking at how               “typicality” for a category, which has been shown to be a fun-
+people associate features to a particular category (e.g., Kemp         damental property of category representation (e.g., Rosch &
+& Tenenbaum, 2009; Austerweil & Griffiths, 2009; Zeigen-               Mervis, 1975). We additionally apply our model to docu-
+fuse, 2010), it is unclear how people learn to associate fea-          ments from a subset of the Wikipedia category structure, in
+tures to levels in a category hierarchy, particularly when they        order to demonstrate that our approach is applicable to noisy,
+must generalize to categories in the hierarchy for which there         real-world data, represented within a more convoluted hier-
+is no observed data.                                                   archical structure that spans multiple domains with a wide
+   In this paper, we present a rational model of how people            range of category specificity.
+jointly learn to associate features with a particular level within
+a hierarchy, and to learn distributed representations of exem-           A Mixture Model for Representing Exemplar
+plars across this hierarchy. This model begins with feature                       Features over Graph Hierarchies
+representations of exemplars of categories, and the category           In this section, we present a model for learning feature rep-
+structure of the domain to which the exemplars belong. It              resentations for categories using a framework related to the
+learns the features associated with each category within the           Topic Model (Blei et al., 2003). The Topic Model was origi-
+structure (even for categories for which there are no exem-            nally presented as an unsupervised learning method for find-
+plars), as well as a distributed representation for each exem-         ing low-dimensional representations of text corpora. In psy-
+plars across multiple levels of abstraction within the hierar-         chology, the topic model has been used to explain a number of
+chy. This approach differs fundamentally from many other               phenomena in semantic representation (Griffiths et al., 2007).
+                                                                   1775
+
+                                                                     that allows us to make use of the information contained in the
+                       {a,b,c}      Level 1 (super-category)
+                                                                     hierarchy shown in Figure 1. We do this by assuming that the
+                                                                     features we observe in an exemplar are a mixture of features
+                {a,b}          {c}  Level 2 (category)               from its parents and its own idiosyncratic features. For exam-
+                                                                     ple, the features of exemplar a are a mixture of features from
+                                                                     categories {a, b, c} and {a, b} and a. Modeling an exemplar
+             a        b         c   Level 3 (exemplar)               in this way allows us to learn the features of the unobserved
+                                                                     categories {a, b, c}, {a, b}, and {c}, as well as the degree to
+Figure 1: Illustration of our basic approach using a toy dataset     which each category contributes to the representation of each
+with a simple tree structure and three exemplars a, b, and c,        exemplar. Inference for this problem involves jointly learning
+each assigned to its own leaf node.                                  featural representations for all nodes in the graph and the the
+The success of the topic model in explaining concepts from           mixture weights of all exemplars.
+semantic representation suggests that it may also be able to         Formal Model Description In this section, we present the
+explain phenomena involving feature representation.                  details of the approach we outlined in the previous section.
+   Feature representation holds that concepts are represented        We begin by formalizing the model in terms of the graph pre-
+as collections of (usually binary) features (Markman, 1999).         sented in Figure 1, and then extend this description to a model
+For instance, the concept SNAKES would be a collection of            for an arbitrary graph structure. In the graph in Figure 1, we
+features such as is an animal, is brown, slithers, has a forked      have C = 6 nodes: a, b, c, {a, b}, {c} and {a, b, c}. To
+tongue and is dangerous. Here we use a novel variant of the          each of these nodes in the graph (ci ) we associate a multi-
+topic model, which incorporates information about category           nomial distribution over the V unique features present in the
+hierarchies, to learn the feature representations of a number        dataset. Each exemplar in our model (dj ) is represented by a
+of hierarchically related concepts.                                  probability distribution θj over a subset of the C nodes in the
+   The basic idea behind our model is that, in a hierarchy,          graph. Note that each exemplar has an associated concept in
+each feature associated with a concept is either inherited from      the graph and that each concept has an associated node in the
+a concept of which it is an exemplar, or is idiosyncratic to         graph.
+the concept itself. For example, in the hierarchy A NIMALS              In order to exploit the hierarchical nature of the graph, we
+→ M AMMALS → D OGS, the features of an exemplar of a dog             assume that each exemplar is a distribution over the nodes
+could be attributed to the fact that (1) dogs are ANIMALS—           to which it was originally assigned (which is observed data),
+as with the feature “breathes”, (2) dogs are MAMMALS—as              as well to all of the ancestor nodes of those nodes. So,
+with the feature “has hair”, and (3) dogs are DOGS—such as           for example, an exemplar d that was assigned to node a in
+the feature “barks”. Our model uses the features assigned            the graph is represented by a weighted distribution (θd ) over
+to exemplars of the concept DOGS and other animals to re-            the node a and its two ancestor nodes, {a, b} and {a, b, c}.
+solve both the features of the concepts at various levels of         Each of these three nodes is represented by a multinomial
+abstraction (e.g., DOGS, MAMMALS, and ANIMALS) and the               distribution φ· over features xi=1,...,V . Given these exem-
+degree to which each exemplar’s features are inherited from          plar’s distribution over nodes, as well as the nodes’ distri-
+each concept. In the remainder of this section, we first present     butions over features, we can express the features of exem-
+a conceptual description of our model, and then formalize this
+                                                                     P d as a weighted sum of the these three nodes: p(xi |d) ∝
+                                                                     plar
+in a hierarchical bayesian framework.                                   nodes p(xi |φnode ) × p(node|θd )
+Conceptual Description of Approach Consider the illus-                  We now generalize this to an arbitrary hierarchical graph
+tration shown in Figure 1, showing a simple hierarchy of con-        structure, where C is the number of unique nodes in the graph
+cepts. Suppose that we know the structure of this hierarchy,         and the j th node is represented by cj . Each node c is a V -
+but are only given the sets of features for the three shaded         dimensional multinomial distribution φc over the set of V
+nodes corresponding to the exemplars a, b, and c. Despite            available features. For exemplar d, we observe both the vec-
+the fact that we have no information about the unshaded cat-         tor of feature counts x(d) as well as the initial assignments
+egory nodes, intuitively we ought to be able to make reason-         of the exemplar to one or more nodes c(d) . We extend the
+able guesses about their features. Specifically, we might as-        set of initial node assignments for exemplar d to be the set of
+sume that a, b and c, derive some of their features from each        Assigned + Ancestor nodes, c(d) , where we distinguish the
+of their ancestors. This would mean then that the category           complete set of nodes associated with j from the observed
+{a, b}, the parent of exemplars a and b, possesses all of the        node assignments by putting the observed set in bold. Each
+features that are common to a and b. Additionally, the cate-         exemplar is associated with a multinomial distribution θd over
+gory {a, b, c} would possess all of the features that are shared     c(d) . The random vector θd is sampled from a Dirichlet dis-
+by its two children, the categories {a, b} and {c}, the features     tribution with hyper-parameter α(d) , where α(d) is a vector
+that are shared by all of a, b, and c. This would allow us to        with dimension equal to the number of nodes in the set c(d) .
+infer feature representations for the unshaded ancestor nodes.          Given a hierarchical graph structure, and the set of ob-
+   We need now to represent exemplars a, b, and c in a way           served features and node-assignments for each exemplar, the
+                                                                 1776
+
+                                         c
+                                                                              could have some people provide judgments about the features
+                                                                              with respect to the breed Rottweiler and others provide judg-
+                                         θ          α                         ments about the breed Chihuahuas). Even without this, it is
+                                                                              certainly the case that each of the four subjects who provided
+                                         z                                    feature judgements had slightly different representations of
+                                                                              each animal species, and we could have used an alternative
+                     β                  x                                    representation of the data in which each individual subject’s
+                          Category
+                                                                              judgments were treated as exemplars (but for simplicity chose
+                                        Features
+                               Level                                          instead to use the sums across participants).
+                                           Exemplar
+                                                                                 An additional substantive difference between the datasets
+  Figure 2: Model illustrated using graphical model notation                  is in their corresponding graph structures. The Leuven Con-
+generative process for this model is:                                         cept Database of animals can be represented by a simple tree
+                                                                              structure with a single root node representing the broad cat-
+1. For each node c ∈ {1, . . . , C}, sample a multinomial distribution        egory A NIMALS. This root node has a directed edge point-
+    over feature-types φc ∼ Dirichlet(·|β)
+                                                                              ing to each of the five animal-categories (e.g., M AMMALS),
+2. For each exemplar d ∈ {1, . . . , D}                                       and each of these five animal-categories has directed edges
+  (a) Sample a multinomial distribution over the set of nodes c(d) ,          pointing to multiple species within those categories (e.g.,
+        θd ∼ Dirichlet(·|α(d) )                                               D OGS)2 . As with the Leuven Dataset, the Wikipedia dataset
+  (b) For each feature i ∈ {1, . . . , NdX }                                  we used has a single root note: P OLITICS B Y I SSUE. How-
+      i. Sample a node zi ∼ Discrete (θd )                                    ever, the category structure is significantly more convoluted,
+                              (d)
+     ii. Sample a feature xi ∼ Discrete (φzi ) from the node c =              and contains 361 categories with a a much wider range of
+         zi
+                                                                              subject matter and conceptual specificity across these cate-
+This model is presented using graphical model notation in                     gories (ranging, e.g., from the broad categories M ILITARY,
+Figure 2.                                                                     and H UMAN R IGHTS to the highly specific categories A NTI -
+                                                                              WAR S ONGS and T RANSGENDER L AW). Our approach is
+                            Experiments                                       nonetheless directly applicable to both datasets.
+We applied our model to two datasets: (1) A set of animal-                    Applying Model to Animal by Feature Matrices
+feature matrices from the Leuven Concept Database, and (2) a
+set of documents extracted from a subgraph of the Wikipedia                   We applied our model to the Type II matrices of the Leuven
+category structure. Despite the very different nature of these                Concept Database. An illustration of these results is provided
+datasets, the model is perfectly applicable in both cases.                    in Figure 3. The model learns a probability distribution over
+However, for clarity, we describe below two of the major dif-                 features for all exemplars (i.e., leaf nodes) in the database, as
+ferences between these datasets.                                              well as for the five Animal-Category distributions (e.g., Mam-
+                                                                              mals) and the root node, “All Animals”. The top eight most
+Datasets In the Leuven Animal Concept Database, features                      likely features learned by the model are shown for all of the
+are counts of animal features from an Animal × Feature ma-                    category-level and the root-level nodes. Due to space con-
+trix 1 . In the case of the Wikipedia dataset, these features are             straints, we do the same for only six of the 129 total animal-
+counts of words from a Document × Word matrix. In the                         level distributions that were learned.
+Leuven Concept Database, the exemplars correspond to the                         Note that there was no observed data for the category-level
+129 unique animals in the dataset, whereas in the Wikipedia                   or root nodes. These distributions were all learned by the
+dataset, the exemplars correspond to the 10, 432 documents                    model by assigning the common features among child nodes
+in our dataset. Furthermore, exemplars in the Wikipedia                       to the parent nodes. Note that these Category-level represen-
+dataset could be initially assigned to one or more of the                     tations are quite easily interpretable, and in fact (for the most
+nodes in the graph, whereas exemplars in the Leueven con-                     part) provide excellent definitions of these classes of animals.
+cept database are put in 1-1 correspondence with nodes rep-                   For example, in four out of five of the category-level distri-
+resenting specific animals (where there is only one exemplar                  butions, the feature that defines the category itself (e.g., “is a
+per node). Note that this 1-1 correspondence between ex-                      bird”), is among the most likely features at the category level.
+emplars and nodes–although a notable distinction–does not                     And, even ignoring these definition features, the distributions
+comprise a fundamental difference between this dataset and                    are typically the standard lists of what we are taught about the
+the Wikipedia dataset. In fact, one could easily imagine a sit-               categories in general (e.g., for Birds, the fact that they have
+uation in which we have multiple exemplars assigned to some                   wings, two feet, a bill, lay eggs, and have feathers).
+of the animal species in this graph (e.g., for the node dogs, we
+                                                                                  2
+                                                                                    Although the Leuven Concept Database does not explicitly pro-
+     1
+       Note that although the elements of the Animal × Feature matrix         vide this graph structure; instead it provides five disjoint two-level
+are often treated as bernoulli probabilities, the dataset itself actually     trees with animal-categories as the roots and species as the leaves.
+consists of counts, corresponding to the the number of times each             However, it is implied that the animal categories can all be treated
+feature was assigned to each animal across four participants.                 as sub-trees within an overall graph for A NIMALS
+                                                                          1777
+
+                                                                                                                  ANIMALS
+                                                                                                          has two eyes                .018
+                                                                                                          has a head
+  ROOT
+                                                                                                                                      .018
+                                                                                                          has eyes                    .018
+                                                                                                          is an animal                .018
+                                                                                                          lives outdoors              .017
+                                                                                                          has a tongue                .017
+                                                                                                          lives in the open air       .017
+                                                                                                                                       017
+                                                                                                          lives in nature             .016
+                                 FISH                                        BIRDS                              MAMMALS                                           INSECTS                                 REPTILES
+  CATEGORY
+                      is smooth                   .015            has wings               .016            mammal                      .026               lives on land          .015              lays eggs                .023
+                      is slippery                 .015            has two paws            .016            does not lay eggs           .026               lays eggs              .015              lives on land            .021
+                      doesn't live on land        .015            has a bill              .016            lives on land               .026               is an insect           .015              has teeth                .019
+                      has fins                    .015            is a bird               .016            has teeth                   .026               is light               .014              is a reptile             .019
+                      can swim                    .015            lays eggs               .016            has four paws               .026               lives in Europe        .014              has four paws            .016
+                      has gills                   .015            has feathers            .016            has fur                     .022               is not very big        .014              is green-brown           .015
+                      breaths under water         .015            has two wings           .016            has legs                    .020               is small               .014              is cold-blooded          .015
+                      lives in water              .015            has legs                .015            has a tail                  .019               is found in Belgium    .014              crawls                   .014
+  EXEMPL
+       LAR
+                       MONKEY                                        BAT                                PIG                                  GIRAFFE                                 COW                               BEAVER
+                predecessor of humans      .053
+                                            053          can fly                    062
+                                                                                   .062     curly tail                .069
+                                                                                                                       069        has a long neck             .135
+                                                                                                                                                               135      has an udder               .054
+                                                                                                                                                                                                    054        rodent                     086
+                                                                                                                                                                                                                                         .086
+                eats bananas               .053          sleeps upside down        .062     when small piglet         .069        yellow with brown spots     .121      moos                       .054        builds dams               .086
+                swings from tree to tree   .053          lives in caves            .062     pig nose                  .069        eats leaves from trees      .117      stands in the stable       .054        lives nearby the water    .070
+                resembles humans           .053          associated w/ vampires    .062     stands in the stable      .066        yellow                      .064      small cows are calfs       .054        flat tail                 .064
+                is funny                   .052          inspiration for Batman    .062     is tasty                  .061        eats from flowers           .037      has several stomachs       .054        gnaws on everything       .064
+                can be taught tricks       .051          nocturnal animal          .060     is pink                   .052        striped                     .031      stands in meadows          .053        has gnawing teeth         .064
+                crawls up trees            .051          lives in the dark         .057     makes sound like grunt    .052        family of the horse         .029      used in agriculture in…    .051        loves wood                .064
+                is smart                   .044          has wings                 .046     has a pungent smell       .040        is specked                  .019      chews the cud              .050        lives on land and sea     .061
+         ROOT
+  CATEGORY
+  EXEMPLAR
+                0     0.2      0.4     0.6               0     0.2     0.4        0.6       0     0.2     0.4        0.6          0          0.2   0.4      0.6         0      0.2     0.4        0.6        0       0.2     0.4        0.6
+                                                  CORRESPONDING MIXTURE PROPORTIONS ACROSS LEVELS IN HIERARCHY
+Figure 3: Illustration of our model applied to Animal × Feature matrices from the Leuven Concept Database. The eight highest-
+probability features are shown for the root node A NIMALS, all second-Level Animal-Category nodes, and six exemplars from
+the category M AMMALS. Below each exemplar we present its probability distribution over levels in the graph.
+   The only case in which the definition-feature doesn’t ap-                                                                 a guessing game, conditioned on the fact that the guesser al-
+pear in the top eight features is for the category F ISH, in                                                                 ready knows the fact that the animal is a mammal.
+which the feature “is a fish” was the twelfth most likely fea-
+                                                                                                                             Relationship Between Model Representation and Animal
+ture learned by the model. Interestingly, this may be due to
+                                                                                                                             Typicality The general purpose of the previous experiment
+the fact that there were numerous misclassifications of water-
+                                                                                                                             was to examine some of appealing features of modeling con-
+mammals (specifically, Dolphins, Whales, and Orcas), to the
+                                                                                                                             cepts using a distributed representation across a graph hierar-
+Fish category. Thus, because several of the exemplars used
+                                                                                                                             chy. Namely, (1) that this approach can be used to generalize
+to infer the features for fish were not fish, but did have many
+                                                                                                                             from specific exemplars to higher-level categorical represen-
+fish-like features (such as “is smooth” and “doesn’t live on
+                                                                                                                             tations, and (2) that it increases the specificity of the features
+land”), these were the features that were pushed to the top.
+                                                                                                                             represented at lower levels of the hierarchy by explaining
+   We show a subset of six of the exemplars for the “Mam-                                                                    away common features to higher categories. This approach
+mals” category. You can see that the category-level features,                                                                was not conceived directly as a means to predict additional
+which are shared amongst all Mammals, do not appear with                                                                     types of data, such as similarity ratings or typicality ratings.
+high-probability for the exemplar level distributions. This is                                                               However, if our approach is to provide a useful framework
+because the common features are explained away (and cap-                                                                     for understanding how people represent categories, it is im-
+tured at the category-level distribution for Mammals). In-                                                                   portant to connect it with such types of data (for this paper,
+stead, the features that are highly likely are the features which                                                            we restrict our analysis to typicality ratings).
+best distinguish the exemplars from other mammals. For ex-                                                                      One thing which falls directly out of the model is the ex-
+ample, the distribution for bat puts high probability on many                                                                tent to which each animal provides a good representation of
+features relating to the fact that it is an unusual case of a flying                                                         each category. Specifically, the relative probability of the
+mammal. What these exemplar-level distributions intuitively                                                                  category-level node, given each animal exemplar, provides a
+capture are features that might be most informative hints in
+                                                                                                                 1778
+
+                            FISH                                   BIRD                                      MAMMAL                                      INSECT                                      REPTILE
+            orca (22)          R = 0.745      penguin (30)            R = 0.727                 bat (30)         R = 0.544        butterfly (19)             R = 0.362                                   R = 0.425
+                                                                                                                                                                                    turtle (18)
+                               P = 0.000         ostrich (29)         P = 0.000       hedgehog (28)              P = 0.002            worm (23)              P = 0.069                                   P = 0.062
+         whale (21)                             vulture (18)                              squirrel (24)                                                                              toad (19)
+                                                                                                                                        bee (05)
+      dolphin (23)                              pelican (25)                               mouse (15)
+                                                                                                                             grasshopper (06)                                         frog (17)
+          shark (20)                               duck (22)                               beaver (26)
+                                                  eagle (12)                                     fox (14)                             leech (26)                                tortoise ((05))
+      piranha
+        i h (16)
+                                                   swan (26)                      hippopotamus (27)                                  spider (16)
+      goldfish (02)                                                                                                                                                           dinosaur (15)
+                                                     owl (16)                         polar bear (21)                             ladybug (10)
+sperm whale (18)                                 falcon (14)                                    pig (04)                      bumblebee (11)                               chameleon (13)
+          squid (19)                              parrot (19)                                  wolf (12)                             cricket (13)                                 gecko (09)
+                                                   stork (20)                            hamster (16)
+   swordfish (17)                                                                                                                dragonfly (21)                             blindworm (20)
+                                                  heron (17)                          rhinoceros (25)
+        flatfish (14)                           seagull (08)                                    cat (02)                        caterpillar (20)
+                                                                                                                                                                                   lizard (01)
+                                                   dove (04)                             monkey (08)                                   moth (15)
+             eel (08)
+                                              peacock (27)                             kangaroo (29)                                   wasp (04)                          salamander (11)
+             ray (12)
+                                                 turkey (28)                               sheep (05)                          cockchafer (17)                                   iguana (06)
+           carp (09)                            rooster (24)                          dromedary (23)                                     flee (22)
+            pike (06)                          chicken (21)                                   deer (10)                                                                  monitor lizard (14)
+                                                                                                                                      louse (24)
+       salmon (01)                           pheasant (23)                                  bison (19)                                                                               viper
+                                                                                                                                                                                       p ((04))
+                                                                                                                              wood louse (14)
+                                                cuckoo (15)                                 llama (22)
+  stickleback (15)                         woodpecker (10)                                  rabbit (07)                         centipede (18)                                    snake (02)
+     anchovy (13)                              swallow (05)                                   tiger (11)                           horsefly (12)                              crocodile (03)
+      sardine (10)                             magpie (06)                                     lion (13)                            earwig (25)
+                                                   crow (09)                                   dog (01)                                                                          python (08)
+                                                                                                                                     beetle (07)
+         plaice (11)
+                                                   robin (03)                              giraffe (20)                                   ant (03)                              caiman (16)
+            sole (05)                         parakeet (13)                                 zebra (18)                          cockroach (08)                                     cobra (12)
+           trout (04)                           canary (11)                             elephant (17)
+                                                                                                                                 mosquito (02)
+       herring (07)                            sparrow (01)                               donkey (09)                                                                          alligator (07)
+                                            chickadee (07)                                     cow (03)                             fruit fly (09)
+            cod (03)                                                                                                                       fly (01)                                   boa (10)
+                                             blackbird (02)                                 horse (06)
+                     0 0.25 0.5 0.75     1                   0 0.25 0.5 0.75    1                       0 0.25 0.5 0.75    1                       0 0.25 0.5 0.75     1                        0 0.25 0.5 0.75    1
+             P( CATEGORY | EXEMPLAR )                 P( CATEGORY | EXEMPLAR )                    P( CATEGORY | EXEMPLAR )                 P( CATEGORY | EXEMPLAR )                    P( CATEGORY | EXEMPLAR )
+Figure 4: All animal exemplars and category-goodness rankings (in parentheses) for each animal-category, sorted according to
+the p(Category|Exemplar) assigned by our Model.
+natural measure of how typical the animal is of the category.                                                   One interesting note is that four water-mammals were ac-
+To compare this with human judgments, we used the “good-                                                    tually misclassified in the Leuven dataset as F ISH. Notably,
+ness rankings” of each animal, which was collected as part of                                               the model picks up on these misclassifications quite well; the
+the Leuven Concept Database. For our analysis, we averaged                                                  three least-weighted animals by the model were all in fact
+across the rankings of the 20 participant rankings within the                                               examples of these misclassified mammals (dolphins, whales,
+database to create a single ranking, and then rescaled all val-                                             and orcas). Furthermore, the model captures the misclassi-
+ues from zero to one so that all categories of animals would                                                fications quite well in terms of its featural representations;
+have the same range of scores. We then compared these val-                                                  the three highest-probability features learned at the exemplar
+ues with the mixture weights that the model assigned to each                                                level for all three of these animals was “mammal”. The rea-
+exemplar at the A NIMAL C ATEGORY level of the hierarchy                                                    son for this is that when the “mammal” feature is assigned
+(i.e., the p(Category|Exemplar)).                                                                           to an animal that is not in the M AMMAL category, this fea-
+     The relationship between the p(Category|Exemplar) and                                                  ture cannot be “explained away” by any of its ancestor nodes
+the typicality scores is shown in Figure 4. For each cat-                                                   (because the feature “mammal” will have a very low probabil-
+egory, we provide a list of all animals and their corre-                                                    ity in the category-level representations for all non-mammal
+sponding (unscaled) goodness rankings, sorted by increasing                                                 categories, as well as for the root category A NIMALS). One
+p(Category|Exemplar) learned by the model. By visual in-                                                    implication of these results is that our model may be useful
+spection, one can see that atypical animals (those with lower                                               for capturing misclassifications in an ontology.
+rankings) are assigned less weight by the model than typi-
+cal animals. For example, Penguins, were ranked as the least                                                Applying The Model to Wikipedia Documents
+typical animal in the B IRD category, are assigned by far the                                               To demonstrate that the model we describe in this paper is ap-
+least weight by the model at the category level. The most                                                   plicable to real-world datasets, where the categories are less
+highly weighted birds, blackbirds, chicadees, and sparrows,                                                 carefully constructed and features are much noisier, we ap-
+were rated second, seventh, and first most typical out of the                                               plied our model to a set of documents from the subset of
+thirty birds in the dataset.                                                                                the Wikipedia category structure (described previously). In
+     To provide a qualitative measure of how well the model                                                 the Wikipedia dataset, each exemplar is a document, and the
+predictions corresponded to human typicality rankings, we                                                   features of each document are the word-counts for that docu-
+computed the R2 statistic to measure the correlation between                                                ment. Our Wikipedia dataset had 361 concept nodes, where
+the p(Category|Exemplar) and the goodness scores within                                                     the root-node was P OLITICS BY I SSUE, and 10, 432 docu-
+each category. The correlations were highly significant for                                                 ments which could be assigned to one or more categories.
+three of the categories (p < .001 for B IRDS and F ISH, and                                                     We present two main results below, showing (1) that the
+p = .002 for a M AMMALS), and nearly significant at the α =                                                 model is able to generalize to nodes for which there is no
+.05 level for the I NSECT and R EPTILE categories (p = .069                                                 directly-assigned data and learn a reasonable feature repre-
+and p = .062, respectively).                                                                                sentation for these nodes, and (2) that the model improves the
+                                                                                                       1779
+
+                                                                                                                                                        FLAT LDA MODEL        GRAPH-BASED LDA MODEL
+                                                                                                                                     National
+                                                  Political                                                                          Security        "Military Scandals" .010  "Military Scandals" .002
+                                                 movements
+                                                  by issue                                                                                             military
+                                                                                                                                                          l              .007   army               .015
+                                                                                                                                                       war               .007   military           .013
+                                                                                                                                                       air               .005   french             .011
+                                                                                                                 Information         Military          army              .005   torture            .010
+                                                                                                                  Sensitivity                          states            .005   general            .010
+                    Euro-              Anti-                   Nationalist           Federalist                                                        united            .005   gladio             .009
+                 skepticism         communism                  movements             movement                                                          reportt           .004   officer
+                                                                                                                                                                                  ffi              .008
+                                                                                                                                                       attack            .004   prisoner           .008
+                                                                                                                            Military                   soldier           .004   dreyfus            .008
+                                                                                                                           sociology                   government        .003   investigation      .008
+                        Euro-skeptic           Independence                                                                                            japanese          .003   soldier            .008
+                           parties               movements                                                                                             general           .003   massacre           .007
+                                                                                                                                                       so iet
+                                                                                                                                                       soviet            .003
+                                                                                                                                                                          003   minister            007
+                                                                                                                                                                                                   .007
+                                                                                                          Conscription
+                                                                                                                            Military    Military       force             .003   report             .007
+                                                                                                                          occupation   scandals        new               .003   commission         .007
+         Political movements           Political organizations         Political parties by
+                                                                                                                                                       member            .003   abu                .007
+         by issue               .010   by issue                .010    issue                    .010
+                                                                                                                                                       officer           .003   ghraib             .007
+           party                .017     member                .029      party                  .104
+           war
+           communist
+                                .012     group
+                                         organization
+                                                               .027      election
+                                                                         political
+                                                                             l     l
+                                                                                                .066     Figure 6: Comparison of our model representation of the cat-
+                                .012                           .015                             .031
+           movement
+           national
+                                .011
+                                .011
+                                         united
+                                         government
+                                                               .014
+                                                               .012
+                                                                         parties
+                                                                         seat
+                                                                                                .028
+                                                                                                .021
+                                                                                                         egory M ILITARY S CANDALS with a similar model that does not
+           government           .010     support               .009      democratic             .015     account for graph structure.
+           member               .010     organisation          .009      parliament             .013
+           political            .010     police                .009      parliamentary          .013
+           anti
+           soviet
+                                .009     french
+                                         attack
+                                                               .007      coalition
+                                                                         union
+                                                                                                .012     more general words tend to be assigned further up the hierar-
+                                .008                           .007                             .011
+           union
+           german
+                                .007
+                                .007
+                                         founded
+                                         political
+                                                               .007
+                                                               .006
+                                                                         vote
+                                                                         votes
+                                                                                                .011
+                                                                                                .011
+                                                                                                         chy (specifically, these words will be drawn to the more gen-
+           germany              .006     campaign              .006      won                    .010     eral category M ILITARY, which is an ancestor of M ILITARY
+           organization         .006     leader                .006      general                .009
+           fascist              .006     military              .005      member                 .008
+                                                                                                         S CANDALS).
+           socialist             006
+                                .006     terrorist             .005
+                                                                005      led                     008
+                                                                                                .008
+           nazi                 .006     states                .005      polish                 .008
+                                                                                                         Conclusions
+Figure 5: Top: A small subgraph of our Wikipedia dataset.                                                This paper presented a novel model for representing exemplar
+Bottom: The most most likely features learned for three cat-                                             features using distributed representations across a hierarchi-
+egories which had not been directly assigned any documents.                                              cal graph structure. Using data consisting of Animal by Fea-
+specificity of these feature representations when compared                                               ture matrices, we demonstrated that this model infer reason-
+with a “flat” version of the model which does not account                                                able featural representations for higher-level categories, by
+for the graph hierarchy 3 .                                                                              generalizing from the features present amongst the exemplars
+                                                                                                         of a category. We furthermore showed that the inferred repre-
+Generalization to nodes with no data Figure 5 illustrates                                                sentation of species-level exemplars at the animal-category
+the ability of our model to generalize to nodes with miss-                                               level of abstraction closely corresponds to people’s judge-
+ing data. In the top panel, we show a small portion of the                                               ments about how representative a species is of a category.
+subgraph, highlighting a node to which no documents were                                                 Finally, using our Wikipedia dataset we demonstrated that
+assigned. However, since there were many descendants of                                                  this model can similarly perform generalization in a much
+this node which contained data, common words from these                                                  noisier, real-world context, as well as improve the specificity
+descendants were explained away to this node. The bottom                                                 of its featural representation of categories over similar mod-
+panel of this figure shows the most likely words for this node                                           els which do not account for category hierarchies. In future
+and two additional nodes which had no documents directly                                                 work, we will explore whether the model can contribute to the
+assigned to them. Looking at these distributions, one can see                                            understanding of additional psychological data such as simi-
+that the model comes up with reasonable distributions over                                               larity ratings.
+features for each of these nodes.                                                                        Acknowledgements We thank our three anonymous re-
+Leveraging Graph Structure to Improve Category Speci-                                                    viewers for their helpful comments.
+ficity Figure 6 illustrates the effect of allowing features to                                                                                   Références
+                                                                                                         Austerweil, J., & Griffiths, T. L. (2009). Analyzing human feature learning as nonpara-
+be assigned to ancestors of nodes to which they are assigned.                                               metric Bayesian inference. In Advances in neural information processing systems
+                                                                                                            21.
+In the left panel of this figure, we show a relatively dense                                             Blei, D. M., Ng, A. Y., & Jordan, M. I. (2003, January). Latent dirichlet allocation.
+region near the lower levels of the Wikipedia graph, contain-                                               Journal of Machine Learning Research, 3, 993–1022.
+                                                                                                         Collins, A. M., & Quillian, M. R. (1969). Retrieval time from semantic memory.
+ing the category M ILITARY S CANDALS (highlighted). In the                                                  Journal of Verbal Learning and Verbal Behavior, 8, 240-248.
+right panel of this figure, we compare the distribution learned                                          de Deyne, S., Verheyen, S., Ameel, E., Vanpaemel, W., Dry, M., & Voorspoels, W.
+                                                                                                            (2008). Exemplar by feature applicability matrices and other Dutch normative data
+for the “Flat” version of our model—which only assigns                                                      for semantic concepts. Behavior Research Methods, 40(4), 1030-1048.
+probability to observed category-assignments—compared to                                                 Griffiths, T. L., Steyvers, M., & Tenenbaum, J. B. (2007). Topics in semantic represen-
+                                                                                                            tation. Psychological Review, 114(2), 211-244.
+the distribution learned by the graph-based model. Note that                                             Kemp, C., & Tenenbaum, J. B. (2008). The discovery of structural form. Proceedings
+the high-probability words learned by the graph-based model                                                 of the National Academy of Sciences, 105(31), 10687-10692.
+                                                                                                         Kemp, C., & Tenenbaum, J. B. (2009). Structured statistical models of inductive rea-
+are much more specific to the scandals aspect of this cate-                                                 soning. Psychological Review.
+gory, while the “flat” model has many more words associated                                              Markman, A. B. (1999). Knowledge representation. Mahwah, NJ : Lawrence Erlbaum
+                                                                                                            Associtates.
+with the military in general. In the graph-based model, these                                            Rosch, E., & Mervis, C. B. (1975). Family resemblances: studies in the internal struc-
+                                                                                                            ture of categories. Cognitive Psychology, 7.
+    3                                                                                                    Shepard, R. N. (1980, 24 octobre). Multidimensional scaling, tree-fitting, and cluster-
+      In the “flat” version of the model, features can only be assigned                                     ing. Science, 210(4468), 390–398.
+to the set of observed labels for each document, rather than to the set                                  Zeigenfuse, M. D. (2010). Feature importance in mental representation. Thèse de
+of both assigned labels plus ancestor labels.                                                               doctorat non publiée, University of California, Irvine.
+                                                                                                     1780
+

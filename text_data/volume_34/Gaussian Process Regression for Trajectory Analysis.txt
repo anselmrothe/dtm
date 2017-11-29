@@ -1,0 +1,637 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Gaussian Process Regression for Trajectory Analysis
+Permalink
+https://escholarship.org/uc/item/76q1p4b0
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 34(34)
+Authors
+Cox, Gregory
+Kachergis, George
+Shiffrin, Richard
+Publication Date
+2012-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+                           Gaussian Process Regression for Trajectory Analysis
+                                                Gregory E. Cox (grcox@indiana.edu)
+                                            George Kachergis (gkacherg@indiana.edu)
+                                            Richard M. Shiffrin (shiffrin@indiana.edu)
+                                 Department of Psychological and Brain Sciences, Indiana University
+                                             1101 E. Tenth St., Bloomington, IN 47405 USA
+                              Abstract                                   (clicking) it. Similar to eye tracking, the trajectories of these
+                                                                         continuous motor movements provide a way of measuring the
+   Cognitive scientists have begun collecting the trajectories of
+   hand movements as participants make decisions in experi-              ongoing cognitive processes that lead to the participant’s final
+   ments. These response trajectories offer a fine-grained glimpse       choice.
+   into ongoing cognitive processes. For example, difficult deci-           A major hurdle with any new measure is the need for ap-
+   sions show more hesitation and deflection from the optimal
+   path than easy decisions. However, many summary statistics            propriate analytical tools and statistical tests that allow re-
+   used for trajectories throw away much information, or are cor-        searchers to draw inferences from trajectory data. Due to the
+   related and thus partially redundant. To alleviate these issues,      richness of this data, many measures are possible and can lead
+   we introduce Gaussian process regression for the purpose of
+   modeling trajectory data collected in psychology experiments.         to principled inferences (for an overview, see Freeman, Dale,
+   Gaussian processes are a well-developed statistical model that        & Farmer, 2011). When moving their hand while making a
+   can find parametric differences in trajectories and their deriva-     decision, people may deviate more from a straight trajectory
+   tives (e.g., velocity and acceleration) rather than a summary
+   statistic. We show how Gaussian process regression can be im-         if there is a tempting alternative, making viable such mea-
+   plemented hierarchically across conditions and subjects, and          sures as maximum deviation, curvature area, and switches in
+   used to model the actual shape and covariance of the trajecto-        direction.
+   ries. Finally, we demonstrate how to construct a generative hi-
+   erarchical Bayesian model of trajectories using Gaussian pro-            In this paper, we introduce a new method for analyzing tra-
+   cesses.                                                               jectory data. Our method is based on treating trajectories as
+   Keywords: Trajectory analysis; Gaussian processes;                    a Gaussian process, for which there is much well-developed
+   Bayesian statistics.                                                  statistical theory. We begin by providing a brief overview
+                                                                         of Gaussian process regression and show how it may be ap-
+                           Introduction                                  plied to motor response trajectories and—more fruitfully, we
+Cognitive scientists are gradually turning toward more fine-             argue—their derivatives. Finally, we show how Gaussian pro-
+grained measures to gain more insight into the continuous                cess regression can be incorporated into a generative hierar-
+nature of the cognitive processes that underly behavior. Per-            chical Bayesian model of trajectories.
+haps the most widespread of these measures is eye tracking,
+in which we assume that where people gaze is the current fo-                           Gaussian Process Regression
+cus of attention and processing. For example, when reading
+                                                                         Gaussian process regression (GPR) is a statistical tech-
+a syntactically ambiguous sentence, people tend to make eye
+                                                                         nique with a long history in spatial statistics, and more re-
+movements back toward the function word or pronoun that
+                                                                         cently in function estimation and prediction (Griffiths, Lucas,
+best helps resolve the ambiguity (Frazier & Rayner, 1987).
+                                                                         Williams, & Kalish, 2009). The interested reader is directed
+Or, when hearing continuous speech, people will tend to look
+                                                                         to the excellent text on Gaussian processes by Rasmussen and
+more at objects whose names are consistent with a partially-
+                                                                         Williams (2006).
+heard word (e.g., people will look at either a “ball” or a “bear”
+if they have just heard the syllable “b”), indicating that peo-
+                                                                         Gaussian Processes
+ple make continuous predictions about the content of speech
+based on partial information (Spivey, Grosjean, & Knoblich,              A Gaussian process (GP) is simply a collection of random
+2005). Thus, a continuous measure of behavior, like eye                  variables, all of which are jointly Gaussian distributed. What
+tracking, appears to provide insight into ongoing cognitive              differentiates a Gaussian process from the more familiar mul-
+processes.                                                               tivariate Gaussian distribution is the fact that a Gaussian pro-
+   More recently, researchers have begun to collect explicit             cess may have an infinite index set, that is, it may specify
+continuous behavioral measures in the form of mouse or sty-              an infinite number of jointly Gaussian variables. Thus, it is
+lus movements (e.g., Freeman & Ambady, 2010). These may                  possible to define a Gaussian process over a continuous vari-
+easily be used in place of any task that requires an explicit            able, like time. Just as a multivariate Gaussian distribution
+choice on the part of the participant, which includes most ex-           is defined entirely by its mean vector and covariance matrix,
+perimental paradigms in cognitive psychology. Rather than                a Gaussian process is defined by its mean function m(x) and
+simply pressing a key to make their response, a participant              covariance kernel, k (x, x0 ), where x and x0 are two (possibly
+can instead move their hand (as well as an attached mouse                multidimensional) values of some predictor variable X (e.g.,
+or stylus) toward the option of their choice before selecting            time). We denote the fact that a function f (x) is a Gaussian
+                                                                     1440
+
+process by                                                            This distribution captures both the residual uncertainty about
+                                              0                       the underlying function f (x) and the knowledge gained about
+                                                
+                     f (x) ∼ GP m(x), k x, x       .
+                                                                      it from the observed data.
+   A Gaussian process can be considered a distribution over
+                                                                      Posterior Predictive Distribution Computing the poste-
+functions, with m(x) expressing the mean value of all of these
+                                                                      rior predictive distribution begins with a prior on the mean
+functions at x and k(x, x0 ) represented the expected covari-
+                                                                      and covariance functions of the GP, i.e., p(θ). For the mo-
+ance between the function value at x and that at x0 , i.e., the
+                                                                      ment, we shall assume that the underlying function has a con-
+amount of “information” that the function f (x0 ) carries about
+                                                                      stant mean of zero, with a SE covariance function (equation
+the value at f (x) (and vice versa). Thus, if we encounter data
+                                                                      1). Expressing the likelihood of the observed function val-
+(like trajectory data) for which we do not know or cannot
+                                                                      ues, p(x, f(x)|θ), is straightforward because they are assumed
+guess the form of the function that generated it, we can infer
+                                                                      to come from a Gaussian process, and hence are jointly nor-
+the form of this function if we assume that it is a Gaussian
+                                                                      mally distributed. The parameters of this distribution come
+process. This kind of inference is termed “Gaussian process
+                                                                      from our prior, i.e., the prior mean of each observation is
+regression”.
+                                                                      taken to be zero, and the covariance between function val-
+Bayesian Inference with GPs Gaussian process regression               ues is dictated by our prior covariance kernel (the SE kernel
+(GPR) seeks to model an unknown function f (x), which is as-          given in eq. 1). Denoting the matrix of pairwise covariances
+sumed a priori to be a Gaussian process. To do this, we need          between each observed datum as K(X, X), we have
+two things: a set of function observations f(x) at some known
+values of the predictor x; and an expression for the covariance                               f(x) ∼ N (0, K(X, X)) .
+kernel k(x, x0 ). The data come from some experiment (e.g., a
+set of cursor coordinates f (x)). We must, however, assume a              Now, say we wish to express a posterior predictive distri-
+particular covariance kernel. Although many kernels are pos-          bution over function values at set of novel predictor values,
+sible, for the purposes of this paper, we will confine ourselves      denoted X ∗ . We can similarly compute a matrix of covari-
+to the squared exponential (SE) or “radial basis function” ker-       ances between these points, K(X ∗ , X ∗ ), and between these
+nel:                                                                  novel points and the observed points, K(X, X ∗ ). Because both
+                                                  #                  these novel points and the previously observed data values are
+                                 "
+                                    1 |x − x0 | 2
+                                       
+                       0
+               k(x, x ) = f exp −                    .        (1)     presumed to have been generated by the same GP, they are all
+                                    2       l
+                                                                      jointly normally distributed with mean zero and block covari-
+The SE kernel is symmetric, is strictly positive, and most            ance matrix:
+important for our purposes later, is infinitely differentiable.                 
+                                                                                   f(x)
+                                                                                                 
+                                                                                                      K(X, X) K(X, X ∗ )
+                                                                                                                              
+Notice that this kernel has two “hyperparameters”: f , which                              ∼ N 0,                                 .
+                                                                                  f(x∗ )              K(X ∗ , X) K(X ∗ , X ∗ )
+scales the maximum possible covariance; and l, which func-
+tions as a length scale. Later, we will consider how the values           We can then express the conditional posterior over
+of these hyperparameters may themselves be estimated from             f(x∗ )|f(x) as another multivariate Gaussian distribution, us-
+data, but for the moment we shall assume they are known and           ing known identities regarding the Gaussian distribution:
+fixed.
+   Armed with a set of observations and knowledge of the                   f(x∗ )|f(x) ∼ N K(X ∗ , X)K(X, X)−1 f(x),
+covariance kernel, we now wish to perform inference on the                         K(X ∗ , X ∗ ) − K(X ∗ , X)K(X, X)−1 K(X, X ∗ ) .
+                                                                                                                                 
+                                                                                                                                    (3)
+function that is presumed to have generated the observations.
+In other words, we are following the logic of Bayes’ rule:            The posterior predictive distribution given just a few data
+                                                                      points is shown in figure 1a. This figure also depicts three
+                                  p(x, f(x)|θ)p(θ)
+               p(θ|x, f(x)) = R                       ,               functions randomly drawn from this posterior. Note that they
+                                  p(x, f(x)|θ)p(θ)dθ                  all pass through the observed function values (and the pos-
+                                                                      terior variance at those points goes to zero). This is because
+where θ are the parameters of the Gaussian process. Unlike
+                                                                      we have assumed thus far that our function observations are
+in other regression settings (e.g., linear regression), where the
+                                                                      noiseless; thus, we have absolute certainty that, whatever the
+parameters are a finite number of regression coefficients, the
+                                                                      true generating function is, it must pass through the values
+parameters of a Gaussian process may be infinite in number,
+                                                                      we have thus far observed. In addition, our (assumed) knowl-
+since a GP prior allows nonzero probability to any functional
+                                                                      edge of the covariance kernel allows us to estimate the func-
+form. We can, however, express our knowledge of the param-
+                                                                      tion’s behavior between and, to a certain extent, beyond the
+eters of the GP implicitly via the posterior predictive distribu-
+                                                                      observed values.
+tion over novel function observations f(x∗ ). This distribution
+                                                                          In reality, we will rarely have noiseless observations of
+is obtained by marginalizing over the parameters of the GP:
+                                                                      our function of interest. Luckily, observation noise is eas-
+                               Z                                      ily incorporated into the GPR framework by adding a noise
+        f(x∗ )|x∗ , x, f(x)) =   p(f(x∗ )|θ)p(θ|x, f(x))dθ.   (2)     term, σ2 , to the diagonal elements of the observed covari-
+                                                                  1441
+
+                                                                                    Derivatives of Gaussian Processes
+    1                                        3                                      Because differentiation is a linear operation, the derivative of
+    0
+                        ●
+                                             2                   ●
+                                                                     ●
+                                                                         ●
+                                                                                    a GP is itself a GP. Function derivatives are useful in the event
+                   ●
+                            ●
+                                             1
+                                                            ●
+                                                                                    that we actually have observations of the derivative (as in So-
+    −1
+y             ●                          y   0
+                                                                                    lak, Murray-Smith, Leithead, Leith, & Rasmussen, 2003).
+                                ●            −1
+    −2
+                                             −2        ●
+                                                                                    However, we also argue that the derivatives of a continu-
+    −3                                       −3
+                                                                                    ous response like a mouse movement are more informative
+         −3   −2   −1   0
+                        x
+                            1   2    3            −3   −2   −1   0
+                                                                 x
+                                                                     1   2   3
+                                                                                    about the underlying cognitive process that generates them.
+                                                                                    For example, the acceleration is critical for finding inflection
+         (a) No observation noise.       (b) With uniform, uncorrelated
+                                         Gaussian noise (σ2 = .1).                  points, which could indicate that the participant is considering
+                                                                                    changing his or her mind, or that they have just incorporated
+Figure 1: Examples of GPR given a set of function observa-                          new information into their decision process.
+tions. The open circles are the observed values. The black                              In the cases we consider below, we have direct observa-
+line is the mean of the posterior predictive distribution, while                    tions only of position information, not of its derivatives (e.g.,
+the gray region is the 95% confidence region around that                            velocity and acceleration). To compute a posterior predictive
+mean. The three colored lines are functions randomly drawn                          distribution over function derivatives, we need only compute
+from the posterior. Covariance was assumed to be SE with                            the covariances between each function observation and the
+ f = 1 and l = 1.                                                                   its derivatives at the points at which we are seeking predic-
+                                                                                    tions. This, in turn, requires expressions for the covariances
+                                                                                    between function values and derivatives, which are given for
+ance matrix, i.e., K(X, X) + σ2 I. The resulting joint ob-                          the SE covariance kernel below:
+served/predicted distribution becomes                                                                          k(x, x0 )
+                                                                                                       0
+                                                                                                                          x − x0
+                                                                                             ∂
+                                                                                                                                 
+                                                                                             ∂x k(x, x   ) = −       2
+                                                                                                                                                      (6)
+                                                                                                                   l "
+                         K(X, X) + σ2 I K(X, X ∗ )
+                                                 
+        f(x)
+               ∼ N
+                                                                                                                                       #
+                      0,                                                                                     k(x, x0 )
+                                                                                                                         
+                                                                                                                           x − x0 2
+                                                                                                                                  
+       f(x∗ )               K(X ∗ , X)  K(X ∗ , X ∗ )                                       ∂2
+                                                                                                k(x, x 0
+                                                                                                         ) =                         −1               (7)
+                                                                                              2
+                                                                                           ∂x                   l2           l
+and the posterior predictive distribution changes accordingly:                                                         "              #
+                                                                                                             k(x, x0 )     x − x0 2
+                                                                                                                                  
+                                                                                           ∂2          0
+                                                 −1                                     ∂x∂x0 k(x, x ) =                            +1               (8)
+                    
+  f(x∗ )|f(x) ∼ N K(X ∗ , X) K(X, X) + σ2 I
+                                
+                                                     f(x),                                                      l2           l
+                                                                                                                         "                         !
+                                                                                                               k(x, x0 )     x − x0 2        x − x0 2
+                                                                                                                                          
+                                              −1
+                                                           
+   K(X ∗ , X ∗ ) − K(X ∗ , X) K(X, X) + σ2 I     K(X, X ∗ ) . (4)                        ∂4
+                                            
+                                                                                                       0
+                                                                                       ∂x2 ∂x02
+                                                                                                k(x, x ) = − 4                          3−
+                                                                                                                   l           l               l
+                                                                                                                                #
+This assumes that noise is uniformly distributed and indepen-                                                 
+                                                                                                                 x − x0
+                                                                                                                          2
+dent between observations, but if there is correlated noise be-                                            +3                −3 .                     (9)
+                                                                                                                     l
+tween observations, this may be incorporated directly into the
+covariance kernel. An example of a posterior predictive dis-                        We can then compute a posterior predictive distribution over
+tribution with observation noise is given in Figure 1b.                             any desired derivative, given only raw function observa-
+GP Likelihood In order to fit a GPR model to data, we re-                           tions, by constructing the covariance matrices K(X ∗ , X) and
+quire an expression for the likelihood of a set of function ob-                     K(X ∗ , X ∗ ) from equation using the appropriate partial deriva-
+servations that are assumed to come from a GP. Luckily, as is                       tive above, rather than the original SE kernel k(x, x0 ). For ex-
+clear from above, these observations can be treated as coming                       ample, to compute the posterior predictive distribution for the
+from a multivariate Gaussian with mean zero and covariance                          velocity, ḟ∗ (x∗ )|f(x), compute K(X ∗ , X) using equation 6 for
+matrix K(X, X). Thus, the likelihood is merely the multivari-                       each pair of predicted and observed x values and K(X ∗ , X ∗ )
+ate Gaussian likelihood:                                                            using equation 7 for each pair of predicted x values.
+                n            1                                                          Applications of GPR to Trajectory Analysis
+p(f(x)) = (2π)− 2 |K(X, X)|− 2 exp − 12 f(x)T K(X, X)−1 f(x)
+                                                           
+                                                          (5)                       In this section, we provide several examples of applications
+where n is the number of observed data points and K(X, X)                           of GPR to trajectory analysis. In so doing, we introduce sev-
+may be replaced by K(X, X) + σ2 I if observation noise is as-                       eral extensions to the GPR modeling framework that place it
+sumed.                                                                              in the realm of hierarchical generative models which can en-
+                                                                                    able principled Bayesian inferences regarding the cognitive
+Multiple Observed Functions If multiple functions are                               processes that underly observed motion trajectories.
+observed simultaneously, e.g., the x and y coordinates of a
+cursor on a screen, they can each be treated as a priori inde-                      Estimating Hyperparameters
+pendent Gaussian processes and the above reasoning applied                          Although the posterior distribution in GPR is easily expressed
+to each individually.                                                               analytically given knowledge of the covariance kernel and its
+                                                                                 1442
+
+                                                                  A) Raw trajectory                                                                     likelihood of the observed trajectory, conditional on particu-
+                                                                          ●
+                                                                          ●
+                                                                          ●
+                                                                          ●
+                                                                          ●
+                                                                          ●●
+                                                                                                                                                        lar values of the hyperparameters, is then given by equation
+                                                                           ●
+                                                                           ●
+                                                                           ●●
+                                                                            ●●
+                                                                             ●●                                                                         5. This model was implemented in JAGS (Plummer, 2011),
+                                                           −300
+                                                                               ●●
+                                                                                ●●
+                                                                                  ●
+                                                                                  ●
+                                                                                  ●●●
+                                              y                                     ●●
+                                                                                     ●
+                                                                                     ●●
+                                                                                      ●
+                                                                                      ●●●
+                                                                                        ●●
+                                                                                         ●
+                                                                                                                                                        drawing 1000 samples from the joint posterior over hyperpa-
+                                                                                          ●
+                                                                                          ●
+                                                                                          ●
+                                                                                          ●
+                                                           −600
+                                                                                                                                                        rameters after 1000 steps of “burn-in”.
+                                                                   −400         −100          100                                                           The estimated posterior mean of each hyperparameter is
+                                                                                x                                                                        f¯ = 14760, l¯ = 0.1146, and σ̄2 = 0.9471. The bottom three
+                                                                                                                                                        graphs of Figure 2 (B, C, and D) show the mean and 95%
+                          B) X position                                 C) X velocity                                          D) X acceleration
+             0
+                                                                                                                                                        credible region of the posterior predictive distribution for
+                                                                                                                                                        the x coordinate (as well as its velocity and acceleration),
+                                                                                                    x acceleration
+             −100
+x position                                    x velocity
+                                                           0
+                                                                                                                     0
+                                                                                                                                                        marginalized over the samples of the hyperparameters.
+             −250                                          −600
+                                                                                                                     −10000
+                                                                                                                                                        Multiple Trials While this simple example illustrates
+                    0.0       0.4       0.8                       0.0       0.4               0.8                             0.0    0.4       0.8
+                                                                                                                                                        how GPR can be applied to a single trajectory, we
+                             Time (s)                                      Time (s)                                                 Time (s)
+                                                                                                                                                        usually have several trials per participant per condi-
+                                                                                                                                                        tion.       In this case, we have multiple sets of triples,
+Figure 2: Example of GPR on a single two-dimensional tra-                                                                                               {(t1 , x1 , y1 ), (t2 , x2 , y2 ), . . . , (tn , xn , yn )}, and we can treat
+jectory. In B, C, and D, the light blue region depicts a 95%                                                                                            them all as having been generated by the same underlying GP.
+credible region about the mean posterior predictions.                                                                                                   In other words, even if two observations (x1 , y1 ) and (x2 , y2 )
+                                                                                                                                                        were from different trials, we can still compute their covari-
+                                                                                                                                                        ance k(t1 ,t2 ) as a function of the times t1 and t2 at which they
+hyperparameters, we are left with having to estimate f , l, and                                                                                         were observed, as if they were part of the same trial (and thus
+σ2 (if we assume there is noise in the observations). In par-                                                                                           they also share hyperparameters). Collecting the observed
+ticular, we would like to be able to express our beliefs over                                                                                           function values xi and yi (where i indexes the trial), we can
+these hyperparameters in the form of a posterior distribution.                                                                                          write
+Unfortunately, this posterior will not in general be express-                                                                                                                                                               
+ible analytically. Thus, we must turn to Monte Carlo methods                                                                                               x1                    K(x1 , x1 ) K(x1 , x2 ) · · · K(x1 , xn )
+                                                                                                                                                         x2            K(x2 , x1 ) K(x2 , x2 ) · · · K(x2 , xn )
+to estimate the posterior over these parameters.
+                                                                                                                                                         ..  ∼ N 0, 
+                                                                                                                                                                                                                            
+                                                                                                                                                                                        ..                  ..       ..     ..  
+A Single Trial Let us assume we have a single mouse tra-                                                                                                .                            .                   .          .    .  
+jectory in two dimensions, as shown in Figure 2A. This trajec-                                                                                            xn                     K(xn , x1 ) K(xn , x2 ) · · · K(xn , xn )
+tory is a single trial from the experiment reported by Spivey et
+al. (2005). On each trial of this experiment, participants saw                                                                                          where K(xi , xj ) denotes the covariance matrix between each
+two objects, the names of which either had similar phono-                                                                                               sample in trial i and trial j (and a similar multivariate Gaus-
+logical onsets (i.e., were members of the same “cohort”) or                                                                                             sian likelihood is defined for y).
+had phonologically unrelated names (the control condition).                                                                                                The assumption leading to the above likelihood is only
+An audio recording instructed the participant to move their                                                                                             valid if we assume that trajectories generated by the same par-
+mouse cursor from a box in the lower center of the screen and                                                                                           ticipant in the same condition in fact represent samples from
+click on one of the two objects (thus ending the trial).                                                                                                the same underlying process. If we assume that different tri-
+   The single trajectory consists of a series of (t, x, y) triples,                                                                                     als from the same participant may be come from different
+with x and y coordinates and the times t at which they were                                                                                             processes that nonetheless share some underlying character-
+observed. We treat the times t as a univariate predictor (i.e.,                                                                                         istics, the hierarchical extension of GPR that we introduce in
+in the role of x in the previous section) and x and y as condi-                                                                                         the next section may be employed instead.
+tionally independent Gaussian processes operating on t, with                                                                                            Hierarchical GPR
+zero mean and SE covariance kernel (i.e., in the role of f (x)
+                                                                                                                                                        Having shown how GPR can be applied to single trajecto-
+in the previous section). There are three hyperparameters that
+                                                                                                                                                        ries and to multiple trajectories that may be assumed to share
+must be estimated: the parameters of the covariance kernel,
+                                                                                                                                                        the same hyperparameters (i.e., to have been generated by the
+ f and l (see equation 1), and a noise term, σ2 , which is as-
+                                                                                                                                                        same underlying GP), we now turn to the case of multiple
+sumed to apply to measurements in both the x and y directions
+                                                                                                                                                        conditions and multiple participants per condition.
+(isotropic noise is assumed here merely for simplicity). We
+choose very vague priors on each of these hyperparameters,                                                                                              Multiple Conditions When there are multiple conditions
+such that they are informed almost entirely by the data, rather                                                                                         in an experiment, we assume that a trajectory produced in
+than our priors (although these priors could be informed by                                                                                             one condition is conditionally independent of a trajectory pro-
+knowledge, e.g., of the accuracy of mouse position measure-                                                                                             duced in another condition, that is, that the trajectories are
+ments). We assign a Gamma prior to f and l with shape and                                                                                               generated by different GP’s that nonetheless share hyperpa-
+scale parameters set to 0.001 and an inverse-Gamma prior                                                                                                rameters. The rationale for sharing hyperparameters across
+to σ2 (also with shape and scale parameters of 0.001). The                                                                                              conditions is simple: measurement noise (the σ2 parameters,
+                                                                                                                                                     1443
+
+                                X trajectories
+                                                                                       Control vs. cohort                             al. (2005) and shown in Figure 3. In this case, the contrast
+                                                                                       position contrast
+                                                                                                                                      is between two pairs of conditions: the two cohort conditions
+           300
+                                                                          200                                                         (left and right) and the two contrast conditions. Zero lies out-
+           100                                       Cohort−Left          100
+                                                                                                                                      side the 95% credible region of the position contrast function
+x                                                    Control−Left
+                                                     Cohort−Right
+                                                                      X                                                               between roughly .30 and .83 seconds, indicating that the tra-
+           −100
+                                                     Control−Right        0
+                                                                                                                                      jectories produced by this subject to cohort and control stim-
+                                                                          −100                                                        uli are credibly (“significantly”) divergent over this region.
+           −300
+                   0.0    0.2    0.4     0.6   0.8   1.0   1.2                   0.0   0.2   0.4     0.6   0.8   1.0   1.2
+                                                                                                                                      This divergence results from the additional complexity of the
+                                       Time (s)                                                    Time (s)                           cohort trajectories, which is shown by the acceleration con-
+                                                                                                                                      trast: The cohort trajectories include an additional “nudge”
+                          Control vs. cohort
+                         acceleration contrast                                                                                        between .55 and .67 seconds after stimulus onset, as the sub-
+                                                                                                                                      ject reconsiders what he or she has heard.
+           2000                                                                                                                          This example illustrates two useful features of GP’s as tra-
+X accel.
+           0                                                                                                                          jectory models: First, when analyzing contrasts, they do not
+                                                                                                                                      risk inflating the probability of false alarms due to compar-
+           −4000
+                                                                                                                                      isons at multiple time-points. Because a GP represents a dis-
+                                                                                                                                      tribution over functions, there is only one comparison actually
+                   0.0    0.2    0.4     0.6   0.8   1.0   1.2
+                                                                                                                                      taking place. Second, because GP’s allow one to compute
+                                       Time (s)
+                                                                                                                                      the higher derivatives of a trajectory, they afford greater in-
+                                                                                                                                      sight into the functional behavior that gives rise to observed
+Figure 3: Posterior predictive distributions for trajectories inferred                                                                differences between trajectories, leading to potentially useful
+from a single subject from Spivey et al. (2005). The upper right plot
+shows the contrast computed between the x-positions in two cohort                                                                     insights into the cognitive processes that generate them.
+and two control conditions, while the lower left plot depicts the same                                                                Multiple Participants We further expand the scope of the
+contrast with the x-accelerations. Solid lines show the posterior pre-
+dictive mean while the colored regions depict 95% credible regions                                                                    analysis by allowing for multiple participants, each of whom
+around the corresponding mean.                                                                                                        contributes data in multiple conditions, perhaps in many tri-
+                                                                                                                                      als. Researchers typically obtain trajectory measurements
+                                                                                                                                      from multiple participants in the same condition in order to
+one for each observed function) should depend only on the
+                                                                                                                                      better estimate a general property that is presumed to hold
+apparatus (e.g., the mouse or stylus). The hyperparameters of
+                                                                                                                                      across the population. In a memory experiment, this general
+the covariance kernel, meanwhile, may be interpreted to re-
+                                                                                                                                      property might be the probability of correctly recognizing a
+flect properties of the motor system of the participant, which
+                                                                                                                                      previously studied item. There may be great variability be-
+are, of course, shared across conditions: f reflects the degree
+                                                                                                                                      tween participants in their ability to recognize the item, but
+of “hysteresis”, or the tendency for the participant to produce
+                                                                                                                                      each observation is presumed to be a sample from a general
+trajectories with points that lie near one another, while l is in-
+                                                                                                                                      group tendency.
+dicative of the typical size of deviations from a straight line1 .
+   We can again express the conditional likelihood of a set                                                                              In the case of trajectory analysis, we similarly assume that
+of function observations as a zero-mean multivariate Gaus-                                                                            each participant produces a trajectory (or trajectories) that are
+sian. Similar to the multiple-trial situation above, we can de-
+note the observed trajectory points in condition j by {xi } j                                                                         samples from a distribution of possible trajectories. A GP ex-
+and the covariance between each observation in condition j                                                                            presses just such a distribution. Hence, we assume that there
+as K ({xi } j , {xi } j ). Then, we construct a block covariance                                                                      is a group-level GP for each condition, the covariance ker-
+matrix for the likelihood that reflects our assumptions about                                                                         nel of which has its own hyperparameters fG and lG . This
+conditional independence between conditions:                                                                                          group level GP captures the covariance between different tri-
+ 
+  {xi }1
+                                
+                                     K({xi }1 , {xi }1 )                    0                  ···                0
+                                                                                                                              
+                                                                                                                                      als generated by different participants in the same condition.
+ {xi }2                                   0                        K({xi }2 , {xi }2 )       ···                0
+  . ∼N
+        
+                                 
+                                0, 
+                                 
+                                            .                               .                                     .
+                                                                                                                              
+                                                                                                                                    Meanwhile, the covariance between different trials generated
+                                                                                               ..
+  ..                                      .                               .                                     .
+                                                                                                                              
+                                          .                               .                     .               .                 by the same subject have their own covariance structure that is
+  {xi }n                                    0                               0                  ···         K({xi }n , {xi }n )
+                                                                                                                                      added to the group-level covariance. For example, if x1 and x2
+ And, again, we can follow the same logic to construct a sim-                                                                         are two data points observed in different conditions, their co-
+ilar likelihood for y or any other observed component of the                                                                          variance k(x1 , x2 ) = 0, as before. If, however, x1 and x3 come
+trajectory.                                                                                                                           from the same condition, but different subjects, their covari-
+   To assess differences in trajectories between each condi-                                                                          ance will be a function of the group-level covariance, param-
+tion, we can compute functional “contrasts” by taking the dif-                                                                        eterized by fG and lG , denoted kG (x1 , x3 ). Finally, if x1 and
+ference of the posterior predictive distributions for two con-                                                                        x4 are two data points generated by the same subject (subject
+ditions. This is done for one subject’s data from Spivey et                                                                           s) in the same condition, their covariance will be the group
+    1 Of course, other choices of covariance kernel would have their                                                                  covariance plus the covariance resulting from individual vari-
+own parameters which would have their own characteristic interpre-                                                                    ation around the group trajectory, i.e., kG (x1 , x4 ) + ks (x1 , x4 ),
+tations.                                                                                                                              where ks (·, ·) is a covariance kernel parameterized by subject-
+                                                                                                                                   1444
+
+specific parameters fs and ls . As before, we can construct                                                                          X trajectories
+from these terms a covariance matrix for the entire dataset.
+                                                                                                                                                            ++++++++++++    +++++++++++ ++
+                                                                                                                                                                           ++
+   To perform inference in this case requires placing priors                                       200
+                                                                                                                                        ++                 + +  ++
+                                                                                                                                                                 + +
+                                                                                                                                                                         ++
+                                                                                                                                                                    +++++++
+                                                                                                                                                                           +++++ + + +++
+                                                                                                                                                                                            +++++
+                                                                                                                                                                                               ++++
+                                                                                                                                                                                                  +++++++++
+                                                                                                                                                                                                          +++++
+                                                                                                                                                                                                             ++   ++++
+                                                                                                                                                                                                                 ++
+                                                                                                                                                                                                              ++++   ++
+                                                                                                                                    + +                 ++
+                                                                                                                                                       ++++ + ++
+                                                                                                                                 + ++ ++++++
+                                                                                                                                  ++             +
+                                                                                                                                                 +++++
+                                                                                                                                                     +++
+on both the group-level hyperparameters and the subject-                                           100
+                                                                                                                    ++
+                                                                                                                     +++
+                                                                                                                         +++
+                                                                                                                           +
+                                                                                                                           ++
+                                                                                                                            +
+                                                                                                                             ++ +
+                                                                                                                       ++++++++++
+                                                                                                                                 +
+                                                                                                                            ++++++   ++
+                                                                                                                                      +
+                                                                                                                                      ++
+                                                                                                                                       +++
+                                                                                                                                           +
+                                                                                                                                         +++++
+                                                                                                                                           +++++
+                                                                                                                                             +
+                                                                                                                                                 +
+                                                                                                              ++++++
+                                                                                                                 + ++
+                                                                                                                    +++++++++
+                                                                                                                            ++
+level hyperparameters. When using vague priors, as we                                                       +++
+                                                                                                           ++                                                                           Cohort−Left
+                                                                                                   0       +  +++
+                                                                                                           ++++                                                                         Control−Left
+                                                                                               x                ++++++
+                                                                                                               ++                                                                       Cohort−Right
+                                                                                                                     +++
+                                                                                                                       ++++++
+                                                                                                                        ++                                                              Control−Right
+have thus far, it is often advisable to make use of hyper-                                                                 ++++++
+                                                                                                                             ++  +++++
+                                                                                                                               +++++++ + +++++                                                        +++++ ++  ++++++
+                                                                                                                                  + +++
+                                                                                                                                      + ++++++    +                                             ++
+                                                                                                                                                                                               ++
+                                                                                                                                                      ++++++++++++++++++
+priors. Thus, we let µ f ∼ Gamma(0.001, 0.001) and σ2f ∼                                           −200
+                                                                                                                                        +
+                                                                                                                                       ++
+                                                                                                                                        ++ +
+                                                                                                                                            ++
+                                                                                                                                                  ++++++
+                                                                                                                                                                   +       +
+                                                                                                                                                                     ++++++++++++ +++
+                                                                                                                                                                                  +  +
+                                                                                                                                                                                         +++++
+                                                                                                                                                                                       +++++
+                                                                                                                                                                                       +
+                                                                                                                                                                                ++++ + ++ + + ++               + ++
+                                                                                                                                                                        ++  ++ ++ +
+                                                                                                                                                                           ++
+Inverse Gamma(0.001, 0.001) be top-level priors on the mean                                                                                                          ++
+and variance of the distribution of fs values per subject.
+                                                      Then,                                             0.0          0.2            0.4            0.6            0.8            1.0             1.2
+                                                            µ2f µ                                                                              Time (s)
+by moment matching, we draw each fs ∼ Gamma                    , f
+                                                            σ2f σ2f
+                                                                      .
+We do the same for each ls (i.e., place a hyperprior on the                  Figure 4: Posterior predictive distributions with a sample of the
+mean and variance). By using hyperpriors in this way, we                     inflection points (+) inferred by the generative model.
+obtain “shrinkage” of the estimates of the subject-specific pa-
+rameters, such that they can mutually inform one another.
+                                                                             both the trajectories and their underlying cognitive processes.
+Generative GPR
+                                                                                                                       Discussion
+Thus far, we have employed GPR solely in the way it was
+originally intended: as a nonparametric approach to function                 We have presented a general statistical method for modeling
+approximation—as a purely descriptive model. However, we                     trajectories, and shown how it can be used to capture effects
+can use GPR as a generative model in the following way:                      at multiple levels. A main advantage of Gaussian process re-
+Say that we expect all trajectories in a particular condition                gression over the various summary statistics used previously
+to possess characteristic landmarks. These landmarks may                     (e.g., maximum deviation) is that less information is thrown
+be actual positions, or they may be particular values of one                 away: looking at the posterior density shows a normatively
+of the derivatives of the trajectory. For example, an inflec-                correct summary of the data, given the general assumptions
+tion point—a point where the acceleration of the trajectory                  made by the model. GPR balances functional complexity
+in a particular direction reverses—may have a special cogni-                 with capturing the underlying data, and is thus both more gen-
+tive interpretation. In our ongoing example from Spivey et                   eral and more principled than other forms of regression. Hi-
+al. (2005), such a point may reflect the instant at which the                erarchical GPR may be used to distinguish individual, group,
+word in the cohort condition has been completely processed,                  and condition differences.
+and the participant moves his or her cursor away from the                       By accurately tracing and modeling the movement of the
+distractor and toward the named object.                                      body, we can find evidence of ongoing cognitive processes,
+   To implement this idea in a Bayesian fashion, we place a                  and literally see the shape of their influence. Many have won-
+prior on the number of inflection points in the group-level                  dered when psychology will reach paradigmatic maturity–
+trajectory. In principle, this number could be infinite, but in              like physics. Trajectories, tracing movement through space
+practice we assume this is a multinomial draw between 1 and                  over time, are a fundamental property that all organisms and
+8 (the maximum allowed number of inflection points may, of                   matter create.
+course, vary depending on application). This multinomial is,
+                                                                                                                      References
+in turn, parameterized by a draw from a Dirichlet distribution,
+                                                                             Frazier, L., & Rayner, K. (1987). Resolution of syntactic category
+which itself reflects a prior on the overall probability that the              ambiguities: Eye movements in parsing lexically ambiguous sen-
+trajectory has a certain number of inflection points (from 1 to                tences. Journal of Memory and Language, 26(5), 505–526.
+8). Finally, for a given number of inflection points, the points             Freeman, J. B., & Ambady, N. (2010). MouseTracker: Software for
+                                                                               studying real-time mental processing using a computer mouse-
+themselves are presumed to be a priori uniformly distributed                   tracking method. Behavior Research Methods, 42(1), 226–241.
+in time across the range of data points.                                     Freeman, J. B., Dale, R., & Farmer, T. (2011). Hand in motion
+   We can make use of the same formalism we have previ-                        reveals mind in motion. Frontiers in Psychology, 2(0).
+                                                                             Griffiths, T. L., Lucas, C. G., Williams, J. J., & Kalish, M. L. (2009).
+ously used to obtain the posterior predictive distribution for                 Modeling human function learning with Gaussian processes. Ad-
+GPR to compute the likelihood, conditional on a certain set                    vances in Neural Information Processing Systems, 21.
+of sampled inflection points i1 , i2 , . . . , in . This involves com-       Plummer, M. (2011). JAGS: Just another gibbs sampler. Available
+                                                                               from http://mcmc-jags.sourceforge.net/
+puting the covariance matrix K(i, i) between the inflection                  Rasmussen, C. E., & Williams, C. K. I. (2006). Gaussian processes
+points using the kernel in equation 9 and between the in-                      for machine learning. Cambridge, MA: The MIT Press.
+flection points and observed values K(X, i) via equation 8.                  Solak, E., Murray-Smith, R., Leithead, W. E., Leith, D. J., & Ras-
+                                                                               mussen, C. E. (2003). Derivative observations in Gaussian pro-
+The conditional covariance of the data is then K(X, X) −                       cess models of dynamic systems. In S. T. Becker & K. Ober-
+K(X, i)K(i, i)−1 K(i, X). The posterior predictive distribution,               meyer (Eds.), Advances in neural information processing systems
+along with a sample of inferred inflection points, is shown in                 (Vol. 15, pp. 1033–1040). MIT Press.
+                                                                             Spivey, M. J., Grosjean, M., & Knoblich, G. (2005). Continuous
+Figure 4. Notice that only the cohort conditions have inflec-                  attraction toward phonological competitors. Proceedings of the
+tions in the central region, reflecting the greater complexity of              National Academy of Sciences, 102(29), 10393–10398.
+                                                                          1445
+

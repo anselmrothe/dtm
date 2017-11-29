@@ -1,0 +1,406 @@
+    A Comparative Evaluation of Approximate Probabilistic Simulation and Deep
+           Neural Networks as Accounts of Human Physical Scene Understanding
+   Renqiao Zhang1∗            Jiajun Wu1∗         Chengkai Zhang1          William T. Freeman1,2          Joshua B. Tenenbaum1
+        1 Massachusetts  Institute of Technology       2 Google  Research      {andy17, jiajunwu, ckzhang, billf, jbt}@mit.edu
+                              Abstract                                  as the basis for grounded action planning. Several studies
+                                                                        have argued that rapid perceptual inferences about the physics
+   Humans demonstrate remarkable abilities to predict physical
+   events in complex scenes. Two classes of models for physical         of scenes can be explained by positing an “intuitive physics
+   scene understanding have recently been proposed: “Intuitive          engine” (IPE), a mental system for approximate probabilis-
+   Physics Engines”, or IPEs, which posit that people make pre-         tic simulation analogous to those used in video-game physics
+   dictions by running approximate probabilistic simulations in
+   causal mental models similar in nature to video-game physics         engines (Sanborn, Mansinghka, & Griffiths, 2013; Gersten-
+   engines, and memory-based models, which make judgments               berg, Goodman, Lagnado, & Tenenbaum, 2012; K. A. Smith
+   based on analogies to stored experiences of previously en-           & Vul, 2013). These simulation engines approximate object
+   countered scenes and physical outcomes. Versions of the lat-
+   ter have recently been instantiated in convolutional neural net-     dynamics interacting under Newtonian or other forms of clas-
+   work (CNN) architectures. Here we report four experiments            sical mechanics over short time scales, in ways that are per-
+   that, to our knowledge, are the first rigorous comparisons           ceptually reasonable (if not necessarily physically accurate)
+   of simulation-based and CNN-based models, where both ap-
+   proaches are concretely instantiated in algorithms that can run      and efficient enough to run in real time for complex scenes.
+   on raw image inputs and produce as outputs physical judg-               Other authors have suggested that the simulation-based
+   ments such as whether a stack of blocks will fall. Both ap-
+   proaches can achieve super-human accuracy levels and can             IPE scheme might be prohibitively expensive for brains to
+   quantitatively predict human judgments to a similar degree,          implement (Davis & Marcus, 2016). An alternative class of
+   but only the simulation-based models generalize to novel sit-        models has been proposed based on stored memories of expe-
+   uations in ways that people do, and are qualitatively consis-
+   tent with systematic perceptual illusions and judgment asym-         rienced scenes and physical outcomes, together with pattern
+   metries that people show.                                            recognition algorithms (such as neural networks) for access-
+   Keywords: physical scene understanding; neural network;              ing appropriate memory items to predict outcomes in a new
+   analysis by synthesis; simulation engine; blocks world               scene context (Sanborn et al., 2013; Sanborn, 2014).
+                                                                           Although cognitive scientists have yet to seriously test
+                          Introduction                                  memory-based alternatives to simulation in physical scene
+The outputs of vision include not only the objects in a scene           understanding tasks, AI researchers at Facebook recently
+and their spatial relations, but also their physical properties         demonstrated such a possibility in a working system. Lerer,
+and relations: What is heavy or light? What is balanced or at-          Gross, and Fergus (2016) trained deep convolutional neu-
+tached, and what isn’t? What is likely to fall? What will hap-          ral networks (CNNs) to make physical predictions directly
+pen next? When objects move, their motion can be predicted              from visual images, judging for instance whether a stack of
+from these physical inferences; motion can also affect our              blocks will fall, as Battaglia et al. (2013) studied empirically
+physical judgments when objects move in unexpected ways.                and modeled using approximate probabilistic simulation. The
+   These capacities for physical scene understanding are ba-            FAIR neural network, named PhysNet, was partly pretrained
+sic to how we see the world. Precursors to them can be                  on ImageNet (Krizhevsky, Sutskever, & Hinton, 2012) and
+found in infants as young as 3-5 months old, even before chil-          then trained on after a large dataset of synthetic scenes and
+dren acquire their first words labeling kinds of objects (Carey,        outcomes. It achieved a high accuracy (89%) on the stability
+2009; Baillargeon, 2004). Building computational models of              prediction task, generalized to real images reasonably well
+these abilities has been a target for recent work in both cog-          (67%), and exhibited positive correlations with human re-
+nitive science and computational vision (Battaglia, Hamrick,            sponses. This suggests that memory-based systems for visual
+& Tenenbaum, 2013; Gupta, Efros, & Hebert, 2010; Mot-                   intuitive physics may be promising at least in AI applications,
+taghi, Bagherinezhad, Rastegari, & Farhadi, 2015; Fragki-               and perhaps also as cognitive models.
+adaki, Agrawal, Levine, & Malik, 2015; Zheng, Zhao, Yu,                    Motivated by the success of CNNs in machine vision ob-
+Ikeuchi, & Zhu, 2015; Li, Azimi, Leonardis, & Fritz, 2016).             ject recognition tasks (Krizhevsky et al., 2012), neurosci-
+In contrast to earlier work on intuitive physics that empha-            entists have proposed analogous architectures as accounts of
+sized explicit reasoning about textbook-style physics prob-             the fast feedforward aspects of human visual object recogni-
+lems (McCloskey, 1983), with models focused on people’s                 tion (Yamins et al., 2014; Serre, Oliva, & Poggio, 2007). If
+qualitative judgments (Forbus, 1984; Siegler, 1976), recent             CNNs can be successfully applied to physical scene under-
+studies of physical scene understanding have looked at more             standing tasks as well, they could offer a compelling alter-
+rapid, perceptual inferences, which can be parametrically ma-           native to simulation as an account of how people can predict
+nipulated and modeled quantitatively, and which could serve             physical outcomes so well, so quickly.
+     ∗ indicates equal contributions.                                      Our goal in this paper is to conduct the first rigorous em-
+                                                                    1781
+
+pirical comparisons of simulation-based (IPE) and neural-
+network-based (CNN) models for physical scene understand-
+ing. Although CNNs have many appealing features as models
+of visual cortex, they also have features that are less appealing
+– and arguably less human-like. They typically require large
+amounts of training data, which a human might not have ac-                        Stimuli in                        Stimuli in
+cess to. Large training sets may be required for any new sce-               Battaglia et al. (2013)            Lerer et al. (2016)
+nario, even if it is just a simple variation on previously seen
+cases. For instance, in order to predict whether a pile of four
+blocks is stable, a CNN may have to see at least thousands of
+cases that either do or do not fall under gravity. In contrast,
+an IPE model, just like humans, is able to make many predic-
+tions with reasonable accuracies without training, as the sim-
+ulation engine within encodes abstract physical knowledge
+that applies to a very wide range of scenes.
+   Even with a large amount of training data, it is unclear
+whether the knowledge learned by CNNs may be transfer-
+able to some similar cases. Lerer et al. (2016) showed that
+a network trained on images of two and four blocks could
+generalize to images of three blocks to some extent, but there
+is no clear way for a neural network to answer a different            Figure 1: Sample stimuli used by Battaglia et al. (2013),
+but related question to those it is trained for, e.g., in which       Facebook AI Research (Lerer et al., 2016), and us. Our stim-
+direction the blocks would fall, unless explicit labels are pro-      uli are ordered by increasing visual instability (defined in Ex-
+vided during training. One of the main points in favor of IPE         periment 3)
+models is their ability to explain how people can easily make
+many different judgments about very different configurations          another. Our goal is to study how humans and computational
+of blocks, without specific training (Battaglia et al., 2013).        models behave on various tasks given these stimuli, and to
+                                                                      reveal possible correlations between them. We now illustrate
+   Perhaps most interestingly, people are prone to systematic
+                                                                      our stimuli in detail.
+“physics illusions” that IPE models naturally capture. For in-
+                                                                          For each stimulus, there are four blocks with side length 1
+stance, stacks of blocks often look to people as if they are sure
+                                                                      meter piled on the ground, each supporting another on top of
+to fall when they are actually carefully balanced. People do
+                                                                      it. There is only one block at the same height level. Because
+not, however, make the opposite error: They do not system-
+                                                                      laying blocks at uniform random is likely (p = 75%) to re-
+atically mistake unstable stacks for stable ones. Probabilistic
+                                                                      sult in an unstable system, we draw the horizontal position of
+simulation-based models are similarly tempted to make this
+                                                                      a block from a normal distribution with variance 0.292 cen-
+asymmetric pattern of errors (Battaglia et al., 2013): Small
+                                                                      tered at the horizontal position of the block under it, to ensure
+amounts of uncertainty in the simulation can make a sta-
+                                                                      that there are half stable and half unstable piles in the dataset.
+ble configuration appear unstable, but are unlikely to make
+                                                                      Later, we study cases where the number of blocks varies, and
+an unstable one appear stable. It is unclear whether neural-
+                                                                      for them we update the variance accordingly.
+network-based models can capture these perceptual illusions.
+                                                                          Whether blocks are stable, i.e., groundtruth labels, can be
+   In this paper, we report four experiments comparing the
+                                                                      derived from the coordinates of blocks. A block will fall if
+behavior of discriminatively trained neural networks and gen-
+                                                                      and only if the center of mass of all blocks above it, including
+erative simulation-based models with human judgments on
+                                                                      itself, does not fall on top of the block under it.
+blocks-world physics tasks, addressing the questions above.
+                                                                          For rendering, we generate images of resolution 256 ×
+Exp. 1 evaluates the performance of the IPE model and
+                                                                      256.We place a pile of blocks in a virtual experiment field
+performance-optimized neural networks in predicting block
+                                                                      with a size of 30 × 30 meters and a height of 4 meters. We
+stability. Exp. 2 explores the role of limiting CNN train-
+                                                                      have one light source, 16 meters high, to simulate real-life
+ing data, to see if performance on smaller training sets looks
+                                                                      lightening. We also vary the position, focal point, and tilt an-
+more human-like. Exp. 3 evaluates both model classes for
+                                                                      gle of the camera. We represent its coordinates in cylindrical
+asymmetries in the stability illusions described above. Exp. 4
+                                                                      coordinates (r, θ, z), with origin on the ground right beneath
+tests CNNs and IPE models’ ability to generalize to situations
+                                                                      the center of the bottommost block. The camera positions
+slightly different from those the CNN was trained on.
+                                                                      are sampled from r ∼ N(11, 0.32 ), θ ∼ Uniform(0, π/2), and
+                                                                      z ∼ N(3, 0.012 ). We choose these parameters to ensure all
+                     The Blocks World
+                                                                      blocks are within the view of the camera. The focal point of
+For our experiments, we study a set of seemingly simple but           the camera is set at the center of the pile plus a Gaussian noise
+physically rich scenarios: a pile of blocks with one on top of        with variance 0.22 . We also tilt the camera; its angle from the
+                                                                  1782
+
+                                                                                    Figure 3: The structure of LeNet
+                                                                     force is uniformly sampled from (0, 2π) and changes at a fre-
+                                                                     quency of 50Hz. We consider a pile unstable if the vertical
+                                                                     coordinate of the top block changes by more than 0.2 meters
+                                                                     when the simulation ends.
+                                                                     Convolutional Neural Networks
+     Figure 2: The Intuitive Physics Engine (IPE) model
+                                                                     CNNs have gained much popularity in computer vi-
+direction of projection is sampled from     N(0, 22 ). We incor-     sion (Krizhevsky et al., 2012). Here we consider two popu-
+porate these variances for evaluating the generalization ability     lar CNN frameworks: the small but powerful LeNet (LeCun,
+of the models.                                                       Bottou, Bengio, & Haffner, 1998), and the widely used
+                                                                     AlexNet (Krizhevsky et al., 2012).
+                 Computational Models                                   LeNet, originally proposed for digit recognition, has been
+                                                                     widely used as a recognition model in vision because of its
+We study two classes of computational models. One is the
+                                                                     effectiveness and simplicity (LeCun et al., 1998). LeNet con-
+Intuitive Physics Engine (IPE) Model (Battaglia et al., 2013),
+                                                                     sists of two convolutional layers, each followed by a pooling
+which aims to simulate humans’ reasoning on physical scenes
+                                                                     layer and an activation layer. There are then two fully con-
+by an approximate probabilistic simulation engine. The other
+                                                                     nected linear layers at the end. We modify the final layer so
+is convolutional neural networks (CNNs), a class of discrim-
+                                                                     that instead of ten outputs for digit classification, the model
+inative recognition models that have gained much popularity
+                                                                     now has two output units — its confidences on whether the
+in AI fields like computer vision in recent years.
+                                                                     blocks will fall or not. Figure 3 shows the structure of LeNet.
+The Intuitive Physics Engine Model                                      The second is the popular AlexNet (Krizhevsky et al.,
+                                                                     2012), which achieves impressive performance on ImageNet
+The Intuitive Physics Engine (IPE) consists of two compo-
+                                                                     classification. AlexNet consists of five convolutional, pool-
+nents: a Bayesian vision system, which infers the configura-
+                                                                     ing, and activation layers, and three linear layers at the end.
+tions of blocks from given images, and a physical inference
+                                                                     We evaluate both AlexNet pretrained on ImageNet, as well as
+system, which calculates the Bayesian posterior probability
+                                                                     AlexNet trained from scratch.
+distribution of physical properties (i.e., stability) by running
+                                                                        We use Torch (Collobert, Kavukcuoglu, & Farabet, 2011)
+a number of simulations under perturbation forces and geo-
+                                                                     for implementation. We set the learning rate to 0.01 for LeNet
+metric noises. Figure 2 illustrates the IPE model. For more
+                                                                     and for fine-tuning AlexNet, and to 0.2 for training AlexNet
+details, please see Battaglia et al. (2013).
+                                                                     from scratch. We use stochastic gradient descent for training.
+   For each scene, we render images of the initial state under
+perspective projection from three fixed viewpoints rotated by                        Behavioral Experiments
+45◦ . These triplets of images are then fed into the Bayesian
+                                                                     To collect human responses, we first randomly divide all test
+vision system, which uses a Metropolis-Hasting (MH) sam-
+                                                                     images into groups, each consisting of 10 images. We then
+pling algorithm to infer a Bayesian posterior distribution of
+                                                                     add four easy cases (two stable, two unstable), whose sta-
+the scene’s initial state (position, height, and the number of
+                                                                     bility is visually apparent, into the group. For each group,
+blocks presented). We run the MH sampling for 5, 000 steps,
+                                                                     we collect 80 responses on Amazon Mechanical Turk. We
+with a 2D Gaussian blurring kernel of width 2 on the observed
+                                                                     only allow workers with an approval rate > 90% to submit
+images, as suggested by Battaglia et al. (2013).
+                                                                     responses, and we only accept responses from workers that
+   With the inferred initial geometry, we run 20 simula-
+                                                                     answered all four easy cases correctly.
+tions for each scene using the Open Dynamics Engine
+(ODE) (R. Smith, 2006). We set the friction coefficient to 0.2,            Experiment 1: Predicting Falling Blocks
+the bounce coefficient to 0.2, and the side-length and density
+of each block to 1m and 500kg/m3 , respectively. Gravity is          In our first experiment, we test the performance of the IPE
+set to 9.81m/s2 pointing downwards. Before each simulation           model and neural networks on images with four blocks, and
+starts, a horizontal zero mean Gaussian noise σ is added to          compare the results with human responses.
+the positions of blocks. Then the simulation runs at a step          Experimental Setup For the IPE model, we consider cases
+size of 10ms for 2 seconds. During the first second, a hori-         with various levels of geometric Gaussian noises σ and exter-
+zontal force with magnitude φ is exerted at the center of the        nal forces φ during physical simulations. We then compare
+bottom face of the bottommost block. The direction of the            their performance with LeNet, AlexNet, and humans.
+                                                                 1783
+
+                                      φ                               Method                           Stable    Unstable     All
+                     0       35       40      45      50
+           0        94.2    87.2     79.5    71.3    63.8             Human                              38.0      92.9      65.5
+           0.05     91.3    83.4     76.1    69.1    61.8             IPE                                40.7      99.0      70.3
+      σ    0.1      83.2    75.7     70.3    62.6    56.4             LeNet (200K)                       91.3      89.0      90.1
+           0.15     72.2    66.8     59.4    54.2    51.2             AlexNet (200K)                     91.5      92.3      91.9
+           0.2      58.5    53.8     52.1    51.0    50.9             AlexNet (Pretrained, 200K)         94.5      94.7      94.6
+  Corr     ≥ 0.45      ≥ 0.54     ≥ 0.56    ≥ 0.58     ≥ 0.60         LeNet (1, 000)                     68.0      69.3      68.7
+                                                                      AlexNet (1, 000)                   71.8      70.1      70.9
+Table 1: Accuracies (%) of the IPE model with different σ             AlexNet (Pretrained, 1, 000)       72.5      74.2      73.4
+and φ, and their correlations with human responses. We use
+(σ, φ) = (0.1, 40) for following experiments.                      Table 2: Accuracies (%) of humans, IPE, LeNet, and AlexNet
+                                                                   (pretrained and not pretrained), on 200K or 1, 000 images.
+   We use 1, 000 test images, each with a pile of four blocks.     The results on 1, 000 images are averaged over five models
+For neural networks, we build a training set of 200, 000 im-       trained on independently sampled sets.
+ages (disjoint from the test set) with groundtruth labels.
+Results and Discussions As shown in Table 1, when no
+geometric error or external force is added to the IPE model
+(σ = 0, φ = 0), its results almost always match ground-truths
+(94.2% accuracy). Accuracy decreases as noises increase;
+however, as previously described in Battaglia et al. (2013),
+we also observe that correlation between IPE responses and
+human predictions goes up. For the following experiments,
+we use an IPE model with (φ, σ) = (0.1, 40) as it matches hu-
+man performance in terms of both accuracy and correlation.           Figure 4: CNN models with different sizes of training sets
+   We compare results for stable and unstable cases sepa-
+rately, and list them in Table 2. We observe that human pre-       the networks trained with 1, 000 images. As shown in Ta-
+dictions and the IPE model responses have an asymmetric            ble 2, there is still no asymmetric pattern in the responses of
+pattern: they perform well on unstable cases, but for images       the less-trained networks.
+with a stable pile of blocks, their accuracies are much worse.         We now look into how each model correlates with human
+On the contrary, neural networks do not exhibit a similar pat-     responses in more detail. Figure 5 (a) and (b) demonstrate
+tern; they have roughly the same accuracies for both cases.        that the IPE model has a stronger correlation with humans,
+We will revisit this asymmetry more in Experiment 3.               compared to LeNet trained on the full training set. Another
+                                                                   interesting finding is that the less-trained LeNet (c) is more
+       Experiment 2: Limited Training Data                         human-like. We will discuss this more in the final section.
+In our second experiment, we inspect the behaviors of neural
+networks with different sizes of training sets. As our the IPE
+                                                                                Experiment 3: Boundary Cases
+model requires only one or a few examples for simulation, its      We now systematically study the asymmetry we observed in
+performance does not change with the availability of training      Experiment 1. In particular, we focus on a few groups with
+data. The same applies to humans.                                  visually unstable piles, i.e., piles that are carefully balanced
+                                                                   and therefore stable, but illusory to humans so that they be-
+Experimental Setup Instead of using training sets of
+                                                                   lieve these blocks will fall.
+200, 000 images, we now only provide the networks with
+training sets of 100 to 20, 000 images. For each scale, we         Experimental Setup We define visual instability, scaling
+sample five training sets independently, train one network on      from 0 to 5, to describe how unstable a pile of blocks looks
+each set, and compute the average of their performance. The        like. A pile with instability value x means there exists at least
+other setup is same as that in Experiment 1.                       one block so that the center of mass of the blocks above it lies
+Results and Discussions As shown in Figure 4, the per-             x/10 meters away from its center on x-y plane. As the side-
+formance of CNNs decreases as there are fewer training             length of blocks is 1 meter, a pile with a visual instability
+data. Although AlexNet (not pretrained) performs better with       value 4 looks very unstable to humans, significantly different
+200, 000 training images, it also suffers more from the lack       from one with value 1. Figure 6 shows examples with various
+of data, while pretrained AlexNet is able to learn better from     visual instability values.
+a small amount of training images. For our task, both mod-             For this experiment, we restrict possible camera positions
+els require around 1, 000 images for their performance to be       so that the deviations of blocks can be clearly perceived. We
+comparable to the IPE model and humans. We then evaluate           generate four datasets of stable blocks with visual instabilities
+                                                                   of 1, 2, 3, and 4 respectively, each with 100 images.
+                                                               1784
+
+    (a) Human (Y -axis) vs IPE (X-axis)           (b) Human (Y) vs LeNet 200K (X)              (c) Human (Y) vs LeNet 1, 000 (X)
+Figure 5: From left to right: human responses vs (a) responses of IPE (normalized numbers of moving blocks), (b) LeNet
+trained on the full training set (200, 000 images), and (c) LeNet trained on 1, 000 images. Results for AlexNet are similar. We
+list Pearson’s correlation coefficients at the bottom-right corner.
+                                                                       Experimental Setup For this experiment, we generate 200
+                                                                       test images with three and five blocks, respectively. Examples
+                                                                       are shown in Figure 7. We modify the variance of block po-
+                                                                       sitions to ensure there are half stable and half unstable cases.
+                                                                          Our Bayesian vision system is extended to include the
+                                                                       number of blocks as one parameter in sampling. Because the
+                                                                       number of blocks directly determines the total mass, we also
+                                                                       vary the magnitude of the perturbation force according to the
+                                                                       inferred number of blocks to keep its effect consistent. For
+                                                                       neural networks, we simply test the models previously trained
+                                                                       on the 200, 000 images with four blocks.
+                                                                       Results and Discussions Table 3 shows that while CNNs
+Figure 6: Upper: stable blocks with increasing visual insta-           achieve ∼ 90% accuracies on four-block cases, their perfor-
+bilities; Lower: performance of LeNet, AlexNet, pretrained             mance is much worse on cases where the number of blocks
+AlexNet, IPE, and humans on the four datasets. Neural net-             is smaller than that in training examples. Specifically, the
+works are trained on 200K images. Behaviors of networks                predictions of models trained on 200K images are at chance.
+trained on a smaller set (1, 000 images) are similar.                  For cases with more blocks, CNNs, especially pretrained
+Results and Discussions As shown in Figure 6, the perfor-              AlexNet, can learn to generalize to some extent. However,
+mance of neural networks are, in general, better than their per-       their behaviors are different from human responses. In com-
+formance in Experiment 1, probably because images here are             parison, humans and the IPE model have relatively consistent
+easier as the camera positions are restricted. Also, their per-        performance, with slight decreases in accuracies as the num-
+formance barely changes for groups with different visual in-           ber of blocks goes up and the task becomes more difficult.
+stabilities. Even for the most deceptive group (visual instabil-          These experiments demonstrate that the knowledge learned
+ity 4), a LeNet has an accuracy of 93%. We also test AlexNet           by neural networks cannot be transferred, at least in a straight-
+(both pretrained and not pretrained) on cases where blocks             forward way, to scenarios outside the training set. The IPE
+are unstable but visually stable, and the network, again, gives        model and humans enjoy more flexibility in reasoning in the
+highly accurate results (≥ 93%).                                       complex world and solving more general problems.
+   The performance of IPE and humans, on the other hand,                                   General Discussion
+changes drastically across groups. Corresponding to results
+                                                                       Following Facebook AI’s reported results, we found that con-
+in Experiment 1, both IPE and humans consistently predict
+                                                                       volutional neural networks can be trained to achieve super-
+that blocks with visual instability 4 will fall. Their accuracies
+                                                                       human accuracy levels on stability judgment tasks from raw
+are higher when visual instability is smaller, but still not close
+                                                                       images (Exps. 1 and 2). CNNs also correlate reasonably well
+to those of neural networks. This confirms our observation of
+                                                                       with human intuitions about how likely a stack of blocks is
+the asymmetry. More discussions follow in the final section.
+                                                                       to fall, and once trained, they can respond to new images ex-
+                                                                       tremely quickly. However, these features do not automati-
+         Experiment 4: Knowledge Transfer
+                                                                       cally make CNNs a good model of people’s physical intu-
+A possible explanation to humans’ one-shot learning ability            itions. They do not capture systematic judgment asymmetries
+is based on the concept of transfer learning. In our fourth ex-        that humans make, which simulation-based IPE models do
+periment, we evaluate the behaviors of computational models            capture (Exps. 1-3). CNNs also have limited generalization
+on tasks involving knowledge transfer.                                 ability across even small scene variations, such as changing
+                                                                   1785
+
+                                                                      Acknowledgement We are grateful to Tomer Ullman for
+                                                                      helpful discussions. This work is in part supported by NSF
+                                                                      Robust Intelligence 1212849 Reconstructive Recognition, the
+                                                                      Center for Brain, Minds and Machines (NSF STC award
+                                                                      CCF-1231216), and MERL.
+          Figure 7: Images with three or five blocks
+                                                                                                  References
+   Model                 Training            Test Set                 Baillargeon, R. (2004). Infants’ physical world. Current Directions
+                                     3       4      5     Avg           in Psychological Science, 13(3), 89–94.
+                                                                      Battaglia, P. W., Hamrick, J. B., & Tenenbaum, J. B. (2013). Simu-
+   LeNet (200K)             4      50.5    88.5    64.0   67.7          lation as an engine of physical scene understanding. Proceedings
+   AlexNet (200K)           4      52.5    89.5    65.5   69.2          of the National Academy of Sciences, 110(45), 18327–18332.
+   AlexNet (P, 200K)        4      51.0    95.0    78.5   74.8        Carey, S. (2009). The origin of concepts. Oxford University Press.
+                                                                      Collobert, R., Kavukcuoglu, K., & Farabet, C. (2011). Torch7:
+   LeNet (1, 000)           4      57.0    64.0    66.0   62.3          A matlab-like environment for machine learning. In BigLearn,
+   AlexNet (1, 000)         4      54.0    62.0    64.5   60.2          Neural Information Processing Systems Workshop.
+   AlexNet (P, 1, 000)      4      55.0    71.0    72.0   66.0        Davis, E., & Marcus, G. (2016). The scope and limits of simulation
+   IPE (0.1, 10x)          N/A     72.0    64.0    56.0   64.0          in automated reasoning. Artificial Intelligence, 233, 60–72.
+   Human                   N/A     76.5    68.5    59.0   68.0        Forbus, K. D. (1984). Qualitative process theory. Artificial intelli-
+                                                                        gence, 24(1), 85–168.
+                                                                      Fragkiadaki, K., Agrawal, P., Levine, S., & Malik, J. (2015). Learn-
+        Table 3: Results on the task of transfer learning               ing visual predictive models of physics for playing billiards. arXiv
+                                                                        preprint arXiv:1511.07404.
+the number of blocks. In contrast, IPE models naturally gen-          Gerstenberg, T., Goodman, N., Lagnado, D. A., & Tenenbaum, J. B.
+eralize and capture the ways that human judgment accuracy               (2012). Noisy newtons: Unifying process and dependency ac-
+                                                                        counts of causal attribution. In Annual Meetings of the Cognitive
+decreases with the number of blocks in a stack (Exp. 4).                Science Society.
+   Taken together, these results point to something fundamen-         Gupta, A., Efros, A. A., & Hebert, M. (2010). Blocks world re-
+tal about human cognition that neural networks (or at least             visited: Image understanding using qualitative geometry and me-
+                                                                        chanics. In European Conference on Computer Vision.
+CNNs) are not currently capturing: the existence of a mental          Krizhevsky, A., Sutskever, I., & Hinton, G. E. (2012). Imagenet
+model of the world’s causal processes. Causal mental mod-               classification with deep convolutional neural networks. In Neural
+els can be simulated to predict what will happen in qualita-            Information Processing Systems.
+                                                                      LeCun, Y., Bottou, L., Bengio, Y., & Haffner, P. (1998). Gradient-
+tively novel situations, and they do not require vast and di-           based learning applied to document recognition. Proceedings of
+verse training data to generalize broadly, but they are inher-          the IEEE, 86(11), 2278–2324.
+ently subject to certain kinds of errors (e.g., propagation of        Lerer, A., Gross, S., & Fergus, R. (2016). Learning phys-
+                                                                        ical intuition of block towers by example. arXiv preprint
+uncertainty due to state and dynamics noise) just in virtue of          arXiv:1603.01312.
+operating by simulation.                                              Li, W., Azimi, S., Leonardis, A., & Fritz, M. (2016). To fall or not
+   Despite the success of CNNs in accounting for other high-            to fall: A visual approach to physical stability prediction. arXiv
+                                                                        preprint arXiv:1604.00066.
+level human perceptual capacities, such as rapid object classi-       McCloskey, M. (1983). Intuitive physics. Scientific American,
+fication (Yamins et al., 2014), our results suggest that at least       248(4), 122–130.
+some perceptual judgments which people can make in a quick            Mottaghi, R., Bagherinezhad, H., Rastegari, M., & Farhadi, A.
+                                                                        (2015). Newtonian image understanding: Unfolding the dynam-
+glance are not well explained by current feedforward neural             ics of objects in static images. arXiv preprint arXiv:1511.04048.
+networks. We should not conclude however, that neural net-            Sanborn, A. N. (2014). Testing bayesian and heuristic predictions
+works cannot help to explain how people make intuitive phys-            of mass judgments of colliding objects. Front. in Psychology, 5.
+                                                                      Sanborn, A. N., Mansinghka, V. K., & Griffiths, T. L. (2013). Rec-
+ical judgments. If people do indeed have a “physics engine              onciling intuitive physics and newtonian mechanics for colliding
+in the head”, somehow this simulator must be implemented in             objects. Psychological Review, 120(2), 411.
+neural circuits. Recurrent neural networks (RNNs) could pro-          Serre, T., Oliva, A., & Poggio, T. (2007). A feedforward architecture
+                                                                        accounts for rapid categorization. Proceedings of the National
+vide one model for this (Fragkiadaki et al., 2015). It is also          Academy of Sciences, 104(15), 6424–6429.
+possible that CNNs, if trained on more diverse scenes and             Siegler, R. S. (1976). Three aspects of cognitive development. Cog-
+physical judgments than those studied here and/or pretrained            nitive Psychology, 8(4), 481–520.
+                                                                      Smith, K. A., & Vul, E. (2013). Sources of uncertainty in intuitive
+on large-scale image classification tasks (as in Lerer et al.,          physics. Topics in Cognitive Science, 5(1), 185–199.
+2016), could capture more of the qualitative inference behav-         Smith, R. (2006). Open Dynamics Engine (ODE).
+ior people show in our tasks. Lastly, CNNs could be useful            Wu, J., Yildirim, I., Lim, J. J., Freeman, B., & Tenenbaum, J. (2015).
+                                                                        Galileo: Perceiving physical object properties by integrating a
+for visual intuitive physics by quickly estimating the relevant         physics engine with deep learning. In Neural Information Pro-
+object properties in images needed to represent the world’s             cessing Systems.
+state in a physics engine, which would then support more              Yamins, D. L., Hong, H., Cadieu, C. F., Solomon, E. A., Seibert,
+                                                                        D., & DiCarlo, J. J. (2014). Performance-optimized hierarchical
+sophisticated reasoning and prediction by simulation (Wu,               models predict neural responses in higher visual cortex. Proceed-
+Yildirim, Lim, Freeman, & Tenenbaum, 2015). Going for-                  ings of the National Academy of Sciences, 111(23), 8619–8624.
+ward we are eager to explore these and other productive lines         Zheng, B., Zhao, Y., Yu, J., Ikeuchi, K., & Zhu, S.-C. (2015).
+                                                                        Scene understanding by reasoning stability and safety. Interna-
+of exchange between simulation-based generative models and              tional Journal of Computer Vision, 112(2), 221–238.
+memory-based neural network models.
+                                                                  1786
+

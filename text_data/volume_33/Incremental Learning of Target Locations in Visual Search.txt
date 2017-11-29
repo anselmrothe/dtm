@@ -1,0 +1,331 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Incremental Learning of Target Locations in Visual Search
+Permalink
+https://escholarship.org/uc/item/47r0p8fj
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 33(33)
+Authors
+Dziemianko, Michal
+Coco, Moreno I.
+Keller, Frank
+Publication Date
+2011-01-01
+Peer reviewed
+  eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+                     Incremental Learning of Target Locations in Visual Search
+                                           Michal Dziemianko (m.dziemianko@sms.ed.ac.uk)
+                                                    Frank Keller (keller@inf.ed.ac.uk)
+                                                Moreno I. Coco (m.i.coco@sms.ed.ac.uk)
+                                            Institute for Language, Cognition and Computation
+                                              School of Informatics, University of Edinburgh
+                                               10 Crichton Street, Edinburgh EH8 9AB, UK
+                               Abstract                                  the model of Itti et al. (1998), which builds saliency maps
+                                                                         based on color, orientation, and scale filters inspired by neu-
+   The top-down guidance of visual attention is one of the main
+   factors allowing humans to effectively process vast amounts of        robiological results.
+   incoming visual information. Nevertheless we still lack a full           The second group of models assume the existence of top-
+   understanding of the visual, semantic, and memory processes
+   governing visual attention. In this paper, we present a compu-        down supervision of attention which contributes to the se-
+   tational model of visual search capable of predicting the most        lection of fixation targets. Various types of such supervi-
+   likely positions of target objects. The model does not require a      sion have been observed experimentally. Humans show the
+   separate training phase, but learns likely target positions in an
+   incremental fashion based on a memory of previous fixations.          ability to learn general statistics of the appearance, position,
+   We evaluate the model on two search tasks and show that it out-       size, spatial arrangement of objects, and their relationships
+   performs saliency alone and comes close to the maximal per-           (e.g., Zelinsky, 2008). They also exploit visual memory dur-
+   formance the Contextual Guidance Model can achieve (CGM,
+   Torralba et al. 2006; Ehinger et al. 2009), even though our           ing scene comprehension tasks (e.g., Shore and Klein, 2000).
+   model does not perform scene recognition or compute global            Moreover, studies such as those of Chun and Jiang (1998)
+   image statistics.                                                     show that participants benefit from learning spatial arrange-
+   Keywords: visual search; contextual guidance; eye-tracking;           ment of the objects in consecutive searches.
+   incremental learning.
+                                                                            A series of studies have also shown the importance of con-
+                           Introduction                                  text in scene comprehension. Context not only provides infor-
+                                                                         mation about scene layout and type (Schyns and Oliva, 1994;
+Virtually every human activity occurs within a visual con-
+                                                                         Renninger and Malik, 2004), but also about object presence,
+text and requires visual attention in order to be success-
+                                                                         location, and appearance (e.g., Oliva and Torralba, 2007; Bar,
+fully accomplished (Land and Hayhoe, 2001). When pro-
+                                                                         2004). A number of models have been proposed to capture
+cessing a visual scene, humans have to localize objects,
+                                                                         context effects on visual attention; a prominent example is
+identify them, and establish their spatial relations. The eye-
+                                                                         Torralba et al.’s (2006) Contextual Guidance Model, which
+movements involved in these processes provide important in-
+                                                                         combines bottom-up saliency with a prior encoding global
+formation about the cognitive processes that unfold during
+                                                                         scene information. A detailed description of the Contextual
+scene comprehension (Henderson, 2003).
+                                                                         Guidance Model can be found in the Background section be-
+   Studies of free viewing (e.g., Einhauser et al., 2008) have
+                                                                         low.
+shown that scan patterns on visual scenes can vary greatly be-
+tween subjects. On the other hand, the task that participants               In this paper, we introduce a model of visual attention that
+have to perform has an influence on visual attention, result-            predicts fixation locations in visual search tasks. Our proposal
+ing in fixated regions being relatively consistent across par-           is conceptually similar to the CGM, but the top-down mod-
+ticipants for the same experimental conditions (e.g., Torralba           ulation of saliency in our model is based on the memory of
+et al., 2006).                                                           previously found targets, rather than on global scene proper-
+   A number of models have been proposed to predict eye-                 ties. Moreover, we show that the knowledge of expected ob-
+movements during scene comprehension; they can be broadly                ject locations can be learned incrementally, and that no prior
+divided into two categories. The first one consists of bottom-           is needed to achieve satisfactory results in predicting fixation
+up models exploiting low-level visual features to predict ar-            positions. This avoids not only an expensive training phase,
+eas likely to be fixated. A number of studies have shown                 but also enables fast adaptation to different data sets, tasks,
+that certain features and their statistical unexpectedness at-           and experimental conditions.
+tract human attention (e.g., Bruce and Tsotsos, 2006). More-
+over, low-level features are believed to contribute to the se-                                   Background
+lection of fixated areas, especially in case of the visual input
+that does not provide any useful high-level information (e.g.,           The Contextual Guidance Model (Torralba et al. 2006) com-
+Peters et al., 2005). These experimental results are captured            bines saliency with a model of global scene information (gist)
+by models that detect salient areas of visual input and predict          in a Bayesian fashion. The central quantity computed by the
+attention in a bottom-up fashion. The best-known example is              CGM is the probability that a target object O is present at
+                                                                     1729
+
+Figure 1: The architecture of the CGM. First, a saliency map is com-       Figure 2: The architecture of the proposed MMS model. First, a
+puted for the image. It is then modulated with a contextual prior con-     saliency map is computed for the image. It is then modulated with a
+ditioned on global scene features. The resulting map is thresholded        memory map estimated using fixations landing within the targets on
+to select the areas most likely to be fixated.                             previously seen images. The resulting map is thresholded to select
+                                                                           the areas most likely to be fixated.
+point X in the image:
+                                                                              As in the CGM, we approximate saliency as the probability
+                                       1                                   of the local images feature L in a given location based on the
+       p(O = 1, X|L, G) =                   p(L|O = 1, X, G) ·
+                                   p(L|G)                                  global distribution of these features:
+                                   p(X|O = 1, G)p(O = 1|G) (1)                                             1     T Σ−1 (L−µ)]
+                                                                                               p(L) ∝ e− 2 [(L−µ)                            (3)
+Here, L is a set of local image features at X and G is a set of
+                                                                1          Here, with µ is the mean vector and Σ the covariance matrix
+global features representing scene gist. The first term p(L|G)      is
+the saliency model. The second term p(L|O = 1, X, G) has the               of the Gaussian distribution of local features estimated over
+effect of enhancing the features of X that belong to the target            the currently processed image. The local features are com-
+object. The third term p(X|O = 1, G) is the contextual prior,              puted as a set of Gabor filter responses computed over three
+which provides information about likely target locations. The              color channels for six orientations and four scales, totalling
+fourth term p(O = 1|G) is the probability that O is present in             72 values at each position.
+the scene. The model is illustrated schematically in Figure 1.                The contextual component of our model is based on memo-
+   In Torralba et al.’s (2006) implementation, the second and              rized information, without access to image statistics or global
+the forth terms are omitted, yielding:                                     scene representations. The MMS model learns a distribution
+                                                                           of target objects positions, and uses this distribution to mod-
+                                1                                          ulate saliency. We make the simplifying assumption that this
+                  S(X) =             p(X|O = 1, G)                 (2)
+                             p(L|G)                                        distribution is Gaussian.1 An additional simplification is that
+This describes contextually modulated saliency S(X) as the                 only the distribution of horizontal positions is considered,
+combination of bottom-up saliency and a prior on the likely                while vertical position assumed to be uniform. This is sim-
+location of the target, both conditioned on global features rep-           ilar to an assumption made by Torralba et al. (2006).
+resenting scene gist. These global features are computed by                   Even with these simplifying assumptions, the formulation
+pooling local features over 4 × 4 non-overlapping windows;                 of the model is still challenging. The main issue is the mem-
+the resulting vectors are reduced using principal component                ory depth, i.e., the number of previous images that are taken
+analysis.                                                                  into account during the estimation of the target distribution.
+                                                                           Moreover, the Gaussian distribution assumed can only cap-
+                                Model                                      ture the mean position of the targets. People are able to cap-
+We propose the Memory Modulated Saliency (MMS) model                       ture and exploit more specific information such as position of
+of eye-movements in scene comprehension. Like the CGM,                     interesting areas or the spatial arrangement of objects (e.g.,
+our model combines bottom-up saliency with a top-down es-                  De Graef et al., 1990; Chun and Jiang, 1998). Additionally,
+timate of likely target positions. In contrast to the CGM, our             memory decay effects and limited size of short term mem-
+model does not assume a correspondence between global rep-                 ory are not modelled by the MMS, even though they have
+resentations such as scene gist and human behaviour. Instead,              shown to have an effect on visual tasks (e.g., Davelaar et al.,
+we assume that to estimate likely target positions, viewers                2005). Although there is ongoing discussion whether mem-
+rely on their memory of fixations in previous scenes. This in-             ory is present in visual search (see, e.g., Horowitz and Wolfe,
+formation is then used to modulate a standard saliency model.                  1 Although the histograms of target positions (see Figure 4) sug-
+The architecture of the MMS model is shown in Figure 2.                    gest that a simple mixture of Gaussians may be worth investigating.
+                                                                       1730
+
+                                                                       Figure 4: Histograms of vertical coordinates of fixations in visual
+                                                                       search (left) and visual counting (right). The green bars depict per-
+ Figure 3: The process performed by the MMS model. The incoming        centages of fixations on the target objects; the red line shows per-
+ image is converted into a saliency map. The map is then modulated     centages of all fixations.
+ with a bound calculated based on memorized target fixations. The
+ resulting map is thresholded to select likely fixation locations.
+                                                                       The approximated target objects positions are used to update
+                                                                       the memorized distribution of the positions, which is then
+ 1998; Hollingworth, 2006) and our assumptions are not en-             used to modulate saliency for consecutive images. In the eval-
+ tirely consistent with current theories of memory, we believe         uation, we will also consider a variation of the model with
+ they are sufficient, as previous studies have either been con-        separate memories for animate and inanimate targets (dual
+ ducted on artificial stimuli, or focused on a particular phe-         memory MMS), as there is some evidence that animacy af-
+ nomenon rather than investigated memory as the top-down               fects visual attention (Fletcher-Watson et al., 2008; Coco and
+ supervision of low level attentional mechanisms.                      Keller, 2009).
+    Figure 3 presents an example of the computations per-
+ formed by the model when fed a series of images. In the first                           Evaluation Experiments
+ step of each cycle, the saliency map of the image is calcu-
+ lated and modulated with the learned target position distri-          Method
+ bution. The resulting modulated saliency map contains the
+                                                                       We evaluate the performance of the MMS model on eye-
+ model prediction for the fixation locations. The distribution
+                                                                       tracking data collected during a visual counting task. In this
+ of the target objects for the first images in the sequence is
+                                                                       task, 25 participants were asked to count the number of oc-
+ assumed to be uniform. In the second step, the positions of
+                                                                       currences of a cued target object, which was either animate
+ target objects found by the participant are estimated. As the
+                                                                       (e.g., man, woman) or inanimate (e.g., bin). The data set con-
+ position of a target object can be specified in different ways,
+                                                                       sisted of in 72 photo-realistic scenes (both indoor and out-
+ this step requires more detailed explanation. A naive choice
+                                                                       door), containing zero to three instances of the target object.
+ would be to use the center of mass of the object as its position.
+                                                                       The data was collected using a head-mounted eye-tracker
+ This however does not capture the fact that objects are often
+                                                                       with a sampling rate of 500 Hz. The images were displayed
+ relatively large, non-homogeneous entities, and several unre-
+                                                                       with a resolution of 1024 × 768 pixels, subtending a visual
+ lated fixations can fall within their area. Moreover, this would
+                                                                       field of approximately 34 × 30 degrees. The data set con-
+ not use the information provided by saccades and fixations di-
+                                                                       sists of 54,029 fixations. Moreover, in order to directly com-
+ rectly. Hence the position of the object is approximated using
+                                                                       pare the performance of our model with the CGM, we used
+ following rules:
+                                                                       the data set collected by Ehinger et al. (2009) in a visual
+                                                                       search task, where 14 participants were asked to locate an an-
+1. If a fixation falls within the object area, then the object
+                                                                       imate target object, i.e., a pedestrian, in 912 naturalistic urban
+    position is approximated by the fixation coordinates.
+                                                                       scenes, half of which containing the target. The data was col-
+2. If more than one fixation falls into the object area, than          lected using an eye-tracker with a sampling rate of 240 Hz,
+    only the first one is taken into account, the other ones are       the images were displayed with a resolution of 800 × 600
+    discarded.                                                         pixels, subtending a visual field of about 24 × 18 degrees.
+                                                                       This data set consists of 38,334 fixations.
+3. If no fixations fall within the object area, then the fixations        Figure 4 gives histograms of the vertical coordinates of the
+    within one degree of visual field are considered (with rules       fixations in the two data sets. The histograms show percent-
+    1 and 2 modified appropriately).                                   ages of all fixations (red lines) and percentages of fixations on
+                                                                       the target objects (green bars). We find that these distributions
+4. If no position can be calculated using rules 1–3 then the ob-       are similar for both of the datasets. This finding confirms the
+    ject is assumed not to have been noticed by the participant,       hypothesis that visual attention is efficiently allocated to re-
+    and thus discarded.                                                gions which are contextually relevant for the task at hand.
+                                                                   1731
+
+Analysis                                                                   Table 1: The performance of the proposed models with respect to the
+                                                                           animacy of the target objects for visual counting task expressed as
+We evaluate the performance of the MMS model against a                     mean percentage and standard deviation of the area under the ROC
+simple saliency model and a context oracle, which Ehinger                  curve for each experimental subject.
+et al. (2009) suggest to be the upper bound of what can be
+                                                                              Model                  Animate       Inanimate          All
+achieved with a context-based model such as the CGM. A
+context oracle is created by using manually annotated ground-                 saliency            81.16±1.58      80.67±2.23      80.91±1.68
+truth maps. Human participants are asked to mark on the y-                    MMSdual             84.74±1.23      82.92±1.95      83.83±1.38
+axis the regions where the target object is likely to be found.               MMSunrestricted     85.13±1.44      82.43±1.98      83.78±1.52
+Then, these regions are blurred using a Gaussian filter, and                  MMS10               84.61±1.51      81.84±1.90      83.22±1.47
+aggregated over the different participants to obtain a single
+map for each image.2
+   In the Results and Discussion section below, we show how                often located at the bottom of the image, e.g., a pedestrian
+the different models perform by using receiver operating                   on the cross-walk, whereas inanimate objects can be found at
+characteristic (ROC) plots, which indicate the sensitivity                 a wide range of locations. Moreover, the possibility of hav-
+(i.e., true positive rate vs. false positive rate) of a classifier as      ing more than a single target causes participants to inspect
+its discrimination threshold varies. Moreover, in order to sta-            the scene longer, which increases the variability of visual re-
+tistically compare model performance, we calculate the area                sponses.
+under the ROC curve (AUC) of each participant. The AUC                         When comparing the MMS models with the context oracle
+measures the probability that a classifier will rank a randomly            (i.e., the upper bound of the performance of the CGM), we
+chosen positive instance higher than a randomly chosen neg-                find that only MMSunrestricted, i.e., the memory model using
+ative one.3 We submit AUC means to an ANOVA analysis,                      all available fixations, is better than the context oracle, and
+where we compare the performance of the different models                   only on the visual search data set (F(1, 13) = 5.4, p = 0.02).
+pairwise, e.g., saliency against MMSunrestricted. In the vi-               We observe an improvement on the visual counting data set
+sual counting data set, we also test the impact of target ani-             when we separate memories for animate and inanimate ob-
+macy on model performance. In line with the visual cognition               jects, i.e., MMSdual, however the difference with context ora-
+literature (Fletcher-Watson et al., 2008), we expect models to             cle fails to reach significance (F(1, 24) = 2.9, p > 0.09). Any
+perform better on animate targets, as they are more quickly                model with smaller memory performs worse than the context
+and efficiently identified than inanimate targets. The identi-             oracle on both data sets.
+fication of inanimate targets is further complicated by their
+                                                                               As argued above, the difference in model performance ob-
+larger contextual variability (all animate object were of type
+                                                                           served for the two data sets is due to the nature of the task,
+person).
+                                                                           as well as the variability of targets, both in terms of their an-
+Results and Discussion                                                     imacy and the number of occurrences in the scene. In the vi-
+Figures 5 and 6 show the ROC curves obtained by the differ-                sual search task, only a few fixations are needed to ascertain
+ent models for the two data sets. Overall, we find that MMS                the presence or absence of the single animate target. In vi-
+models have a higher hit rate, i.e., proportion of fixations               sual counting, however, up to three targets can be present,
+on target areas, than saliency in both data sets. This finding             which results in longer and more widely distributed fixations.
+confirms that top-down knowledge is fundamental for model                  Furthermore, the variability of visual responses in the visual
+performance in goal-directed tasks, such as search. Crucially,             counting task is increased by the use of both animate and
+we observe that MMS models with small memory perform                       inanimate targets. Animate targets are more quickly identified
+better than saliency, especially in the visual search data set,            than inanimate ones (Fletcher-Watson et al., 2008). Moreover,
+where we find that both MMS3 (F(1, 13) = 27.8, p < 0.0001)                 inanimate targets have larger contextual variability, as all an-
+and MMS10 (F(1, 13) = 192.8, p < 0.0001) perform better                    imate objects belonged to the same object class (i.e., person),
+than saliency. We obtain similar results for the visual counting           which was not the case for inanimate objects. Members of
+data, where MMS3 is not significantly different from saliency              different object classes vary more in their contextual associa-
+(F(1, 24) = 2.0, p > 0.1), but MMS with a memory of 10                     tions and hence their likely locations.
+fixations outperforms saliency (F(1, 24) = 26.6, p < 0.0001).                  These intuitions are confirmed when comparing at the per-
+The difference observed between the two data sets is due to                formance of the different models for animate and inanimate
+the larger variability in the visual counting task, which is in-           targets in the visual counting task; see Table 1 for AUC val-
+troduced by both the animacy of the targets and the variable               ues. We observe that all models have a better performance on
+number of target occurrences per scene. Animate objects are                animate targets than on inanimate ones (F(1, 24) = 40.8, p <
+                                                                           0.0001). The introduction of a dual memory improves the per-
+    2 The context oracle information of Ehinger et al. (2009) was ob-
+                                                                           formance when compared to a model with memory of 10 fix-
+tained from seven participants; for our data set we used five partici-
+pants.                                                                     ations (F(1, 24) = 3.9, p = 0.05), but is not sufficient to out-
+    3 The AUC is equivalent to a Wilcoxon test of ranks, and closely       perform MMS with unrestricted memory (F(1, 24) = 0.7, p =
+related to the Mann-Whitney U-test.                                        0.39). Further investigation with less types of inanimate ob-
+                                                                       1732
+
+Figure 5: Prediction performance for the visual counting task for MMS with memory of 3, 10 and an unrestricted number of fixations
+(MMS3, MMS10 and MMSunrestricted), MMS with a separate memory for animate and inanimate objects (MMSdual), the approximation
+of a contextual upper bound (context oracle), and the saliency baseline.
+jects and a larger number of images is needed to test whether            lation of image or scene statistics. Instead, the MMS model
+the dual memory model is able to improve performance above               keeps the last few fixations the participant made in memory,
+the level of the other models presented.                                 and uses them to predict likely positions of target objects.
+   Overall, our results demonstrate that a simple model of vi-              The MMS model performs significantly better than
+sual search based on the memory of previous fixations can                saliency on the experimental data sets, demonstrating the ben-
+perform equally good, if not better, than a more complex                 efit of memory for the prediction of fixation locations. An
+model such as the CGM, which integrates bottom-up saliency               MMS model with unrestricted memory outperforms the the-
+with context information conditioned on global scene fea-                oretically possible upper bound of the CGM on the visual
+tures.                                                                   search data (but not on the visual counting data). Unlike the
+   It is also important to note that the MMS model perfor-               CGM, the MMS does not require training data, but incremen-
+mance does not degrade on a visual count dataset consisting              tally learns likely target positions. This means that the model
+of different scenes with radically different context. Instead            can adapt easily to new data sets, tasks, and experimental con-
+the model still performs better than saliency and comparable             ditions (while the CGM is sensitive to the nature of the train-
+to the context oracle.                                                   ing data).
+                                                                            On a more theoretical level, our results provide an alterna-
+                         Conclusions                                     tive explanation for the tendency of experimental participants
+We presented a model that predicts fixation locations in visual          to only fixate contextually appropriate regions. Rather than
+search. Our approach is conceptually similar to the Contex-              using context information, it is conceivable that participants
+tual Guidance Model of Torralba et al. (2006), which com-                simply memorize likely target locations from previous trials,
+bines saliency with scene gist and top-down context infor-               and use this information to guide their search on the current
+mation about likely target positions. To obtain the context              trial.
+information, the CGM is trained on a large set of images
+with manually provided object labels. The Memory Modu-                                        Acknowledgments
+lated Saliency model that we propose, on the other hand, does            The support of the European Research Council under award
+not require offline training and does not involve the calcu-             number 203427 ”Synchronous Linguistic and Visual Process-
+                                                                    1733
+
+                                     Figure 6: Prediction performance for MMS for the visual search task.
+ing” is gratefully acknowledged.                                          Fletcher-Watson, S., Findlay, J., Leekam, S., and Benson, V. (2008).
+  We would also like to thank the authors of Ehinger et al.                   Rapid detection of person information in a naturalistic scene. Per-
+                                                                              ception, 37(4):571–583.
+(2009) and Torralba et al. (2006) for sharing the image cor-              Henderson, J. (2003). Human gaze control in real-world scene per-
+pora and eye-tracking data used in their studies.                             ception. Trends in Cognitive Science, 7:498–504.
+                                                                          Hollingworth, A. (2006). Visual memory for natural scenes: Evi-
+                           References                                         dence from change detection and visual search. Visual Cognition,
+                                                                              (14):781–807.
+Bar, M. (2004). Visual objects in context. Nature Reviews Neuro-
+  science, 5:617–629.                                                     Horowitz, T. and Wolfe, J. (1998). Visual search has no memory.
+                                                                              Nature, 394(6):575–577.
+Bruce, N. and Tsotsos, J. (2006). Saliency based on information           Itti, L., Koch, C., and Niebur, E. (1998). A model of saliency-based
+  maximization. In Advances in Neural Information Processing                  visual attention for rapid scene analysis. IEEE Transactions on
+  Systems 18, pages 155–162. Cambridge, MA: MIT Press.                        Pattern Analysis and Machine Intelligence, 20(11):1254–1259.
+Chun, M. and Jiang, Y. (1998). Contextual cueing: Implicit learning       Land, M. and Hayhoe, M. (2001). In what ways do eye movements
+  and memory of visual context guides spatial attention. Cognitive            contribute to everyday activities? Vision Research, 41:3559–
+  Psychology, 36:28–71.                                                       3565.
+Coco, M. I. and Keller, F. (2009). The impact of visual information       Oliva, A. and Torralba, A. (2007). The role of context in object
+  on reference assignment in sentence production. In Taatgen, N.              recognition. Trends in Cognitive Sciences, 11(12):520–527.
+  and van Rijn, H., editors, Proceedings of the 31st Annual Confer-       Peters, R., Iyer, A., Itti, L., and Koch, C. (2005). Components of
+  ence of the Cognitive Science Society, pages 274–279, Amster-               bottom-up gaze allocation in natural images. Vision Research,
+  dam. Cognitive Science Society.                                             45:2397–2416.
+Davelaar, E. J., Goshen-Gottstein, Y., Haarmann, H. J., and Usher,        Renninger, L. and Malik, J. (2004). When is scene identification just
+  M. (2005). The demise of short-term memory revisited: empirical             texture recognition? Vision Research, 44:2301–2311.
+  and computational investigation of recency effects. Psychological       Schyns, P. and Oliva, A. (1994). From blobs to boundary edges: Ev-
+  Review, 112(1):3–42.                                                        idence for time- and spatial-scale-dependent scene recognition.
+De Graef, P., Christiaens, D., and d’Ydewalle, G. (1990). Perceptual          Psychological Science, 5:195–200.
+  effects of scene context on object identification. Psychological        Shore, D. and Klein, R. (2000). On the manifestations of memory in
+  Research, 52:317–329.                                                       visual search. Spatial Vision, 14:59–75.
+Ehinger, K., Hidalgo-Sotelo, B., Torralba, A., and Oliva, A. (2009).      Torralba, A., Oliva, A., Castelhano, M., and Henderson, J. (2006).
+  Modeling search for people in 900 scenes: A combined source                 Contextual guidance of eye movements and attention in real-
+  model of eye guidance. Visual Cognition, 17(6/7):945–978.                   world scenes: The role of global features on object search. Psy-
+Einhauser, W., Spain, M., and Perona, P. (2008). Objects predict              chological Review, 113:766–786.
+  fixations better than early saliency. Journal of Vision, 8(14):1–       Zelinsky, G. (2008). A theory of eye movements during target ac-
+  26.                                                                         quisition. Psychological Review, 115:419–433.
+                                                                     1734
+

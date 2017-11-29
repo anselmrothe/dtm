@@ -1,0 +1,371 @@
+                 An Integrated Account of Explanation and Question Answering
+                                           Ben Meadows (bmea011@aucklanduni.ac.nz)
+                                           Richard Heald (rhea335@aucklanduni.ac.nz)
+                                            Pat Langley (patrick.w.langley@gmail.com)
+                                      Department of Computer Science, The University of Auckland
+                                             Private Bag 92019, Auckland 1142, New Zealand
+                               Abstract                                   it suggests plausible structural components of explanation.
+                                                                          Content words (e.g., ‘food’, ‘spins’) indicate concepts and
+   Many high-level cognitive tasks involve understanding – the
+   mechanisms by which an agent attempts to construct accurate            relations that are organized in recognizable patterns which
+   mental representations of its world. In this paper, we discuss         constitute prior knowledge (e.g., ‘?x is an instance of ?y be-
+   two such processes: explanation and question answering. We             ing stuck to ?z’). We can picture the elements as nodes and
+   propose four theoretical assumptions about representation and
+   processing that arise in these tasks: both involve inference, this     knowledge as sets of labeled edges in a directed graph.
+   inference requires making default assumptions, it occurs in an            We build on these ideas in the following sections. First we
+   incremental manner, and it produces structures that can be ex-         propose some theoretical principles about the connections be-
+   pressed as directed graphs of conceptual ground literals. We
+   analyze two models of explanation and question answering in            tween explanation and question answering as complementary
+   terms of these commonalities and evaluate experimental claims          forms of understanding. We then describe two systems that
+   about them using reading comprehension passages. In closing,           address these tasks, make empirical claims, and test them ex-
+   we discuss our findings in light of related research.
+                                                                          perimentally. We draw comparisons with related research and
+   Keywords: abductive inference; cognitive systems; explana-
+   tion; question answering; symbolic reasoning; understanding            conclude with plans for future work.
+                                                                                        Theory and Commonalities
+                          Introduction                                    Take the illustrative example of the spider building a web to
+Understanding is a primary component of high-level cog-                   catch a fly. Suppose an agent possesses a piece of structural
+nition. Many cognitive tasks require an agent to update                   knowledge K, stating “a mobile entity that cannot detect an
+its model of the world based on inferences it makes about                 object may touch it by accident”. The agent may infer that
+connections among its sensory inputs, existing beliefs, and               the bug flew into the web by accident. Making the inference
+knowledge. Explanation is one understanding task, in which                requires the agent to (a) identify the rule K in its knowledge
+an agent assembles its perceptions of the world into structures           base as one it can usefully apply, (b) instantiate the rule cor-
+that integrate coherently into some model. Question answer-               rectly (e.g., ?entity=bug & ?object=web) using known val-
+ing is a similar task, in which an agent maps a query about the           ues, and (c) introduce the assumption that the bug is mobile.
+world onto a model, extending it as needed to produce a plau-                Alternatively, we may ask the question: How did the bug
+sible answer. In this paper we report an integrated account of            come to fly into the web by accident? The components – a
+behavior on these two tasks.                                              high-level query and a predictable output (a pattern of con-
+   As a motivating example, consider this passage from a first            cepts and events) – match the same piece of knowledge, K.
+grade reading comprehension book (Liscinsky, 2010):                       The agent may decide it is reasonable to make a single sup-
+     [1]    The spider wants food.                                        porting assumption, then assume that the bug is mobile, in-
+     [2]    She likes to eat bugs.                                        stantiate the argument, and return the result as an answer.
+     [3]    So she makes a trap.                                             The first example involves explanation: interpreting obser-
+     [4]    The spider spins a sticky web.                                vations in terms of what is already known, filling in gaps as
+     [5]    Then she waits.                                               necessary, and thereby incrementally adding higher-level pat-
+     [6]    The web is hard for bugs to see.                              terns. The second concerns question answering: interpret-
+     [7]    Whap! A bug flies into the web.                               ing evidence to fit a query by using the question as input
+     [8]    The web shakes when the bug lands.                            and undergoing an analogous process. Both are directed ex-
+     [9]    The bug is stuck.                                             plorations that produce interconnected patterns by applying
+                                                                          knowledge to beliefs (when there are repeated iterations be-
+We can elicit several ideas from this extract. Some facts are
+                                                                          yond the single step contained in the example above). We can
+not overtly stated, but rather implied by others (e.g., the bug
+                                                                          now define these tasks more precisely:
+has wings). The same holds for causal content (e.g., the spi-
+der is going to eat the bug) and constraints (e.g., the condi-            • Explanation is a cognitive task in which an agent is:
+tions under which a spider can ensnare a bug).                               ◦ Given a sequence of input observations and a corpus of
+   This suggests some reasonable questions to ask about the                     hierarchically organized knowledge, and
+domain. What is the spider going to eat? How did the spi-                    ◦ Finds an explanation represented as a directed graph of
+der catch the bug? Does the bug have wings? Furthermore,                        concepts and rule instances.
+                                                                      1571
+
+ • Question answering is a task in which an agent is:                     ory incrementally. Rule instances become interconnected,
+    ◦ Given a set of query elements, a corpus of hierarchically           with later questions being answered using inferences or as-
+       organized knowledge, and zero or more initial facts, and           sumptions from earlier queries. For example, the element
+    ◦ Finds an elaboration of the query that expands an exist-            the spider notices the bug is trapped in its web should re-
+       ing explanation to provide a coherent answer.                      duce the search required for the the spider eats the bug.
+ We have claimed that these tasks do not just bear surface sim-        Together, these four suppositions provide a theoretical frame-
+ ilarities, but have parallel structures. We will expand on this       work for understanding that supports both explanation and
+ idea by discussing their representational and processing com-         question answering. We will now turn to two specific in-
+ ponents – first defining the cornerstones of a computational          stances of this theory that model behavior on these tasks, de-
+ approach that incorporates these commonalities and then de-           scribing their representation and mechanisms.
+ scribing specific implementations. To this end, we have com-
+ posed four theoretical tenets that we argue are shared by ques-        Two Complementary Models of Understanding
+ tion answering and explanation.                                       We have developed two computational models that address
+1. Both tasks involve inference in that they generate a set of         different but complementary aspects of understanding: UM-
+    interconnected beliefs about facts. Information is often in-       BRA (Meadows, Langley, & Emery, 2013, 2014), an account
+    complete and must be extended by using knowledge. In               of explanation, and P HOS, a model of question answering.
+    our example, the answer to the question “why did the spi-          We developed UMBRA to address the data-driven construc-
+    der make a web?” is not stated, yet is ‘obvious’. In expla-        tion of explanations that occurs naturally as one observes a
+    nation, inference is a largely bottom-up process of inter-         stream of events, and we implemented P HOS to handle the
+    preting low-level facts and observations. Question answer-         process of question answering that builds upon these expla-
+    ing instead is a top-down process that reconciles high-level       nations.1 The two systems share the theoretical underpin-
+    question elements with existing beliefs.                           nings just described, including representational assumptions
+2. Inferred structures are organized into directed graphs of           that we will review before discussing their mechanisms.
+    working memory elements. Understanding requires the
+    ability to cache information in a short-term belief store that     Representations for Understanding
+    tracks basic conceptual elements. Long-term knowledge,             We designed UMBRA and P HOS to operate over the same
+    comprising rules (patterns of generalized elements), is or-        representational structures. Each system has a working mem-
+    ganized in a hierarchical manner. A rule relevant to the           ory that contains beliefs encoded as relational structures
+    bug’s flight into the web might be                                 like ‘x is an instance of y’, ‘j has the attribute-value pair
+    is-a(?x, accidental-contact) ⇐                                     <a,b>’, or ‘n and m are not equal’. These elements may
+     is-a(?x, contact) &                                               contain constants, identifiers for other elements, or skolem-
+        attribute(?x, agent, ?a) & attribute(?x, recipient, ?r) &      ized placeholders for unknown values. In our scenario, we
+        attribute(?x, intentional, false) &                            can express the bug becoming stuck with the elements is-
+     is-a(?y, cannot-see) &                                            a(skolem1, trapped) & attribute(skolem1, agent, bug) & at-
+        attribute(?y, agent, ?a) & attribute(?y, recipient, ?r) &      tribute(skolem1, object, web) & attribute(skolem1, actor, spi-
+        attribute(?a, mobile, true)                                    der), much as in a semantic network (Gentner, 1975). More-
+                                                                       over, working memory organizes facts, inferences, and as-
+    where each attribute literal is a terminal node, contact and
+                                                                       sumptions into connected structures that we call explanations.
+    cannot-see denote relations specified by other rules, and so
+                                                                          Questions are encoded in a similar manner, as sets of con-
+    on. Both explanation and question answering produce the
+                                                                       nected, partially instantiated elements in working memory.2
+    same type of interconnected rule instances.
+                                                                       For example, {is-a(?s, spider)} denotes ‘what spiders ex-
+3. Inference requires the introduction of default assumptions.
+                                                                       ist?’, while {is-a(?c, cannot-see), attribute(?c, agent, ?a),
+    Deductive proofs are typically viable only in abstract or
+                                                                       attribute(?c, recipient, web1), attribute(?c, cause, ?y)} en-
+    closed-world scenarios. In the real world, there may be
+                                                                       codes ‘who cannot see web1, and why?’ A question typically
+    substantial but not conclusive support for a belief. We
+                                                                       involves some informative elements (e.g., ‘spider’, ‘recipi-
+    hold that human understanding employs a form of every-
+                                                                       ent’) and some unknown ‘answer’ values (e.g., ‘?s’, ‘?y’).
+    day reasoning that involves abductive inference (Bridewell
+                                                                       Answers are instantiations of questions whose constant val-
+    & Langley, 2011). Assumptions should be reasonable in
+                                                                       ues appear throughout the explanation graph produced by the
+    that they meet criteria such as consilience, parsimony, and
+    coherence. The spider is alive is more consistent with other           1 Phos is the Greek word for light, which reveals what lies in the
+    beliefs than the spider is a lifelike robot.                       shadows but also cast new shadows in the process.
+4. Inference occurs in an incremental, on-line manner. This                2 Our work does not focus on natural language processing; we as-
+    reflects the idea of a cognitive cycle (Young, 2001) that          sume that questions have already been translated into internal struc-
+                                                                       tures expressed as connected sets of elements. However, we do
+    involves processing of a single structure, such as applica-        not assume that word sense is provided, so our system must utilize
+    tion of a rule, so that elements are added to working mem-         knowledge to interpret questions it encounters.
+                                                                   1572
+
+question-answering process. These answers may be partly              Table 1: Summaries of the five sample scenarios. Page num-
+ungrounded if a complete answer is not found.                        bers from the source (Liscinsky, 2010) are given in italics.
+   UMBRA and P HOS also draw on a common long-
+term memory that contains relational knowledge structures.               ◦ A hungry spider spins a web and a bug blunders into it. (44)
+Knowledge is encoded in a conceptual hierarchy in which                  ◦ A zoo is described as containing various animals and activi-
+higher-level nodes are specified in terms of lower-level nodes.            ties, including mythical or anthropomorphized ones. (108)
+Rule components include the patterns is-a(?x, ?type), at-                ◦ A hippo stays in water during the day when the sun is hot,
+                                                                           then comes out at night to eat. (51)
+tribute(?x, ?label, ?y), (?a6=?b), and (?a=?b). We assume
+that neither system will encounter attributes with multiple              ◦ Insects and spiders are compared and contrasted. (104)
+values, such as attribute(?1, label, value1) & attribute(?2, la-         ◦ A pig enjoys rolling around in a cool mud puddle. (17)
+bel, value2) & (?value16=?value2) ⇒ (?16=?2). The previous
+section presented a simplified example of a conceptual rule
+for accidental-contact.                                              necessary. The system may receive a set of beliefs that are
+                                                                     not linked by rule instances or, in extreme cases, it may re-
+A Model for Generating Explanations                                  ceive no initial beliefs at all.
+UMBRA models the generation of explanations. We pro-                    P HOS operates in a series of high-level query cycles, each
+vide the system with conceptual knowledge and a sequence             of which represents a discrete attempt to find a coherent an-
+of facts and observations in the notation just described. Ex-        swer. These in turn comprise a number of inference steps. A
+planations are directed graphs comprising domain literals that       query cycle begins by initializing a set of candidate literals –
+include input elements as well as other, similar, ones that          the fringe – with the contents of the original question. The
+have been inferred or assumed. These elements may be only            system then incrementally extends the current query graph.
+partially instantiated, and they are connected by instances          On each inference step, P HOS selects an element from the
+of rules that have been applied. For example, the literal is-        fringe to focus on, then enumerates the rule instances, as-
+a(web1, location) may appear in several different rule in-           sumptions, or unifications with which it could be supported.
+stances – in defining a web, or waiting at a place, or a locus       The system calculates a cost for each candidate. A coher-
+of entrapment. In this way, an explanation can be structurally       ence heuristic uses these costs to select a candidate at random
+cohesive.                                                            with probabilities proportional to their fitness, thus provid-
+   UMBRA constructs its explanations through an incremen-            ing search control that guides expansion of the query graph.
+tal, data-driven form of abductive inference (Meadows et al.,        The inference step ends by adding the candidate’s elements to
+2014). This process operates through a sequence of high-             working memory. In contrast to UMBRA, this process oper-
+level ‘observation’ cycles, each of which begins with the ac-        ates in a top-down manner. However, whenever the system
+quisition of new beliefs from observations and then expands          extends the explanation, new instantiations are propagated
+the explanation graph through a number of inference steps.           back up the graph to the original query elements.
+The system has a resource bound that limits the inference               If P HOS processes every element in the fringe, then it has
+steps it carries out on each observational cycle. Rules that         found an answer and the query cycle ends. Otherwise, it halts
+require more assumptions have higher cost, and the system            when the accrued total cost becomes too high. The system
+stops chaining when it exceeds a threshold.                          retains the working memory elements and rule instances in-
+   On each inference step, UMBRA generates a set of can-             volved in the answer’s elicitation. Importantly, this includes
+didate rule instances that match against at least one element        the original questions, which very often carry implicit mean-
+in working memory. It calculates the additional inferences           ing (e.g., asking “Did the hungry spider sleep?” introduces
+and assumptions needed for each rule, using this as the basis        the idea that there is some spider that is hungry), and thus
+for a cost metric. The system uses high-level control knowl-         are useful resources for later, related questions. If a ques-
+edge to prune candidates that violate existing constraints, or       tion is repeated later, P HOS can unify its components with
+that would not sufficiently improve explanation consilience.         the answer elements from the existing structure, resulting in
+It evaluates each remaining rule instance according to the cost      pattern-based retrieval.
+metric and selects the least-cost remaining candidate. UM-              We have shown how these two models of high-level un-
+BRA applies this rule instance, introducing new elements (de-        derstanding instantiate the theoretical basis that we outlined.
+fault assumptions) and extending the explanation.                    UMBRA uses an incremental, data-driven form of abduction
+                                                                     that introduces default assumptions in an effort to produce
+A Model of Question Answering                                        a cohesive explanation. P HOS uses an incremental, query-
+We developed P HOS to model the process of question answer-          driven form of abductive inference to generate meaningful
+ing. We provide the system with conceptual knowledge, a              answers that it incorporates into a new or existing explana-
+set of existing beliefs organized into an explanation structure,     tion. Now that we have shown how these models align with
+and a question. It produces an elaborated explanation with ad-       our core theory, we turn to analyzing their behavior, in partic-
+ditional inferences that connects the question to prior beliefs      ular how the processes of explanation generation and question
+and provide an answer. An input explanation is not strictly          answering interact.
+                                                                 1573
+
+                      Empirical Studies                                   erty, limbs-legs) & attribute(?p, number, 8). We generated
+ UMBRA and P HOS are computational models that instantiate                three different questions for each scenario.
+ the theoretical tenets we presented earlier. As such, we can                We measured P HOS’s performance by counting cases in
+ examine their behavior in particular scenarios to reveal inter-          which the correct answer was returned and cases in which
+ actions between explanations and question answering. Our                 spurious inferences occurred. We calculated precision and
+ aim is not to fit quantitative measures like error rates or reac-        recall scores from those metrics. We also estimated computa-
+ tion times. Instead, we desire to demonstrate that, taken to-            tion time per answer with the abstract cost thresholds used by
+ gether, the two models produce behavior that is qualitatively            both UMBRA and P HOS. We measured cognitive cycles per
+ similar to that observed in humans. In summary, we adopt a               answer, but resource consumption predicted this metric very
+ cognitive systems approach (Langley, 2012) that studies the              closely, so we do not report it here.
+ behavior of integrated computational artifacts.                             Target answers varied in size from a single element (“no”)
+    Part of our evaluation involves running the explanation sys-          to graph structures containing more than 50 elements. We
+ tem on observations and then asking questions about the al-              repeated each question twice to compensate for minor effects
+ tered memory state. This approach follows Zelle et al. (1994),           from the nondeterministic heuristics, although in practice we
+ who measured the performance of an integrated system for                 saw very few differences across repeated runs. In all cases,
+ language understanding in terms of its final outputs. By mea-            we provided both systems with the full complement of 60
+ suring answer accuracy, we can quantify the success of our               domain rules derived from all scenarios.
+ two models operating in tandem. We are interested in how                 Claim: Understanding Tasks are Complementary
+ explanation generation and question answering interact. We
+ make three main empirical claims:                                        Our first claim was that the work done by explanation reduces
+                                                                          the amount of effort question answering requires and vice
+1. Explanation construction and question answering are                    versa. Intuitively, making more initial inferences may reduce
+    complementary and commutative. Computational re-                      the effort required to find an answer later. This hypothesis is
+    sources spent on explanation can reduce the cost of sub-              informed by theories of different types of elaboration in hu-
+    sequent question answering activities and vice versa.                 man reasoning (e.g., Bradshaw & Anderson, 1982). In the
+2. Question answering centrally involves inference. Re-                   extreme case, question answering works without prior expla-
+    trieval processes are crucial to high-level understanding,            nation as long as it has sufficient computational resources.
+    which in turn relies on processes like abductive inference.              To test this claim, we ran UMBRA on each domain, then
+3. Interference impacts understanding, but can be over-                   ran P HOS on its outputs. We systematically varied the re-
+    come. Confounding information escalates the cost of pro-              sources allocated to each system, running UMBRA at zero,
+    cessing, increasing the cycles or resources required, but             scarce, or plentiful levels, and P HOS with scarce or plentiful
+    one can still disregard superfluous facts.                            levels.4 We ran the systems in sequence a total of 180 times,
+ Although we cannot provide details here, these claims follow             ignoring UMBRA’s incorrect inferences (because these may
+ directly from our two models and they also parallel known                sometimes translate into inputs that P HOS regards as incon-
+ aspects of human understanding.                                          sistent, in which case the system halts). We found that, when
+                                                                          P HOS had scarce computational resources, recall scores in-
+ Experimental Design                                                      creased as UMBRA’s resources increased, from 0.17 to 0.33
+ Reading comprehension is a good task for evaluating under-               to 0.37. When P HOS had plentiful resources, recall remained
+ standing, in that passages contain elided information, utilize           at 0.55, consistently higher than the scarce case. We also
+ conceptual knowledge, and have relevance to human cogni-                 found that increasing UMBRA’s resources reduced mean cost
+ tion. We therefore worked with five scenarios from a first-              per answer by 40 to 60 percent. Together, these results sup-
+ grade text for reading comprehension (Liscinsky, 2010).3 Ta-             port our first claim.
+ ble 1 summarizes these passages.
+                                                                          Claim: Question Answering involves Inference
+    We translated the five vignettes into logical literals, pro-
+ ducing scenarios with varying characteristics. For instance,             Our second claim was that inference is central to the question-
+ the comparing insects to spiders vignette describes only do-             answering process; understanding depends on the organiza-
+ main rules, with no initial facts, while another had 127 ground          tion of ground facts and supporting assumptions into known
+ facts; the mean was 45.4. We extracted content from the text             patterns, so that reasonable answers can be produced by
+ manually, encoded it using these literals, and then generated a          common-sense reasoning where information is elided. We
+ set of questions. For example, “Is there any insect with eight           tested this premise by removing P HOS’s abductive inference
+ legs?” translates to the conjunction is-a(?x, insect) & is-a(?p,         capability, eliminating the step at which the model can choose
+ has-property) & attribute(?p, entity, ?x) & attribute(?p, prop-          to construct a subquery by matching an element from the
+                                                                          fringe with a rule head. We ran it on the test scenarios with
+     3 We chose five passages that the author categorized differently
+ – ‘compare and contrast’, ‘fantasy and reality’, ‘prediction’, ‘main         4 The systems’ internal notions of ‘processing resources’ are not
+ idea’, and ‘what and how’ – to maximize the range of scenarios.          identical, but they are directly analogous.
+                                                                      1574
+
+plentiful resources, expecting the lesioned system would be                                Related Research
+unable to function effectively. In previous work, we have re-
+ported similar studies with the UMBRA model in isolation             Our framework shares elements with previous research but
+(Meadows et al., 2013).                                              also has distinctive features. For example, work in the
+                                                                     paradigm of plan recognition (Goldman, Geib, & Miller,
+   In this case, we found that the system only succeeded on
+                                                                     1999; Bridewell & Langley, 2011) has focused on generat-
+13 percent of the runs, and then only because it defaulted to
+                                                                     ing explanations of observed behavior, often inferring agents’
+‘false’, the correct answer for two questions. This is evidence
+                                                                     goals using abductive mechanisms on hierarchical knowledge
+that it could not answer the questions with straightforward re-
+                                                                     structures, but it has not addressed the related task of question
+trieval. P HOS was also able to perform more direct retrievals
+                                                                     answering. Winston’s (2012) research on story understanding
+after running UMBRA. These results support our hypothesis
+                                                                     has a similar flavor, encoding knowledge as rules and expla-
+that inference is crucial to effective question answering.
+                                                                     nations as elaboration graphs much like our structures, but,
+Claim: Interference Effects can be Overcome                          again, has not addressed question answering.
+                                                                        At the other extreme, some computational models of hu-
+Our final claim stated that confounding information necessi-         man memory include accounts of question answering but do
+tates more processing to find answers. Intuitively, we expect        not touch on explanation generation. Anderson and Bower
+that trying to compensate for noise will impose overheads:           (1980) offer a detailed account for the retrieval of facts from
+consider making the decision to ignore an improbable outlier         memory in response to questions, but their storage process
+or separating relevant and irrelevant ground facts. To test this     involves no inference. Graesser et al. (1991) report a more
+premise, we combined the 227 initial elements from all the           sophisticated model of question answering that incorporates
+scenarios. Running P HOS with plentiful resources, we found          criteria similar to ours, such as coherence. However, their
+that confounders reduced the mean recall score from 0.53 to          work assumes that all content used in this process is already
+0.37, often due to finding an answer with faulty low-level           stored in memory. Waldinger et al. (2011) describe an ap-
+bindings rather than wrongly instantiating the top-level query       plied system that, given access to online databases, com-
+elements or not answering. This means the model sometimes            bines language processing with deduction to answer medi-
+incorporates extra information in an unreasonable way.               cal questions. Narayanan and Harabagiu (2004) present an
+   The mean cost per answer, surprisingly, decreased from            alternative that uses probabilistic inference to answer ques-
+1499.5 to 762.3, contradicting our hypothesis. Analysis re-          tions given predicate-argument descriptions of a large corpus
+vealed that rather than requiring more cognitive cycles before       of sentences from the Wall Street Journal.
+it found a suitable answer, P HOS often managed to incorpo-             Research on natural language processing during the 1970s
+rate confounders in ways that seemed consistent, reducing            and 1980s dealt with both capabilities, but with somewhat
+the need for expensive default assumptions. For example, a           different emphases. Lehnert (1978) and Dyer (1983) both
+sparsely-grounded conceptual relation ?x might be inferred           described models that constructed explanations of narratives
+to be an instance of not only eating, but also having a goal         and that chained over the resulting structures to answer ques-
+– an inappropriate combination leading to a wrong answer,            tions, but the latter processes did little to extend the explana-
+but not specified in knowledge as a contradiction. Our third         tion.5 They adopt script-based representations for knowledge
+claim, then, is partially refuted: the model was nontrivially        and explanations that provide more structure than does our
+affected by confounders. We plan to ameliorate this effect by        formalism, but their systems also utilize a constrained variety
+providing it with more discriminating conceptual knowledge.          of abductive inference to generate explanations. Kolodner’s
+Remarks on the Evaluation                                            (1983) model of reconstructive memory comes even closer
+                                                                     to our own, in that it makes many knowledge-based infer-
+Overall, our combined model of explanation generation and            ences at the time of question answering. More recently, Bar-
+question answering behaved as expected. Our experiments              bella and Forbus (2011) report a system that uses analogical
+with UMBRA and P HOS supported our first two claims about            reasoning to generate inferences when answering questions;
+interactions among these two processes, although our third           this provides a form of abductive inference that operates over
+study uncovered some surprises. Nevertheless, taken to-              cases constructed during reading rather than over rules.
+gether, they suggest that our models provide a viable instance          In summary, the literature includes many efforts on gen-
+of our computational theory of understanding.                        erating explanations and on answering questions, but only a
+   Note that our measurements were conservative: we only             small number of computational models that address both of
+scored an answer as right or wrong, so a single low-level er-        these cognitive tasks. Of these, even fewer carry out sub-
+ror produces a negative score even if the overall answer is          stantial inference during question answering, and those draw
+plausible. Top-level query elements could be perfect matches         upon different representations and processes than we have
+and still be considered ‘misses’. Indeed, we observed that al-       proposed in our framework.
+most every spurious answer incorporated some literals from
+the canonical answer; a finer-grained scoring system would               5 However, Dyer mentions in passing that answering a question,
+have reported higher accuracy.                                       his model can modify memory as an unintended side effect.
+                                                                 1575
+
+                   Concluding Remarks                               Graesser, A. C., Lang, K. L., & Roberts, R. M. (1991). Ques-
+                                                                      tion answering in the context of stories. Journal of Experi-
+In this paper, we argued that the cognitive tasks of generat-         mental Psychology: General, 120, 254.
+ing explanations and answering questions are two comple-            Kolodoner, J. (1983). Reconstructive memory: A computer
+mentary aspects of understanding that share many facets. We           model. Cognitive Science, 7, 281–328.
+introduced four theoretical assumptions about the representa-       Langley, P. (2012). The cognitive systems paradigm. Ad-
+tions and processes that underlie them, then described com-           vances in Cognitive Systems, 1, 3–13.
+putational models for behavior on each task that incorporate        Lehnert, W. (1978). The process of question answering.
+these tenets. In addition, we reported experiments on reading         Hillsdale, NJ: Lawrence Erlbaum Publishers.
+comprehension scenarios, showing that our abductive mecha-          Liscinsky, C. (2010). Reading comprehension. Monterey,
+nisms produce effective understanding and testing claims for          CA: Evan-Moor.
+interactions between explanation and question answering.            Meadows, B., Langley, P., & Emery, M. (2013). Seeing be-
+   In future work, we plan to build upon our initial results by       yond shadows: Incremental abductive reasoning for plan
+extending P HOS to better handle confounding information,             understanding. In Proceedings of the 2013 AAAI Work-
+thus improving scalability, and to interact more dirctly with         shop on Plan, Activity, and Intent Recognition (pp. 24–31).
+UMBRA. Specific areas of interest include modeling word               Bellevue, WA: AAAI Press.
+sense disambiguation and the influence of inferences gener-         Meadows, B., Langley, P., & Emery, M. (2014). An abductive
+ated when answering an early question on responses to later           approach to understanding social interactions. Advances in
+ones. We should also develop an approach to answering open-           Cognitive Systems, 3, 87–106.
+ended questions, such as “what happens next?”, which our            Narayanan, S., & Harabagiu, S. (2004). Question answering
+current knowledge structures cannot handle.                           based on semantic structures. In Proceedings of the Twen-
+                                                                      tieth International Conference on Computational Linguis-
+                     Acknowledgments                                  tics (pp. 693–702). Geneva: Association for Computational
+                                                                      Linguistics.
+This research was supported in part by Grant N00014-10-1-           Waldinger, R., Bobrow, D. G., Condoravdi, C., Richardson,
+0487 from the Office of Naval Research. Pat Langley is also           K., & Das, A. (2011). Accessing structured health infor-
+affiliated with the Institute for the Study of Learning and Ex-       mation through English queries and automatic deduction.
+pertise. We thank Paul Bello, Will Bridewell, and Miranda             In AI and Health Communication: Papers from the 2011
+Emery for useful discussions that influenced the approach we          AAAI Spring Symposium. Stanford, CA: AAAI Press.
+have reported here.                                                 Winston, P. H. (2012). The right way. Advances in Cognitive
+                                                                      Systems, 1, 23–36.
+                          References                                Young, R. M. (2001). Production systems in cognitive psy-
+                                                                      chology. In N. J. Smelser & P. B. Baltes (Eds.), Interna-
+Anderson, J. R., & Bower, G. H. (1980). Human associative             tional encyclopedia of the social and behavioral sciences.
+   memory: A brief edition. Hillsdale, NJ: Lawrence Erlbaum           Oxford, UK: Pergamon Press.
+   Publishers.                                                      Zelle, J. M., Mooney, R. J., & Konvisser, J. B. (1994).
+Barbella, D., & Forbus, K. D. (2011). Analogical dialogue             Combining top-down and bottom-up techniques in induc-
+   acts: Supporting learning by reading analogies in instruc-         tive logic programming. In Proceedings of the Eleventh
+   tional texts. In Proceedings of the Twenty-Fifth AAAI Con-         International Conference on Machine Learning (pp. 343–
+   ference on Artificial Intelligence (pp. 1429–1435). San            351). New Brunswick, NJ: Morgan Kaufmann.
+   Francisco: AAAI Press.
+Bradshaw, G. L., & Anderson, J. R. (1982). Elaborative en-
+   coding as an explanation of levels of processing. Journal
+   of Verbal Learning and Verbal Behavior, 21, 165–174.
+Bridewell, W., & Langley, P. (2011). A computational ac-
+   count of everyday abductive inference. In Proceedings of
+   the Thirty-Third Annual Meeting of the Cognitive Science
+   Society (pp. 2289–2294). Boston: The Cognitive Science
+   Society.
+Dyer, M. G. (1983). In-depth understanding: A computer
+   model of integrated processing for narrative comprehen-
+   sion. Cambridge, MA: MIT press.
+Goldman, R. P., Geib, C. W., & Miller, C. A. (1999). A
+   new model of plan recognition. In Proceedings of the Fif-
+   teenth Conference on Uncertainty in Artificial Intelligence
+   (pp. 245–254). San Francisco: Morgan Kaufmann.
+                                                                1576
+

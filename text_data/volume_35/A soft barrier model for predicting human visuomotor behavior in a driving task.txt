@@ -1,0 +1,409 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+A soft barrier model for predicting human visuomotor behavior in a driving task
+Permalink
+https://escholarship.org/uc/item/3v86d63c
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 35(35)
+Authors
+Johnson, Leif
+Sullivan, Brian
+Hayhoe, Mary
+et al.
+Publication Date
+2013-01-01
+Peer reviewed
+  eScholarship.org                                Powered by the California Digital Library
+                                                                    University of California
+
+  A soft barrier model for predicting human visuomotor behavior in a driving task
+                                                   Leif Johnson (leif@cs.utexas.edu)
+                                  Department of Computer Science, University of Texas at Austin, USA
+                                                   Brian Sullivan (brians@ski.org)
+                                    Smith-Kettlewell Eye Research Institute, San Francisco, CA, USA
+                                            Mary Hayhoe (mary@mail.cps.utexas.edu)
+                                     Department of Psychology, University of Texas at Austin, USA
+                                                 Dana Ballard (dana@cs.utexas.edu)
+                                  Department of Computer Science, University of Texas at Austin, USA
+                               Abstract                                such models are inappropriate to address task-based behavior
+   We present a task-based model of human gaze allocation in a         because they do not incorporate information about the state of
+   driving environment. When engaged in natural tasks, gaze is         the agent whose vision is being modeled. An alternative ap-
+   predominantly directed towards task relevant objects. In par-       proach is to consider vision as part of a control process where
+   ticular in a multi-task scenario such as driving, human drivers
+   must access multiple perceptual cues that can be used for ef-       information from the senses is used to guide motor behavior
+   fective control. Our model uses visual task modules that re-        (Butko & Movellan, 2010; Nunez-Varela, Ravindran, & Wy-
+   quire multiple independent sources of information for control,      att, 2012; Senders, 1980; Sprague & Ballard, 2003; Sullivan,
+   analogous to human foveation on different task-relevant ob-
+   jects. Building on the framework described by Sprague and           Johnson, Ballard, & Hayhoe, 2011). Both stimulus and task-
+   Ballard (2003), we use a modular structure to feed informa-         based approaches have led to a variety of formulations con-
+   tion to a set of PID controllers that drive a simulated car and     cerning how eye movements should be selected, e.g., using
+   introduce a barrier model for gaze selection. The softmax bar-
+   rier model uses performance thresholds to represent task im-        energy models, information theoretic measures, or measures
+   portance across modules and allows noise to be added to any         of reward and uncertainty. In the present work, we focus on
+   module to represent task uncertainty. Results from the model        how selection of eye movement targets may be controlled in
+   compare favorably with human gaze data gathered from sub-
+   jects driving in a virtual environment.                             part by task related uncertainty and reward.
+   Keywords: Visual attention; eye movements.                             We present a model of visual processing and control that
+                                                                       simultaneously takes into account the reward and uncertainty
+                           Introduction                                in multiple tasks associated with a dynamic, noisy driving
+                                                                       environment. The model successfully accounts for variations
+Humans routinely interact with complex, noisy, dynamic en-
+                                                                       in gaze deployment seen in humans driving in a virtual re-
+vironments to accomplish tasks in the world. For example,
+                                                                       ality driving environment. Additionally, we discuss future
+while driving a car, a person navigates to a desired desti-
+                                                                       research allowed by inversion of the soft barrier model. In-
+nation (e.g., grocery store) while paying attention to differ-
+                                                                       version allows human data to be mapped into parameters in
+ent types of objects in the environment (pedestrians, vehicles,
+                                                                       the model space so that it can be understood and compared
+etc.) and obeying traffic laws (speed limit, stop signs, etc.).
+                                                                       quantitatively within the model framework.
+Humans are able to balance competing task demands while si-
+multaneously gathering information from the world through
+a foveated visual system, which must be actively moved to
+                                                                                                   Model
+different targets to obtain high-resolution imagery.                   The model proposed in this paper follows the modular archi-
+   During the deployment of attention, in particular overt             tecture of Sprague and Ballard (2003) by factoring complex
+eye movements towards an object, humans are sensitive to               behaviors like driving into a set of simple control modules
+bottom-up salience (color, motion, etc.) as well as top-down           that each focus on a well-defined task—for example, a mod-
+task priority and the rewards associated with a task (Knudsen,         ule to follow the road and another to avoid oncoming cars. In-
+2007; Wolfe, Butcher, Lee, & Hyle, 2003). In particular                tuitively, a module is an abstract black-box controller that can
+when engaged in “natural” tasks, eye movements are largely             be used alone to guide an agent through a single task. More
+directed towards task relevant objects (Hayhoe & Ballard,              interestingly, modules can be used together dynamically to
+2005; Land & Hayhoe, 2001). Typically in natural environ-              engage in multiple ongoing behaviors. While the human vi-
+ments, there are multiple task relevant objects spread over            sual system is highly parallel, processing and attentional fo-
+space and time that require active visual strategies to prop-          cus are largely biased towards the fovea, meaning humans
+erly gather information. While human vision research has               typically get information in a serial fashion by foveating dif-
+often focused on models of visual saliency, i.e., a stimulus           ferent objects over time. In our model, multiple task modules
+based controller of attention (Bruce & Tsotsos, 2009; Itti &           run concurrently; however, to incorporate the foveation con-
+Koch, 2001; Zhang, Tong, Marks, Shan, & Cottrell, 2008),               straint, only one module at a time actively gains new percep-
+                                                                   686
+
+tual information.                                                                                 2                                       2
+                                                                               State Variable A                        State Variable B
+   At a high level, modules are responsible for gathering and                                     1                                       1
+updating information about specific aspects of the state of the                                   0                                       0
+world, and for using that information to generate control sig-
+                                                                                                  −1                                      −1
+nals for the agent. A central component of the model is that
+it requires a usable control policy even in the absence of up-                                    −2                                      −2
+                                                                                                       Time                                    Time
+dating its state information. Human short term memory de-
+cays with time, so to simulate this we allow the state infor-                Figure 1: Evolution of state variable and uncertainty infor-
+mation upon which the actions are computed to be corrupted                   mation for two single-variable modules. On the left, the solid
+by noise. We incorporate these into our model using simple                   blue lines represent the observed values of the state variable
+scalar values for each module. Formally, we define a module                  A over time, while the shaded blue regions represent the re-
+as a tuple M = (S , A , π, s∗ , ρ, ε), where:                                gion in which the true value of the state variable is likely
+• S = {s1 , . . . , sn } is a set of the n state variables that are          to occur. On the right, the observed values and uncertainty
+  relevant to the module,                                                    regions are shown in green for a different state variable, B.
+                                                                             Vertical dashes in each plot indicate times where the state es-
+• A = {a1 , . . . , ak } is a set of the k action variables that are         timates are updated with a new observation of the true value;
+  relevant to the module,                                                    these updates also reduce the magnitudes of the uncertainties
+                                                                             in each estimate towards zero. The ε parameter in this sce-
+• π : Rn → Rk is a control policy that maps state values onto
+                                                                             nario is greater for the module tracking variable A than for
+  actions,
+                                                                             the module tracking variable B.
+• s∗ ∈ Rn is a vector of target state values,
+• ρ is a scalar uncertainty threshold value for the module,
+  and                                                                           In MDP scenarios, agents are assumed to have constant ac-
+                                                                             cess to accurate state variable information. Humans, on the
+• ε is a scalar noise value for the module.                                  other hand, have a foveated visual system that often requires
+                                                                             active serial collection of updated state information. We as-
+   The first three elements of M are common to typical
+                                                                             sume that this serial process requires that when one visual
+Markov decision process (MDP) scenarios. The state space,
+                                                                             task is accessing new information all other tasks must rely on
+spanned by elements of S , represents all possible combina-
+                                                                             noisy memory estimates.
+tions of world state that are relevant for the task. The action
+space, spanned by elements of A , describes all possible ac-                    To incorporate this state uncertainty into the model, each
+tions that the agent can take. The control policy maps states                module M (i) maintains an explicit estimate of the current
+to actions; an optimal policy maps states to the best action                 value of each of its state variables, ŝ(i) (t). (We will hence-
+for each state. The fourth element of the tuple, s∗ , is a vector            forth omit the module superscript except to resolve ambigu-
+of target values for each state variable. These target values                ities.) This estimate could be designed to incorporate many
+are used in place of the more traditional formulation of scalar              sorts of prior information about the evolution of the world,
+reward; this is discussed in further detail below. Finally, each             but the model in its current state simply treats state estimates
+module incorporates explicit values for both task priority 1/ρ               as samples drawn IID from a spherical normal distribution
+and task uncertainty ε, which are also explained below.                                                           (              )
+   A learning agent is equipped with N individual modules                                                ŝ(t) ∼ N µ(t), σ2 (t)I
+M (1), . . . , M (N) that each specialize in one task and can be
+used in conjunction to control behavior in the world. To sim-
+plify the control problem, in our model all modules share a                  where µ(t) = [ µ1 (t) . . . µn (t)]T is a vector of the most recently
+common set of action variables. In the driving environment                   observed state values, and σ(t) is the standard deviation for
+described in this paper, there are two action variables: one                 the state variable estimates in the module. Figure 1 shows
+represents changes in the vehicle’s speed and another repre-                 the state updates over time for a simple, hypothetical system
+sents changes in the vehicle’s heading.                                      containing two modules, each tracking one state variable.
+                                                                             Uncertainty propagation Uncertainty propagates over
+State estimates                                                              time within each module by maintaining a small set of J “un-
+Each module depends on a set of world-state variables that are               certainty particles” E = {β1 (t), . . . , βJ (t)}. Each particle rep-
+relevant to the module’s specific task. When driving, relevant               resents one potential path of deviation that the true state value
+state variables for a car-following task, for example, could                 might have taken from the last-observed state value. At every
+include the agent-centric distance and angle to the leader car,              time step in the simulation, all uncertainty particles are dis-
+the speed and heading relative to the leader car, etc. Relevant              placed randomly by a step drawn from N (0, ε), thus defining
+state variables for a target-speed task might be as simple as                a random walk for each particle. The root-mean-square value
+monitoring the absolute speed of the agent.                                  of the uncertainty particles is then used to define the standard
+                                                                       687
+
+deviation                      v                                         Each module in the model uses one PID controller for each
+                               u                                      state variable. Given estimates ŝ(t) of the current values of
+                               u1      J
+                      σ(t) = t        ∑ β2j (t)                       each variable and a vector of target state values s∗ , the control
+                                   J  j=1                             policy becomes
+of state estimates for this module. Periodically, a module will               π(ŝ(t)) = U [ C1 (ŝ1 (t) − s∗1 ) . . . Cn (ŝn (t) − s∗n ) ]T
+be updated with accurate state information from the world
+                                                                      where U is a k ×n mixing matrix that combines control policy
+(described below); when this happens, the magnitude of each
+                                                                      recommendations from each PID controller into a final con-
+uncertainty particle for the module is reduced according to
+                                                                      trol output for each action variable. Note that, in this model,
+β j (t + 1) = (1 − α)β j (t). After an informal parameter search,
+                                                                      the control policy π does not have access to the true state val-
+we set α = 0.7 for all modules; with α = 1, the model tends to
+                                                                      ues s(t), but rather to the module’s estimates of those state
+produce many short updates because uncertainty is instantly
+                                                                      values ŝ(t).
+reduced to 0, but with α < 1 the uncertainty increase due to
+                                                                         The composition of U is determined by the needs of the
+noise competes with the uncertainty reduction from the up-
+                                                                      modeling task. For the driving task, for example, each mod-
+dated state information. Figure 2 shows the uncertainties over
+                                                                      ule generally has one state variable corresponding to a de-
+time for the hypothetical two-module system shown in Figure
+                                                                      sired distance, and another corresponding to a desired head-
+1.
+                                                                      ing. For this case, U is set to the 2 × 2 identity matrix, since
+    The state estimation approach described here can be seen
+                                                                      the PID controller that is monitoring a distance variable pro-
+as a sort of particle filter (e.g., Arulampalam et al., 2002),
+                                                                      vides a natural control signal for vehicle speed, and the PID
+using an uninformed proposal distribution and equal weights
+                                                                      controller that monitors an angle variable provides a control
+for all particles. Interestingly, the behavior of the simulation
+                                                                      signal for the vehicle heading. The exception to this is the
+was largely unaffected by the choice of J; for our simulation,
+                                                                      module focusing on maintaining a target speed; this module
+we used J = 10.
+                                                                      only monitors current speed in the world, so it always pro-
+Control policy                                                        vides a zero-output control value for the change-of-heading
+                                                                      action variable.
+Each module relies on a policy to determine which action to
+take when the world is in a particular state. There are multiple      Priority
+ways an MDP may be solved for a control policy, e.g. in rein-         Modules can be prioritized by increasing their importance rel-
+forcement learning a Q–table can be learned, which explicitly         ative to one another, to allow modular agents to perform one
+represents the expected future reward for each possible state         task (for example, following a leader car) in preference to an-
+and action combination; the policy is then given by a simple          other (like achieving a target speed). In a traditional MDP
+maximum over available actions for each state.                        scenario, this is modeled by controlling the ratio of reward
+    For a task like driving, however, continuous variables are        values between two subsets of world states. In the present
+the most natural representation of state (distance to another         model, module priority is manipulated through the ρ parame-
+car, current speed, etc.) and action (change in speed, change         ter: as ρ increases, the module’s relative priority decreases.
+in steering) variables. Although MDP algorithms can con-                 This relative priority value is incorporated into the model
+verge on policies for tasks in continuous spaces, for many            as a soft bound on the diffusion of uncertainty for each mod-
+real-world tasks the resulting policies can be more easily            ule. The specifics of this integration of uncertainty and prior-
+modeled using a simple parametric function. In addition,              ity are described in more detail next, as part of the perceptual
+many algorithms for solving MDPs require significant train-           arbitration process.
+ing time to arrive at these regularly-shaped policies. The
+model described here instead uses a continuous proportional-                                     Simulation
+integral-derivative (PID) control strategy.                           In simulation, an agent is placed in a two–dimensional virtual
+PID controllers A PID controller C(e) is a feedback con-              driving world. The world contains a single road with multiple
+trol functional that maps state errors e(t) onto control signals      lanes. Several non-agent cars are placed on the lanes at ran-
+u(t). Formally,                                                       dom locations, and one of the non-agent cars is designated as
+                                                                      the leader car.
+                                   ∫ t                                   The basic simulation loop updates the state of the world at
+             C(e) = KP e(t) + KI        e(v) dv + KD ė(t)            a fixed frequency fs (set to 60Hz to match experimental con-
+                                     0
+                                                                      ditions from (Sullivan, Johnson, Rothkopf, Ballard, & Hay-
+where KP , KI , and KD are parameters that affect the conver-         hoe, 2012)) according to an elementary physics simulation.
+gence speed and stability of the PID controller output when           At each time step, each car in the world moves ahead propor-
+encountering a step change in error. In our model, these              tionally to its speed, in a direction given by its heading. For
+parameters are tuned manually for each module in isolation            the non-agent cars, the simulator constrains these speed and
+(O’Dwyer, 2006) to produce qualitatively appropriate driving          heading values so that the cars always follow the lanes in the
+behavior.                                                             world.
+                                                                  688
+
+                     2                              2                    to approximate the frequency of human gaze behavior).
+  State Variable A               State Variable B
+                     1                              1                       The perceptual arbitration process incorporates priority
+                     0                              0
+                                                                         and uncertainty in the following way. We first define, for
+                                                                         each module M (i) , a weighted uncertainty at time t that in-
+                     −1                             −1
+                                                                         corporates both the RMS uncertainty and the scalar priority
+                     −2                             −2
+                          Time                           Time            of the module:
+Figure 2: Example random walks for uncertainty particles in                                  ζ(i) (t) = σ(i) (t) − ρ(i) .
+the two modules shown in Figure 1. The individual particles
+are shown as small dots in each plot; their RMS uncertainty              We also define a global variable ϕ(t) to represent the index of
+value σ(t) is shown with a solid blue (left) and green (right)           the module that gets updated at time t. Then the soft barrier
+line. Vertical dotted lines indicate time steps when each mod-           model defines the probability that module M (i) is selected for
+ule received an update; these updates reduce the magnitudes              update at time t as a Boltzmann distribution over each of the
+of the uncertainty particles towards 0. The uncertainty thresh-          priority-weighted module uncertainties:
+old ρ for each module is indicated by the shaded gray region                                                                 (       )
+in the center of the plot; in this example, the module tracking                                                          exp ζ(i) (t)
+state variable B (right) has higher priority (lower uncertainty               p(ϕ(t) = i|ζ(1) (t), . . . , ζ(N) (t)) = N       (         )
+                                                                                                                      ∑ j=1 exp ζ( j) (t)
+threshold ρ) than the module tracking variable A. However,
+because the module on the left has a higher noise parameter
+                                                                         Intuitively, if the uncertainty in M (i) is currently above the
+ε, it receives more updates than the module on the right in the
+                                                                         threshold for that module—that is, if σ(i) (t) > ρ(i) —then
+same duration of time.
+                                                                         M (i) is much more likely to be selected for update than an-
+                                                                         other module, especially if none of the other modules have
+   After moving all vehicles in the world, the simulation ad-            uncertainties exceeding their thresholds. However, the soft-
+ditionally requests a control update from the learning agent,            max selection process allows for nondeterminism: even if
+which changes the heading and speed of the agent before the              ζ(i) (t) > ζ( j) (t) for j ̸= i, there is some nonzero probability
+next frame begins. Every time the simulator requests a con-              that i will not be selected for update at time t. Finally, be-
+trol update for the learning agent, the modules are also up-             cause module updates are always selected at frequency f p by
+dated by displacing their uncertainty particles according to             sampling from the above distribution at the appropriate time,
+each module’s noise parameter ε.                                         a module might be selected for update even if none of the
+                                                                         agent’s task modules have exceeded their uncertainty bound-
+Perceptual Arbitration                                                   ary (i.e., if ζ(i) < 0 for all i).
+If the simulation only performed the steps above, the agent’s               Although inspired by diffusion models of decision mak-
+performance would become increasingly erratic over time,                 ing, this model contrasts somewhat with traditional models.
+because the uncertainty particles would drift further away               Many diffusion models with “hard” bounds were developed
+from zero. The resulting erroneous state value estimates                 for forced-choice, two-alternative tasks (e.g., Carpenter &
+would produce poor PID controller outputs, and the result-               Williams, 1995); our model, in comparison, is designed to in-
+ing actions chosen by the agent would further compound the               corporate a wider variety of tasks. The “soft” barrier, driven
+uncertainty in the state estimates. In a human driver, this be-          at a fixed frequency, can incorporate more than two choices
+havior would be analogous to taking one look at the world                into the model simultaneously, while accounting for biologi-
+when getting into the car, and then driving with a blindfold             cally realistic delays in planning and executing saccades.
+thereafter.                                                                 As described above, and illustrated in Figures 1 and 2,
+   Clearly this is not what humans tend to do when driving.              when a module is selected for update, it is provided with the
+Instead, people continually and regularly reposition their gaze          true state of each world state variable in S (i) , and each of
+toward objects in the environment as the driving task pro-               its uncertainty particles β j is reduced towards zero for every
+gresses. The final step in our model is to incorpate a sched-            simulation frame until another module is selected for update.
+uler to arbitrate between task modules, such that updated sen-
+sory information is delivered to the PID controllers dependent                               Simulation results
+on task uncertainty and priority. Like Sprague and Ballard               We implemented the model described above1 and ran several
+(2003), we hypothesize that this repositioning serves to re-             simulations to assess its qualitative behavior. Our simulated
+duce uncertainty about the state of relevant variables in the            driving environment was identical in layout to the virtual en-
+world—distance to a leader car, current speed, etc. To cap-              vironment used by Sullivan et al. (2012), so that we could
+ture this behavior, the simulator periodically selects a module          directly compare our results to human performance. Our im-
+for receiving updated state information through a perceptual             plementation consisted of three modules: a “speed” module
+arbitration mechanism. This selection process happens at a
+constant frequency f p (set to 3Hz for the results reported here            1 http://github.com/lmjohns3/driving-simulator
+                                                                   689
+
+M (s) that attempted to drive at a particular target speed; a “fol-        Once we identified the parameter settings corresponding to
+low” module M ( f ) that attempted to follow a lead car, and a          the experimental conditions, we evaluated our model by run-
+“lane” module M (l) that attempted to steer so as to follow the         ning it in each of these conditions 10 times, with each sim-
+nearest lane on the road. All cars in the simulation drove in a         ulation run for approximately 4000 steps. The sequence of
+simulated 2–dimensional world, described above. Each time               module updates for each simulation run was stored and la-
+gaze was allocated to a new module, we recorded the mod-                beled as looks as described above, then normalized to form a
+ule that received the gaze, as well as several behavioral mea-          probability distribution. These results were compared the dis-
+surements (e.g., distance to leader car, current speed, etc.) to        tributions of look durations from the human data. The model
+verify that the agent was driving appropriately.                        was able to capture several important aspects of the human
+                                                                        data, including a sensitivity to both noise and priority, but
+Categorizing looks                                                      also a gating effect whereby noise in low-priority tasks had a
+The gaze selection process in our model is Markovian,                   smaller effect than noise in high-priority tasks. Our results,
+meaning that each selected module is independent of the                 shown under the human data in Figure 3, are qualitatively
+previously-selected modules; more formally, p(ϕ(t)|ϕ(t −                similar to the human performance in a virtual driving envi-
+n), ·) = p(ϕ(t)|·) for all n > 0. Thus, it is possible that multi-      ronment.
+ple consecutive module updates are directed at the same mod-               In addition to our scheduling model, a baseline fixation
+ule, or ϕ(t) = ϕ(t − n). Similar refixation behavior exists in          scheduler was run in the simulation. This scheduler incor-
+human gaze during complex tasks; presumably observers use               porated only the priority of each task in selecting modules
+the visual information across multiple fixations for a continu-         for update, but uncertainty was not incorporated. The results
+ous control signal for a single task. To make analysis simpler          from this baseline scheduler are shown in the bottom row of
+and more consistent between simulation and human results,               Figure 3. The probability distributions from our scheduler
+we grouped multiple consecutive updates for a given module              and the baseline compared against the human data via the
+into a single “look.” For instance, in the example shown in             Kullback-Leibler (KL) divergence. Over all the conditions,
+Figures 1 and 2, updates are provided first to module A, then           our model had an average KL divergence of 2.20, versus 4.43
+B, then A twice, then B twice. In this example, each module             for the baseline scheduler (lower numbers are better).
+receives two “looks,” with the second look for each module
+being twice as long as the first.                                                                  Discussion
+                                                                        This paper described a modular, “soft” barrier approach for
+            Comparison with human results                               modeling eye movements in human drivers. The model in-
+Sullivan et al. (2012) instructed subjects driving in a virtual         cludes explicit measurements of an agent’s estimates of ex-
+environment to follow a leader car and maintain a certain               ternal world state, and uses a random walk to model the un-
+speed, but the priority of which of the two tasks was most              certainty in these estimates over time. Uncertainty, modu-
+important was varied so that one was high and the other was             lated by the priority of a task, is then used to arbitrate gaze
+low. Additionally, subjects drove in some conditions where              allocations among competing modules. Our priority-plus-
+noise was added to the speed of the car, with the intent of             uncertainty model provides a better fit of a set of human
+disrupting the maintenance of a constant speed. These ma-               driving data than a priority-only baseline fixation scheduling
+nipulations resulted in four conditions where either following          model. We are currently working on comparing this model
+a leader or maintaining a constant speed was most important,            to predictions from a standard salience model (Itti & Koch,
+and velocity noise was either present or absent. They found             2001), a central bias model (Tatler & Vincent, 2009) and the
+that task priority increased fixation behavior on task-related          original scheduling model that inspired our work (Sprague &
+objects. Additionally, an interaction between priority and un-          Ballard, 2003). In addition, the softmax approach to selecting
+certainty was found, whereby uncertainty alone did not guar-            modules for update permits a clean inversion of the model;
+antee increased fixation behavior. Instead, only if a task re-          that is, given human eye fixation behavior, the model can be
+lated object had sufficiently high priority did the addition of         inverted to provide the most likely set of parameter settings
+uncertainty further increase fixation behavior. Look duration           to explain those data. We plan to develop this inversion more
+histograms for this experiment are replicated in the top row            fully so as to replace the grid search described in this paper.
+of Figure 3.                                                            Once the inversion process is in place, we can use this model
+   We ran a set of simulations with our model attempting                to recover the task priorities and uncertainty levels that human
+to replicate this behavior using parameters set to mimic the            drivers appear to be experiencing in these conditions.
+orginal human driver conditions. We used a simple grid
+search to locate these parameters. Because all of the param-                                      References
+eters taken together can present a scaling ambiguity (e.g., if          Arulampalam, M., Maskell, S., Gordon, N., Clapp, T., Sci,
+all ε(i) and ρ(i) are multiplied by 2, then the same qualita-              D., Organ, T., & Adelaide, S. (2002). A tutorial on particle
+tive behavior will result) we fixed ρ( f ) = 1 and explored only           filters for online nonlinear/non-gaussian bayesian tracking.
+settings for the other parameters.                                         IEEE Transactions on Signal Processing, 50(2), 174–188.
+                                                                    690
+
+                            Speed                     Speed + Noise                          Follow                    Follow + Noise
+                 1.0                           1.0                                 1.0                           1.0
+                                                                                                                                   Leader
+                                                                                                                                   Speedometer
+                 0.5                           0.5                                 0.5                           0.5
+    Human
+                 0.0                           0.0                                 0.0                           0.0
+                     0       1       2       3     0        1       2       3          0      1       2       3      0       1         2       3
+                               (a)                            (b)                               (c)                            (d)
+                 1.0                           1.0                                 1.0                           1.0
+                                   KL = 2.63                      KL = 2.05                         KL = 2.16                      KL = 1.95
+                 0.5                           0.5                                 0.5                           0.5
+     Model
+                 0.0                           0.0                                 0.0                           0.0
+                     0        1       2      3     0         1       2      3          0      1        2      3      0        1        2       3
+                     (e) ρ = 1, ε = 0.05             (f) ρ = 1, ε = 0.5                (g) ρ = 3, ε = 0.05            (h) ρ = 3, ε = 0.5
+                 1.0                           1.0                                 1.0                           1.0
+                                   KL = 4.15                      KL = 2.76                         KL = 5.57                      KL = 5.23
+                 0.5                           0.5                                 0.5                           0.5
+   Baseline
+                 0.0                           0.0                                 0.0                           0.0
+                     0        1       2      3     0         1       2      3          0      1        2      3      0        1        2       3
+                           (i) ρ = 1                      (j) ρ = 1                         (k) ρ = 3                      (l) ρ = 3
+Figure 3: Distribution of look durations for human subjects (a-d; from Sullivan et al., 2012), model predictions (e-h), and
+baseline predictions (i-l). In all plots, look duration (in seconds) is shown along the abscissa, with the proportion of looks
+indicated on the ordinate. Looks to the speedometer are plotted with green squares; looks to the leader car are plotted with
+blue circles. (a, b) In conditions where driving at a target speed was emphasized, human looks at the speedometer were
+approximately matched in duration to looks at the leader car. (c, d) In conditions where following a leader car was emphasized,
+human looks at the speedometer were brief. Noise added to the car’s speed (b, d) affected human looks in the speed task more
+than looks in the following task. Similar results hold for our model (e-h), but not for a baseline model that incorporates task
+priority but ignores the effects of uncertainty (i-l).
+Bruce, N., & Tsotsos, J. (2009). Saliency, attention, and                     lands: Drukkerij Neo Print.
+   visual search: An information theoretic approach. Journal                Sprague, N., & Ballard, D. (2003). Eye movements for re-
+   of Vision, 9(3).                                                           ward maximization. Advances in neural information pro-
+Butko, N., & Movellan, J. (2010). Detecting contingencies:                    cessing systems, 16.
+   An infomax approach. Neural Networks, 23(8), 973–984.                    Sullivan, B., Johnson, L., Ballard, D., & Hayhoe, M. (2011).
+Carpenter, R., & Williams, M. (1995). Neural computation of                   A modular reinforcement learning model for human visuo-
+   log likelihood in control of saccadic eye movements. Na-                   motor behavior in a driving task. In Proc. AISB Symposium
+   ture, 377(6544), 59–62.                                                    (pp. 33–40).
+Hayhoe, M., & Ballard, D. (2005). Eye movements in natural                  Sullivan, B., Johnson, L., Rothkopf, C., Ballard, D., & Hay-
+   behavior. Trends in cognitive sciences, 9(4), 188–194.                     hoe, M. (2012). The role of uncertainty and reward on
+Itti, L., & Koch, C. (2001). Computational modeling of visual                 eye movements in a virtual driving task. Journal of Vision,
+   attention. Nature reviews neuroscience, 2(3), 194–203.                     12(13).
+                                                                            Tatler, B., & Vincent, B. (2009). The prominence of be-
+Knudsen, E. (2007). Fundamental components of attention.
+                                                                              havioural biases in eye guidance. Visual Cognition, 17(6-
+   Annu. Rev. Neurosci., 30, 57–78.
+                                                                              7), 1029–1054.
+Land, M., & Hayhoe, M. (2001). In what ways do eye move-
+                                                                            Wolfe, J., Butcher, S., Lee, C., & Hyle, M. (2003). Changing
+   ments contribute to everyday activities? Vision research,
+                                                                              your mind: on the contributions of top-down and bottom-
+   41(25), 3559–3565.
+                                                                              up guidance in visual search for feature singletons. Journal
+Nunez-Varela, J., Ravindran, B., & Wyatt, J. (2012). Gaze                     of Experimental Psychology: Human Perception and Per-
+   allocation analysis for a visually guided manipulation task.               formance, 29(2), 483.
+   Proc. From Animals to Animats, 44–53.                                    Zhang, L., Tong, M., Marks, T., Shan, H., & Cottrell, G.
+O’Dwyer, A. (2006). Handbook of PI and PID controller                         (2008). SUN: A bayesian framework for saliency using
+   tuning rules (Vol. 2). World Scientific.                                   natural statistics. Journal of Vision, 8(7).
+Senders, J. (1980). Visual scanning processes. Soest, Nether-
+                                                                       691
+

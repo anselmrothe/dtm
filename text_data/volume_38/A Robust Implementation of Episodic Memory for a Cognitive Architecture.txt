@@ -1,0 +1,392 @@
+      A Robust Implementation of Episodic Memory for a Cognitive Architecture
+                                           David Henri Ménager (dhmenager@ku.edu)
+                                      Department of Electrical Engineering and Computer Science
+                                             1520 W. 15th Street, Lawrence, KS 66045 USA
+                                                 Dongkyu Choi (dongkyuc@ku.edu)
+                                                   Department of Aerospace Engineering
+                                             1530 W. 15th Street, Lawrence, KS 66045 USA
+                             Abstract                                                            Background
+   The ability to remember events plays an important role in hu-        Researchers of memory have held that any biological or com-
+   man life. People can replay past events in their heads and make      putational model of episodic memory must support encod-
+   decisions based on that information. In this paper, we describe
+   a novel extension to a cognitive architecture, I CARUS, that en-     ing and retrieval of experience (Tulving, 1983). Encoding
+   ables it to store, organize, generalize, and retrieve episodic       is the process of recording and organizing experiences into
+   traces that can help the agent in a variety of manners. Af-          the episodic memory, and retrieval is the process of using a
+   ter discussing previous work on the related topic, we review
+   I CARUS and explain the new extension to the architecture in         retrieval cue to find episodes in this memory. These two func-
+   detail. Then we discuss four architectural implications of the       tionalities have been the subject of much discussion amongst
+   new capability and list some future work before we conclude.         the experts of psychology because it is rather difficult to char-
+   Keywords: episodic memory; cognitive architectures; virtual          acterize the processes that govern the interactions between
+   sensing; expectations; impasse resolution                            episodic and semantic memories.
+                                                                           Researchers realized that the nuances of memory between
+                          Introduction                                  implicit and explicit memory and the nature of knowing and
+Episodic memory is one of the cornerstones of human cog-                remembering are related to the relationship between seman-
+nitive ability (Tulving, 2002). It is responsible for enabling          tic and episodic memories (Schachter, 1987; Tulving, 1985).
+one to remember the events of his or her life. This remember-           We believe that a psychologically plausible model of episodic
+ing, however, is not simply a recollection of personal facts.           memory should have an account for these nuances.
+Rather, it is a relived experience made possible by three nec-             As for the details of how the episodic memory works,
+essary tenents: a subjective sense of time; a sense of self; and        there is psychological evidence suggesting that it is an index-
+autonoetic consciousness (Tulving, 1985, 2002). These allow             based long-term memory that supports cue-based retrieval
+humans to go back in time in one’s head using the subjective            (Hellerstedt, 2015; Tulving, 1983). Researchers also stud-
+sense of time without confusing the events as happening right           ied the three technicalities of episodic memory to define the
+now. This ability impacts many different aspects of human               notion of index-based memory, episodes, and cues, as sum-
+cognitive capabilities.                                                 marized below.
+   Despite the fundamental importance of the episodic mem-
+ory, however, computational models of episodic memory in                Index-based Memory Schiller et al. (2015) argue that
+the context of cognitive architectures are not discussed very              episodic memory receives many of its characteristics from
+frequently aside from some recent work (Nuxoll & Laird,                    the hippocampus, one of which is the ability to create cog-
+2007; Faltersack, Burns, Nuxoll, & Crenshaw, 2011; Bölöni,               nitive maps, or a hierarchical network of memories. As
+2011). These systems have demonstrated how episodic mem-                   memories come and go, the hippocampus is believed to
+ory aids in problem solving, reinforcement learning, narra-                dynamically change the structure of this network in order
+tion, and so on. In our work, we aim to build a system that                to preserve the similarity relationship between connected
+provides these and other capabilities in a single implemen-                memories. With this structural representation, the index of
+tation. We built a psychologically plausible episodic mem-                 an episode may be seen as the path from one of the top-
+ory module and integrated it within a cognitive architecture,              level episodes in the network to the episodes of interest.
+I CARUS (Langley & Choi, 2006). The initial implementation
+quickly resulted in three new or improved capabilities in our           Episodes Previous research suggests that there exists an
+system that we believe are important.                                      episodic buffer that interfaces between the episodic mem-
+   In the sections below, we first describe the background in              ory and the central executive of the working memory
+the literature that serves as basis for our work. After a brief            (Baddeley, 2000). This buffer is responsible for accepting
+review of I CARUS that follows, we provide a detailed descrip-             diverse sets of data from the agent’s sensors and creating
+tion of how an episodic memory has been implemented in the                 a common representation of the data. This representation
+architecture. We also discuss some architectural implications              is what is used to create episodes. Hellerstedt (2015) fur-
+of the new extension. Then, we conclude after a discussion                 ther states that the creation of these episodes occurs in an
+on future work.                                                            on-line fashion.
+                                                                    620
+
+Cues To retrieve episodic memories, semantic patterns, or             Table 1: Two sample I CARUS concepts and a skill for the
+   cues, are used. These patterns can match against elements          modified blocks world.
+   in episodic memory even if there is some missing informa-
+                                                                             ((on ?o1 ?o2)
+   tion. Assuming that episodes are organized by similarity,                  :elements (?o1 is (block ?o1 ˆx ?x1  ˆy ?y1 ˆlen ?len1)
+   the retrieval process is about finding the episode that con-                          ?o2 is (block ?o2 ˆx ?x2  ˆy ?y2 ˆlen ?len2
+                                                                                                          ˆheight  ?height2))
+   tains the most similar situation to the cue. While retrieval               :tests ((*overlapping ?x1 ?len1 ?x2  ?len2)
+                                                                                      (= ?y1 (+ ?y2 ?height2))))
+   is in progress, semantic memory is responsible for gener-
+                                                                             ((clear ?block)
+   ating, specifying, and storing cues (Hellerstedt, 2015). A                 :elements (?block is (block ?block))
+   cue may return more than one episode, in which case the                    :conditions ((not (on ?another ?block))))
+   system must use some conflict resolution strategies to de-                ((look-right ?robot)
+                                                                              :elements (?robot is (robot ?robot ˆlooking ?looking
+   termine which episode to present.                                                                              ˆholding ?holding))
+                                                                              :conditions ((not (eq ?looking ’right)))
+                                                                              :actions ((*look-right ?robot))
+   Based on our understanding of episodic memory as de-                       :effects (?robot is (robot ?robot ˆlooking right
+scribed above, we implemented our extension to I CARUS.                                                          ˆholding ?holding)))
+Before we describe the details of our implementation, how-
+ever, it will be useful to review the architecture briefly to fa-
+cilitate our discussions.
+                                                                      skill definition, (look-right ?robot), that describes a pro-
+                       ICARUS Review                                  cedure to get the robot to look right. The skill has a named
+                                                                      head, perceptual matching against a robot and its attributes,
+As a cognitive architecture, I CARUS provides a framework
+                                                                      the precondition of the robot not already looking right, the
+for modeling human cognition and programming intelligent
+                                                                      action to perform in the world, and the intended effect. Com-
+agents. The architecture makes commitments to its repre-
+                                                                      plex skills have a similar syntax, except that they include sub-
+sentation of knowledge and structures, the memories that
+                                                                      skills instead of direct actions in their body.
+store these contents, and the processes that work over them.
+                                                                         To store these knowledge and other structures, I CARUS em-
+I CARUS shares some of these commitments with other ar-
+                                                                      ploys a handful of distinct memories. The concept and skill
+chitectures like Soar (Laird, 2012) and ACT-R (Anderson &
+                                                                      definitions are stored in conceptual and procedural long-term
+Lebiere, 1998), but it also has distinct characteristics like the
+                                                                      memories, respectively. The short-term instances of these
+architectural commitment to hierarchical knowledge struc-
+                                                                      definitions are stored in a belief memory and a goal / inten-
+tures, teleoreactive execution, and goal reasoning capabilities
+                                                                      tion memory. The former maintains the current state of the
+(Choi, 2011). In this section, we provide a brief review of the
+                                                                      world, while the latter houses the agent’s current goals and
+architecture to facilitate our discussion on the new episodic
+                                                                      intentions for execution.
+memory module afterwards.
+Representation and Memories                                           Inference and Execution
+I CARUS distinguishes two main types of knowledge. One is             The I CARUS architecture operates in cycles (see Figure 1). At
+its concepts that describe certain aspects of the situation in        the beginning of each cycle, the system receives sensory input
+the environment. They resemble Horn clauses (Horn, 1951),             from the environment as a list of objects with their attribute–
+complete with a predicate as the head, perceptual matching            value pairs. Based on this information, the architecture in-
+conditions, tests against matched variables, and references to        fers all the concept instances that are true in the current state
+any sub-relations. For example, the first two in Table 1 are          by matching its concept definitions to perceived objects and
+concept definitions. The first one, (on ?o1 ?o2), describes           other concept instances.
+a primitive situation where a block is on top of another block,          Once all the beliefs are inferred, the system finds all the
+using only perceptual matching conditions for two blocks and          relevant skill definitions for the current goal(s) that are exe-
+tests against the matched objects and their attributes. The           cutable in the current belief state. I CARUS then chooses one
+second one, (clear ?block), depicts a complex situation               or more of them and execute them in the world. The archi-
+where there is nothing on top of a block, using another con-          tecture will continue its cycles in this manner until all of its
+cept as a sub-relation in addition to perceptual matching con-        goals are achieved or its operations are terminated for any
+ditions for a block.                                                  other reasons. With this brief review, we now continue our
+   The other type of knowledge in I CARUS is its skills that          main discussion on the new episodic module in I CARUS.
+describe procedures to achieve certain concept instances in
+the environment. These are essentially hierarchical ver-                             Episodic Module in ICARUS
+sions of S TRIPS operators (Fikes & Nilsson, 1971) with a             In the context of episodic memory, I CARUS shares some
+named head, perceptual matching conditions, preconditions             architectural assumptions with Soar (Laird, 2012). More
+that need to be true to execute, direct actions to perform in the     specifically, both the architectures assume that episodic mem-
+world or any sub-skills, and the intended effects of the execu-       ory is a long-term, cue-based system that maintains cues in
+tion. For instance, the last entry in Table 1 shows a primitive       the agent’s working memory, and the agent deliberately en-
+                                                                  621
+
+codes and retrieves episodes. However, there are also sig-                                                                    Perception
+                                                                                                          Perceptual Buffer
+nificant differences. Each time a Soar agent takes action(s),
+the architecture records a snapshot of its current state as an             Long-term      Categorization
+                                                                       Conceptual Memory  and Inference    Belief Memory
+episode, which is stored statically in the episodic memory
+without any generalization (Nuxoll & Laird, 2007). An in-
+dividual episode in Soar, therefore, does not capture the no-                            Episodic Memory
+tion of a relived experience. Rather, it is necessary to compile
+                                                                                                            Skill Retrieval  Environment
+multiple episodes to describe an event. Furthermore, the Soar
+agent does not remember events where it did not perform any
+action and stayed as an observer. In contrast, I CARUS has                 Long-term      Skill Learning    Goal Memory
+                                                                          Skill Memory
+these unique characteristics in its episodic memory:
+                                                                                                            Motor Buffer    Skill Execution
+• Episodic memory is organized as a compound structure
+   composed of an episodic cache, an episodic generalization
+   tree, and a concept frequency tree.                               Figure 1: A block diagram that illustrates I CARUS’s processes
+                                                                     including the new episodic module marked in red. Arrows
+• Episodic generalization tree is organized by similarity.
+                                                                     represent the direction of information flow.
+• Episodes represent durative experiences of variable length.
+• Episodic memory is a dynamic structure that supports gen-          general episode and is allowed to have an arbitrary number
+   eralization among similar episodes.                               of children. Each child is a k-ary tree where k ∈ N. Episodes
+                                                                     become more specific at each decreasing level of the tree to-
+   In this section, we describe the new episodic memory mod-         ward the leaf nodes, and there are fully instantiated episodes
+ule in I CARUS in detail. We start with the representation of        at the bottom of the tree. This structural organization reflects
+episodes, and then explain the encoding, retrieval, and gener-       our understanding of Schiller et al. (2015), and the notion of
+alization processes.                                                 episodes representing durative events is consistent with all the
+                                                                     literature on episodic memory we are aware of. Next, we ex-
+Episodic Representation                                              plain the processes for encoding, retrieving, and generalizing
+The episodic generalization tree is the main data structure          episodes in I CARUS.
+that organizes and stores episodes. The episodic cache acts
+                                                                     Encoding Encoding is the process that consumes a raw
+as a storage for the agent’s unprocessed experience. Since
+                                                                     state–action sequence stored in the episodic cache and inserts
+our agents do not run for days or years just yet, we assume
+                                                                     a fully specified episode into the episodic generalization tree.
+that the agent has sufficient memory to store the complete
+                                                                     This process is triggered by the noticing of one or more sig-
+state–action sequence. The concept frequency tree records
+                                                                     nificant events. Currently, I CARUS considers the following
+the number of times I CARUS has seen each concept instance.
+                                                                     four cases as significant:
+The episodic cache and the concept frequency tree provide a
+mechanism for recognizing and explaining significant events.        1. A rarely seen concept predicate
+Episodic Processes                                                  2. A rarely seen partial set of bindings for a concept predicate
+On every cycle, I CARUS records the current state and exe-          3. A rarely seen full set of bindings for a concept predicate
+cuted actions into the episodic cache and updates the con-          4. The absence of a concept instance that the agent expects
+cept frequency tree, as indicated by the arrows going into the
+episodic memory in Figure 1. When the agent perceives or                 Once a new episode has been created in this manner, the
+infers one or more significant events, it begins to encode a         architecture inserts it to the episodic generalization tree using
+new episode. The architecture tries to explain each significant      a slightly modified level order search. In level order search,
+event by analyzing information stored in the episodic cache          a node’s children are added to the search queue after hav-
+and finding a logical process that causes the event to happen.       ing visited that node. Rather than always doing this, a sim-
+If the explanation attempt is successful, the state–action se-       ilarity test is done first to ensure that the episode already in
+quence that explains the significant event will be stored as the     the tree unifies to the episode to insert if and only if the two
+new episode. Otherwise, the significant event(s) and the time        episodes are structurally similar. Figure 2 shows this proce-
+when the event(s) occurred are stored as the new episode.            dure graphically. The numbers in curly braces represent the
+This is to make it possible for the agent to return to the par-      order in which the insertion happens. After the similarity test
+ticular episode and try to explain again after it accumulates        is passed, then and only then are the similar episode’s children
+more knowledge about the world.                                      added to the search queue. If the episode to insert cannot be
+   The episodic memory supports episodic generalization,             unified with any of the episodes on a given level, then that
+and the resulting hierarchy is stored in the episodic general-       episode becomes a sibling of those episodes. A new episode
+ization tree. The root (top-level) node of this tree is the most     has successfully been encoded into the episodic memory. If
+                                                                 622
+
+the episode to insert is a copy of one of the leaf episodes, then
+the counter for the number of times that particular episode has
+been observed goes up by one and the episode to insert is not
+inserted. All episodes are guaranteed to be instantiated by the
+general episode at the root node.
+Retrieval I CARUS supports cue-based retrieval of the
+episodic memory. Given a cue, I CARUS performs the level
+order search described in the encoding process except that,
+instead of the similarity test, the system checks to see if the
+episode contains a matching fully specified copy of the cue or
+if the episode contains a generalized version of the cue that
+unifies with the cue. If so, the episode that matches with the
+cue is returned. Figure 3 shows the retrieval process. More
+than one episode can match the cue, so retrieving from a cue
+returns a forest of trees. One major advantage of this is mech-
+anism, is that the agent only has to search the episodes di-
+                                                                      Figure 2: The insertion into the episodic generalization tree.
+rectly under the root to discover if a situation is completely
+                                                                      The numbers in the diamonds represent the order in which the
+new. The reason is that, if the cue matches, the cue will ei-
+                                                                      existing episodes were experienced.
+ther match directly, or at least one of the root’s children will
+contain some generalized version of the cue and the general-
+                                                                      at one table it cannot see the contents of the other table. Both
+ization match test will pass. If all match tests fail then there
+                                                                      tables contain three boxes, a red, a blue, and a green, and one
+does not exist a matching episode in the tree. This is known,
+                                                                      box on each table has a block inside of it. Though the contents
+in the worst case, at level two of the tree.
+                                                                      of the tables are the same, the tables themselves are labelled
+Generalization The ability to generalize knowledge is a               differently and the positioning and names of the boxes are
+key cognitive ability. One of the ways I CARUS supports this          different. Specifically, one table is labeled Rainbow and the
+is by performing generalization in the episodic tree at encod-        other is named Cloud, and the boxes are named Box1 through
+ing. The state–action trace in the episode represents a demon-        Box6. This is done so that the agent knows that there are two
+stration of how a significant event came to be. Therefore it          distinct environments in this domain.
+is possible to learn from that trace. For example, if person             We aim to demonstrate many interesting applications from
+x drops a glass on the ground and it breaks, and person y             our work, but for the moment we use the modified blocks
+drops a glass on the ground and it breaks as well, I CARUS            world domain to supply examples for learning from observa-
+will generalize that knowledge to say that if anyone drops a          tion, impasse resolution and making expectations.
+glass on the ground, it will break (assuming x 6= y). This may
+not be true in general, but the number of times I CARUS makes         Learning from Observations
+such generalizations forms the conditional probability, or the        Despite episodic memory being the memory for events, con-
+confidence with which I CARUS believes a glass breaks when            stantly reflecting on passed experiences may cause the agent
+someone drops it. The ability to gain knowledge in this way           to disproportionally slow down as a result of the amount
+seems quite central to general intelligence. Sibling general-         of resources required to search the episodic memory for an
+ization is implemented by iterating through the newly inserted        episode that answers or responds to a query. When an agent
+episode’s siblings. I CARUS makes a generalized episode, and          enters a new environment it may not know how to character-
+for each sibling it checks to see if it can unify the sibling and     ize it, and as a result may be unsure of what to do and relies
+the new entry by variablizing the bindings where conflicts are        on its episodic memory. As it collects more experiences it
+found. If a consistent variablization has been made, I CARUS          may come to knowledge of specific patterns about the envi-
+tests to see if the generalized episode is still more specific        ronment and formally characterize them in terms of rules.
+than the parent of the newly inserted episode. If so, then the           Since episodes in the episodic memory have a count asso-
+the generalized episode’s parent becomes the freshly inserted         ciated with them, we can capture this ability in I CARUS. If
+episode’s parent and the generalized episode’s sub-episodes           the agent experiences an episode a sufficient number of times
+becomes the freshly inserted episode and the sibling episode          I CARUS will try to formalize it into a rule. In our domain, if
+that generalized with it. The count for the generalized episode       the agent experiences 10 times that an extra box appears when
+is the summation of the count of its children.                        it stacks two boxes on top of each other, it would have a suf-
+                                                                      ficient amount of evidence to logically relate a stacking two
+               Architectural Implications                             boxes with producing a new box. This mechanism also ties
+                                                                      into remembering and knowing because even if I CARUS for-
+The modified blocks world we use in this work is a partially          gets the stacking experience it would still maintain the rule.
+observable world with two tables. When the agent is looking           Of course there is the possibility that the agent overfits rules
+                                                                  623
+
+                                                                       Expectations
+                                                                       Our system uses the concept frequency tree to create expec-
+                                                                       tations of what beliefs should be true relative to a given en-
+                                                                       vironment. As an agent collects more experiences it collects
+                                                                       information about how often it sees certain beliefs over the to-
+                                                                       tal number of times it has been in a certain environment. Over
+                                                                       time these conditional probabilities give the agent an idea of
+                                                                       what to expect when it enters an environment.
+                                                                          In our example I CARUS spends several cycles at the Rain-
+                                                                       bow table. As it is exploring and acting in the environment,
+                                                                       the beliefs change. At a later time when the robot thinks about
+                                                                       being at the Rainbow table it may realize things like “Box
+                                                                       Box0 is always on the table” and “There was a block in the
+                                                                       box for about half the time I was there”. In subsequent in-
+                                                                       teractions, unless proven otherwise, I CARUS would assume
+                                                                       that Box0 is on the Rainbow table. This virtual sensing is a
+                                                                       process for discovering hidden or unseen facts about a given
+                                                                       environment. Incorporating this ability into I CARUS is im-
+    Figure 3: Retrieval and impasse resolution in I CARUS.             portant because often times, agents act in partially observable
+                                                                       worlds. So being able to recall information that pieces to-
+so a mechanism for modifying rules needs to exist. Also,               gether a more complete view of the world may allow an agent
+since I CARUS keeps a complete state–action sequence it can            to operate in a more natural and efficient manner.
+always review old experiences to learn something new.
+                                                                       Remembering and Knowing
+Impasse Resolution                                                     Many psychologists and students of memory have discussed
+I CARUS encounters an impasse when it does not know how                the nature of remembering and knowing. That is, once some-
+to reach its goal in the current state. One way to overcome            one recognizes an item, is that item recognized because the
+an impasse is to problem solve through means-ends analysis.            person had a recollective experience of the item, or did he or
+Note, however, that a plan generated by this method is depen-          she somehow know about the item without having any recol-
+dent on the agent’s conceptual knowledge of how the world              lective experience? This nuance has encouraged researchers
+works. So, if the agent does not know how to logically re-             to characterize knowing and remembering responses and the
+late the goal state to skills or concepts the agent fails. In such     protocols that govern the interaction of the two.
+cases it would be advantageous to recall a similar experience             It seems that remembering is based on episodic memory
+to the current one and repeat the actions that produced the            while knowing responses are based on semantic memory
+goal in the previous experience. Figure 3 shows the order in           (Gardiner, 1988; Rajaram, 1993; Knowlton & Squire, 1995).
+which I CARUS matches against the cue. Note that it is pos-            Specifically, in a remembering situation, responses are heav-
+sible to match against generalized episodes. In stage 4, the           ily influenced by the conditions present at the time of the en-
+environment’s current bindings are applied to the retrieved            coded episode and by the amount of resources available to
+solution. Another interesting aspect of impasse resolution is          spend on remembering. For example, the more distracted a
+that it is one of the means for which I CARUS gathers support          person is while performing a task, the less likely the person
+to formalize experiences into a rules as discussed above.              is able to recollect on what happened. On the other hand,
+   I CARUS spends some time at the Rainbow table exploring             knowing responses are automatic and influenced neither by
+the world. During this time it tries a number of different ac-         the conditions at encoding nor the amount of resources avail-
+tions and eventually it opens all the boxes and realizes that          able (Gardiner, 1988; Jacoby, 1991). While remembering in-
+one of them has a block inside of it. The agent goes to the            volves searching through the episodic memory, knowing sim-
+Cloud table and sees a new set of boxes on the table. The              ply involves the state of the semantic memory, thus giving
+task is to find the block inside the box. Even though I CARUS          rise to the automatic property of know responses.
+knows that opening a box might reveal an item contained in-               In our work, we take this research into account and aim to
+side it, there is no logical reason why the box has to contain         provide a computational theory that is consistent with these
+a block so the problem solver cannot reason properly about             results. For instance, remembering responses in I CARUS uti-
+what to do in this case. When I CARUS uses (block ?b1)                 lize the episodic memory retrieval mechanism and are thus
+as a cue to the episodic memory, it remembers that it found            susceptible to encoding conditions as suggested in the litera-
+a block at Rainbow by, say, opening Box0. This solution is             ture. Knowing in I CARUS is facilitated by the semantic mem-
+adapted to the current situation and the agent decides to open         ory and does not involve extensive search, thus giving rise to
+all the boxes because Box0 is of type box.                             seemingly automatic performance.
+                                                                   624
+
+                         Discussions                                   Choi, D. (2011). Reactive goal management in a cognitive
+                                                                         architecture. Cognitive Systems Research, 12, 293–308.
+We added an episodic memory to our theory of cognition in
+                                                                       Faltersack, Z., Burns, B., Nuxoll, A., & Crenshaw, T. L.
+order to better capture the full range of human cognitive abil-
+                                                                         (2011). Ziggurat: Steps toward a general episodic memory.
+ities for intelligent computational agents. One of the novel
+                                                                         In AAAI fall symposium: Advances in cognitive systems.
+features of this episodic implementation is the ability to gen-
+                                                                       Fikes, R., & Nilsson, N. (1971). STRIPS: a new approach
+eralize knowledge at encoding. This serves a two-fold pur-
+                                                                         to the application of theorem proving to problem solving.
+pose. It provides an ordering to the episodes that lends itself
+                                                                         Artificial Intelligence, 2, 189–208.
+to efficient search and secondly it reduces the demand dur-
+                                                                       Gardiner, J. M. (1988). Functional aspects of recollective
+ing retrieval time to adapt a previous solution to the current
+                                                                         experience. Memory & Cognition, 16(4), 309–313.
+situation because solutions can be arbitrarily specific. Since
+                                                                       Hellerstedt, R. (2015). From cue to recall: The temporal dy-
+I CARUS learns from observations at the level of episodes, the
+                                                                         namics of long-term memory retrieval. Unpublished doc-
+ability to generalize knowledge at encoding also implies that
+                                                                         toral dissertation, Lund University.
+the agent will be able to learn generalized models of how the
+                                                                       Horn, A. (1951). On sentences which are true of direct unions
+world works.
+                                                                         of algebras. Journal of Symbolic Logic, 16(1), 14–21.
+   We plan to build on this work in a number of different di-          Jacoby, L. L. (1991). A process dissociation framework: Sep-
+rections. We mention here three of them which, we believe,               arating automatic from intentional uses of memory. Journal
+are most relevant. The strength of our system largely de-                of Memory and Language, 30(5), 513–541.
+pends on I CARUS’s ability to explain significant events. To-          Knowlton, B. J., & Squire, L. R. (1995). Remembering and
+wards that end, we would like to tightly integrate an explana-           knowing: two different expressions of declarative memory.
+tion mechanism for the creation of episodes and to augment               Journal of Experimental Psychology: Learning, Memory,
+learning from observations within the context of the episodic            and Cognition, 21(3), 699.
+memory. We will also expand the notion of expectations in              Laird, J. E. (2012). The soar cognitive architecture. Cam-
+I CARUS to use both the concept frequency tree and the prim-             bridge, MA: MIT Press.
+itive skills. This will enable the architecture to learn from          Langley, P., & Choi, D. (2006). A unified cognitive architec-
+different types of surprises. Another interesting direction is           ture for physical agents. In Proceedings of the Twenty-First
+to implement a grammar for self-cueing. We expect that this              National Conference on Artificial Intelligence.
+will facilitate the agent’s use of the episodic memory for a           Nuxoll, A. M., & Laird, J. E. (2007). Extending cognitive ar-
+number of tasks like virtual sensing and other applications of           chitecture with episodic memory. In Proceedings of the
+case-based reasoning.                                                    Twenty-Second National Conference on Artificial Intelli-
+                                                                         gence (pp. 1560–1565).
+                         Conclusions                                   Rajaram, S. (1993). Remembering and knowing: Two means
+In this work, we detailed a computational model of episodic              of access to the personal past. Memory & Cognition, 21(1),
+memory within the context of a cognitive architecture,                   89–102.
+I CARUS. We founded our approach on psychological evi-                 Schachter, D. L. (1987). Implicit memory: History and cur-
+dence concerning the nature of episodic memory, the mecha-               rent status. Journal of Experimental Psychology: Learning,
+nisms of remembering and knowing, and the distinct features              Memory, and Cognition, 13(3), 501–518.
+of implicit and explicit memory. We believe episodic memory            Schiller, D., Eichenbaum, H., Buffalo, E. A., Davachi, L.,
+is a fundamental component of human cognitive ability, and               Foster, D. J., Leutgeb, S., & Ranganath, C. (2015). Mem-
+the extended architecture serves as an important basis for fu-           ory and space: towards an understanding of the cognitive
+ture research. We showed that the extension provides I CARUS             map. The Journal of Neuroscience, 35(41), 13904–13911.
+with at least three new or improved cognitive functions. We            Tulving, E. (1983). Elements of episodic memory. Oxford
+plan to continue our research in this promising direction and            University Press.
+hope to report in the near future the results of our evaluations       Tulving, E. (1985). Memory and consciousness. Canadian
+using both qualitative and quantitative measures.                        Psychology/Psychologie Canadienne, 26(1), 1.
+                                                                       Tulving, E. (2002). Episodic memory: From mind to brain.
+                         References                                      Annual Review of Psychology, 53(1), 1–25.
+                                                                       Wallace, S. A., Dickinson, E., & Nuxoll, A. (2013). Hashing
+Anderson, J. R., & Lebiere, C. (1998). The atomic compo-                 for lightweight episodic recall. In AAAI spring symposium
+   nents of thought. Mahwah, NJ: Erlbaum.                                series.
+Baddeley, A. (2000). The episodic buffer: a new component
+   of working memory? Trends in Cognitive Sciences, 4(11),
+   417–423.
+Bölöni, L. (2011). An investigation into the utility of episodic
+   memory for cognitive architectures. In AAAI fall sympo-
+   sium: Advances in cognitive systems.
+                                                                   625
+

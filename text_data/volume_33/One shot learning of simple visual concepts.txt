@@ -1,0 +1,488 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+One shot learning of simple visual concepts
+Permalink
+https://escholarship.org/uc/item/4ht821jx
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 33(33)
+Authors
+Lake, Brenden
+Salakhutdinov, Ruslan
+Gross, Jason
+et al.
+Publication Date
+2011-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+                                 One shot learning of simple visual concepts
+                Brenden M. Lake, Ruslan Salakhutdinov, Jason Gross, and Joshua B. Tenenbaum
+                                             Department of Brain and Cognitive Sciences
+                                               Massachusetts Institute of Technology
+                            Abstract
+  People can learn visual concepts from just one example, but
+  it remains a mystery how this is accomplished. Many authors
+  have proposed that transferred knowledge from more familiar
+  concepts is a route to one shot learning, but what is the form
+  of this abstract knowledge? One hypothesis is that the shar-
+  ing of parts is core to one shot learning, and we evaluate this
+  idea in the domain of handwritten characters, using a massive
+  new dataset. These simple visual concepts have a rich inter-
+  nal part structure, yet they are particularly tractable for com-
+  putational models. We introduce a generative model of how
+  characters are composed from strokes, where knowledge from            Figure 1: Test yourself on one shot learning. From the example
+  previous characters helps to infer the latent strokes in novel        boxed in red, can you find the others in the array? On the left is a
+  characters. The stroke model outperforms a competing state-           Segway and on the right is the first character of the Bengali alphabet.
+  of-the-art character model on a challenging one shot learning         Answer for the Bengali character: Row 2, Column 3; Row 4, Column 2.
+  task, and it provides a good fit to human perceptual data.
+  Keywords: category learning; transfer learning; Bayesian
+  modeling; neural networks
+   A hallmark of human cognition is learning from just a few
+examples. For instance, a person only needs to see one Seg-
+way to acquire the concept and be able to discriminate future
+Segways from other vehicles like scooters and unicycles (Fig.
+1 left). Similarly, children can acquire a new word from one
+encounter (Carey & Bartlett, 1978). How is one shot learning
+possible?
+   New concepts are almost never learned in a vacuum. Past                     Figure 2: Examples from a new 1600 character database.
+experience with other concepts in a domain can support the
+rapid learning of novel concepts, by showing the learner what           useful representational basis for many different vehicle and
+matters for generalization. Many authors have suggested this            artifact concepts – a representation that is likely learned in
+as a route to one shot learning: transfer of abstract knowledge         the course of learning the concepts that they support. Several
+from old to new concepts, often called transfer learning, rep-          papers from the recent machine learning and computer vision
+resentation learning, or learning to learn. But what is the             literature argue for such an approach: joint learning of many
+nature of the learned abstract knowledge that lets humans ac-           concepts and a high-level part vocabulary that underlies those
+quire new object concepts so quickly?                                   concepts (e.g., Torralba, Murphy, & Freeman, 2007; Fei-Fei,
+   The most straightforward proposals invoke attentional                Fergus, & Perona, 2006). Another recently popular machine
+learning (Smith, Jones, Landau, Gershkoff-Stowe, & Samuel-              learning approach is based on deep learning (Salakhutdinov
+son, 2002) or overhypotheses (Kemp, Perfors, & Tenenbaum,               & Hinton, 2009): unsupervised learning of hierarchies of dis-
+2007; Dewar & Xu, in press), like the shape bias in word                tributed feature representations in neural-network-style prob-
+learning. Prior experience with concepts that are clearly orga-         abilistic generative models. These models do not specify ex-
+nized along one dimension (e.g., shape, as opposed to color or          plicit parts and structural relations, but they can still construct
+material) draws a learner’s attention to that same dimension            meaningful representations of what makes two objects deeply
+(Smith et al., 2002) – or increases the prior probability of new        similar that go substantially beyond low-level image features.
+concepts concentrating on that same dimension (Kemp et al.,                These approaches from machine learning may be com-
+2007). But this approach is limited since it requires that the          pelling ways to understand how humans learn so quickly,
+relevant dimensions of similarity be defined in advance.                but there is little experimental evidence that directly supports
+   For many real-world concepts, the relevant dimensions of             them. Models that construct parts or features from sensory
+similarity may be constructed in the course of learning to              data (pixels) while learning object concepts have been tested
+learn. For instance, when we first see a Segway, we may                 in elegant behavioral experiments with very simple stimuli
+parse it into a structure of familiar parts arranged in a novel         and a very small number of concepts (Austerweil & Griffiths,
+configuration: it has two wheels, connected by a platform,              2009; Schyns, Goldstone, & Thibaut, 1998). But there have
+supporting a motor and a central post at the top of which are           been few systematic comparisons of multiple state-of-the-art
+two handlebars. These parts and their relations comprise a              computational approaches to representation learning with hu-
+                                                                     2568
+
+man learners on a large scale, using a large number of inter-                      Original character      20 People’s Strokes
+esting natural concepts. This is our goal here.                                    a)
+   We work in the domain of handwritten characters, an ideal                      20 People’s Drawings
+setting for studying one shot learning at the interface of hu-
+man and machine learning. Handwritten characters contain a
+rich internal part structure of pen strokes, providing good a
+priori reason to explore a parts-based approach to representa-
+tion learning. Supporting this notion, psychological studies
+have shown that knowledge about how characters are pro-
+duced from strokes influences basic perception, including
+                                                                                   b)
+classification (Freyd, 1983) and apparent motion (Tse & Ca-
+vanagh, 2000). While characters contain complex internal
+structure (Fig. 2), they are simple enough for us to hope that
+tractable computational models can represent all the struc-
+ture people see in them – unlike natural images. Handwritten
+digit recognition (0 to 9) has received major attention in ma-
+chine learning, with genuinely successful algorithms. Clas-
+sifiers based on deep learning can obtain over 99 percent ac-
+curacy on the standard MNIST dataset (e.g., LeCun, Bottou,                        c)
+Bengio, & Haffner, 1998; Salakhutdinov & Hinton, 2009).
+Yet these state-of-the-art models are still probably far from
+human-level competence; there is much room to improve on                     2
+them. The MNIST dataset provides thousands of training ex-                 1.8
+amples for each class. In stark contrast, humans only need                 1.6
+one example to learn a new character (Fig. 1 right).                       1.4
+   Can this gap be closed by exploring different forms of prior            1.2
+knowledge? Earlier work on one shot digit learning investi-
+gated transferable knowledge of image deformations, such as
+                                                                             1
+                                                                                   Stroke order:
+                                                                                       1st      2nd    3rd     4th       5th   6th
+                                                                           0.8
+scale and rotation (Miller, Matsakis, & Viola, 2000). These          Figure 3: Illustration of the drawing data. Each panel shows the orig-
+factors are important, but we suggest there is much more to                0.6
+                                                                     inal character,  20 people’s image drawings, and 20 people’s strokes
+the knowledge that supports one shot learning. People have           color 0.4
+                                                                           coded for order.
+a rich understanding of how characters are formed from the           nation0.2 data and human accuracy in a challenging one shot
+strokes of a pen, guided by the human motor system.                  classification
+                                                                             0
+                                                                                       task, while comparing it with a leading alter-
+                                                                               0            0.5
+   There are challenges with conducting a large scale study          native approach       from  machine1 learning, 1.5the Deep Boltzmann
+                                                                                                                                   2
+of character learning. People already know the digits and            Machine (DBM; Salakhutdinov & Hinton, 2009). The DBM
+the Latin alphabet, so experiments must be conducted on new          is an interesting comparison because it is also a generative
+characters. Also, people receive massive exposure to domes-          probabilistic model, it achieves state-of-the-art performance
+tic and foreign characters over a lifetime, including extensive      on the permutation invariant version of the MNIST task, and
+first hand drawing experience. To simulate some of this ex-          it has no special knowledge of strokes or even image geome-
+perience for machines, we collected a massive new dataset of         try. We find that the stroke model outperforms the DBM by a
+over 1600 characters from around the world. By having par-           large margin on one shot learning accuracy, and both models
+ticipants draw characters online, it was possible to record both     provide a good fit to human perceptual discrimination.
+the images, the strokes, and the time course of drawing (Fig.
+3). Using the dataset, we can investigate the dual problems                       New dataset of 1600 characters
+of understanding human concept learning and building ma-             We collected a new dataset suitable for large scale concept
+chines that learn as rapidly as people can. We propose a new         learning from few examples. The dataset can be viewed as the
+model of character learning based on inducing probabilistic          “transpose” of MNIST; rather than having 10 character (digit)
+part-based representations, similar to the computer vision ap-       classes with thousands of examples each like MNIST, the
+proaches of Torralba, Fei-Fei, Perona and colleagues. Given          new dataset has over 1600 characters with only 20 examples
+an example image of a new character type, the model infers           each. These characters are from 50 alphabets from around
+a sequence of latent strokes that best explains the pixels in        the world, including Bengali, Cyrillic, Avorentas, Sanskrit,
+the image, drawing on a large stroke vocabulary abstracted           Tagalog, and even synthetic alphabets used for sci-fi nov-
+from many previous characters. This stroke-based represen-           els. Prints of the original characters were downloaded from
+tation guides generalization to new examples of the concept.         www.omniglot.com and several original images are shown
+We test the model against both human perceptual discrimi-            in Fig. 3 (top left in each panel). Perception and modeling
+                                                                 2569
+
+                                                                     a)                                             Stroke set
+should not be tested on these original typed versions, since                                              m            Stroke set
+                                                                                                                                                                      Ori
+they contain differences in style and line width across alpha-
+                                                                                                            m
+bets. Instead each alphabet was posted on Amazon Mechan-
+                                                                          W1               W2       ... Wm                  S1         S2         ... Sm
+ical Turk using the printed forms as reference, and all char-
+                                                                                      W1       W2       ... Wm             π          S1        S2     ... Sm
+acters were drawn by 20 different non-experts with computer
+mice (Fig. 3, bottom left). In addition to capturing the image,
+the interface captures the drawer’s parse into strokes, shown                                    Z( j )
+                                                                                              (j)           Z( j )
+in Fig. 3 (right) where color denotes stroke order.                                         τ
+   Drawing methods are remarkably consistent across par-                                                           I( j )
+                                                                                                                             I( j )
+ticipants. For instance, Fig. 3a shows a Cyrillic charac-                    j=1,..., r j=1,..., r                                        character token
+                                                                                                                                               character token
+ter where all 20 people used one stroke. While not visi-                                                                                          character  type
+                                                                                                                                                     character type
+ble from the static trace, each drawer started the trajectory                                                                                       generalknowledge
+                                                                                                                                                            knowledge
+                                                                                                                                                 general
+from the top right. Fig. 3b shows a Tagalog character where
+                                                                    b)
+19 drawers started with top stroke (red), followed by a sec-                                                                                       character
+ond dangling stroke (green). But there are also slight vari-                                                                                       tokens
+ations in stroke order and number. Videos of the drawing
+process for these characters and others can be downloaded at
+http://web.mit.edu/brenden/www/charactervideos.html.
+                                                                                                                                           character
+                                                                                                        general knowledge                  type
+        Generative stroke model of characters
+                                         Thursday, April 28, 2011
+                                                                             Figure 4: Illustration of the generative process as described in text.
+                                                                             All variables inside the character type plate are implicitly indexed
+The consistent drawing pattern suggests a principled infer-                  by character type.
+ence from static character to stroke representation (see Bab-
+cock & Freyd, 1988). Here we introduce a stroke model that                   of the strokes and through a global translation controlled
+captures this basic principle. When shown just one new ex-                   by τ (j) . As with W , the image specific positions Z (j) =
+                                                                  Thursday, April 28, 2011
+                                                                                      (j)         (j)           (j) (j)               (j) (j)
+ample of a character, the model tries to infer a set of latent               {Z1 , ..., Zm } = {zx1 , zy1 , ..., zxm , zym } specify discrete
+strokes and their configuration that explains the pixels in an               x and y coordinates in the image. The distribution is
+image. This high-level representation is then used to clas-                                                     m
+                                                                                                              Y                     1        (j)
+sify new images with unknown identity. Fig. 4 describes                          P (Z (j) |W, τ (j) ) ∝             exp(−              ||(Zi − Wi − τ (j) ||22 ),
+the generative process. Character types (A, B, etc.) are gen-                                                                     2σz2
+                                                                                                              i=1
+erated from general knowledge which includes knowledge                       which is like a spherical Gaussian but with support
+of strokes. These types are abstract descriptions defined by                 on a discrete set.                    The translation τ (j) is distributed
+strokes: their number, identity, and general configuration.                  as P (τ ) ∝ exp(− 2σ1 2 ||τ (j) ||22 ) with support on
+                                                                                              (j)
+Character tokens (images) are generated from the types by                                                                 t
+perturbing stroke positions and inking the pixels.                           {−R, ..., R} × {−R, ..., R}.                           Given the positions, the
+                                                                             image can be generated by G1 hypothetical draws of pixels
+Generating a character type A character type is defined                      to “ink” from a distribution over pixels. The ink model is
+by a set of strokes S, their positions W , and their mixing                  based on Revow, Williams, and Hinton (1996) although we
+strengths π. The number of strokes m is picked from a uni-                   extend it to the multi-stroke case. The probability that none
+form distribution (1 to 10 for simplicity). The first stroke                 of the draws landed in a pixel slot g (g is white) is
+identity is drawn from the uniform distribution P (S1 ) = 1/K
+                                                                                             (j)                                            (j)
+where K = 1000 is the size of the stroke set. Each stroke also                          P (Ig = 0|S, Z (j) , π) = (1 − Q(Ig |S, Z (j) , π))G ,
+has a starting position for its trajectory, denoted Wi where
+Wi = [wxi , wyi ] which has discrete x and y coordinates. The                and the probability of a pixel being inked is the comple-
+                                                                                               (j)                                         (j)
+first stroke’s position is uniform across the R2 discrete pixel              ment P (Ig = 1|S, Z (j) , π) = 1−P (Ig = 0|S, Z (j) , π). In-
+locations in the image (the image size is R × R). Subse-                     tuitively, the function Q distributes ink across the strokes with
+quent strokes P (Si+1 |Si ) and positions P (Wi+1 |Wi ) are                  Gaussian spray paint. This is captured by lining each stroke
+drawn from a transition model, which is uniform and inde-                    with little Gaussian beads that generate ink. Q is defined by
+pendent of the past. The transition models could be extended,                a nested mixture:2 an inked pixel is a mixture of noise (pa-
+both for the strokes and positions, to include a more accu-                  rameter β) and another mixture over the m strokes, and each
+rate sequential process. Finally, we draw the mixing weights                 stroke is yet another mixture (V ) of the Gaussian beads
+π ∼ Dirichlet(1, 1, ..., 1) which is a vector of length m.                            1
+                                                                                        We use the actual number of inked pixels for G. But as Revow et
+Generating a character token A character type then gen-                      al. point out, other values would increase the probability of the data
+                                                                             since hypothetical draws will overlap. But this inaccuracy will hurt
+erates a character token I (j) , which is a pixel image. While               both correct and incorrect candidate models during classification.
+W specifies a character type position template, the token                             2
+                                                                                        Note that if Q can have values greater than 1, this is no longer a
+specific positions Z (j) can vary in both relative positions                 valid distribution. But it can be shown that if σb > 0.4, then Q < 1.
+                                                                   2570
+
+                                                  m
+        (j)                    β
+                                                 X            (j)       (j)         closest library strokes, scored, and the best is picked for
+  Q(Ig |S, Z (j) , π) =        R2
+                                  + (1 − β)          πi V (Ig |Si , Zi )
+                                                                                    initialization. We then approximate
+                                                 i=1
+        (j)         (j)
+                               XB
+                                           (j)           (j)
+                                                                                      P (I (t) |S ∗ , W ∗ , π ∗ )
+  V  (Ig |Si , Zi )      =   1
+                                    N (Ig |Xb + Zi , σb2 I),                                   X
+                            B                                                         =                  P (I (t) , Z (t) , τ (t) |S ∗ , W ∗ , π ∗ )
+                               b=1
+where I is the identity matrix, N is a Gaussian, and Xb ∈ R2                                Z (t) ,τ (t)
+are the bead coordinates for the stroke Si . Evaluating the ink                       ≈     P (I   (t)
+                                                                                                       ,Z (t)∗
+                                                                                                               , τ (t)∗ |S ∗ , W ∗ , π ∗ ), where
+model is expensive, but each stroke’s V can be computed                               {Z (t)∗ , τ (t)∗ } = argmax P (Z (t) , τ (t) |I (t) , S ∗ , W ∗ , π ∗ ).
+                                                        (j)
+offline, cached, and then translated by Zi as needed. We                                                      Z (t) ,τ (t)
+used B = 28, σb = 1.5, β = 0.01, σz = 2, and σt = 10.                               Again, we use Metropolis-Hastings and take the most proba-
+                                                                                    ble sample after 2000 proposals. Moves include proposing a
+Learning a library of strokes General knowledge of                                           (t)
+                                                                                    new Zi or jointly proposing changes in Z (t) and τ (t) .
+strokes was learned from the drawing data. The entire dataset
+was split randomly into a 25 alphabet “background set” and a                                20-way classification from one example
+25 alphabet “experiment set.” The stroke library was learned
+                                                                                    We tested three models on one shot learning: the stroke
+from the background set, and the models and people were
+                                                                                    model, the Deep Boltzmann Machine (DBM, Salakhutdinov
+tested on the experiment set. About 40,000 strokes were
+                                                                                    & Hinton, 2009), and Nearest Neighbor (NN) in pixel space.
+aligned and clustered (using k-means) to form K = 1000 cen-
+                                                                                    Performance was evaluated on 20-way classification, where
+troids that comprise the model’s library (Fig. 4). Stroke tra-
+                                                                                    each training class gets only one example. For a given run, 20
+jectories vary widely in length so they were reduced to a com-
+                                                                                    characters were picked at random from different alphabets in
+mon dimensionality by fitting a cubic B-spline with 10 con-
+                                                                                    the experiment set. The models have never seen any of these
+trol points and clustering was done in this new space (Revow
+                                                                                    alphabets or characters before. Accuracy was then tested on
+et al., 1996; Branson, 2004).3 Strokes are direction specific,
+                                                                                    novel images drawn from this set of 20 characters.
+meaning a left to right line and a right to left line are different.
+                                                                                       All models received 28 × 28 images (binary for the stroke
+Inference for one shot learning For one shot learning, the                          model and NN, grayscale for the DBM). The stroke model
+model is given a single example image I (e) and a candidate                         fits a latent stroke representation to each training image I (e) ,
+            (t)                                     (t)   (e)
+image I . Exact computation of P (I |I ) is intractable                             and a test image I (t) is classified by picking the largest
+and even a maximum a posteriori (MAP) estimate involves                             P (I (t) |I (e) ) across the 20 possible training characters. The
+fitting every pair of images I         (e)          (t)
+                                             and I , which is very ex-              DBM was pretrained on the 25 background alphabets using
+pensive. Instead, the computation is approximated as follows:                       a combination of MCMC and variational approximation (see
+        (t)   (e)                                                                   Salakhutdinov & Hinton, 2009). The architecture was two
+  P (I |I )
+          X                            X                                            hidden layers with 1000 units each. DBM classification is
+  =             P (I (t) |S, W, π)               P (S, W, π, Z (e) , τ (e) |I (e) ) performed by nearest neighbor in the hidden representation
+        S,W,π                       τ (e) ,Z (e)                                    space, combining vectors from both hidden layers and using
+  ≈ P (I (t) |S ∗ , W ∗ , π ∗ ), where                                              cosine similarity. NN classification uses Euclidean distance
+      ∗      ∗    ∗                                           (e) (e)    (e)        but cosine performs similarly.
+  {S , W , π } =             argmax          P (S, W, π, Z , τ |I ).
+                        S,W,π,Z ,τ(e)   (e)                                            The stroke model achieves 54.9% correct, compared to
+To compute the maximization, we run Markov Chain Monte                              39.6% for the DBM and 15.7% for nearest neighbor in pixels
+Carlo (MCMC) and the Metropolis-Hastings algorithm,                                 (Fig. 5 left). This was averaged over many random runs (27)
+taking the most probable sample after 50,000 proposals.                             of the training characters and four test examples per class.
+Intuitively, this picks the best strokes it can find to explain                     Figure 6 illustrates model fits to the training images in one
+just the training image. Proposals include a replacement of a                       run. The stroke model is reasonable but imperfect parser. To
+stroke Si and position Wi with a similar stroke and position,                       disentangle the imperfect parsing from the general approach,
+moves to change π, moves to permute stroke indices, and                             we replaced the inferred strokes at training time (like Fig.
+reversible jump moves to add or remove the last stroke while                        6) with the real strokes produced by the drawer of the im-
+also perturbing all the other variables. There is just one                          age. Classification was then conducted after inferring the test
+                                 (e)
+image so far, so we fix Z = W and τ = 0. The sampler (e)                            image parameters (Z (t) and τ (t) ) like in the standard stroke
+is initialized after exploring a set of bottom-up parses, using                     model. The real strokes achieve 63.7% correct, which is
+a stochastic tracing algorithm inspired by Edelman, Flash,                          likely an upper bound for the current stroke model implemen-
+and Ullman (1990). Each bottom-up parse is mapped to the                            tation. But there are many promising avenues for overcoming
+                                                                                    this bound, which are outlined in the discussion. How would
+    3
+      B-splines are a compact representation of a smooth curve, pro-                people perform? We found that people were 97.6% correct
+viding a function B(s) that maps a dimension s (similar to time for
+strokes) to an x and y position. It smoothly interpolates between                   on a Same/Different task (baseline is 75%); see footnote for
+the 10 control points (which are x and y coordinates) such that the                 details.4 Although this is a different task, it confirms there is
+curve starts near the first control point and ends near the last. The
+                                                                                        4
+least-squares fit can be computed in closed form (Branson, 2004).                         If people were run directly on 20-way classification, they could
+                                                                                2571
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   100% 75% 50% 50% 100% 50% 100% 100   100% 75% 50% 50% 100% 50% 100% 100
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             100% 75% 50% 50% 100% 50% 100% 100% 100% 75% 25% 100% 50   100% 75% 50% 50% 100% 50% 100% 100% 100% 75% 25% 100% 50
+                                                                                                                                                                                                                                                                                                                           100% 75% 50% 50% 100% 50% 100% 100% 100% 75% 25% 100% 50% 50% 100% 25% 50% 50   100% 75% 50% 50% 100% 50% 100% 100% 100% 75% 25% 100% 50% 50% 100% 25% 50% 50
+                                                                                 Final plot
+                     100             Character learning (n=1)
+                                                 Character learning (n=1)                        100   Character learning (n=6000)
+                                                                                                                   Character learning (n=6000)
+                                                                                                                                        100% 75% 50% 50% 100% 50% 100% 100% 100% 75% 25% 100% 50% 50% 100% 25% 50% 50% 50% 75%    100% 75% 50% 50% 100% 50% 100% 100% 100% 75% 25% 100% 50% 50% 100% 25% 50% 50% 50% 75%
+                                       100                                                                100
+Classification accuracy        Classification accuracy
+                          80                             80                                       80                80
+                          60                             60                                       60                60
+                                                                                      (10−way)           (10−way)
+    (20−way)                       (20−way)
+                          40                             40                                       40                40
+                          20                             20                                       20                20
+                          0                              0                                         0     Motor 0 DBM
+                                                               Real Stroke DBM K-NN Chance                               K-NN Chance
+                                                              Strokes Model                            Programs
+                               Figure 5: Classification accuracy from one example (left, our re-
+                               sults) and on the MNIST digits (right, published results not from
+                               this work). DBM = Deep Boltzmann Machine; K-NN = K-Nearest                                                                                                                                        Figure 6: Example run of 20-way classification, showing the training
+                               Neighbors; Motor programs model is from Hinton and Nair (2006).                                                                                                                                   images/classes (white background) and the stroke model’s fits (black
+                               Error bars are standard error.                                                                                                                                                                    background). Accuracy rates are indicated on the 4 test examples
+                                                                                                                                                                                                                                 (not shown) per class.
+                             a substantial gap between human and machine competence.
+                                                                                                                                                                                                                                 were compared to the perceptual data. Perceptual discrimi-
+                                   To create an interesting juxtaposition with one shot learn-
+              Thursday, April 28, 2011                                                                                                                                                                                           nation was modeled using the same procedure for all models,
+                             ing, some previously published results on MNIST, not from
+                                                                                                                                                                                                                                 where each model saw many replications (76) of mock 24-
+                             this work, are displayed (Fig. 5 right). Even simple meth-
+                                                                                                                                                                                                                                 way classification, as in the previous section. For each test
+                             ods like K-nearest neighbors perform extremely well (95%
+                                                                                                                                                                                                                                 image, the goodness of fit to each of the 24 training classes
+                             correct LeCun et al., 1998) due to the huge training set
+                                                                                                                                                                                                                                 was assigned a rank r from best (1) to worst (24). For each
+                             (n ≈ 6, 000 per character). As a possible analog to the stroke
+                                                                                                                                                                                                                                 pairing of stimuli, the similarity s = 1/r was added to the
+                             model, Hinton and Nair (2006) learned motor programs for
+                                                                                                                                                                                                                                 corresponding cells, averaging across replications. Both the
+                             the MNIST digits where characters were represented by just
+                                                                                                                                                                                                                                 stroke model (r=0.80) and the DBM (r=.77) show clear alpha-
+                             one, more flexible stroke (unless a second stroke was added
+                                                                                                                                                                                                                                 bet block structure and correlate well with the human judg-
+                             by hand). As evident from the figure, the one example setting
+                                                                                                                                                                                                                                 ments, while image distance does not fit well (r=0.30).
+                             provides more room for both model comparison and progress.
+                               Fit to human perceptual discrimination                                                                                                                                                                                                                                                                                                                                                                                                                      Discussion
+                               The models were also compared to human perceptual judg-                                                                                                                                           This paper introduced a generative model of how characters
+                               ments. A set of six alphabets and four characters each was                                                                                                                                        are composed from parts. Given a new character type, the
+                               selected for high confusability within alphabets. Fig. 7                                                                                                                                          model attempts to infer latent strokes that explain the pixels
+                               shows the original images, but participants saw the handwrit-                                                                                                                                     in the image. This approach performs well on one shot clas-
+                               ten copies. Participants were asked to make 200 same vs.                                                                                                                                          sification, beating Deep Boltzmann Machines (DBM) by a
+                               different judgments, where the proportion of same trials was                                                                                                                                      wide margin. Both of these models provide good fits to hu-
+                               1/4. The task was speeded and the first of two images was                                                                                                                                         man perceptual judgements on a small set of characters.
+                               flashed on the screen for just 50 milliseconds before it was                                                                                                                                         The stroke model is still far from human competence, al-
+                               covered by a mask. The second image then appeared and re-                                                                                                                                         though there are many avenues for extension and improve-
+                               mained visible until a response was made. There was an op-                                                                                                                                        ment. There is a clear need for both a richer basis of composi-
+                               tion for “I wasn’t looking at the computer screen” and these                                                                                                                                      tional elements and the ability to expand this basis to include
+                               responses were discarded. Sixty people were run on Mechan-                                                                                                                                        new strokes when needed. The strokes in the current model
+                               ical Turk, and 13 subjects were removed for having a d-prime                                                                                                                                      are rigid, allowing for translations but no scaling, rotations,
+                               less than 0.5.5 Of the remaining, accuracy was 80 percent.                                                                                                                                        or deformation within individual strokes (see Revow et al.,
+                                  Trials were pooled across participants to create a character                                                                                                                                   1996). As suggested in the classification results, there is not
+                               by character similarity matrix. Cells show the percentage of                                                                                                                                      much room for improvement within the rigid stroke regime,
+                               responses that were “same,” and the matrix was made sym-                                                                                                                                          given the upper bound obtained by using the real but still rigid
+                               metrical by averaging with its transpose (Fig. 8). There is a                                                                                                                                     strokes. Additionally, novel characters often contain novel
+                               clear block structure showing confusion within alphabets, ex-                                                                                                                                     strokes, and a model could benefit from moving beyond a fi-
+                               cept Inuktitut that contains shapes already familiar to people                                                                                                                                    nite library with a non-parametric Bayesian approach. While
+                               (e.g. triangle). The stroke model, DBM, and image distance                                                                                                                                        our general framework allows for these improvements, the
+                                                                                                                                                                                                                                 present choices were made for computational efficiency, and
+                               learn from the test examples. Instead, people made same vs. dif-
+                               ferent judgements using the whole experiment set of characters.                                                                                                                                   it will be critical to overcome these limitations in future work.
+                               “Same” trials were two images, side by side, of the same character                                                                                                                                   While more flexible models introduce new problems for
+                               from two drawers, and “Different” trials were two different charac-                                                                                                                               inference, bottom-up parsers are a promising means for tack-
+                               ters. Each of 20 participants saw 200 trials using a web interface on
+                               Mechanical Turk, and the ratio of same to different trials was 1/4.                                                                                                                               ling these challenges. In preliminary simulations using an im-
+                                   5
+                                     The number of false alarms was divided by 3 to correct for hav-                                                                                                                             age tracer modified from Edelman et al. (1990), we found that
+                               ing 3 times as many different trials.                                                                                                                                                             these methods can work well for classification, even without a
+                                                                                                                                       2572
+
+                  Atemayar (A)    Inuktitut (I)     Korean (K)
+                     6        10     1       2
+                                                     4
+                                                             28
+                                                                                acter is a sequence of strokes. Learning in these domains
+                                                                                could involve similar computational mechanisms. For spo-
+                                                                                ken words, Feldman, Griffiths, and Morgan (2009) proposed
+                                    3      11               39
+                       23      25                   29
+                                                                                that concepts are learned in conjunction with their compo-
+                                                                                nents parts, and this is also a guiding principle behind the
+                 Myanmar (M)       Sylheti (S)         Tagalog (T)              stroke model. Most speculatively, people learn rich visual
+                                   17         19        2         5
+                  1        25
+                                                                                concepts like animals and faces from few examples, although
+                  31       32
+                                  28           20
+                                                                                their forms are governed by very complicated generative pro-
+                                                       6         10
+                                                                                cesses. Could similar computational principles explain rapid
+                                                                                learning in even these domains?
+Figure 7: Human perceptual discrimination was measured on pairs
+of these characters, which are from 6 alphabets. The original printed
+images are shown, but participants saw handwritten drawings. Char-                                          References
+acter index within an alphabet is denoted.                                      Austerweil, J., & Griffiths, T. L. (2009). Analyzing human fea-
+                                                                    CogSci Final Version
+                                                                                   ture learning as nonparametric bayesian inference. In Advances
+                                                                                   in Neural Information Processing Systems.
+                Human perception                Stroke model (r=0.80)           Babcock, M. K., & Freyd, J. (1988). Perception of dynamic informa-
+          T                                                                        tion in static handwritten forms. American Journal of Psychology,
+          S
+                                                                                   101(1), 111-130.
+                                                                                Branson, K. (2004). A practical review of uniform b-splines.
+          M                                                                     Carey, S., & Bartlett, E. (1978). Acquiring a single new word.
+          K                                                                        Papers and Reports on Child Language Development, 15, 17-29.
+                                                                                Dewar, K., & Xu, F. (in press). Induction, overhypothesis, and the
+           I                                                                       origin of abstract knowledge: evidence from 9-month-old infants.
+          A                                                                        Psychological Science.
+                  DBM (r=0.77)               Image distance (r=0.30)            Edelman, S., Flash, T., & Ullman, S. (1990). Reading cursive hand-
+                                                                                   writing by alignment of letter prototypes. International Journal
+          T
+                                                                                   of Computer Vision, 5(3), 303-331.
+          S                                                                     Fei-Fei, L., Fergus, R., & Perona, P. (2006). One-shot learning
+          M                                                                        of object categories. IEEE Transactions on Pattern Analysis and
+                                                                                   Machine Intelligence, 28(4), 594-611.
+          K                                                                     Feldman, N. H., Griffiths, T. L., & Morgan, J. L. (2009). Learning
+           I                                                                       phonetic categories by learning a lexicon. In Proceedings of the
+                                                                                   31st Annual Conference of the Cognitive Science Society.
+          A
+                                                                                Freyd, J. (1983). Representing the dynamics of a static form. Mem-
+              A    I      K M S T                A   I    K M S T                  ory & Cognition, 11(4), 342-346.
+Figure 8: Similarity matrices (lighter is more similar) for the 24              Hinton, G. E., & Nair, V. (2006). Inferring motor programs from
+characters in Fig. 7. Alphabets are blocked and denoted by their                   images of handwritten digits. In Advances in Neural Information
+starting letter (A, I, etc.). Character index (Fig. 7) within alphabet             Processing Systems (Vol. 18). Cambridge, MA: MIT Press.
+blocks is in increasing order, left to right.                                   Kemp, C., Perfors, A., & Tenenbaum, J. B. (2007). Learning over-
+                                                                                   hypotheses with hierarchical Bayesian models. Developmental
+notion of shared parts. If the stroke model’s parse is replaced                    Science, 10(3), 307-321.
+with a bottom-up parse and inference is then performed on                       LeCun, Y., Bottou, L., Bengio, Y., & Haffner, P. (1998). Gradient-
+                                                                                   based learning applied to document recognition. Proceedings of
+the remaining parameters in the generative model, classifica-                      the IEEE, 86(11), 2278-2323.
+tion accuracy is often higher, likely because complex strokes                   Miller, E. G., Matsakis, N. E., & Viola, P. A. (2000). Learning
+are fit more precisely. But performance is still limited by the                    from one example through shared densities on transformations.
+                                                                                   In Proceedings of the IEEE Conference on Computer Vision and
+upper bound for rigid strokes, and without a notion of shared                      Pattern Recognition.
+parts, it is unclear how to incorporate multiple training exam-                 Revow, M., Williams, C. K. I., & Hinton, G. E. (1996). Using gener-
+ples. Despite the limitations of a pure bottom-up approach,                        ative models for handwritten digit recognition. IEEE Transactions
+                                                                                   on Pattern Analysis and Machine Intelligence, 18(6), 592-606.
+these methods could play an important role by making data                       Salakhutdinov, R., & Hinton, G. E. (2009). Deep boltzmann ma-
+driven proposals, either by proposing new strokes or by fine-                      chines. In 12th Internationcal Conference on Artificial Intelli-
+tuning existing strokes within a richer generative framework.                      gence and Statistics.
+                                                                                Schyns, P. G., Goldstone, R. L., & Thibaut, J.-P. (1998). The de-
+   What other domains are like our simple visual concepts?                         velopment of features in object concepts. Behavioral and Brain
+Like characters, artifacts are complex concepts composed of                        Sciences, 21, 1-54.
+parts. Bicycles, cars, and scooters share parts like wheels,                    Smith, L., Jones, S. S., Landau, B., Gershkoff-Stowe, L., & Samuel-
+                                                                                   son, L. (2002). Object name learning provides on-the-job training
+handlebars, and motors, and new artifacts like the Segway                          for attention. Psychological Science, 13, 13-19.
+can be generated by combining these parts in novel ways. Our                    Torralba, A., Murphy, K. P., & Freeman, W. T. (2007). Shar-
+simple visual concepts also share deep similarities with other                     ing visual features for multiclass and multiview object detection.
+                                                                                   IEEE Transactions on Pattern Analysis and Machine Intelligence,
+symbols used for communication, such as spoken words, ges-                         29(5), 854-869.
+tures, and sign language. When defining the concept as the                      Tse, P. U., & Cavanagh, P. (2000). Chinese and americans see
+raw symbol rather than its meaning, people readily both gen-                       opposite apparent motions in a chinese character. Cognition, 74,
+erate and perceive these concepts, and there is a similar em-                      B27-B32.
+phasis on building objects from primitives. For instance,
+a spoken word is a sequence of phonemes just as a char-
+                                                                            2573
+

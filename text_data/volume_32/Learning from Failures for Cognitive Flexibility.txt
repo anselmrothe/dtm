@@ -1,0 +1,415 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Learning from Failures for Cognitive Flexibility
+Permalink
+https://escholarship.org/uc/item/3kb9899n
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 32(32)
+Authors
+Choi, Dongkyu
+Ohlsson, Stellan
+Publication Date
+2010-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+                                Learning from Failures for Cognitive Flexibility
+                                                 Dongkyu Choi (dongkyuc@uic.edu)
+                                                   Stellan Ohlsson (stellan@uic.edu)
+                                                          Department of Psychology
+                                                       University of Illinois at Chicago
+                                      1007 W Harrison Street (M/C 285), Chicago, IL 60607 USA
+                               Abstract                                   existence of a very large number of potential discriminating
+                                                                          features, leading to complex applicability conditions or large
+   Cognitive flexibility is an important goal in the computational
+   modeling of higher cognition. An agent operating in the world          numbers of new rules or both; and the inability to identify
+   that changes over time should adapt to the changes and update          potential discriminating features with a causal impact from
+   its knowledge according to them. In this paper, we report our          those of accidental correlation.
+   progress on implementing a constraint-based mechanism for
+   learning from failures in a cognitive architecture, I CARUS. We           In response, Ohlsson (1996) developed a constraint-based
+   review relevant features of the architecture, and describe the
+   learning mechanism in detail. We also discuss the challenges           specialization mechanism for learning from negative out-
+   encountered during the implementation and describe how we              comes. The production system implementation of the mech-
+   solved them. We then provide some experimental observations            anism overcomes most of the weaknesses of previous meth-
+   and conclude after a discussion on related and future work.
+                                                                          ods. It assumes that the agent has access to some declara-
+   Keywords: cognitive architecture, constraints, constraint
+   violations, learning from failures, skill acquisition                  tive knowledge in the form of constraints, which consist of
+                                                                          an ordered pair with a relevance criterion and a satisfaction
+                           Introduction                                   criterion. The system matches the relevance criteria of all
+                                                                          constraints against the current state of the world on each cy-
+In computational models of higher cognition, it is impor-                 cle of its operation. For constraints with matching relevance
+tant to simulate the broad human functionality that we call               conditions, the system also matches the satisfaction condi-
+adaptability or flexibility. Cognitive flexibility is, of course,         tions. Satisfied constraints require no response, but violated
+a multi-dimensional construct, but in this paper, we focus                constraints signal a failed expectation due to various reasons
+specifically on the ability of humans to act effectively when a           including a change in the world or erroneous knowledge. This
+familiar task environment is changing, thus rendering previ-              constitutes a learning opportunity, and the system revises the
+ously learned skills ineffective or obsolete.                             current skill in such a way as to avoid violating the same
+   Traditionally, researchers discussed two types of error cor-           constraint in the future. The computational problem involved
+rection mechanisms for this problem. Weakening (Anderson,                 here is to specify exactly how to revise the relevant skill when
+1983, pp. 249–254) assumes that certain knowledge struc-                  an error occurs, and the constraint-based specialization pro-
+tures like rules, skills, schemas, or chunks have strengths as-           vides a solution to this problem.
+sociated with them, and it decreases the strength of the par-
+ticular structure that generates a negative outcome. However,                Unlike weakening, the constraint-based approach identifies
+actions themselves are not typically correct or incorrect, or             the specific class of situations in which an action is likely (or
+appropriate or inappropriate. Instead, they are appropriate,              unlikely) to cause errors. It also differs from the discrim-
+correct or, useful in some situations but not in others. The              ination method, and the mechanism does not carry out an
+goal of learning from failure is thus to distinguish between              uncertain, inductive inference. Instead, it computes a ratio-
+the class of situations in which a particular type of action will         nally motivated revision to the current skill. However, these
+cause errors and the class of situations in which it does not.            advantages were limited by a simplistic credit/blame attribu-
+Weakening does not accomplish this, because lower strength                tion algorithm and the lack of serious architectural supports
+makes an action less likely to be selected in all situations.             like other learning mechanisms that can operate in parallel. In
+   Another mechanism proposed for error correction is dis-                this paper, we adapt the constraint-based specialization mech-
+crimination (Langley, 1987). The key idea behind this con-                anism to a cognitive architecture, I CARUS, and address these
+tribution is to compare a situation with a positive outcome               limitations. The architecture features hierarchical knowledge
+and another with a negative outcome to identify discriminat-              structures, and it has a variety of well-developed capabilities
+ing features. If an action generates both positive and negative           including learning from positive outcomes (Langley & Choi,
+outcomes across multiple situations, the system identifies any            2006). We first review the relevant features of the I CARUS
+features that were true in one situation but not in the other,            architecture, and describe the constraint-based specialization
+and uses them to constrain the applicability of the action. But           mechanism in some detail. Then we identify the challenges
+the computational discrimination mechanism also has several               we encountered during the implementation in I CARUS, with a
+problems including: the lack of criterion for how many in-                particular attention to the credit assignment problem. Finally,
+stances of either type are needed before a valid inference                we report some experimental observations with the system,
+as to the discriminating features can be drawn; the possible              and discuss related and future work.
+                                                                     2099
+
+                The ICARUS Architecture                                cepts, skills with no references to any subgoals are primitive,
+Cognitive architectures aim for a general framework for cog-           while the ones with them are non-primitive. The hierarchi-
+nition. They include a set of hypotheses covering representa-          cal organization provides multiple layers of abstraction in the
+tion, inference, execution, learning and other aspects of cog-         specification of complex procedures.
+nition. Soar (Laird et al., 1986) and ACT-R (Anderson, 1993)              In Table 2, the first skill indexed by its goal (stacked
+are some of the well-known cognitive architectures, and the            ?block ?to) has some perceptual matching conditions and
+I CARUS architecture exhibits some similarities to them but            a precondition, (stackable ?block ?to). It includes sev-
+has some important differences as well (Langley & Choi,                eral direct actions in the world (marked with asterisks), and
+2006). In this section, we review the fundamental aspects              therefore, it is a primitive skill. The second skill, how-
+of the architecture before continuing our discussion to the            ever, is a non-primitive one, with references to subgoals,
+specifics of learning from failures in this framework.                 (stackable ?block1 ?block2) and (stacked ?block1
+                                                                       ?block2). The subgoals are ordered, and they invoke other
+Representation and Memories                                            skills that achieve them. For instance, the second subgoal will
+I CARUS distinguishes conceptual and procedural knowledge.             invoke skills like the first example in the table. In this manner,
+Concepts describe the environment, and enable the system to            I CARUS’s skills are hierarchically organized.
+infer beliefs about the current state of the world. Skills, on the
+other hand, consist of procedures that are known to achieve             Table 2: Some sample I CARUS skills for the Blocks World.
+certain goals. The architecture also distinguishes long-term,
+abstract knowledge and short-term, instantiated structures.                       ((stacked ?block ?to)
+                                                                                   :percepts ((block ?block)
+Long-term concepts and skills are general descriptions of sit-                                (block ?to xpos ?xpos ypos ?ypos
+                                                                                                         height ?height))
+uations and procedures, and the system instantiates them be-                       :start    ((stackable ?block ?to))
+fore applying them to a particular situation. Instantiated con-                    :actions ((*horizontal-move ?block ?xpos)
+                                                                                              (*vertical-move ?block
+cepts and skills are short-term structures, in that they are ap-                                              (+ ?ypos ?height))
+                                                                                              (*ungrasp ?block)))
+plicable only at a specific moment. I CARUS has four separate
+                                                                                  ((on ?block1 ?block2)
+memories to support these distinctions.                                            :percepts ((block ?block1)
+                                                                                              (block ?block2))
+   The architecture encodes concepts with definitions that are                     :subgoals ((stackable ?block1 ?block2)
+similar to Horn clauses. They consist of a head and a body                                    (stacked ?block1 ?block2)))
+that includes perceptual matching conditions or references to
+other concepts. Table 1 shows some sample concepts. The
+first concept has a head, (same-color ?block1 ?block2),                Inference and Execution
+and specifies perceptual matching conditions among the vari-
+                                                                       The I CARUS architecture operates in cycles. On each cycle,
+ables involved in its :percepts and :tests fields. It is a
+                                                                       the system instantiates its long-term concepts based on the
+primitive concept, which does not have any reference to other
+                                                                       current situation. The bottom-up inference of concepts cre-
+concepts. The second concept also has a head and some per-
+                                                                       ates beliefs in the form of instantiated conceptual predicates.
+ceptual matching conditions, but it has references to other
+                                                                       The inference process starts with the perceptual information
+concepts in the :relations field, and therefore, it is a non-
+                                                                       about objects in the world. The system attempts to match its
+primitive concept.
+                                                                       concept definitions to the perceptual information and, when
+                                                                       there is a match, it instantiates the head of the definitions to
+Table 1: Some sample I CARUS concepts for the Blocks                   compute its current beliefs.
+World. Question marks denote variables.                                   Once the architecture computes all its beliefs, it starts the
+                                                                       skill retrieval and execution process. I CARUS’ goals guide
+           ((same-color ?block1 ?block2)
+            :percepts ((block ?block1 color ?color)                    this process, and the system retrieves relevant long-term skills
+                        (block ?block2 color ?color))                  based on the current beliefs. When it finds an executable path
+            :tests     ((not (equal ?block1 ?block2))))
+           ((not-color-sorted ?color)
+                                                                       through its skill hierarchy, from its goal at the top to actions
+            :percepts ((block ?block1 color ?color)                    at the bottom, I CARUS executes the actions specified at the
+                        (block ?block2))
+            :relations ((on ?block1 ?block2)                           leaf node of the path. This execution, in turn, changes the
+                        (not                                           environment, and the system starts another cycle by inferring
+                         (same-color ?block1 ?block2))))
+                                                                       the updated beliefs from new data received from the environ-
+                                                                       ment.
+   On the other hand, I CARUS’ skills resemble S TRIPS oper-
+ators. The head of each skill is the predicate it is known to          Problem Solving and Learning
+achieve, and therefore, all skills are indexed by their respec-        During the execution for its goals, the architecture sometimes
+tive goals. Each skill has a body that consists of perceptual          encounters a situation where it can not find any executable
+matching conditions, some preconditions, and either direct             skill path. When this happens, I CARUS invokes its means-
+actions to the world or references to its subgoals. Like in con-       ends problem solver, chaining backward from its goal. It at-
+                                                                   2100
+
+tempts to use two types of chains, a skill chain that uses a           and, if a match is found, verifies that the satisfaction con-
+goal-achieving skill with unsatisfied preconditions and a con-         ditions also hold. When it finds an unsatisfied constraint, it
+cept chain that decomposes the goal into subgoals through              attempts to revise the skill that caused this violation.
+concept definitions. Once the system finds a subgoal with an              We distinguish two different types of constraint violations.
+executable skill during this process, it immediately executes          In the first type, a constraint just becomes relevant after an
+the skill and continue to the next cycle until it achieves all the     action but not satisfied at the same time. For instance, when
+top-level goals.                                                       an agent stacks a red block, A, on top of a blue block, B,
+   When the architecture finds a solution and achieves a goal          it achieves (on A B), so the corresponding instance of the
+(which includes both the top-level goals and any of their sub-         color constraint in Table 3 matches and the constraint be-
+goals), it learns new skills from the successful problem solv-         comes relevant by the stacking action. But the satisfaction
+ing trace. The learned skills differs in their forms based on the      condition, (same-color A B), is not met in this case, be-
+type of the problem solving chain. Further discussions on the          cause one of the blocks is red and the other is blue. We refer
+problem solving and learning capabilities would require more           to violations like this as type A violations.
+space than we can afford here, but Langley and Choi (2006)                Another type of violations, which we call type B viola-
+covers all the details. In the subsequent sections, we explain         tions, involves a constraint that has been relevant and satis-
+the details of the constraint-based specialization mechanism           fied, but becomes unsatisfied as a result of an action while it
+and its implementation in I CARUS.                                     still stays relevant. An example of this type occurs when an
+                                                                       agent stacks a block C on top of a block TB that is designated
+                  Learning from Failures                               as a top block. In this case, the top-block constraint stays rel-
+As described in the previous section, I CARUS has hierarchi-           evant before and after the stacking action, since the predicate,
+cally organized skill knowledge and it can learn from positive         (top-block TB) continues to hold. But the satisfaction con-
+outcomes through problem solving. However, the architec-               dition, (clear TB) becomes false as a consequence of the
+ture can not adapt to environmental changes when some of               action, and the constraint is violated.
+its existing skills become incorrect or obsolete. Extending
+                                                                       Skill Revisions
+I CARUS with the constraint-based specialization mechanism
+provides this capability.                                              Once the system detects constraint violations of either type,
+                                                                       it randomly chooses one of them and attempts to make re-
+Representation of Constraints                                          visions to the skill it just used. The revision process shares
+The extended architecture stores each constraint as a pair             its basic steps with those used in previous research (Ohlsson,
+of relevance and satisfaction conditions, following Ohlsson            1996; Ohlsson & Rees, 1991). The goal of this process is to
+and Rees (1991). Both relevance and satisfaction conditions            constrain the application of the skill to situations in which it
+are conjunctions of predicates, and the I CARUS architecture           will not violate the constraint.
+keeps a list of such pairs in a separate constraint memory.               For a type A violation, where a constraint becomes rele-
+   Table 3 shows some sample constraints we use in the                 vant but violated, one of the revisions forces the constraint to
+Blocks World domain. For convenience, we store each pair               stay irrelevant, and the other ensures that it is both relevant
+with a name like color, top-block, or width. The first con-            and satisfied. On the other hand, a type B violation, in which
+straint, color, says that two blocks should have the same color        a constraint stays relevant but becomes violated, invokes one
+when they are stacked, which, in effect, enforces all towers to        revision that makes sure the constraint is irrelevant, and an-
+have a single color. Similarly, the other two constraints mean         other that restricts the use of the skill to cases where the sat-
+that a block that is designated as a top-block should always           isfaction is not affected.
+be clear, and that a block on top of another block should be              The system revises skills by adding preconditions, and Ta-
+smaller than the one below, respectively.                              ble 4 shows how the system computes the new preconditions
+                                                                       for the two types of violations. Cr and Cs represent the rel-
+                                                                       evance and satisfaction conditions. Oa and Od are the add
+   Table 3: Some sample constraints for the Blocks World.              and delete lists of the executed primitive skill. The rationale
+                                                                       for these computations has been developed in detail in prior
+          (color     :relevance    ((on ?a ?b))
+                     :satisfaction ((same-color ?a ?b)))               publications (Ohlsson, 1996; Ohlsson & Rees, 1991).
+          (top-block :relevance    ((top-block ?b))
+                     :satisfaction ((clear ?b)))                          As an example, let us revisit the Blocks World cases. In
+          (width     :relevance    ((on ?a ?b))                        the first case, we have a red block, A, and a blue block, B. The
+                     :satisfaction ((smaller-than ?a ?b)))
+                                                                       system executes an instance of the first skill shown in Table 2,
+                                                                       (stacked A B), which adds the predicate to the state. This
+                                                                       implies that the relevance condition of the color constraint,
+Detection of Constraint Violations                                     (on A B) also becomes true, but the satisfaction condition
+On each cycle, the system checks if the current belief state           (same-color A B) does not. When detecting this type A
+satisfies all the constraints. It first attempts to match the rel-     violation, the system computes additional preconditions and
+evance conditions of its constraints against the current state,        attempts to make two revisions. The first calculation, ¬(Cr −
+                                                                   2101
+
+                                                                         An analysis of multiple examples indicates that the archi-
+Table 4: New preconditions created in response to constraint
+                                                                      tecture should find the highest level in the skill path in which
+violations.
+                                                                      all the variables involved in the additional preconditions for
+                                                                      the revision are bound. All the additional preconditions are
+   Type \ Revision           1                    2
+                                                                      fully instantiated at this level and, therefore, it is the highest
+           A            ¬(Cr − Oa )    (Cr − Oa ) ∪ (Cs − Oa )        level in which the preconditions become meaningful. This
+            B               ¬Cr            Cr ∪ ¬(Cs ∩ Od )           makes it the right level at which to make the corresponding
+                                                                      revisions. The results of running I CARUS indicate that this
+                                                                      solution is correct. This solution is easily computable and
+                                                                      general across domains. The possibility that it applies to other
+Oa ), leads to (on A B) − (stacked A B), which results in             types of hierarchical systems might deserve attention.
+a null precondition. Therefore, the system ignores the first
+revision and tries the second one. This time, the additional          Add and Delete Lists
+precondition comes from (Cr − Oa ) ∪ (Cs − Oa ), which leads          Another problem occurs during the computation of the ad-
+to (same-color A B). The system adds this precondition to             ditional preconditions for skill revisions. Unlike production
+the skill that caused the violation, and restricts the execution      systems that have explicit and complete add and delete lists
+of the stacking action to the case where two blocks have the          associated with actions, the I CARUS architecture has skills as-
+same color.                                                           sociated with goals. Goals typically do not include any side
+   In the second case, we have two blocks, C, and TB. When            effects we do not care about, and they do not specify any
+the system stacks the block C on top of the block TB us-              predicates that should disappear after a successful execution.
+ing the skill (stacked C TB), the top-block constraint be-            For this reason, the add and delete lists are not explicit in the
+comes unsatisfied ((clear TB) not true in the state) while            architecture, and we must compute them from other sources.
+it stays relevant continuously ((top-block TB) true in the               Meanwhile, the use of add lists during the revision pro-
+state). Upon detecting this type B violation, the system com-         cess is limited to the calculation of logical differences, and
+putes two sets of additional preconditions using the formulas,        we can use goals as if they represent complete add lists. This
+¬Cr and Cr ∪ ¬(Cs ∩ Od ). These lead to (not (top-block               will make the revised skill more restrictive rather than less
+TB)) and ((top-block TB) (not (clear TB))), respec-                   so, thus making it safe. However, we should compute the
+tively, which are added to two separate revisions of the skill.       delete list explicitly because of the way it is used during the
+The first revision prevents the use of the stacking action onto       revision process. We chose to calculate the list by comparing
+a block designated as a top-block. The second revision is a           two successive belief states, although this may include some
+case of over-specialization, which makes it impossible to fire.       predicates removed by sources external to the agent. Again,
+Nevertheless, the two revisions achieve the proper restriction        however, this makes the revisions more restrictive, rather than
+of the skill for the top-block constraint.                            more general, keeping the agent safe, because the delete list
+                                                                      is negated during the computation of preconditions.
+             Challenges in Implementation
+Although this implementation in the context of I CARUS                Disjunctive Definitions
+shares the basic steps with previous systems using constraint-        I CARUS’ support for multiple, disjunctive definitions of con-
+based specialization, various important differences between           cepts adds another layer of complexity. When computing ad-
+the I CARUS architecture and production system architectures          ditional preconditions for skill revisions, the system should
+require some significant changes in the revision process. In          decompose any non-primitive concepts. Disjunctive concepts
+this section, we discuss the challenges and our solutions to          create multiple expansions, possibly resulting in more than
+them.                                                                 one set of additional preconditions. The architecture accepts
+                                                                      all such expansions and create multiple revisions.
+Hierarchical Organization                                                The consequences of this approach are significant. When
+First of all, I CARUS’ hierarchical organization of skill knowl-      the system experiences a constraint violation, the situation
+edge poses the most significant change, in relation to the as-        might involve a particular disjunction of a concept. Never-
+signment of blame. Production systems have flat structures,           theless, the architecture learns multiple revisions from this
+and it is mostly the case that the last executed rule caused          case, covering all possible disjunctions of the concept. This
+a violation. But in I CARUS, execution involves a skill path,         approach is based on the understanding that there is a good
+which may include more than one skill instance. Skill in-             reason why the disjunctive concepts have the same head, and
+stances near the top of the path are more abstract, and those         that the system benefits from learning about all such cases. In
+close to the bottom are more specific. Depending on the level         future tasks, the system might confront a situation in which
+of abstraction at which the violated constraint exists, the skill     another one of the disjunctions applies, and, due to its prior
+that needs to be revised can be anywhere on this path, and no         learning, the system will already know how to avoid making
+simple attribution rule will be sufficient. So, the question is       an error in this situation even though it has never encountered
+how I CARUS can identify the right skill to revise generally.         it before.
+                                                                  2102
+
+                                          Experimental Observations                     Route Generation
+                                                                                        Another domain we used to test the system is a simplified
+To verify that the system works as intended, we performed                               version of route generation between places. Here, in addition
+experiments in two domains. We give only the basic con-                                 to testing the specialization mechanism in I CARUS, we also
+cept and skill sets to the system at the beginning, along with                          want to verify that the mechanism can operate in parallel to
+the information on constraints. This means that the system                              other learning schemes like learning from success. The agent
+knows how to operate in the world, but not at the level of ex-                          starts at a certain location, and has the goal of getting to a tar-
+pertise that enables it to satisfy the constraints at all times.                        get location elsewhere. Using the information on connections
+It is as if humans sometimes know what should happen and                                between neighboring locations, the system performs problem
+what should not, but do not necessarily know how to impose                              solving to find a route to its target. As a result, it finds one of
+these rules and often make mistakes. As the system learns                               the several possible routes that involve different waypoints,
+from its failures, it revises the basic skills to avoid constraint                      and I CARUS learns specific route knowledge from this posi-
+violations in the future.                                                               tive experience.
+                                                                                           But some of the routes might become unavailable for travel
+Blocks World                                                                            due to various reasons like a broken bridge. At subsequent
+                                                                                        runs, the agent encounters situations where it can not use
+We modified the familiar Blocks World from the typical setup                            routes it learned before. While attempting to get to the target
+to include blocks of different colors and sizes. This modi-                             using a learned route, I CARUS recognizes that it gets stuck at
+fied domain supports various constraints like the color and                             a location with no outlet, violating a constraint not to be at a
+size of the blocks in a tower or the maximum height of each                             dead end. This failure triggers the system to learn a revised
+tower. Table 3 shown earlier includes three of the constraints                          skill, which prevents it from moving to a location without any
+we have in this domain. The color constraint says whenever                              outlet. On the next trial, armed with this new skill, the system
+a block is stacked on top of another the two blocks should                              attempts to find another route to get to its target, and learns a
+have the same color. This, in effect, forces any tower to have                          skill for an alternate route for later use.
+only the blocks of one color. The top-block constraint means                               Let us see this behavior in a sample run. We give the sys-
+any block designated as a top block (according to the sys-                              tem a goal to get to a target location, B, starting from the
+tem’s conceptual knowledge) should always be clear, having                              initial location, A. The two locations are connected by two al-
+no other blocks on top. The last constraint, width enforces                             ternate routes using waypoints W1 and W2, respectively. The
+that a block is smaller than the block underneath it.                                   system starts out with two concepts and a skill as shown in
+                                                                                        Table 5. It also has the connection information between the
+                                                                                        locations, A, B, W1, and W2 as some static beliefs. The only
+  Number of subjects with error
+                                                                                        constraint it knows of is,
+                                                                                            (at ?location) → (not-dead-end ?location)
+    5   6     7    8     9 10
+                                                                                        which simply says that it should not be at a dead end at any
+                                                                                        time. During the first trial, the system finds a path, A - W1 -
+                   4
+                                                                                        B through problem solving, and learns a specific skill for this
+                                                                                        route. Before we continue to the next trial, we intentionally
+                   3
+                                                                                        remove the connection between W1 and B, making the path
+                   2
+                                                                                        obsolete. On the next trial, the system attempts to reuse the
+                   1
+                                                                                        path, but it finds that it violates the constraint while it is at
+                   0
+                                                                                        location W1. This violation triggers a revision process, re-
+                                  1   2     3   4   5   6   7   8     9         10
+                                                                 Number of trials
+                                                                                        sulting in another new skill. Once the system learns this new
+                                                                                        skill, it attempts to find an alternate route through yet another
+Figure 1: Number of simulated subjects that violated a con-                             problem solving process, resulting in the path, A - W2 - B.
+straint at each trial.                                                                  After I CARUS stores this route as a specific skill, it executes
+                                                                                        the skill when it encounters the same task at a later time.
+  We ran simulation experiments with several different goals,
+and Figure 1 shows the result from one of them. In this ex-                                            Related and Future Work
+periment, we had ten simulated subjects, and each subject                               The current work on the constraint-based specialization has
+performed ten trials of the given task. We recorded the num-                            important similarities to some work in the explanation-based
+ber of subjects that violated any constraints during each trial.                        learning (EBL) literature (see Ellman, 1989; Wusteman, 1992
+The graph clearly shows that the revision process gradually                             for reviews). EBL methods assume a significant amount of
+reduces the number of the simulated subjects with constraint                            domain theories presumed to be perfect. However, in most
+violations.                                                                             of the domains, this is not true, and they require some ways
+                                                                                     2103
+
+                                                                                               Conclusions
+Table 5: Two concepts and a skill given to I CARUS for
+the route generation domain, and the two skills the system            An intelligent agent cannot be limited to learning from pos-
+learned. The first skill is learned from problem solving              itive experience. When task environments change, the ex-
+(marked as P-S), and the other is learned from constraint-            trapolation of prior experience to cover future situations in-
+based specialization (marked as C-S). The additional precon-          evitably leads to errors, mistakes and unacceptable outcomes.
+dition in this skill is shown in bold face.                           To exhibit human-level flexibility, an artificial agent needs
+                                                                      learning mechanisms that specify how to change in the face
+                                                                      of such negative outcomes. The constraint-based specializa-
+       Given:     ((at ?location)                                     tion mechanism provided this capability in a production sys-
+                   :percepts ((self ?self location ?location)))
+                  ((not-dead-end ?location)
+                                                                      tem framework before, and we implemented it with the hier-
+                   :percepts ((location ?location))                   archical skill representation in the I CARUS architecture suc-
+                   :relations ((connected ?location ?to1)
+                               (connected ?location ?to2))            cessfully, after resolving multiple conceptual problems. We
+                   :tests     ((not (equal ?to1 ?to2))))
+                                                                      performed some test runs in the Blocks World and a naviga-
+                  ((at ?location)
+                   :percepts ((location ?from))                       tion domain, and found the mechanism successfully removes
+                   :start     ((at ?from)                             failures after revisions. We also verified that the mechanism
+                               (connected ?from ?location))
+                   :actions   ((*move-to ?location)))                 works well in parallel to another learning mechanism, allow-
+      Learned     ((at B)                                             ing further study of human level flexibility in this direction.
+    from P-S 1:    :subgoals  ((at W1)
+                               (at B)))
+      Learned     ((at ?location)                                                           Acknowledgments
+     from C-S:     :percepts ((location ?from))
+                   :start     ((at ?from)                             This research was funded by Award # N0001-4-09-1025 from
+                               (connected ?from ?location)            the Office of Naval Research (ONR) to the second author. No
+                               (not-dead-end ?location))
+                   :actions   ((*move-to ?location)))                 endorsement should be inferred.
+      Learned     ((at B)
+    from P-S 2:    :subgoals  ((at W2)
+                               (at B)))                                                         References
+                                                                      Anderson, J. R. (1983). The architecture of cognition. Cam-
+                                                                         bridge, MA: Harvard University Press.
+                                                                      Anderson, J. R. (1993). Rules of the mind. Hillsdale, NJ:
+to augment or correct the domain theories. There, researchers            Lawrence Erlbaum.
+worked on the similar problems of blame assignment and the-           Ellman, T. (1989). Explanation-based learning: A survey
+ory revision, although the exact formulations were different.            of programs and perspectives. ACM Computing Surveys,
+Unlike most of these work, our approach uses explicit de-                21(2), 163–222.
+scriptions of constraints, which the system uses to detect fail-      Laird, J. E., Rosenbloom, P. S., & Newell, A. (1986). Chunk-
+ures and revise existing theories accordingly.                           ing in soar: The anatomy of a general learning mechanism.
+                                                                         Machine Learning, 1, 11–46.
+   With the successful implementation of the constraint-based         Langley, P. (1987). A general theory of discrimination learn-
+specialization mechanism in I CARUS, we are able to study                ing. In D. Klahr, P. Langley, & R. Neches (Eds.), Pro-
+the important problem of interactions between two learning               duction system models of learning and development (pp.
+mechanisms. People learn in a variety of ways (Ohlsson,                  99–161). Cambridge, MA: MIT Press.
+2008) and human-level flexibility is the outcome of the in-           Langley, P., & Choi, D. (2006). Learning recursive con-
+teractions among multiple learning mechanisms. Currently,                trol programs from problem solving. Journal of Machine
+we have only a limited understanding of how learning mecha-              Learning Research, 7, 493–518.
+nisms interact to produce flexible behavior. We intend to add         Ohlsson, S. (1996). Learning from performance errors. Psy-
+additional mechanisms to I CARUS, including learning from                chological Review, 103, 241–262.
+examples or from analogies, and explore the conditions under          Ohlsson, S. (2008). Computational models of skill acquisi-
+which multiple mechanisms produce more flexible behavior                 tion. In R. Sun (Ed.), The cambridge handbook of compu-
+than individual mechanisms.                                              tational psychology (pp. 359–395). Cambridge, UK: Cam-
+                                                                         bridge University Press.
+   Another key problem is how to interleave thinking (search
+                                                                      Ohlsson, S., & Rees, E. (1991). Adaptive search through con-
+in a mental, symbolic problem space) and action (search in an
+                                                                         straint violations. Journal of Experimental & Theoretical
+external, physical environment). The two types of processes
+                                                                         Artificial Intelligence, 3, 33–42.
+differ in a variety of ways, most importantly in that a return to
+                                                                      Wusteman, J. (1992). Explanation-based learning - a survey.
+a previous state can be achieved by fiat in the internal search
+                                                                         Artificial Intelligence Review, 6(3), 243–262.
+space, but has to be accomplished through physical action
+in the external environment. We intend to experiment with
+multiple schemes for controlling the interleaving in multiple
+task domains.
+                                                                  2104
+

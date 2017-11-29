@@ -1,0 +1,406 @@
+                    Human behavior in contextual multi-armed bandit problems
+                                                  Hrvoje Stojic1 (hrvoje.stojic@upf.edu),
+          Pantelis P. Analytis2 (analytis@mpib-berlin.mpg.de), Maarten Speekenbrink3 (m.speekenbrink@ucl.ac.uk)
+                                 1 Department of Economics and Business, Universitat Pompeu Fabra
+                2 Center for Adaptive Behavior and Cognition (ABC), Max Planck Institute for Human Development
+                                3 Department of Experimental Psychology, University College London
+                              Abstract                                 balance between taking the action that is currently believed to
+   In real-life decision environments people learn from their di-      be the most rewarding (“exploitation”) and taking potentially
+   rect experience with alternative courses of action. Yet they        less rewarding actions to gain knowledge about the expected
+   can accelerate their learning by using functional knowledge         rewards of other alternatives (“exploration”). MAB problems
+   about the features characterizing the alternatives. We designed
+   a novel contextual multi-armed bandit task where decision           have proven to be a useful framework to study how people
+   makers chose repeatedly between multiple alternatives char-         tackle this exploration–exploitation trade-off (e.g. Barron &
+   acterized by two informative features. We compared human            Erev, 2003; Cohen et al., 2007; Speekenbrink & Konstantini-
+   behavior in this contextual task with a classic multi-armed
+   bandit task without feature information. Behavioral analysis        dis, 2015; Steyvers et al., 2009).
+   showed that participants in the contextual bandit task used the        Decision situations in real life typically contain more in-
+   feature information to direct their exploration of promising
+   alternatives. Ex post, we tested participants’ acquired func-       formation than classic MAB problems, as alternatives usu-
+   tional knowledge in one-shot multi-feature choice trilemmas.        ally have many features that are potentially related to their
+   We compared a novel function-learning-based reinforcement           value. In other words, there is a function relating features
+   learning model to a classic reinforcement learning. Although
+   reinforcement learning models predicted behavior better in the      of the alternatives to their value, and we assume people can
+   learning phase, the new models did better in predicting the         learn this function. In our example, after enough visits to
+   trilemma choices.                                                   various restaurants, George has learned the function and with
+   Keywords:        decision making; reinforcement learning;           one look at the restaurant’s features can estimate the qual-
+   exploration–exploitation trade-off; contextual multi-armed
+   bandits; function learning                                          ity of the food. Strictly speaking, feature information is not
+                                                                       needed to make good decisions. People who try an alterna-
+                           Introduction                                tive many, many times have no need to engage in function
+George, an early-career American academic, has just ac-                learning to estimate its value. However, function learning can
+cepted a new position at a European university. Somewhat               be very useful. There might not be time to try out alterna-
+of a culinary fanatic, he is determined to enjoy the local cui-        tives many times, especially when the number of alternatives
+sine as much as possible. As there are over 1,000 restaurants          is large or the choice sets change frequently. Also, choosing
+in the area, he is spoiled for choice. George soon starts to           a previously untried alternative might cost the decision maker
+try out different restaurants, sometimes leaving ecstatic and          dearly. In such situations it becomes important to be able to
+sometimes close to nauseous. Keen to avoid the latter, he no-          appraise an alternative’s worth without actually trying it.
+tices that the quality of the food on offer is related to various         More subtle questions arise in a MAB problem with func-
+pieces of information, such as the facade of the restaurant,           tion learning. For example, exploration choices can now be
+the number of patrons, and the distance to the local market.           made with the goal to learn more about the function, not
+Using this knowledge, George manages to eat out every day,             just to estimate the value of a particular alternative. Indeed,
+never leaving disappointed.                                            choosing an alternative that is believed to be particularly bad
+   George’s story captures the essential characteristics of            may improve one’s knowledge of the function to such an ex-
+numerous widely encountered decision-making problems,                  tent that the future benefit of being able to better predict the
+where (a) individuals repeatedly face a choice between a               value of alternatives outweighs the current loss.
+large number of uncertain options, the value of which can                 Decision-making problems that include both function
+be learned through experience, and (b) there are various cues          learning and direct experiential learning can be captured for-
+such that they can form an expectation about the value of an           mally in the theoretical framework of contextual multi-armed
+option without having tried it previously. These two charac-           bandits (CMABs). This paradigm has received a lot of at-
+teristics are related to two learning problems that have been          tention recently in the domain of machine learning due to
+explored extensively in psychology and cognitive science, yet          the numerous applications in autonomous machine decision
+mostly in isolation. These are how people learn to make deci-          making (e.g. Li et al., 2010; Agrawal & Goyal, 2012). Al-
+sions from experience (Barron & Erev, 2003; Hertwig et al.,            though the optimal decision policy for CMAB problems is
+2004) and how they learn to make predictions from multiple             generally intractable, several heuristic strategies, such as up-
+noisy cues (Nosofsky, 1984; Speekenbrink & Shanks, 2010).              per confidence bounding (Auer, 2003), have been developed
+The structure of “decisions from experience” problems can be           to tackle the problem in a reasonable manner, balancing the
+formally represented in a multi-armed bandit (MAB) frame-              search for new high-quality alternatives (exploration) and the
+work (Sutton & Barto, 1998). MAB problems involve a fine               use of the most promising alternative discovered so far (ex-
+                                                                   2290
+
+ploitation). While these algorithms give reasonable results
+in practice, they rely on extensive memory and processing
+capacity, and their performance is often evaluated under the
+assumption of an infinite or very distant time horizon, which
+makes their applicability to human decision making in these
+problems unclear.
+   In the present study we aimed to shed light on how hu-                 Figure 1: Screenshots from the experiment. A. Alternatives in the
+                                                                          classic multi-armed bandit (MAB) task were presented as simple red
+man decision makers allocate decisions among alternatives in              boxes without features. B. Alternatives in the CMAB tasks were pre-
+contexts involving both function learning and direct experi-              sented as the same red boxes but now with lengths of horizontal and
+ential learning. Although theoretically not necessary to make             vertical yellow lines to represent features. Here we have illustrated
+                                                                          only 2 alternatives; participants actually faced 20 in the training and
+decisions in a given situation, because of its usefulness for             3 in the test phase.
+generalizing to new situations we expect that people never-
+theless engage in function learning. Moreover, we developed
+a new function-based reinforcement learning model that of-                cluded participants who did not pay due attention to the ex-
+fers novel predictions on how people tackle the exploration–              perimental task. At the end of the instructions, participants
+exploitation trade-off in CMAB problems. We tested these                  answered four questions to check whether they recalled ba-
+predictions in an experiment where people made choices be-                sic information from the instructions. Excluding participants
+tween a relatively large number of alternatives. By showing               who failed to answer all four questions correctly would have
+only some participants informative cues to the value of the al-           left us with too small a sample, so we excluded participants
+ternatives, we were able to assess the relative benefit of con-           who failed to answer at least two of these correctly. Impor-
+textual information in decision making in MAB problems. In                tantly, this exclusion was done before we looked at further
+a later test phase, we also assessed how people generalize                results. In total, 47 participants were excluded from the anal-
+their contextual knowledge to decisions between new alter-                ysis.
+natives.                                                                  Task
+                              Methods                                     Training phase The task consisted of a training and a test
+                                                                          phase. The training phase comprised 100 trials and in each
+We investigated the influence of function learning on decision
+                                                                          trial participants were presented with the same 20 alternatives
+making in a stationary MAB task. There were three versions
+                                                                          (bandit arms) and asked to choose one. After making a choice
+of the task: (1) a classic MAB task where feature values were
+                                                                          in trial t, they were informed of the payoff R(t) associated
+not visually displayed (we refer to this as the classic con-
+                                                                          with their choice. For each arm j = 1, ..., 20, the payoffs R j (t)
+dition), (2) a CMAB task where feature values were visible
+                                                                          on trial t were computed according to the following equation:
+and participants were instructed that features might be use-
+ful for their choices (explicit contextual condition), and (3) a
+CMAB task where feature values were visible but participants                                R j (t) = w1 x1, j + w2 x2, j + ε j (t).
+were not informed about the relation between features and the                The two feature values, x1, j and x2, j , of each alternative j
+value of alternatives (implicit contextual condition). The con-           were drawn from a uniform distribution U(0.1, 0.9), for each
+textual conditions had an additional test phase with new alter-           participant at the beginning of the training phase. Weights
+natives, where we examined whether participants had learned               were set to w1 = 2 and w2 = 1 for all participants. The error
+the function and could use the acquired knowledge to make                 term, ε j (t), was drawn randomly from a normal distribution
+better choices when facing new alternatives.                              N(0, 1), independently for each arm. The difference between
+                                                                          conditions was that the feature values, x1, j and x2, j , were vi-
+Participants
+                                                                          sually displayed in the contextual conditions but not in the
+In total, 193 participants (94 female), aged 18–73 years (M =             classic condition, as illustrated in Figure 1.
+32.5 years, SD = 11.4), took part in this study on a volun-
+tary basis. Participants were recruited via Amazon’s Mechan-              Test phase The structure of the task was similar in the test
+ical Turk (mturk.com) and were required to be based in the                phase, but now participants were presented with three new al-
+United States and have an approval rate of 95% or above.1                 ternatives with randomly drawn feature values on each trial.
+Participants in the experiments earned a fixed payment of                 Weights of the function were kept the same, w = (2, 1). As
+US$0.30 and a performance-dependent bonus of US$0.50 on                   participants faced a new decision problem on each trial in the
+average. Participants were randomly assigned to one of the                test phase, there was no longer an exploration–exploitation
+three experimental groups: the classic (N = 66), explicit con-            trade-off, and participants were expected to always choose
+textual (N = 64), and implicit contextual (N = 63) conditions.            the alternative they deemed best. There were five types of
+   As Amazon’s Mechanical Turk is an online environment                   trials, specifically designed so that participants would exhibit
+that offers less control than laboratory experiments, we ex-              whether they had learned the functional form and the weights,
+                                                                          w1 and w2 . Two of the types were easy and difficult interpo-
+    1 This means that in at least 95% of cases they were paid for the     lation trials, where feature values were drawn from the same
+work they had done—a rough measure of the quality of the work
+done on Mechanical Turk.
+                                                                      2291
+
+interval, U(0.1, 0.9), as in the training phase. Two others                              Behavioral Results
+were easy and difficult extrapolation trials, with feature val-      Training phase
+ues drawn from U(0, 0.1) and U(0.9, 1). Trials consisted of
+a dominating, a middle, and a dominated alternative. In easy         Performance in the training phase is illustrated in Figure 2.
+trials the difference in function values between the alterna-        Over the course of the training phase participants in both the
+tives was larger than in the difficult trials. The fifth type of     classic and contextual MAB conditions were able to improve
+trial was designed so we could examine whether participants          their performance by choosing more promising alternatives.
+learned which feature had the greater weight. Here a trial           This is evident in the downward slopes of linear fits of the av-
+consisted of one alternative that had a large value on a feature     erage rankings of the chosen options as a function of trial. As
+with higher weight and a small value on the other feature, one       the training phase progressed, participants discovered alter-
+alternative with the opposite pattern, and one alternative that      natives that yielded higher earnings on average, and the aver-
+was clearly dominated. There were 70 trials in the test phase.       age ranking of the alternatives they had chosen decreased as
+Only participants in the contextual conditions completed this        a result. Although the increase in returns was similarly steep,
+phase.                                                               the participants in the CMAB conditions had a head start and
+                                                                     identified better alternatives already in the first rounds. This
+Procedure2                                                           seems to have been the case especially for the explicit con-
+After providing informed consent, participants started the ex-       textual condition where participants were instructed that the
+periment by reading the instructions and completing a brief          features could be used to improve their decisions. Such an
+sociodemographic questionnaire, followed by comprehension            increase early on may have been due to a strong prior expec-
+questions with which we checked how much attention they              tation for positive linear relationships, as often found in the
+paid to the instructions. Participants were told that they would     function learning literature (Busemeyer et al., 1997).
+be presented with 20 alternatives, that their task was to se-           We analyzed choice performance with a generalized linear
+lect between them, and that for each choice they would re-           mixed-effects model. Trials were aggregated into four blocks
+ceive experimental points that would at the end be converted         of 25 trials each. We included experimental condition and
+to money, with an exchange rate of US$1.00 for 400 exper-            block as fixed effects and subject-specific random intercepts.
+imental points. The goal of the game was to win as many              The main effect of condition was significant, χ2 (2) = 10.91,
+experimental points as possible. Participants were informed          p = 0.004, where differences stem from the classic condition,
+that they would see the same alternatives in every round but         for which the intercept estimate was significantly higher, in-
+that the rewards associated with each alternative might vary         dicating worse performance overall. The main effect of block
+from round to round.                                                 was also significant, χ2 (3) = 91.34, p < 0.001, reflecting a
+   After reading the instructions and completing the question-       general decrease in average ranking of selected alternatives
+naires, participants started the experimental task. On each          from the first to the fourth block. Thus, participants learned
+trial, they were presented with 20 alternatives in the form of       to make better choices and the choice performance improved
+simple square-shaped buttons. They selected an alternative           over time in all three conditions. The interaction between
+via a mouse click. The number of points won or lost was then         condition and block was not significant. The same conclusion
+displayed below the alternative until they pressed the ENTER         was reached when we analysed expected earnings instead of
+key, which would display the next trial. Buttons in the clas-        rankings of the chosen alternative. We report the results for
+sic condition were empty, while in the contextual conditions         the rankings because, due to the random selection of feature
+feature values were displayed on each button in the form of          values, potential earnings differed between participants.
+one horizontal and one vertical line, both starting from the            To get a sense of the improvement made possible by the
+lower left corner of the square. We randomized whether a             presence of features, it is instructive to examine the over-
+certain feature was represented as a vertical or a horizontal        all earnings. The range of possible expected earnings was
+line across participants. Throughout the task, a counter dis-        from 0.3 to 2.7 experimental points per trial. Empirically,
+played the total points received thus far, the number of the         the lowest ranking arm had a value of 0.6 points on average,
+current trial, and the total number of trials in the phase. In       while the highest ranking alternative had the average value of
+the training phase, participants completed only a single MAB         2.4 points. Participants in contextual conditions earned more
+problem. After finishing it, participants in the contextual con-     on average per trial (M = 1.8 points, SD = 0.52, both con-
+ditions read the instructions for the test phase. We told them       textual conditions combined) than participants in the classic
+they would face new alternatives in every trial, would not see       condition (M = 1.64 points, SD = 0.54), t(123.9) = 3.896,
+any feedback in the second phase, and would no longer see            p < 0.001, 95% CI [0.08, 0.23]. The possibility to use func-
+the running total but that their payoff would still be affected      tion learning enabled the participants to reach about 10%
+by their choices.                                                    higher earnings.
+                                                                        In terms of exploration, participants in the contextual con-
+    2 Readers  can try out the experiment at the following           ditions tried 10.4 alternatives, and in the classic condition
+URL: experimentnext.com/CMABvsMABexp1.                 Raw data
+from the experiments are also publicly available on Figshare:        they tried 11.2 alternatives on average. For the remaining
+http://dx.doi.org/10.6084/m9.figshare.1314099                        analyses we decided to pool the results for the two contextual
+                                                                 2292
+
+                                                                                                                Table 1: Choice allocation between alternatives with high, medium,
+                                                                                                                or low expected earnings in the test phase. Each row of the table
+   Mean rank of the chosen alternative
+                                         12                                                                     corresponds to a different type of trial. The high, medium, and low
+                                                                         Condition                              columns refer to the dominating, middle, and dominated items, re-
+                                                                           Explicit contextual                  spectively.
+                                                                         ● Implicit contextual                      Type of trial                # Trials     High      Medium       Low
+                                                  ●●●   ●
+                                                            ●              Classic                                  Easy interpolation             15         0.47       0.28        0.25
+                                         10        ●
+                                                    ●
+                                                         ●                                                          Difficult interpolation        25         0.38       0.37        0.25
+                                                  ●
+                                              ●   ● ●
+                                                       ● ●
+                                                                                                                    Easy extrapolation             10         0.49       0.27        0.24
+                                               ●●                       ●  ●             ●
+                                              ●
+                                                      ●●
+                                                              ●
+                                                                  ●                                                 Difficult extrapolation        10         0.39       0.35        0.26
+                                                          ●                  ●
+                                          8              ●
+                                                   ● ● ● ● ●●● ●
+                                                                         ●                                          Weights test                   10         0.36       0.37        0.27
+                                                            ●         ●● ●●●    ●
+                                                             ● ●
+                                                                  ● ●               ●●               ●
+                                                                                             ●
+                                                                ●            ●
+                                                   ●        ●      ● ● ●●          ●
+                                                                                 ● ● ●●            ●
+                                                                        ●             ●●
+                                                                                           ●    ● ● ●   ●●      tween the feature values and the alternative value. To explain
+                                                                    ●             ●●    ●●       ●●
+                                                                            ● ●●●
+                                                                                           ●     ●   ● ●●       the behavior in CMAB problems, we developed a new re-
+                                          6                                          ●         ●●     ●
+                                                                                            ●●     ●     ●      inforcement learning model based on function learning and
+                                                                                                                pitted it against reward-only reinforcement learning models
+                                                                                             ●        ●
+                                                                                                                employed to explain behavior in MAB problems.
+                                              0             25           50             75            100          Reward-only reinforcement learning models do not take
+                                                                        Trial                                   into account the feature values and update the expected value
+                                                                                                                of an alternative only on the basis of rewards received after
+Figure 2: Average ranking of the chosen alternative in the training
+phase as a function of trial. Averages are across the participants and                                          making a choice. We call this type of learning mean learn-
+the lines were obtained by linear regression. Shaded areas are 95%                                              ing. In our novel feature-based model, a participant observes
+confidence intervals.                                                                                           the feature values and uses the knowledge of the functional
+                                                                                                                relationship between features and value to compute the ex-
+conditions, since the performance in them was very similar.                                                     pected value of a particular alternative. Instead of updating
+                                                                                                                the expected value of an alternative directly, participants up-
+Test phase                                                                                                      date the parameters of the functional relationship. We call
+While behavior in the training phase showed evidence of                                                         this type of learning function learning. To provide the clean-
+function learning, the true test of function learning is perfor-                                                est comparison, we used the same choice rules in both types
+mance on new, previously unseen items. If participants in the                                                   of models. The main difference was in whether the expected
+contextual conditions did not learn the function, we would                                                      values were computed by mean learning or function learn-
+expect that participants would choose randomly between the                                                      ing and then passed as inputs to the choice rules. Overall, we
+new sets of three alternatives. Results are presented in Ta-                                                    evaluated a factorial combination of 4 Learning rules (2 mean
+ble 1. On easy trials, participants selected the alternative with                                               learning + 2 function learning) × 2 Choice probability rules,
+the higher expected value almost 50% of the time, while the                                                     producing a total of eight models. The models were assessed
+middle and dominated alternatives were selected much less                                                       in two ways. First we examined how the models fit the train-
+frequently (approximately 25% of the time each). On dif-                                                        ing data; second, we used the parameters from the training
+ficult trials, in contrast, participants selected the dominating                                                phase and let the models predict the choices in the test phase.
+and the middle alternative equally often, approximately 37%
+of the time. The dominated alternative was still selected ap-                                                   Mean learning
+proximately 25% of the time. Extrapolation trials are crucial                                                   We assumed that after receiving a reward R j (t) on trial t for a
+for establishing the extent of function learning (Busemeyer et                                                  chosen alternative j, participants would update the expected
+al., 1997). In our case, performance in interpolation and ex-                                                   value E j (t + 1) of choosing alternative j on trial t + 1. We
+trapolation trials was similar, indicating that participants ex-                                                considered two learning mechanisms: the delta rule and the
+trapolated relatively well. Performance on the “weight test”                                                    decay rule.
+trials gives a clue as to why they chose the middle alterna-
+tives as often as they did—on average, participants seem not                                                    Delta learning        The delta rule is a popular model-free learn-
+to have learned the feature weights correctly, which may have                                                   ing rule:
+been because of the level of noise in the alternative values (the
+error term ε j (t) in the function value). Participants seem to                                                           E j (t) = E j (t − 1) + δ j (t)η[R j (t) − E j (t − 1)],
+have learned that both feature weights were positive, but not
+that they differed.                                                                                             where δ j (t) is an indicator variable, being 1 if alternative j
+                                                                                                                was chosen on trial t, and 0 otherwise. We opted for a simple
+                                                                 Modeling                                       fixed learning rate, η ≥ 0.
+In addition to the behavioral results, we used computational
+modeling to further assess whether participants based their                                                     Decay learning The decay rule (e.g. Ahn et al., 2008) is
+decisions on knowledge of the functional relationship be-                                                       another popular model-free learning rule, according to which
+                                                                                                             2293
+
+expected values of the unchosen alternatives decay toward 0:           also reported BIC weights, w(BIC) that approximate the pos-
+                                                                       terior probability of the models assuming equal prior proba-
+                  E j (t) = ηE j (t − 1) + δ j (t)R j (t),             bility (Wagenmakers & Farrell, 2004). To model the behavior
+                                                                       in the test phase, we used models with parameters estimated
+with decay parameter 0 ≤ η ≤ 1.                                        on the training data to predict choices in the test phase. For
+Function learning                                                      model selection we used Mean absolute deviation (MAD) of
+                                                                       choices from model predictions.
+Least mean squares network model The least mean
+squares (LMS) network model (e.g. Speekenbrink & Shanks,                                     Modeling results
+2010) is essentially a linear regression model that updates the
+weights from trial to trial. Feature values x j are inputs, and        We fitted the models to the training data of the contextual
+the expected value of an alternative is the function output,           conditions. Because the behavioral and modeling results were
+E j (t) = x j ŵ(t), where ŵ(t) is a vector of estimated connec-      similar for explicit and implicit contextual conditions, we col-
+tion weights (identical for each alternative). Weights are up-         lapsed the results into a single contextual condition. Table 2
+dated through the delta rule                                           shows the fit measures. The BIC scores show, contrary to our
+                                                                       expectation, that the best fitting models are reward-only rein-
+            ŵ(t + 1) = ŵ(t) + δ j (t)η(R j (t) − E j (t))xTj ,       forcement learning models. This holds in terms of both aver-
+                                                                       age ∆BIC, BIC weights and number of participants best fitted
+where η is a vector of feature-specific learning rate parame-          by the models. Decay learning with the softmax choice rule
+ters. Starting weights were initialized to ŵ(0) = (0, 0)T . We        is a clear winner. Participants often repeated their previous
+considered two versions of the LMS model: one with an in-              choices, and the decay rule is able to capture that tendency
+tercept (LMSi ) and without it (LMS).                                  better (Ahn et al., 2008). Among function learning models,
+                                                                       LMSi version with the intercept is able to learn the average
+Choice rules                                                           earning in the task so this model can be thought of as a hybrid
+ε-greedy A heuristic rule for balancing exploitation and ex-           between mean and function learning. However, LMSi did not
+ploration (e.g. Sutton & Barto, 1998) exploits the alterna-            fare much better than the version without intercept. The soft-
+tive with the maximum expected value with probability 1 − ε,           max rule also worked much better than ε-greedy—people’s
+and with probability ε chooses randomly from the remaining             response probabilities were obviously sensitive to expected
+arms:                                                                  values and the softmax choice rule captures this aspect better.
+                    (                                                     The modeling results thus contrast with the behavioral re-
+                       (1 − ε)/Kmax if E j (t) > Ek (t), ∀k 6= j       sults, which showed evidence of function learning. One rea-
+ P(C(t) = j) =
+                       ε/(K − Kmax ) otherwise                         son for this discrepancy might be that the LMS model is not
+                                                                       the appropriate function learning model. Hence, in future
+where K is the number of arms and Kmax is the number of                work there is scope for examining more complex associative
+arms with the same maximum value. If all the values are the            function learning models (Busemeyer et al., 1997) and gen-
+same, P(C(t) = j) = 1/K.                                               eralized context models (Nosofsky, 1984). Another reason
+                                                                       might be that the LMS model learns too well, that is, weights
+Softmax The “softmax” choice rule varies gradually be-                 learned by the LMS model tend to the objective weights too
+tween pure exploitation and pure exploration through a tem-            fast. Participants were not giving their predictions on values
+perature parameter θ ≥ 0:                                              of chosen alternatives and without them it is difficult to prop-
+                                                                       erly calibrate the function learning part of the model. Hence,
+                                       exp(θE j (t))                   obtained weights might not reflect participants’ actual beliefs
+                  P(C(t) = j) = K
+                                    ∑k=1 exp(θEk (t))                  about feature weights. Indeed, results from the test phase,
+                                                                       shown in Table 1, indicated that participants on average did
+Model estimation and inference                                         not learn which feature had a larger weight.
+We estimated the model parameters for each participant by                 Even though LMS models did not fit the training phase
+maximum likelihood using the Nelder–Mead simplex algo-                 best, the true value of function learning should become ob-
+rithm implemented in the optim function in R. For model                vious when new alternatives appear in the choice set. This
+selection purposes in the training phase, we computed the              was the logic behind having the test phase with new alter-
+Bayesian information criterion (BIC), reported as difference           natives. Importantly, the reward-only models cannot predict
+scores between a baseline model3 and the model of inter-               anything other than random choice. Test trials were single-
+est, ∆(BIC). For these difference scores, negative values of           shot decisions and reward-only models have no means of es-
+∆(BIC) indicate that the model fitted worse than the baseline          timating the expected values of arms without sampling them
+model, while increasing positive values indicate better fit. We        first. In the test phase, the only way to distinguish the alter-
+     3 The baseline model was a parameter-free random choice model
+                                                                       natives was through their feature values. We used the LMS
+with probability of choosing an alternative equal to 1/K.
+                                                                       models with parameters fitted in the training phase to predict
+                                                                       choices in the test phase. Table 3 shows that the LMS mod-
+                                                                       els indeed did better than the reward-only models, which here
+                                                                   2294
+
+Table 2: Modeling results of the training phase. Values of ∆(BIC)           in the contextual conditions performed better even in the
+and w(BIC) are averages and the standard deviation is given in
+parentheses. Values of N are the total number of participants best          training phase. More importantly, function learning enabled
+fit by the corresponding model according to the BIC.                        them to generalize their knowledge in the test phase, where
+  Learning Choice             N          ∆(BIC)               w(BIC)        they faced one-shot trilemmas with new alternatives. We
+  Decay         Softmax 42 127.56 (150.35) 0.36 (0.45)                      also developed a novel function-learning-based reinforce-
+  Delta         Softmax 22 106.85 (139.47) 0.19 (0.36)                      ment learning model. Our simple model did not work as well
+  Decay         ε-greedy 12 100.86 (140.72) 0.06 (0.19)                     as expected in the training phase, but it performed better in
+  Delta         ε-greedy 9           80.34 (120.52) 0.02 (0.08)             terms of predicting choices in the test phase where reward-
+  LMSi          Softmax 11            56.73 (80.05)         0.11 (0.23)     based reinforcement learning models cannot do better than
+  LMS           Softmax 10            55.78 (80.51)         0.08 (0.18)     chance level. Other, more complex function-learning model-
+  LMS           ε-greedy 8            19.49 (53.94)         0.03 (0.14)     ing approaches are left for future work.
+  Note. BIC, Bayesian information criterion; LMSi , least
+  mean squares with intercept; LMS, least mean squares                                             Acknowledgments
+  without intercept.                                                        We would like to thank Robin Hogarth and Gael Le Mens
+                                                                            for comments and Doug Markant for practical advice with
+                                                                            implementing the experiment on Amazon’s Mechanical Turk.
+would perform as well as the baseline random choice model.
+On average LMS models predicted the choices of the partic-                                              References
+ipants with 50%. According to the MAD criterion, the ma-                    Agrawal, S., & Goyal, N. (2012). Thompson sampling for contex-
+jority of participants were best predicted by one of the LMS                   tual bandits with linear payoffs. arXiv preprint arXiv:1209.3352.
+softmax models, 13 participants were best predicted by a ran-               Ahn, W.-K., Busemeyer, J. R., Wagenmakers, E.-J., & Stout, J. C.
+dom choice model and 19 by ε-greedy LMS model.                                 (2008). Comparison of decision learning models using the gen-
+                                                                               eralization criterion method. Cognitive Science, 32(8), 1376–
+                                                                               1402.
+Table 3: Modeling results of the test phase. Values of MAD are              Auer, P. (2003). Using confidence bounds for exploitation-
+averages and the standard deviation is given in parentheses. Values            exploration trade-offs. The Journal of Machine Learning Re-
+of N are the total number of participants best fit by the corresponding        search, 3, 397–422.
+model according to the MAD.                                                 Barron, G., & Erev, I. (2003). Small feedback-based decisions
+  Learning Choice             N                    MAD                         and their limited correspondence to description-based decisions.
+  LMSi          Softmax 54                    0.50 (0.14)                      Journal of Behavioral Decision Making, 16(3), 215–233.
+                                                                            Busemeyer, J. R., Byun, E., Delosh, E. L., & McDaniel, M. A.
+  LMS           Softmax 44                    0.54 (0.13)                      (1997). Learning functional relations based on experience with
+  LMS           ε-greedy 19                   0.65 (0.02)                      input-output pairs by humans and artificial neural networks. In
+  RCM                        13                  0.67 (0)                      K. Lamberts & D. R. Shanks (Eds.), Knowledge, concepts and
+                                                                               categories. studies in cognition. (pp. 408–437). Cambridge, MA,
+  Note. MAD, mean absolute deviation; LMSi , least mean                        US: MIT Press.
+  squares with intercept; LMS, least mean squares without                   Cohen, J. D., McClure, S. M., & Yu, A. J. (2007). Should I stay
+  intercept; RCM, random choice model.                                         or should I go? How the human brain manages the trade-off be-
+                                                                               tween exploitation and exploration. Philosophical Transactions
+                                                                               of the Royal Society of London. Series B, Biological sciences,
+                                                                               362(1481), 933–942.
+                Discussion and Conclusion                                   Hertwig, R., Barron, G., Weber, E. U., & Erev, I. (2004). Decisions
+                                                                               from experience and the effect of rare events in risky choice. Psy-
+We developed a novel experimental paradigm that can be the-                    chological Science, 15(8), 534–539.
+oretically framed as a CMAB problem. In contextual con-                     Li, L., Chu, W., Langford, J., & Schapire, R. E. (2010). A
+                                                                               contextual-bandit approach to personalized news article recom-
+ditions in our experiment each alternative had two features                    mendation. In Proceedings of the 19th international conference
+that were linearly related to the value of the alternative. In                 on world wide web (pp. 661–670).
+reward-only reinforcement learning models contextual infor-                 Nosofsky, R. M. (1984). Choice, similarity, and the context theory
+                                                                               of classification. Journal of Experimental Psychology: Learning,
+mation is ignored—mean returns are estimated directly from                     Memory, and Cognition, 10(1), 104–114.
+the sequence of past rewards without a demanding function-                  Speekenbrink, M., & Konstantinidis, E. (2015). Uncertainty and
+learning mechanism. We argued that in decision-making                          Exploration in a Restless Bandit Problem. Topics in Cognitive
+                                                                               Science, 1–17.
+problems encountered in everyday life, people cannot afford                 Speekenbrink, M., & Shanks, D. R. (2010). Learning in a chang-
+to sample alternatives enough times to get reliable estimates.                 ing environment. Journal of Experimental Psychology: General,
+Moreover, choice sets change often, and estimating the value                   139(2), 266–298.
+                                                                            Steyvers, M., Lee, M. D., & Wagenmakers, E.-J. (2009). A Bayesian
+of new alternatives without trying them is a useful ability. Un-               analysis of human decision-making on bandit problems. Journal
+der these circumstances function learning seems to be an in-                   of Mathematical Psychology, 53(3), 168–179.
+dispensable mechanism, even if unnecessary or prohibitively                 Sutton, R. S., & Barto, A. G. (1998). Reinforcement learning: An
+                                                                               introduction. Cambridge, MA, US: MIT Press.
+expensive in a single decision situation.                                   Wagenmakers, E.-J., & Farrell, S. (2004). AIC model selection
+    In the experiment we compared contextual and classic ban-                  using Akaike weights. Psychonomic Bulletin & Review, 11(1),
+dit problems, with feature information presented and not pre-                  192–196.
+sented, respectively. We showed that with a large enough
+choice set, people engage in function learning—participants
+                                                                        2295
+

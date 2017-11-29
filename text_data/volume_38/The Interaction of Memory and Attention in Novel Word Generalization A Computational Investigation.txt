@@ -1,0 +1,385 @@
+         The Interaction of Memory and Attention in Novel Word Generalization:
+                                               A Computational Investigation
+                                     Erin Grant, Aida Nematzadeh, and Suzanne Stevenson
+                                                       Department of Computer Science
+                                                             University of Toronto
+                                                  {eringrant, aida, suzanne}@cs.toronto.edu
+                              Abstract                                       Spencer, Perone, Smith, and Samuelson (2011) (henceforth
+   People exhibit a tendency to generalize a novel noun to the            SPSS11) investigated the effect of presentation timing in the
+   basic-level of a hierarchical taxonomy – a cognitively salient         same task. XT07 had presented multiple exemplars of a novel
+   category such as “dog” – with the degree of generalization de-         word simultaneously. SPSS11 found that instead presenting
+   pending on the number and type of exemplars. Recently, a
+   change in the presentation timing of exemplars has also been           exemplars in sequence reverses the suspicious coincidence ef-
+   shown to have an effect, surprisingly reversing the prior ob-          fect. That is, after sequentially viewing three exemplars con-
+   served pattern of basic-level generalization. We explore the           sistent with a more specific level of the taxonomy (e.g., three
+   precise mechanisms that could lead to such behavior by ex-
+   tending a computational model of word learning and word gen-           dogs of a single breed), people have a greater tendency to
+   eralization to integrate cognitive processes of memory and at-         generalize to the higher category than after seeing one ex-
+   tention. Our results show that the interaction of forgetting and       emplar. SPSS11 explained this reversal as an interaction of
+   attention to novelty, as well as sensitivity to both type and to-
+   ken frequencies of exemplars, enables the model to replicate           word learning with the more general cognitive processes of
+   the empirical results from different presentation timings. Our         attention and memory, which differ in their operation across
+   results reinforce the need to incorporate general cognitive pro-       the presentation types: People attend to and remember finer-
+   cesses within word learning models to better understand the
+   range of observed behaviors in vocabulary acquisition.                 grained similarities among objects when viewed simultane-
+   Keywords: novel word generalization; word learning; compu-             ously (e.g., that they are all Dalmatians), while the sequential
+   tational modeling                                                      presentation leads people to focus on the general commonal-
+                                                                          ities of the objects (e.g., that they are all dogs).
+                           Introduction                                      Our goal in this paper is to provide a computational model
+A number of computational models have successfully mim-                   that accounts for both the XT07 and SPSS11 findings in a
+icked child behaviors in learning the meaning of words from               well-motivated manner, by incorporating memory and atten-
+ambiguous input (e.g., Siskind, 1996; Yu & Ballard, 2007;                 tional constraints into an incremental model of word learning
+Frank et al., 2007; Fazly, Alishahi, & Stevenson, 2010). How-             and word generalization. It is desirable to integrate together
+ever, one challenge in word-meaning acquisition that has re-              all these pieces – novel word generalization, incremental
+ceived less attention is that of novel word generalization: i.e.,         word learning, and memory and attention – because: (i) word
+correctly identifying the level of a hierarchical taxonomy that           generalization is part and parcel of learning the meaning of
+a word refers to. After hearing it only a few times, how does             words, since it allows the abstraction of meaning from a se-
+the child determine, for example, that the word dog refers to             quence of specific experiences, and (ii) many word-learning
+Dalmatians, all dogs of different breeds, or any kind of ani-             behaviors are influenced by the general cognitive processes
+mal? This issue poses difficulties to the learner because the             of memory and attention (e.g., Vlach et al., 2008; Samuelson
+accumulated evidence can be compatible with more than one                 & Smith, 2000). Importantly, by explicitly specifying such
+of these choices. In this example, all dogs are also animals,             mechanisms within a computational model, we contribute to
+and thus the meaning “animal” might also be consistent with               the precise understanding of the interactions between them
+all the usages of the word dog.                                           that are required to account for empirical data.
+   Xu and Tenenbaum (2007) (henceforth XT07) studied
+novel word generalization in both children and adults by ob-                  Suspicious Coincidence: Data and Models
+serving decisions about category membership for novel ob-
+jects in various experimental settings. One of their important            XT07 and SPSS11 explored how people generalized a novel
+findings concerned how people responded having seen 1 vs.                 word like fep to various levels of a taxonomy of objects (in-
+3 labeled exemplars of a certain kind of entity within a tax-             cluding animals, vehicles, and vegetables). Basic-level cate-
+onomy. For example, having seen a single Dalmatian labeled                gories (e.g., dogs or trucks) are those whose members share
+as a fep, people assumed that the novel word fep could refer              a significant number of salient attributes; subordinate cate-
+to the general category of dogs. However, if people saw sev-              gories (e.g., Dalmatians or bulldozers) occur lower in the
+eral Dalmatians called fep, they apparently recognized that it            hierarchy, and their members share many fine-grained at-
+would be a suspicious coincidence if fep meant “dog”, but                 tributes; superordinate categories (e.g., animals and vehicles)
+only one breed of dog was observed. In such cases, people                 are higher than the basic-level, and their members have fewer
+had a lesser tendency to generalize to the higher level cate-             attributes in common (Rosch, 1973).
+gory than after seeing a single exemplar.                                    For the sake of space, we focus only on two of the train-
+                                                                      2309
+
+ing conditions in XT07 and SPSS11– the “1-example” and                                                                              XT07 explained this behavior as the suspicious coincidence
+“3-subordinate” conditions – in which the suspicious coinci-                                                                        effect. However, when objects are presented sequentially
+dence effect and its reversal are seen.1 The 1-example con-                                                                         (Figure 1b), there was a surprising reversal of this effect.
+dition has one training trial in which participants observe a                                                                          While SPSS11 outline possible memory and attentional
+single object (e.g., a Dalmatian) that is labeled with a novel                                                                      processes to explain their results, we know of no com-
+word (such as fep). In the 3-subordinate condition, partici-                                                                        putational model that can account for both sets of data.
+pants observe three instances from the same subordinate cat-                                                                        XT07’s Bayesian model formed hypotheses over a detailed
+egory (e.g., three different Dalmatians) labeled with the novel                                                                     hierarchical taxonomy to account for their own data, but
+word. In XT07’s experiment, all three instances were pre-                                                                           it cannot model the difference between presentation tim-
+sented simultaneously. SPSS11 included a condition in which                                                                         ings, as SPSS11 note. The computational word learner
+the three instances are shown and labeled sequentially. (Si-                                                                        of Nematzadeh, Grant, and Stevenson (2015) (henceforth
+multaneous and sequential are the same for one example.)                                                                            NGS15) can model the XT07 results without the need for
+   After training, participants select all and only objects that                                                                    elaborated knowledge of the hierarchy or a built-in basic-level
+they think are feps from a set of test items. Each test object is                                                                   bias. Instead, the results of the model arise from a general
+assessed as exactly one of the following types of match:                                                                            type-token frequency interaction of the sort that commonly
+                                                                                                                                    arises in explanations of linguistic phenomena (e.g., Bybee,
+• a subordinate match has the same subordinate category
+                                                                                                                                    1985; Croft & Cruse, 2004). However, the timing of presen-
+  as a training object (e.g., a Dalmatian).
+                                                                                                                                    tations also has no effect on the NGS15 model, and so the
+• a basic-level match has the same basic-level category as a                                                                        reversal of the suspicious coincidence effect is not achieved.
+  training object (e.g., a dog, but not a Dalmatian).                                                                               In the next section, we explain how the NGS15 model can
+• a superordinate match has the same superordinate cate-                                                                            be naturally extended to integrate memory and attention, and
+  gory as training objects (e.g., an animal other than a dog).                                                                      therefore sensitivity to presentation timing.
+Since SPSS11 replicated the pattern found by XT07 in their                                                                                          Our Computational Model
+simultaneous presentation condition, we report only the re-
+                                                                                                                                    We start with the NGS15 model because it uses an incremen-
+sults of SPSS11, as shown in Fig. 1.
+                                                                                                                                    tal word learning framework that mimics a range of behaviors
+                                        Figure 1: SPSS11 Behavioural Data                                                           in vocabulary acquisition (e.g., Fazly, Alishahi, & Stevenson,
+                                                                                                                                    2010; Fazly, Ahmadi-Fakhr, et al., 2010). This framework
+(a) Simultaneous:                                       (b) Sequential:                                                             has recently been extended to incorporate the effects of mem-
+                               1                                                      1
+                                                                                                                                    ory and attention on word learning (Nematzadeh, Fazly, &
+ generalization probability                             generalization probability
+                                                                                                                                    Stevenson, 2012), presenting a natural opportunity for inte-
+                                                                                                                 subord. match
+                                                                                                                                    grating these processes within word generalization. We de-
+                              0.5                                                    0.5                          basic match       scribe the NGS15 model, then the novel extensions that en-
+                                                                                                                 super. match       able our model to replicate the SPSS11 data.
+                               0                                                      0
+                                                                                                                                    Learned Meanings in the NGS15 Model
+                                    1 ex.   3 subord.                                        1 ex.   3 subord.                      The NGS15 model is a cross-situational learner that tracks
+                                training condition                                         training condition                       weighted co-occurrences of words and semantic features
+                                                                                                                                    across its input as in Fazly, Alishahi, and Stevenson (2010).
+SPSS11 data for (1a) simultaneous and (1b) sequential presenta-
+tions. Each bar is the percent of chosen test objects of each type of                                                               The input to the model is intended to reflect the naturalistic
+match: subord(inate), basic(-level), or super(ordinate). Differences                                                                input a child is exposed to, which consists of linguistic input
+in 1-ex. across the two experiments were not statistically significant.                                                             (the words a child hears) paired with nonlinguistic data (the
+   In the 1-example condition people generalized the novel                                                                          things a child perceives). An input pair is the set of words Ut
+word to refer to both subordinate matches (e.g., Dalmatians)                                                                        and the set of semantic features St observed at time t:
+and (to a lesser extent) basic-level matches (e.g., other kinds                                                                         Ut : { look, a, fep }
+of dogs), but not to the superordinate matches (e.g., other an-                                                                         St : { PERCEPTION, LOOK, . . . , DALMATIAN,   DOG , ANIMAL   }
+imals). This is in line with the idea that people tend to gen-
+eralize a novel word to a basic-level category such as “dog”                                                                        The output of the model at each time t is a set of meaning
+because of the perceptual salience of this level of categoriza-                                                                     probabilities, Pt ( fi |w j ), for each feature fi and each word w j
+tion (e.g., Markman, 1991).                                                                                                         observed up through time t. The set of all conditional proba-
+   In the 3-subordinate condition, when objects are presented                                                                       bilities Pt ( fi |w j ) for w j represents the meaning of w j .
+simultaneously (Figure 1a), the generalization to the basic                                                                            The representation of meaning in NGS15 reflects the struc-
+level is attenuated compared to the 1-example condition.                                                                            ture of taxonomic knowledge. Meaning features are arranged
+    1 Our model replicates the results of XT07 and SPSS11 for all                                                                   into feature groups, each corresponding to a level of the
+training conditions, but we only report the results for these two here.                                                             taxonomic hierarchy, as shown in Figure 2.For each word
+                                                                                                                                 2310
+
+w j , a meaning probability distribution, Pt (.|w j ), is calculated                                                                Update of Meaning Probabilities The model next uses the
+for each feature group; that is, Pt (.|w j ) is normalized over                                                                     association scores to update the meaning probabilities. Each
+the features in a group, rather than over all meaning fea-                                                                          meaning probability Pt ( fi |w j ) represents the magnitude of the
+tures. The result is that features at the same level of the                                                                         fi –w j association relative to the association strength between
+hierarchy, such as DALMATIAN and P OODLE, or DOG and                                                                                w j and other features within the same feature group G as fi :
+CAT , compete for probability mass; this ensures that such
+                                                                                                                                                                      assoct ( fi , w j ) + γ Gt
+features, which are mutually incompatible given their taxo-                                                                                    Pt ( fi |w j ) =                                            (3)
+nomic relationship, cannot simultaneously have high prob-                                                                                                          ∑ assoct ( fm , w j ) + kG γ Gt
+                                                                                                                                                                  fm ∈G
+ability. Features at different levels of the hierarchy are in
+different feature groups and thus do not compete for prob-                                                                          Here kG and γ Gt are smoothing terms: kG reflects the expected
+ability mass; this ensures that meaning probabilities such as                                                                       number of features in G and γ Gt represents the a priori ten-
+Pt (DALMATIAN|fep), Pt (DOG|fep), and Pt (ANIMAL|fep) can
+                                                                                                                                    dency to observe a feature in G . While kG is a fixed param-
+all be highly activated if fep is intended to refer to a Dalmatian
+                                                                                                                                    eter, γ Gt is a function of the number of observed types within
+(which is also both a dog and an animal). In this approach,
+the meaning of a word is the set of n distributions, Pt (.|w j ),                                                                   the feature group G , and thus changes over time (see NGS15).
+one per feature group in a taxonomy with n levels.                                                                                     The γ Gt parameters are key to the generalization behavior
+                                                                                                                                    of the NGS15 model because they influence how much prob-
+                                                                                                              superordinate         ability mass is allocated to a feature previously unseen with a
+                                        ANIMAL
+                                                                                                              feature group         word (cf. Eqn. 3 when the assoc score is 0). A higher value
+                                                                                                                                    for γ Gt leads to more probability mass allocated to previously
+               DOG                              CAT                                   BIRD                    basic-level
+                                                                                                              feature group         unseen features in group G , allowing for more generaliza-
+                                                                                                                                    tion to new features in that group. Because γ Gt increases with
+   DALMATIAN             TERRIER      SIAMESE                  PERSIAN                          BLUEBIRD
+                POODLE                            TABBY                  PARROT        EAGLE
+                                                                                                              subordinate           the number of types, it captures the oft-observed tendency in
+                                                                                                              feature group         language that people more readily generalize categories for
+                                                                                                                                    which a greater variety of types of items has been observed.
+                         INSTANCE 1               INSTANCE 2             INSTANCE 3
+                                                                                                                                    The model matches the child data from XT07 by equating γ G0
+                                                                                                              instance
+                                                                                                              feature group         across feature groups. But to match the adults, who show a
+                                                                                                                                    stronger basic-level bias, the model required that the γ G0 pa-
+                                                                                                                                    rameters be initialized to successively higher values for fea-
+           Figure 2: A portion of the taxonomy used in this paper.                                                                  ture groups successively lower in the hierarchy, entailing that,
+                                                                                                                                    e.g., it is easier to generalize a novel word to a new breed of
+The NGS15 Learning Algorithm
+                                                                                                                                    dog not seen in training (basic-level generalization), than to a
+The input to the model is processed in an incremental two-                                                                          new kind of animal not seen in training (superordinate gener-
+step bootstrapping framework: Words and features that co-                                                                           alization).
+occur are aligned (associated) in proportion to the current
+meaning probabilities, which are then updated with the new                                                                          Our Extensions to Integrate Memory and Attention
+evidence regarding strength of association, as follows.                                                                             To render the model sensitive to presentation timing, we
+                                                                                                                                    adopt the general approach of Nematzadeh et al. (2012),
+The Alignment Step. For an input pair at time t, the model
+                                                                                                                                    which integrates memory and attention seamlessly into the
+calculates a probabilistic strength of aligning (associating)
+                                                                                                                                    cross-situational word-learning mechanism. The approach
+each word w j ∈ Ut with each feature fi ∈ St :
+                                                                                                                                    was shown to account for spacing effects in word learning,
+                                                                                               Pt−1 ( fi |w j )                     which are closely related to the presentation timing factors
+                                                at ( fi , w j ) =                                                             (1)
+                                                                                               ∑ Pt−1 ( fi |w0 )                    considered by SPSS11. However, the methods must be ex-
+                                                                                        w0 ∈Ut                                      tended to adequately meet the needs of word generalization
+These alignment strengths are incrementally accumulated as:                                                                         in the NGS15 model; we describe those extensions here.
+                     assoct ( fi , w j ) = assoct−1 ( fi , w j ) + at ( fi , w j )                                                  Modeling the Effects of Forgetting. To model the effect
+                                                                    =                                                         (2)   of memory, we use the association score formulation of
+                                                                              ∑ at 0 ( fi , w j )
+                                                                          t 0 ∈T                                                    Nematzadeh et al. (2012), which implements “forgetting”
+where T is all times at which fi and w j have co-occurred.                                                                          by applying a decay factor to each alignment probability
+    In our model, if more than one instance of feature fi oc-                                                                       (cf. Eqn. 2 above):
+curs with word w j at time t, multiple instances of at ( fi , w j )                                                                                                                at 0 ( fi , w j )
+are recorded. For example, in the simultaneous presentation                                                                                       assoct ( fi , w j ) =   ∑                       da 0
+                                                                                                                                                                                                           (4)
+                                                                                                                                                                          0
+                                                                                                                                                                          t ∈T   (t − t 0 + 1)         t
+of three exemplars with the word fep, the alignment strength
+at ( f , fep) will be added three times to the association score                                                                    Each alignment in the sum is scaled by the temporal distance
+for each feature f in the input.                                                                                                    between the current time t and the time t 0 that the alignment
+                                                                                                                                2311
+
+was made, exponentiated to a decay function dat 0 that is in-                        This formulation achieves attention to novelty as follows.
+versely proportional to the strength of alignment.                                Generally, earlier observations of feature fi with word w j will
+   However, we must extend this decay formulation to accom-                       have a stronger alignment than later observations, where the
+modate our hierarchical knowledge of feature groups.2 In                          increased number of observations will increase the denomi-
+particular, we find that using the same decay rate across all                     nator of noveltyt ( fi , w j ), and lead to attenuation of the align-
+feature groups is not sufficient. As noted above, appropriate                     ment strength. Note that when the co-occurrence of fi with
+word generalization in the NGS15 model requires that lower                        word w j is truly novel – i.e., the first time they are observed
+levels in the taxonomy be more “open” to generalizing to new                      together – the strength of alignment is undiminished, since
+features than higher levels in the taxonomy. It is important to                   the numerator and denominator of the novelty factor are equal
+note that the decay of alignments also influences “openness”                      in the initial observation of fi with w j .
+to generalization because it shifts probably mass away from                       Summary of Novel Extensions to the NGS15 Model In
+observed word–feature pairs onto unseen events. Thus, to                          summary, we have extended both the model of NGS15, and
+appropriately reflect the nature of the hierarchy – that open-                    the memory and attention mechanisms of Nematzadeh et al.
+ness increases with greater depth in the taxonomy – we must                       (2012), by: (i) incorporating a forgetting mechanism that is
+parameterize decay by feature group. Just as feature groups                       sensitive to the taxonomic level of a feature group, which
+lower in the taxonomy must have successively higher γ values                      reflects the needs of taxonomic structure and the process of
+to indicate more “openness” to generalization, lower feature                      novel word generalization; and (ii) formulating a mechanism
+groups also require higher decay rate parameters.                                 for attention to novelty of word–feature pairings, rather than
+   We thus use the following formulation of decay:                                just to recency of words, consistent with the key role of word–
+                                           dG                                     feature association statistics in the model.
+                              dat =                                        (5)       These mechanisms have a direct impact on the process-
+                                      at ( fi , w j )
+                                                                                  ing of stimuli in simultaneous vs. sequential presentations
+where dG controls the rate of decay for features in feature                       in a novel word generalization task. The forgetting mech-
+group G , and is set successively higher for lower-level feature                  anism ensures that more general features, such as the kind
+groups in the taxonomy.                                                           of animal observed (e.g., dog or cat), are remembered better
+                                                                                  than more detailed features, such as particular breeds of dogs.
+Modeling Attention to Novelty. Building on research
+                                                                                  The attention-to-novelty mechanism has the consequence that
+showing that people attend more to novel stimuli in learn-
+                                                                                  successive observations of word–feature pairings in a sequen-
+ing (e.g., Snyder et al., 2008; MacPherson & Moore, 2010;
+                                                                                  tial presentation scenario are “discounted” with respect to ear-
+Horst et al., 2011), we use the general idea of Nematzadeh et
+                                                                                  lier presentations. We demonstrate in our experiments below
+al. (2012) in allocating more strength to alignments that are
+                                                                                  that, together, these mechanisms interact to enable the model
+more novel (cf. Eqn. 1):
+                                                                                  to account for both the suspicious coincidence effect in a si-
+                              Pt−1 ( fi |w j )                                    multaneous presentation as found by XT07, and its reversal
+         at ( fi , w j ) =                         · noveltyt ( fi , w j ) (6)    in a sequential presentation as found by SPSS11.
+                            ∑ Pt−1 ( fi |w0 )
+                           w0 ∈U
+In this model, noveltyt ( fi , w j ) was inversely proportional to
+                                                                                                            Methodology
+how recently w j had been observed, and thus focused solely                       We follow the methods of NGS15, adapted where needed for
+on novelty of words; the novelty of the feature fi was not                        our extended model on the SPSS11 data.3
+considered. We must broaden this approach because the ex-
+periments here are focused on a single novel word.                                Training the Model. We use a taxonomy with three lev-
+   Here instead we consider the novelty of the observed                           els, corresponding to the subordinate, basic, and superordi-
+word–feature pairing, and again draw on considerations of                         nate categories of animals. This yields four feature groups,
+type–token frequencies, as in other aspects of the NGS15                          one per category level plus an “instance” group to distinguish
+model. Specifically, we scale the alignment strength by the                       multiple objects of the same subordinate category. See Fig-
+ratio of the token frequency of fi –w j observations at time t to                 ure 2. In each Ut –St input pair, Ut consists of the novel word,
+the total frequency of all such observations, by formulating                      and St is a set of four features (one per feature group) rep-
+noveltyt ( fi , w j ) as:                                                         resenting a unique instance of the same subordinate category
+                                                                                  across all training trials; for example:4
+                                            tokent ( fi , w j )
+             noveltyt ( fi , w j ) =                                       (7)          Ut :   { fep }
+                                       ∑t 0 ∈T tokent 0 ( fi , w j )                     St :  { INSTANCE1 , DALMATIAN, DOG, ANIMAL }
+where tokent ( fi , w j ) is the number of tokens of feature fi that                  3 Our       code      and        data     are     available    at
+occurred at time t with word w j .                                                https://github.com/eringrant/novel word generalization.
+                                                                                      4 Each F EATURE NAME stands for all features of an object at that
+    2 Nematzadeh et al. (2012) used a single meaning probability dis-             level of the hierarchy. Such features could be replaced with an ap-
+tribution over all features – i.e., there are no feature groups.                  propriate set of features without changing the model results.
+                                                                              2312
+
+In the 1-example condition, training consists of just one such                                                             Figure 3: Our Model Data
+Ut –St pair. In the 3-subordinate condition, training has three
+                                                                         (a) Simultaneous:                                          (b) Sequential:
+such Ut –St pairs, differing only in the unique instance feature
+(i.e., INSTANCE1 , INSTANCE2 , INSTANCE3 ) in each St . In the                                             1                                                        1
+                                                                             generalization probability                               generalization probability
+simultaneous condition, the three Ut –St pairs are all presented
+at the same time t. In the sequential condition, the three Ut –St                                                                                                                              subord. match
+                                                                                                          0.5                                                      0.5                          basic match
+pairs are presented one at a time, at t, t + 1, and t + 2.
+                                                                                                                                                                                               super. match
+Testing the Model. After training, the level of generaliza-
+tion of the novel word is assessed against test objects, each of                                           0                                                        0
+which is a subordinate match, a basic-level match, or a super-                                                  1 ex.   3 subord.                                          1 ex.   3 subord.
+ordinate match; for example:                                                                                training condition                                           training condition
+ subord. match:     {   INSTANCE 4 ,   DALMATIAN, DOG, ANIMAL }          Our model data for (3a) simultaneous and (3b) sequential presen-
+ basic match:       {   INSTANCE 5 , POODLE , DOG , ANIMAL       }       tations. Each bar is the probability of a type of test match: i.e.,
+                                                                         subord(inate), basic(-level), or super(ordinate), scaled by the subor-
+ super. match:      {   INSTANCE 6 , TOUCAN , BIRD , ANIMAL       }      dinate match probability (see text).
+We adapt the Pgen formula of NGS15 to test whether the                      The interaction (between presentation type and amount
+model generalizes the learned meaning of the novel word w                of training) seen in the human data arises as a result of a
+to the various levels of match at test time T (after training):          corresponding interaction in the model. Consider each 3-
+                                avgY ∈m PT (Y |w)                        subordinate condition (simultaneous and sequential) com-
+              Pgen (m|w) =                                               pared to the 1-example condition. In the simultaneous 3-
+                              avgY 0 ∈ {sub.} PT (Y 0 |w)
+                                                                         subordinate case, the attentional mechanism yields higher
+Here PT (Y |w) is the probability of a test object Y given w,            alignment strengths between the word and features because
+and m is the set of test objects at a certain level of match. The        their three co-occurrences are all novel at the single presen-
+measure in the numerator of Pgen is the average such proba-              tation time; in addition there is little forgetting because the
+bility across test matches at that level, avgY ∈m PT (Y |w). This        items are all seen at time t and test is at time t + 1. This yields
+is not directly comparable to the empirical data, which are the          stronger subordinate alignments compared to the 1-example
+percentages of test objects selected from each type of match.            case, and therefore somewhat less basic-level generalization.
+To obtain a comparable measure, we scale each probability                   By contrast, in the sequential 3-subordinate case, the
+(for each level of match) by the probability of the subordinate          word–feature co-occurrences are less salient because they de-
+matches in that condition, avgY 0 ∈ {sub.} PT (Y 0 |w) (the denom-       crease in novelty over the three presentation times. In addi-
+inator of Pgen ). Thus Pgen (m|w) is the relative average pref-          tion, greater forgetting occurs because there is more time be-
+erence for test items at level m. This renders the subordinate           tween the (first two) presentation times and test time (t + 4).
+match probability as 1.0 (reflecting that people generally pick          In this case, because subordinate features decay faster than
+close to 100% of the subordinate test items), and shows the              basic features, the interaction yields weaker subordinate fea-
+other type of matches relative to that amount.                           tures compared to the 1-example case, and more basic-level
+Model Parameters.        Since the SPSS11 participants are               generalization is achieved.
+adults, we use the adult parameter settings of NGS15 for                    The interaction of memory and attention effects are re-
+the four γ G0 parameters and the four k G (one each per fea-             quired to obtain this pattern of results in the model. If the
+ture group), which are tuned to achieve a match to adult data            model includes only the decay mechanism, differentiated by
+of XT07. For our decay parameters, we use:                               taxonomic level, this enables it to focus more on abstract than
+    d inst = 0.8 d subord = 0.5 d basic = 0.05       d super = 0.01      specific features, and consequently raises the basic general-
+                                                                         ization closer to the level of the subordinate generalization in
+            Model Results and Discussion                                 all conditions. On the other hand, using the attention mech-
+Figure 3 shows the results of our model in the simultaneous              anism alone enables the model to distinguish the sequential
+and sequential conditions; cf. Figure 1 for the human behav-             and simultaneous conditions, but it cannot on its own raise
+ioral data in SPSS11. Following simultaneous presentation of             the basic generalization high enough. Only when the two are
+training input (Figure 3a), our model shows the suspicious co-           used together does the model produce the reversal of the sus-
+incidence effect: Generalization to the basic level is inhibited         picious coincidence effect in the sequential presentation.
+in the 3-subordinate condition as compared to the 1-example                 The necessity of both memory and attention is suggestive
+condition. In contrast, sequential presentation reverses the             of how word learning occurs in people. In particular, the
+suspicious coincidence effect (Figure 3b): the model exhibits            attention mechanism in the model focuses more probability
+greater basic-level generalization in the 3-subordinate condi-           onto word–feature co-occurrences in their earlier presenta-
+tion. Thus, these results replicate the qualitative pattern evi-         tions, simulating the general tendency for people to attend
+dent in the behavioural data of SPSS11.                                  more to less-familiar things. In addition, the mechanism that
+                                                                      2313
+
+increases the decay rate for lower-level features in the taxon-         between meaning and form. Philadelphia: Benjamins.
+omy simulates the tendency in people to remember abstract             Croft, W., & Cruse, A. (2004). Cognitive linguistics. Cam-
+features of objects over very specific features. SPSS11 con-            bridge University Press.
+tended that people are able to attend to specific features in         Fazly, A., Ahmadi-Fakhr, F., Alishahi, A., & Stevenson, S.
+the simultaneous condition due to the close spatial and tem-            (2010). Cross-situational learning of low frequency words:
+poral proximity of the items, and correspondingly attend only           The role of context familiarity and age of exposure. In
+to the abstract commonalities of items in sequential presenta-          CogSci Proceedings (Vol. 10, pp. 2362–2367).
+tions. Our model explains this effect as the result of general        Fazly, A., Alishahi, A., & Stevenson, S. (2010). A probabilis-
+memory and attention mechanisms that have been shown to                 tic computational model of cross-situational word learning.
+play a role in word learning more widely (cf. Nematzadeh et             Cognitive Science, 34(6), 1017–1063.
+al. (2012); Nematzadeh, Fazly, and Stevenson (2013)). In-             Frank, M. C., Goodman, N. D., & Tenenbaum, J. B. (2007).
+terestingly, attention in our model is a function of the token          A Bayesian framework for cross-situational word-learning.
+frequency of word–feature co-occurrences (as opposed to a               In NIPS Proceedings (Vol. 20, pp. 457–464).
+fixed parameter) and is therefore a response to the statistics of     Horst, J. S., Samuelson, L. K., Kucker, S. C., & McMurray,
+the data, as are other components of our word generalization            B. (2011). What’s new? Children prefer novelty in referent
+formulation. All this further supports that attention, memory           selection. Cognition, 118(2), 234 - 244.
+and statistical learning interact to produce the suspicious co-       MacPherson, A. C., & Moore, C. (2010). Understanding
+incidence effect and its reversal across presentations.                 interest in the second year of life. Infancy, 15(3), 324–335.
+                                                                      Markman, E. M. (1991). Categorization and naming in chil-
+            Conclusions and Future Work                                 dren: Problems of induction. MIT Press.
+Novel word generalization – understanding how a word maps             Nematzadeh, A., Fazly, A., & Stevenson, S. (2012). A com-
+to the appropriate level of a taxonomic hierarchy – is an               putational model of memory, attention, and word learning.
+important aspect of novel word learning, but one that has               In CMCL Proceedings (pp. 80–89).
+not received much attention in the word-learning commu-               Nematzadeh, A., Fazly, A., & Stevenson, S. (2013). Desirable
+nity. We propose a unified model of word learning that ac-              difficulty in learning: A computational investigation. In
+counts for the various observed patterns of novel word gen-             CogSci Proceedings (pp. 1073–1078).
+eralization – in particular, the suspicious coincidence effect        Nematzadeh, A., Grant, E., & Stevenson, S. (2015). A com-
+(Xu & Tenenbaum, 2007) and its reversal under differing pre-            putational cognitive model of novel word generalization. In
+sentation conditions (Spencer et al., 2011). We extend the              EMNLP Proceedings (pp. 1795–1804).
+model of Nematzadeh et al. (2015) with a novel integration of         Rosch, E. (1973). On the internal structure of perceptual
+the general cognitive mechanisms of memory and attention,               and semantic categories. In T. E. Moore (Ed.), Cognitive
+and show that our model’s success is a result of the inter-             development and the acquisition of language (p. 111-144).
+action of forgetting and attention to novelty of word–feature         Samuelson, L. K., & Smith, L. B. (2000). Grounding devel-
+co-occurrences. Our approach builds on the earlier NGS15                opment in cognitive processes. Child Develop., 98–106.
+model in highlighting the importance of type and token fre-           Siskind, J. M. (1996). A computational study of cross-
+quency patterns in the input to capturing interesting gener-            situational techniques for learning word-to-meaning map-
+alization effects, but here these patterns are manifest in our          pings. Cognition, 61, 39–91.
+formulation of memory and attention mechanisms.                       Snyder, K. A., Blank, M. P., & Marsolek, C. J. (2008). What
+   In incorporating these cognitive processes into our model,           form of memory underlies novelty preferences? Psycho-
+we drew on the approach of Nematzadeh et al. (2012), whose              logical Bulletin and Review, 15(2), 315–321.
+model had been shown to account for various spacing effects           Spencer, J. P., Perone, S., Smith, L. B., & Samuelson, L. K.
+in word learning (see also Nematzadeh et al., 2013). Much               (2011). Learning words in space and time: Probing the
+further work is needed to explore whether our model can ex-             mechanisms behind the suspicious-coincidence effect. Psy-
+plain other such effects. For example, Vong, Perfors, and               chological science, 22(8), 1049–1057.
+Navarro (2014) showed that people’s categorization of novel           Vlach, H. A., Sandhofer, C. M., & Kornell, N. (2008). The
+object instances depends on the distribution of training exam-          spacing effect in children’s memory and category induc-
+ples both that are labelled with a word as well as those that           tion. Cognition, 109(1), 163–167.
+are unlabelled. Currently, our model only takes into account          Vong, W. K., Perfors, A., & Navarro, D. J. (2014). The
+word–feature co-occurrences, and is therefore insensitive to            relevance of labels in semi-supervised learning depends on
+features that occur without a word label. We will need to con-          category structure. In CogSci Proceedings (p. 1718-1723).
+sider how to integrate learning from unlabelled data in order         Xu, F., & Tenenbaum, J. B. (2007). Word learning as
+to better model how statistical word learning interacts with            Bayesian inference. Psych. Rev., 114(2), 245–272.
+object categorization, as it does in people.                          Yu, C., & Ballard, D. H. (2007). A unified model of early
+                                                                        word learning: Integrating statistical and social cues. Neu-
+                         References                                     rocomputing, 70(13-15), 2149–2165.
+Bybee, J. L. (1985). Morphology: A study of the relation
+                                                                  2314
+

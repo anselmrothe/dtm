@@ -1,0 +1,300 @@
+            Deep Neural Networks Predict Category Typicality Ratings for Images
+     Brenden M. Lake                     Wojciech Zaremba                         Rob Fergus                    Todd M. Gureckis
+   Center for Data Science            Dept. of Computer Science          Dept. of Computer Science              Dept. of Psychology
+     New York University                 New York University                 New York University                New York University
+                              Abstract                                   first step towards this goal by using convnets to predict hu-
+   The latest generation of neural networks has made major per-          man typicality ratings from raw naturalistic images.
+   formance advances in object categorization from raw images.              Typicality ratings reflect the graded structure of concepts:
+   In particular, deep convolutional neural networks currently           people rate a Golden Retriever as a more typical “dog” than
+   outperform alternative approaches on standard benchmarks by
+   wide margins and achieve human-like accuracy on some tasks.           a hairless Chihuahua and a goldfish as a more typical “fish”
+   These engineering successes present an opportunity to ex-             than a shark. Since the seminal work of Rosch and colleagues
+   plore long-standing questions about the nature of human con-          (e.g., Rosch & Mervis, 1975), typicality has been a variable
+   cepts by putting psychological theories to test at an unprece-
+   dented scale. This paper evaluates deep convolutional net-            of paramount importance in the psychology of concepts. As
+   works trained for classification on their ability to predict cat-     Murphy (2002) puts it, for any task that requires relating an
+   egory typicality – a variable of paramount importance in the          item to its category, typicality will influence performance,
+   psychology of concepts – from the raw pixels of naturalistic
+   images of objects. We find that these models have substantial         whether it is the speed of categorization, ease of production,
+   predictive power, unlike simpler features computed from the           ease of learning, usefulness for inductive inference, or word
+   same massive dataset, showing how typicality might emerge             order in language. Previous work has found that typicality
+   as a byproduct of a complex model trained to maximize clas-
+   sification performance.                                               ratings can be predicted by human-produced feature descrip-
+   Keywords: deep learning; neural networks; typicality; catego-         tions (Rosch & Mervis, 1975) or similarity matrices (Ameel
+   rization; object recognition                                          & Storms, 2006), but there have been no successful attempts
+                                                                         in making predictions from raw naturalistic images.
+                          Introduction                                      However, there are reasons to suspect that convnets may
+Recently, machine learning has made remarkable strides in                not see the same typicality structure in images that people do,
+developing systems that categorize objects. For most nat-                despite approaching human-level classification performance
+uralistic images, especially those featuring a single object             and predicting some aspects of neural response in monkey
+from a known class, the best algorithms can either correctly             Inferior Temporal (IT) cortex (Yamins et al., 2014). First,
+identify the object category or produce a series of plausible            the model parameters are trained strictly to optimize its abil-
+guesses. As part of the “deep learning” paradigm in machine              ity to predict category labels, as opposed to predicting miss-
+learning, the largest recent advance in object categorization            ing features or building a generative model of the data. It
+came from the AlexNet architecture (Krizhevsky, Sutskever,               may be hard to learn prototypes with this objective: labo-
+& Hinton, 2012), a massive convolutional neural network                  ratory studies with human learners show that it discourages
+(convnet; LeCun et al., 1989) trained on 1.2 million raw pixel           people from abstracting category prototypes when compared
+images to discriminate between 1000 different object cate-               to feature prediction tasks (Yamauchi & Markman, 1998; Ya-
+gories. AlexNet won the 2012 ImageNet ILSVRC competi-                    mauchi, Love, & Markman, 2002). Second, recent work has
+tion – the most challenging object categorization benchmark              shown it is easy to construct adversarial images that fool con-
+to date – by making approximately 40% fewer errors than the              vnets but are easily recognized by people (Szegedy, Zaremba,
+next best competitor. In the 2013 and 2014 ImageNet com-                 et al., 2014). By examining the convnet’s internal structure
+petitions, virtually all of the competitors used deep convnets           and modifying the image slightly, the model can be induced
+at least partially inspired by the AlexNet architecture, fur-            to mistake any image for any other category with an arbitrary
+thering its advantages over alternatives such as hand-crafted            degree of confidence. Nonetheless, these types of deforma-
+computer vision features and other types of neural networks              tions must be rare occurrences in real images since the clas-
+such as autoencoders and deep belief networks. Although it               sifier generalizes well to unseen images.
+is difficult to directly compare human and machine perfor-                  If convnets predict human typicality, there would be im-
+mance on 1000-way classification, one estimate placed the                plications for current psychological theories. In particular, it
+best 2014 convnet (Szegedy, Liu, et al., 2014) only slightly             provides the opportunity to test existing theories using much
+behind human-level performance (Russakovsky et al., 2014).               harder problems at a much larger scale than typical laboratory
+   These advances should interest the cognitive science com-             studies (Griffiths, 2014), closer to the actual problems people
+munity, especially since categorization is a foundational                face in the world. As mentioned in the paragraph above, train-
+problem and some leading models are neural networks (e.g.,               ing participants to predict missing labels rather than missing
+Kruschke, 1992; Love, Medin, & Gureckis, 2004). Yet there                features discourages prototype formation in 2-way classifica-
+has been little work evaluating the newest generation of neu-            tion tasks. But 1000-way classification may not follow the
+ral networks as potential cognitive models or as large-scale             same principles: it may be easier to learn 1000 prototypes
+tests of existing psychological theories. This paper offers a            (one for each class) rather than 499,500 discriminative rules
+                                                                     1243
+
+(one for each pair of classes), and thus large-scale simulations      style units, and the last layer is a 1000-way softmax layer, re-
+may offer new insights. Convnets also provide an opportunity          sulting in 145 million learned parameters and 2.8 billion con-
+to test for “contrast effects,” the finding that objects are less     nections. Convolutional layers take a set of 2D image-like
+typical if they resemble another category (Rosch & Mervis,            grids as input (called “feature maps”), apply a set of train-
+1975; Ameel & Storms, 2006), at a large scale by comparing            able image filters, and output a new set of feature maps. The
+different ways of extracting typicality from the model. Fi-           first two and the last convolutional layers also contain max
+nally, by testing different models on the same massive dataset,       pooling operations that reduce the resolution of the feature
+we are able to explore classic questions of whether aspects of        maps. Specifically, the model takes a 231x231 color image
+conceptual structure are bottom-up reflections of the world           as input (three feature maps for RGB channels) and outputs
+versus top-down impositions by the mind.                              96 feature maps after applying 11x11 trainable image filters.1
+                                                                      After three other layers of processing, the last convolutional
+                            Methods                                   layer has 1024 feature maps with smaller trainable filters (size
+                                                                      3x3). After the convolutions, the next two layers have 3072
+We asked people to rate a collection of images for category
+                                                                      and 4096 fully-connected connectionist units, respectively.
+typicality, and we tested three convnet architectures and a
+                                                                      Finally, the 1000-way softmax layer produces a probability
+baseline system on their ability to predict these ratings.
+                                                                      distribution over the j = 1, . . . , 1000 classes. It does so by
+Stimuli. Typicality ratings were collected for eight cate-            first computing the raw class scores y j from the activity x in
+gories from the ImageNet challenge: banana, bathtub, cof-             the previous layer and weights wi j and then computing the
+fee mug, envelope, pillow, soap dispenser, table lamp, and            normalized class probabilities z j , where
+teapot. They were chosen since they have high familiarity and
+                                                                                        4096
+a rich variation in typicality, unlike many of ImageNet’s very                                                            ey j
+                                                                                   yj =  ∑ wi j xi      and       zj =            .      (1)
+specific categories such as “wire-haired fox terrier” or “ping-                          i=1                           ∑1000
+                                                                                                                         j=1 e
+                                                                                                                               yj
+pong ball.” We selected a set of 16 new images from each
+                                                                       The training objective is to maximize the log-probability of
+class that do not appear in the ImageNet training set (see Figs.
+                                                                      the correct label across the 1.2 million training instances (i.e.,
+1 and 2 for examples), out of concern that photographs in the
+                                                                      cross-entropy loss). The ImageNet dataset images were col-
+training set might be scored as typical because they are famil-
+                                                                      lected from search engines and verified on Mechanical Turk
+iar to the network. Images were chosen via Google searches
+                                                                      (Russakovsky et al., 2014).
+to span a maximum range of variation while focusing on a
+                                                                         An ensemble of multiple OverFeat models was entered in
+single, large, unoccluded object from a standard view.
+                                                                      the ImageNet 2013 contest, where each trained model was
+Behavioral experiment. Human typicality ratings were                  identical but was initialize at a different random seed. The
+collected on Mechanical Turk using 30 participants in the             ensemble produced an top-five error rate of 14.2%, mean-
+USA. Each participant rated every image from all 16 cate-             ing that for over 85 percent of test images, the correct la-
+gories. After reading instructions from Rosch and Mervis              bel appeared in the top five guesses. An ensemble AlexNet
+(1975) Experiment 3, participants were asked “How well                achieved an error rate of 16.4% in the 2012 contest and an
+does this picture fit your idea or image of the category?” They       ensemble GoogLeNet achieved 6.7% in 2014.
+responded from “1” (very good) to “7” (very poor). All 16                We assume that typicality ratings are related to the strength
+members of a category were presented sequentially, and par-           of a model’s classification response to the category of inter-
+ticipants viewed a grid of all of these images before beginning       est. Ratings were extracted in two ways: either as the raw
+each category. They were paid $1.75, and the task (minus the          category score y j (“raw typicality”; Eq. 1) or the normal-
+instructions) took an average of 9.25 minutes (min = 4.5 and          ized classification score 100z j (“contrast typicality”; Eq. 1)
+max = 20.5). A quiz checked for instruction comprehension             of the category of interest j (which may not be the model’s
+and restarted the instructions if a question was missed.              largest response when considering all categories). Assum-
+Convolutional networks. We tested three different convnet             ing the vector w· j (Eq. 1) stores a prototype for category j,
+architectures: OverFeat (Sermanet et al., 2014a), AlexNet             the raw score computes a measure of similarity (dot product)
+(Krizhevsky et al., 2012), and GoogLeNet (Szegedy, Liu, et            between the prototype and top-level hidden unit activations.
+al., 2014). Pre-trained models were provided by the Over-             In contrast, the normalized score more directly implements
+Feat (“fast model”; Sermanet et al., 2014b) and Caffe pack-           “contrast effects” as described in the Introduction, computing
+ages (“Reference CaffeNet” and “GoogLeNet”; Jia et al.,               the raw score and then penalizing examples that score highly
+2014). While both OverFeat and GoogLeNet are derivatives              for other categories. Unfortunately, this is not an ideal test of
+of AlexNet, GoogLeNet is deeper and uses more sophisti-                   1 Techniques exist for applying the model to rectangular images
+cated multi-resolution modules. We focus on OverFeat since            by averaging/maximizing across multiple square windows at differ-
+it is particularly straightforward to describe.                       ent locations and scales. We side-stepped these complications by
+    OverFeat is a deep neural network with seven hidden lay-          using square images cropped and rescaled to a model’s desired input
+                                                                      size with the main object approximately centered. As is standard
+ers. The first five hidden layers are convolutional, the last two     for evaluating classification, typicality ratings were computed for an
+hidden layers are standard fully-connected neural-network-            image and its mirror reflection, taking whichever value was higher.
+                                                                  1244
+
+contrast effects, since even the raw scores may show contrast              Table 1: Rank correlations for human and machine typicality.
+effects due to the discriminative nature of the training. Both            Category       OverFeat    AlexNet    GoogLe      Combo    SIFT
+measures were evaluated.                                                  Banana         0.82        0.8        0.73        0.84     0.4
+                                                                          Bathtub        0.68        0.74       0.48        0.78     0.39
+Baseline SIFT model. We also tested a non-convnet                         Coffee mug     0.62        0.84       0.84        0.85     0.63
+baseline using code from the ImageNet 2010 challenge                      Envelope       0.79        0.62       0.75        0.78     0.38
+(Russakovsky et al., 2014). It is a standard computer vision              Pillow         0.67        0.55       0.69        0.59     0.11
+                                                                          Soap Disp.     0.74        0.79       0.82        0.75     0.09
+pipeline of dense SIFT features (Lowe, 2004) quantized as a               Table lamp     0.69        0.8        0.7         0.83     0.48
+bag of 1000 visual words. Eight one-versus-all linear SVMs                Teapot         0.38        0.21       0.07        0.28     -0.23
+were trained – one for each category in the rating task – us-             Average        0.67        0.67       0.63        0.71     0.28
+ing all 1300 positive examples of these 8 classes and 100 ran-
+domly selected negative examples from each of the remaining
+992 classes. SVM confidence was used to predict typicality.             ratings. For pillows, people rated rectangular bed pillows as
+                                                                        more typical than decorative couch pillows, while OverFeat
+                  Results and discussion                                showed the opposite pattern, perhaps due to a curious paucity
+The mean typicality rating for each image was computed by               of bed pillows in the ImageNet training set. Finally, some
+averaging across participants. Spearman’s rank correlation              of the outliers were images for which the model preferred a
+(ρ) was used to assess fit since human ratings were not ex-             different class, including the red bathtub (mislabeled a dining
+pected to scale linearly with model ratings. First, the reliabil-       table) and the blue coffee mug (a bucket/pail).
+ity of the human typicality ratings was assessed with a split-             Our results suggest that deep convnets learn graded cate-
+half correlation, which also serves as an approximate upper             gories that can predict human typicality ratings, at least for
+bound for model predictions. Across 25 random splits, the               some types of everyday categories. Outside of this work,
+average reliability across all eight categories was ρ = 0.92,           few studies have tried to predict high-level cognitive mea-
+with “table lamp” as the most reliable (ρ = 0.97) and “soap             sures from the pixels of naturalistic images, making it diffi-
+dispenser” as the least (ρ = 0.85).                                     cult to compare the size of these correlations with past work.
+   The convnets predicted human ratings about equally well              One study by Isola, Xiao, Parikh, Torralba, and Oliva (2013)
+regardless of whether raw or contrast typicality was used.2             showed that image memorability (which is not necessarily
+The full set of results for contrast typicality ratings is shown        analogous to typicality) could be predicted from raw images
+in Table 1. Across the eight categories, the mean rank cor-             with a rank correlation of ρ = 0.46 after training a model
+relation was ρ = 0.67 for OverFeat, ρ = 0.67 for AlexNet,               directly on memorability data. Not only are our correla-
+ρ = 0.63 for GoogLeNet, and ρ = 0.28 for the SIFT base-                 tions stronger, the models were not trained to predict typi-
+line. A combination model that averages the predictions                 cality at all. Not surprisingly, the convnets have lower pre-
+of the three convnets showed a slightly higher correlation              dictive power for typicality than models receiving processed
+of ρ = 0.71. It is worth noting that while we did not ex-               input data such as human feature ratings or similarity ratings
+pect a linear relationship, the pearson correlations (r) were           that usually produce correlations greater than ρ ≥ 0.80 (e.g.,
+slightly higher (average Overfeat r = 0.69, AlexNet r = 0.71,           Rosch & Mervis, 1975; Ameel & Storms, 2006).
+GoogLeNet r = 0.63, Combination r = 0.74, and SIFT base-                   A limitation of our results is that the relationship between
+line r = 0.27). For the sake of completion, the average cor-            classifier performance and typicality effects remains unclear,
+relation for raw typicality ratings was ρ = 0.65 (r = 0.68)             making it difficult to isolate any unique contributions of the
+for OverFeat, ρ = 0.67 (r = 0.69) for AlexNet, ρ = 0.69                 architectures beyond their abilities as classifiers. The low cor-
+(r = 0.72) for GoogLeNet.                                               relations from the SIFT baseline suggest that human typical-
+   Typicality ratings from people and OverFeat are shown for            ity ratings are not just a property of any classifier trained on
+five categories in Figs. 1 and 2, offering some insight into the        a large dataset with reasonable features. It is also worth not-
+differences. While illustrated for OverFeat, these differences          ing that GoogLeNet, although superior for object recognition,
+are evident in the other convnets. For bananas (Fig 1), peo-            was not better at predicting human typicality. But we cannot
+ple may have ranked the images based on their similarity to             yet compare against equally high-performance computer vi-
+an “ideal” (Barsalou, 1985); in this case, a yellow spot-free           sion systems that operates by different principles, since these
+banana. In contrast, OverFeat rated a greenish plantain and a           models do not yet exist.
+spotted banana about as highly as more ideal bananas, raising           The role of feature complexity. To gain further insight into
+the possibility that this may be more a top-down imposition             how the convnets predict typicality, we analyzed the structure
+from the mind rather than a bottom-up property of visual ex-            present at each layer of processing. Since features increase in
+perience with bananas (most bananas are not perfect). For               complexity and category specificity with depth (e.g., Zeiler
+envelopes, there appears to be similar ideal based on standard          & Fergus, 2014; Yosinski, Clune, Bengio, & Lipson, 2014),
+white envelopes that is reflected more strongly in the human            the depth at which typicality emerges suggests the difficulty
+    2 The scale was reversed for the human ratings (1 to 7) so that     of extracting this structure from the raw data. To make pre-
+larger values are more typical.                                         dictions at intermediate layers, the hidden layer activations
+                                                                    1245
+
+                                 Human ratings                                            Convnet ratings
+                   Most typical
+                                                        Least typical
+Figure 1: Images ranked from most to least typical by people (left) and the OverFeat convnet (right). Rankings flow left to right and then top
+to bottom. The values above each image [x1 , x2 ] show the convnet contrast typicality rating and the mean participant rating, respectively. The
+categories include banana, bathtub, and coffee mug.
+                                                                      1246
+
+                                Human ratings                                         Convnet ratings
+                  Most typical
+                                                     Least typical
+         Figure 2: Images ranked from most to least typical. See caption from Fig. 1. The categories include envelope and pillow.
+(pre-pooling) were extracted for all 1300 training images of
+each category (center-cropped). For each layer, the average
+activation vector was computed for each class to serve as the
+category prototype. Typicality was modeled as the cosine
+distance between the activation vector for a new image and
+the stored prototype. For the top layer, the correlation with
+human ratings was the same as our previous results (aver-
+age ρ = 0.67 for OverFeat and AlexNet; GoogLeNet was not
+analyzed). Performance steadily improves with depth (Fig.
+3), again confirming that typicality does not automatically
+emerge from a large dataset with simple feature extraction.            Figure 3: Correlation between human and convnet typicality ratings
+The data must be viewed through the right lens before the              as a function of network depth. The red line indicates a transition
+                                                                       from convolutional (1-5) to standard layers (6-7).
+structure is apparent.
+                                                                       cessing (Murphy, 2002). These models were trained only to
+                        Conclusions                                    predict category labels, and despite previous human studies
+This paper evaluated the ability of convolutional neural net-          on 2-way categorization suggesting that this tasks promotes
+works (convnets) to predict human typicality ratings for im-           the extraction of discriminating features rather than proto-
+ages of category examples – a critical variable that influences        types (Yamauchi & Markman, 1998; Yamauchi et al., 2002),
+performance in nearly all tasks that involve categorical pro-          convnets trained on 1000-way classification were able to pre-
+                                                                   1247
+
+dict human typicality ratings with an average rank correlation          Isola, P., Xiao, J., Parikh, D., Torralba, A., & Oliva, A. (2013). What
+of 0.67 (OverFeat and AlexNet) or 0.63 (GoogLeNet). Dif-                   makes a photograph memorable? IEEE Transactions on Pattern
+                                                                           Analysis and Machine Intelligence, 36(7), 1469–1482.
+ferent operationalizations of typicality provided equally good          Jia, Y., Shelhamer, E., Donahue, J., Karayev, S., Long, J., Girshick,
+fits, suggesting there was no particular benefit for an explic-            R., . . . Eecs, U. C. B. (2014). Caffe: Convolutional Architecture
+itly contrastive measure of typicality (Rosch & Mervis, 1975;              for Fast Feature Embedding. ACM Conference on Multimedia.
+                                                                        Krizhevsky, A., Sutskever, I., & Hinton, G. E. (2012). ImageNet
+Ameel & Storms, 2006). Additional analyses explored the                    Classification with Deep Convolutional Neural Networks. In Ad-
+role of the training data versus the model in capturing typi-              vances in Neural Information Processing Systems 25.
+cality, finding that simple features did not provide good pro-          Kruschke, J. K. (1992). ALCOVE: An exemplar-based connec-
+                                                                           tionist model of category learning. Psychological Review, 99(1),
+totypes for prediction even with many examples per class.                  22–44.
+Finally, convnets were less sensitive to category ideals than           Lake, B. M. (2014). Towards more human-like concept learning
+people, suggesting that feature extraction on a large dataset              in machines: Compositionality, causality, and learning-to-learn.
+                                                                           Unpublished doctoral dissertation, MIT.
+may not be fully sufficient for ideals to arise.                        LeCun, Y., Boser, B., Denker, J. S., Henderson, D., Howard, R. E.,
+   This is just a first step towards understanding the “synthetic          Hubbard, W., & Jackel, L. D. (1989). Backpropagation Applied
+psychology” of deep neural networks and mining them for in-                to Handwritten Zip Code Recognition. Neural Computation, 1,
+                                                                           541–551.
+sights about human conceptual structure. We tested only pre-            Love, B. C., Medin, D. L., & Gureckis, T. M. (2004). SUSTAIN:
+trained systems, leaving questions about learning and devel-               A Network Model of Category Learning. Psychological Review,
+opment for future research. Further studies could test whether             111(2), 309–332.
+                                                                        Lowe, D. G. (2004). Distinctive Image Features from Scale-
+convnets show faster learning of categories that are separable             Invariant Keypoints. International Journal of Computer Vision,
+on one dimension (e.g., Shepard, Hovland, & Jenkins, 1961),                60(2), 91–110.
+faster learning of categories with mostly typical examples              Murphy, G. L. (2002). The Big Book of Concepts. Cambridge, MA:
+                                                                           MIT Press.
+(Posner & Keele, 1968), or a preference for learning typical            Posner, M. I., & Keele, S. W. (1968). On the genesis of abstract
+examples first (Rosch, Simpson, & Miller, 1976) – insights                 ideas. Journal of Experimental Psychology, 77(3), 353–363.
+that could inspire new training procedures for deep learn-              Rogers, T. T., & McClelland, J. L. (2004). Semantic Cognition.
+                                                                           Cambridge, MA: MIT Press.
+ing. Additional studies could test for a coarse-to-fine pattern         Rosch, E., & Mervis, C. B. (1975). Family resemblances: Studies in
+of category differentiation (Rogers & McClelland, 2004) or                 the internal structure of categories. Cognitive Psychology, 7(4),
+study the typicality of higher-level categories such as “dog”              573–605.
+                                                                        Rosch, E., Simpson, C., & Miller, R. S. (1976). Structural bases of
+or “furniture.” Finally, convnet activations have been shown               typicality effects. Journal of Experimental Psychology: Human
+to predict neural response in monkey IT cortex, where both                 Perception and Performance, 2(4), 491–502.
+systems show higher similarity within and lower similarity              Russakovsky, O., Deng, J., Su, H., Krause, J., Satheesh, S., Ma, S.,
+                                                                           . . . Fei-Fei, L. (2014). ImageNet Large Scale Visual Recognition
+between categories (Yamins et al., 2014). Given our results,               Challenge.
+it may also be promising to use these methods to study more             Sermanet, P., Eigen, D., Zhang, X., Mathieu, M., Fergus, R., & Le-
+fine-grained structure within categories.                                  Cun, Y. (2014a). OverFeat: Integrated Recognition, Localization
+                                                                           and Detection using Convolutional Networks. In International
+   Whether or not convnets can match these aspects of be-                  Conference on Learning Representations (ICLR 2014).
+havior, they are still far too limited compared to the human            Sermanet, P., Eigen, D., Zhang, X., Mathieu, M., Fergus, R., & Le-
+ability to learn and use new concepts. While the convnet was               Cun, Y. (2014b). OverFeat: Object Recognizer, Feature Extractor.
+                                                                           Retrieved from http://cilvr.nyu.edu
+trained on an average of 1200 images per class, people need             Shepard, R. N., Hovland, C. L., & Jenkins, H. M. (1961). Learning
+far less data in order to learn a new category (Lake, 2014).               and memorization of classifications. Psychological Monographs,
+In addition, human concepts support the flexible use of the                75(13, Whole No. 517).
+                                                                        Szegedy, C., Liu, W., Jia, Y., Sermanet, P., Reed, S., Anguelov, D.,
+same knowledge across many tasks – classification, infer-                  . . . Rabinovich, A. (2014). Going Deeper with Convolutions.
+ence, generation, and explanation – a remarkable quality that           Szegedy, C., Zaremba, W., Sutskever, I., Bruna, J., Erhan, D., Good-
+current machine learning approaches do not capture. While                  fellow, I., & Fergus, R. (2014). Intriguing properties of neural
+                                                                           networks. In International Conference on Learning Representa-
+the current best algorithms are limited compared to people,                tions (ICLR 2014).
+further exercises in understanding their synthetic psychology           Yamauchi, T., Love, B. C., & Markman, A. B. (2002). Learn-
+may serve to both advance machine learning and psychologi-                 ing nonlinearly separable categories by inference and classifica-
+                                                                           tion. Journal of Experimental Psychology: Learning, Memory,
+cal theory.                                                                and Cognition, 28(3), 585–593.
+                                                                        Yamauchi, T., & Markman, A. B. (1998). Category Learning by
+Acknowledgments. We thank the Moore-Sloan Data Sci-                        Inference and Classification. Journal of Memory and Language,
+ence Environment at NYU for supporting this work.                          39(39), 124–148. doi: 10.1006/jmla.1998.2566
+                                                                        Yamins, D. L. K., Hong, H., Cadieu, C. F., Solomon, E. a., Seibert,
+                            References                                     D., & DiCarlo, J. J. (2014). Performance-optimized hierarchical
+Ameel, E., & Storms, G. (2006). From prototypes to caricatures:            models predict neural responses in higher visual cortex. Proceed-
+   Geometrical models for concept typicality. Journal of Memory            ings of the National Academy of Sciences, 111(23), 8619–24.
+   and Language, 55(3), 402–421.                                        Yosinski, J., Clune, J., Bengio, Y., & Lipson, H. (2014). How trans-
+Barsalou, L. W. (1985). Ideals, Central Tendency, and Frequency of         ferable are features in deep neural networks? In Advances in
+   Instantiation as Determinants of Graded Structure in Categories.        Neural Information Processing Systems (NIPS).
+   Journal of Experimental Psychology: Learning, Memory, and            Zeiler, M. D., & Fergus, R. (2014). Visualizing and Understanding
+   Cognition, 11(4), 629–649.                                              Convolutional Networks. In European Conference on Computer
+Griffiths, T. L. (2014). Manifesto for a new (computational) cogni-        Vision (ECCV).
+   tive revolution. Cognition, 10–12.
+                                                                    1248
+

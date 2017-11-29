@@ -1,0 +1,469 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Incremental Models of Natural Language Category Acquisition
+Permalink
+https://escholarship.org/uc/item/7b181362
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 33(33)
+Authors
+Fountain, Trevor
+Lapata, Mirella
+Publication Date
+2011-01-01
+Peer reviewed
+  eScholarship.org                                Powered by the California Digital Library
+                                                                    University of California
+
+                 Incremental Models of Natural Language Category Acquisition
+                                                Trevor Fountain (t.fountain@sms.ed.ac.uk)
+                                                    Mirella Lapata (mlap@inf.ed.ac.uk)
+                                             Institute for Language, Cognition and Computation
+                                               School of Informatics, University of Edinburgh
+                                                10 Crichton Street, Edinburgh EH8 9AB, UK
+                               Abstract                                     In this work, we concentrate on the task of acquiring nat-
+                                                                         ural language (semantic) categories and examine how the
+   Learning categories from examples is a fundamental problem            statistics of the linguistic environment as approximated by
+   faced by the human cognitive system, and a long-standing
+   topic of investigation in psychology. In this work we focus           large corpora influences category learning. Evidently, cate-
+   on the acquisition of natural language categories and exam-           gories are learned not only from exposure to the linguistic
+   ine how the statistics of the linguistic environment influence        environment but also from our interaction with the physical
+   category formation. We present two incremental models of              world. Perhaps unsurprisingly, words that refer to concrete
+   category acquisition — one probabilistic, one graph-based —
+   which encode different assumptions about how concepts are             entities and actions are among the first words being learned
+   represented (i.e., as a set of topics or nodes in a graph). Eval-     as these are directly observable in the environment (Bornstein
+   uation against gold-standard clusters and human performance           et al. 2004). Experimental evidence also shows that children
+   in a category acquisition task suggests that the graph-based ap-
+   proach is better suited at modeling the acquisition of natural        respond to categories on the basis of visual features, e.g., they
+   language categories.                                                  generalize object names to new objects often on the basis
+                                                                         of similarity in shape and texture (Landau et al. 1998, Jones
+                                                                         et al. 1991). Nevertheless, we focus on the acquisition of se-
+                           Introduction                                  mantic categories from large text corpora based on the hy-
+The task of categorization, in which people cluster stimuli              pothesis that simple co-occurrence statistics can be used to
+into categories and then use those categories to make in-                capture word meaning quantitatively. The corpus-based ap-
+ferences about novel stimuli, has long been a core problem               proach is attractive for modeling the development of linguis-
+within cognitive science. Understanding the mechanisms in-               tic categories. If simple distributional information really does
+volved in categorization is essential, as the ability to gener-          form the basis of a word’s cognitive representation, this im-
+alize from experience underlies a variety of common mental               plies that learners are sensitive to the structure of the envi-
+tasks, including perception, learning, and the use of language.          ronment during language development. As experience with a
+As a result, category learning has been one of the most ex-              word accumulates, more information about its contexts of use
+tensively studied aspects in human cognition, with compu-                becomes encoded, with a corresponding increase in the abil-
+tational models that range from strict prototypes (categories            ity of the language learner to use the word appropriately and
+are represented by a single idealized member which embod-                make inferences about novel words of the same category.
+ies their core properties; e.g., Reed 1972) to full exemplar                The process of learning semantic categories is necessar-
+models (categories are represented by a list of previously en-           ily incremental. Human language acquisition is bounded by
+countered members; e.g., Nosofsky 1988) or combinations of               memory and procecessing limitations, and it is implausible
+the two (e.g., Griffiths et al. 2007a).                                  that children process large amounts of linguistic input at
+   Historically, the stimuli involved in such studies tend to be         once and induce an optimal set of categories. An incremental
+either concrete objects with an unbounded number of features             model learns as it is applied, meaning it does not require sep-
+(e.g., physical objects; Bornstein and Mash 2010) or highly              arate training and testing phases. Behavioral evidence (Born-
+abstract, with a small number of manually specified features             stein and Mash 2010) suggests that this scenario more closely
+(e.g, binary strings, colored shapes; Medin and Schaffer 1978,           mirrors the process by which infants acquire categories. Hav-
+Kruschke 1993). Furthermore, most existing models focus on               ing this in mind, we formulate two incremental categorization
+adult categorization, i.e., it is assumed that a large number of         models, each differing in the way they represent categories.
+categories have already been learned. A notable exception is             Both models follow the exemplar tradition — categories are
+Anderson’s (1991) rational model of categorization (see also             denoted by a list of stored exemplars and inclusion of an un-
+Griffiths et al. 2007a) where it is assumed that the learner             known item in a category is determined by some notion of
+starts without any predefined categories and stimuli are clus-           similarity between the item and the category exemplars. Pre-
+tered into groups as they come along. When a new stimulus is             vious work (Voorspoels et al. 2008, Storms et al. 2000, Foun-
+observed, it can either be assigned to one of the pre-existing           tain and Lapata 2010) indicates that exemplar models perform
+clusters, or to a new cluster of its own.                                consistently better across a broad range of natural language
+                                                                     255
+
+  Algorithm 1: Batch Chinese Whispers                                             Category Acquisition Models
+1  initialize;                                                       Any model of human category acquisition should demon-
+2  for nodei ∈ Nodes do                                              strate two important features: (1) the input should be pro-
+3       class (node) = i;                                            cessed as it arrives, i.e., the set of clusters is incrementally
+4  end                                                               updated and (2) the set of clusters should not be fixed in ad-
+                                                                     vance, but rather determined by the characteristics of the in-
+5  while changes do
+                                                                     put data. In what follows, we present two models that satisfy
+6       for node ∈ Nodes (in random order) do
+                                                                     both constraints.
+7           class (target) = class (nearest neighbor)
+8       end
+9  end                                                               Semantic Networks The standard conception of a seman-
+                                                                     tic network is a graph with edges between word nodes. Such
+                                                                     a graph is unipartite: there is only one type of node, and those
+                                                                     nodes can be interconnected freely. While traditional research
+  Algorithm 2: Incremental Chinese Whispers                          using semantic networks has focused on performing inference
+1  initialize;                                                       using fully-formed networks, we are argue that they are also
+2  for nodei ∈ Nodes do                                              well suited to modeling acquisition, as updating the graph to
+3       class (node) = i                                             reflect newly acquired information is a straightforward pro-
+4  end                                                               cedure. Furthermore, meaningful categories can be extracted
+5  for target,context ∈ Documents do                                 from such a representation by identifying well-structured sub-
+6       update target representation given context;                  graphs within the network.
+7       class (target) = nearest neighbor                               The task of extracting such subgraphs is generally viewed
+8  end                                                               as a graph clustering problem; Chinese Whispers (CW, Bie-
+                                                                     mann 2006) is one such randomized graph-clustering algo-
+                                                                     rithm that takes as input a graph with weighted edges and
+                                                                     produces a hard clustering over the nodes in the graph. It has
+categorization tasks. This finding is also in line with stud-        several desirable properties, including a tendency to converge
+ies involving artificial stimuli (e.g., Nosofsky 1988). While        rapidly and the ability to infer the number of output clusters.
+these studies focus on natural language categories they tend         The CW algorithm consists of two steps: initialization and it-
+not to specifically address the task of language acquisition;        eration. In the initialization step, each node in the graph is
+Storms et al. (2000) compare various categorization models           assigned a unique class. In the iterative step, each node in the
+in a natural language context, Voorspoels et al. (2008) model        graph (in random order) adopts the highest ranked class in
+typicality ratings for natural language concepts, and Fountain       its neighborhood (i.e., the set of nodes with which it shares
+and Lapata (2010) explore a number of corpus-based repre-            an edge). Algorithm 1 shows this procedure in pseudocode.
+sentations for linguistic exemplars.                                 CW is in general not guaranteed to converge; in particular, a
+   Our first model is reminiscent of semantic networks               node with two equally-distant nearest neighbors may flip be-
+(Collins and Loftus 1975). In this framework, concepts are           tween the classes of those neighbors indefinitely. In practice,
+represented as nodes in a graph and edges represent relation-        however, it tends to reach ‘almost-convergence’ quite rapidly.
+ships between such concepts. Although semantic networks                 Vanilla CW requires that the entire graph be known be-
+are traditionally hand-coded by modelers, we learn them from         fore it can be applied, and thus makes no provision for graphs
+naturally occurring data. In our model, nodes in the graph           which change over time, as would be expected in an acquisi-
+correspond to words and weighted edges indicate distribu-            tion task. Modifying the algorithm for use in an incremental
+tional similarity rather than semantic or syntactic relation-        setting is straightforward: we need only to update the edges
+ships. Categories arise naturally in such a representation as        of the graph with newly-encountered input before each itera-
+densely connected regions or subgraphs. While most research          tion and to run the algorithm until there is no more input to
+on semantic networks focuses on their use within a larger            process rather than until convergence (see Algorithm 2).
+model of spreading activation (Anderson 1983), they have                While applying the incremental CW algorithm to the task
+also been used to gain insight into performance deficits in          of acquiring semantic categories from text, we maintain a
+patients with psychological impairments (Tyler et al. 2000)          weighted, undirected graph in which each node represents a
+and to draw comparisons between internet search and mem-             target word and edges between nodes are weighted according
+ory access (Griffiths et al. 2007b). Our second model follows        to the similarity between words. To compute this similarity,
+a probabilistic approach where categories correspond to top-         the implementation maintains a running co-occurrence ma-
+ics in a generative model (Griffiths et al. 2007c). Topics them-     trix in which each row corresponds to a target word and each
+selves are modeled as probability distributions over words,          column to a possible context word. Similarity between words
+and can be thought of as a “soft” list of exemplars belong-          is computed as the cosine distance between the correspond-
+ing to that category. In order to obtain a hard clustering of        ing rows. Matrix cells are transformed into (positive) point-
+words into categories we need only compute the most likely           wise mutual information values (Bullinaria and Levy 2007).
+category for each word. Topic models have been successful            Our experiments used a context window centered around a
+at modeling a wide range of cognitive phenomenal includ-             target word, however non-symmetric contexts are also possi-
+ing lexical priming, word association, synonym selection, and        ble; target representations are updated according to the con-
+reading times (see Griffiths et al. 2007c).                          text words appearing in the window.
+                                                                 256
+
+                   α                           β                        eter, γ, on the topic distribution. The γ parameter indicates
+                                                                        the proportion of probability mass to reserve for a new, previ-
+                                                                        ously unseen topic; as additional topics are created the proba-
+                                                                        bility of assigning a word to a new topic decreases in relation
+                                                                        to γ, α, and β act as invisible counts for each topic in a docu-
+                                                                        ment and each word in a topic, respectively. Combining these
+                   d             z            w                         parameters with the graphical model in Figure 2 yields the
+                                                                        following probabilistic model:
+Figure 1: The Latent Dirichlet Allocation model (Griffiths                                        η z +β
+et al. 2007c). d is the distribution of topics within a single                P (w|z)    =    PWw z
+                                                                                                 x (ηx +β)
+document; z is the distribution over observable words w for a
+topic. α and β function as smoothing parameters for d and w,                                               (ηzd +α+|W |β)(1−γ)
+                                                                              P (z|d)    =    (
+                                                                                                PZ
+                                                                                                     (ηyd +α+|W |β)(1−γ))+(α+|W |β)γ
+respectively.                                                                                     y
+                                                                                                                  (α+|W |β)γ
+                                                                              P (z 0 |d) =    (
+                                                                                                PZ
+                                                                                                     (ηyd +α+|W |β)(1−γ))+(α+|W |β)γ
+                                                                                                  y
+                   α            γ              β
+                                                                                                  PZ+z0
+                                                                                                      y      (ηyd +α)
+                                                                              P (d)      =          Z+z    0
+                                                                                                     X
+                                                                                                             (ηye + α)
+                                                                                              PD
+                                                                                                 e
+                                                                                                        y
+                   d             z            w                         where w, z and d represent a word, topic (category), or docu-
+                                                                        ment, respectively. z 0 represents a previously unseen topic; a
+Figure 2: A nonparametric topic model which infers the num-             word w assigned to z 0 is instead assigned to a newly created
+                                                                                                                                      z
+ber of topics during training. γ indicates the amount of prob-          category initialized to a uniform distribution. The notation ηw
+ability mass reserved for unseen categories (analogous to An-           signifies the number of times word w has appeared in topic
+derson’s (1990) coupling probability.                                   z, while ηzd similarly indicates the count of occurrences of z
+                                                                        within document d.
+                                                                           To maintain incrementality, the model performs no re-
+                                                                        estimation of probabilities; instead, as each item w of input
+Topic Models A great deal of work in recent years has fo-
+                                                                        is encountered it is assigned to a sampled topic z. The rel-
+cused on the idea of topic models, in which the meaning of
+                                                                        evant document and topic distributions are then updated in
+a particular document or word is encapsulated by the latent
+                                                                        accordance with the sampled topic. While these individual
+topics it contains or from which it is generated. Conceptually
+                                                                        predictions are not revised (as in LDA) by subsequent re-
+such models seem appropriate for categorization tasks, as the
+                                                                        samplings, predicted topics for subsequent encounters of w
+notions of “topic” and “category” have much in common.
+                                                                        change based on the distribution of words and topics; the
+   One particular topic model which has seen wide success is            equations for P (w|z) and P (z|d) are thus analogous to those
+Latent Dirichlet Allocation (LDA, Blei et al. 2003, Griffiths           used during Gibbs sampling in LDA. With additional docu-
+et al. 2007c), which provides a probabilistic model of docu-            ments these distributions converge to (hopefully) meaningful
+ment generation. In LDA, a document is modeled as a proba-              topics.
+bility distribution over a set of latent topics; similarly, a topic
+is modeled as a distribution over words. The actual words                                       Experiment 1
+composing a document are supposed to have been generated
+by a process of repeatedly sampling first a topic from the doc-         Our first goal was to compare our two categorization mod-
+ument distribution, then a single word from the selected topic.         els and establish their performance on a large corpus. To do
+LDA (and generally topic models) can be viewed as a form of             this, we trained both on the British National Corpus (BNC)
+a bipartite graph consisting of two types of nodes, i.e., words         and compared each model’s resulting clustering against a
+and topics and connections between them.                                human-produced gold standard. In the following we describe
+   One drawback to LDA is that it requires the number of top-           how this gold standard was created, discuss how the model
+ics to be known in advance. As this assumption clearly does             parameters were estimated, and explain how the model out-
+not hold in the case of category acquisition, we developed a            put was evaluated.
+nonparametric, incremental topic model which is similar in
+spirit to LDA. This model maintains the generative assump-              Method In order to train our models, the BNC was pre-
+tions of LDA, and much of the same graphical structure; it              processed so as to remove stopwords and highly infrequent
+differs in the addition of a coupling probability (Anderson             words. Target words corresponded to frequently-used nouns,
+1990) used to infer the number of categories during training.           however this is not a limitation of our models which could
+Additionally, it performs no final re-estimation of probabili-          be also applied to verbs or adjectives. The topic model has
+ties (as in standard LDA) in order to maintain incrementality.          three free parameters, i.e., α (the prior observation count for
+   In terms of graphical structure our topic model differs from         the number of times a topic is sampled in a document), β
+standard LDA (Figure 1) by the addition of a third param-               (the prior observation count on the number of times words are
+                                                                    257
+
+                            REPTILE                                                    0.5
+                                                                                                  Chinese Whispers (dependencies)
+   salamander, iguana, frog, alligator, rattlesnake, tortoise,                                    Chinese Whispers (bags of words)
+   crocodile, turtle, toad                                                             0.4        Topic model
+                          FURNITURE
+   chair, stool, rocker, sofa, cabinet, desk, bookcase, mir-                           0.3
+                                                                             F-score
+   ror, shelves, bed, drapes, clock, table, bathtub, bureau,
+   cupboard, dresser, fence, cushion, bench, bayonet, ar-
+   mour                                                                                0.2
+                              FRUIT
+   peach, yam, nectarine, banana, cantaloupe, apple,                                   0.1
+   plum, raspberry, pear, grape, blueberry, raisin, pineap-
+   ple, prune, rhubarb, strawberry, lemon, honeydew, or-                                0
+   ange, tomato, lime, cherry, coconut, olive, grapefruit,                                   0   1e+05     2e+05        3e+05        4e+05   5e+05   6e+05
+                                                                                                     Number of BNC documents encountered
+   tangerine, avocado, pumpkin, cranberry, mandarin
+                                                                             Figure 3: Performance of the topic model and Chinese Whis-
+Table 1: Example gold standard categories with their exem-                   pers using dependencies and a bag of words context window.
+plars from Fountain and Lapata (2010).
+sampled from a topic), and γ (the probability mass reserved
+                                                                             and CHAIR) with features collected in multiple studies over
+for new topics). For α and β we chose values in accordance
+                                                                             several years. Fountain and Lapata obtained category labels
+with the literature on LDA (Teh et al. 2006); these param-
+                                                                             for 517 of these concepts. They presented participants with
+eters were set to 1.2 and 0.1, respectively. The γ parameter
+                                                                             a number of nouns chosen at random from McRae et al.’s
+was tuned on a development corpus (10% of the BNC), with
+                                                                             norms, and asked them to name the category to which each
+the final value of 0.10. Because of this tuning procedure, all
+                                                                             noun belonged. Participants responded in freeform strings,
+scores reported are from application on the remaining 90% of
+                                                                             i.e., they were not provided with a list of possible categories.
+the BNC not used for development.
+                                                                             After adjusting for differences in spelling and conflating syn-
+   Note that the output of the topic model is a set of proba-
+                                                                             onyms, these responses were used to determine the most “cor-
+bility distributions rather than a hard clustering over words.
+                                                                             rect” category label for each of the 517 nouns.
+We can nevertheless coerce the model to produce such a clus-
+tering by assigning each word to the category (topic) which                     Because the norms were originally drawn from a limited
+maximizes its likelihood:                                                    number of concepts many of the nouns were labeled with the
+                                                                             same category label; we were exploited this overlap in order
+               category(w) = argmaxP (z|w)                       (1)         to construct a clustering over McRae et al.’s norms in which
+                                      z                                      each cluster corresponds to a subset of nouns assigned the
+                                                                             same category label in Fountain and Lapata (2010). Overall,
+   The incremental CW model was trained on noun-centered                     we obtained 32 categories averaging approximately 16 nouns
+context windows of ±5, which were extracted from the BNC.                    apiece. Examples of the clusters used in our experiments are
+As the output of CW is a hard clustering over nodes in the                   shown in Table 1.
+graph, no additional post-processing is required. One obvi-
+                                                                                Each model produced a clustering over the nouns taken
+ous question that arises in the context of this experiment is
+                                                                             from the McRae et al. norms which we compared against the
+whether using a richer contextual representation yields more
+                                                                             human-produced gold standard clustering described above; to
+accurate categories; we examined this hypothesis by apply-
+                                                                             evaluate cluster quality we computed the F-score measure de-
+ing the incremental CW algorithm to a dependency-parsed
+                                                                             scribed in Agirre and Soroa (2007). Under their evaluation
+version of the BNC.1 Specifically, we obtained dependency
+                                                                             scheme, the gold standard is partitioned into a test and train-
+information from the output of MINIPAR, a broad coverage
+                                                                             ing corpus. The latter is used to derive a mapping of the in-
+parser (Lin 2001). To minimize noise, this output was re-
+                                                                             duced clusters to the gold standard labels. This mapping is
+stricted to a small set of lexicalized dependency relations:
+                                                                             then used to calculate the system’s F-score on the test corpus.
+subject, object, and conjunction.
+                                                                             We calculated F-score as the harmonic mean of precision and
+   Both models were evaluated based on their clustering of
+                                                                             recall defined as the number of correct members of a cluster
+words into semantic categories and their output was com-
+                                                                             divided by the number of items in the cluster and the number
+pared against similar clusters elicited from human partici-
+                                                                             of items in the gold-standard class, respectively.
+pants. In particular, we used the data from Fountain and Lap-
+ata’s (2010) category naming study as a gold standard.2 The
+aim of their experiment was to augument McRae et al.’s                       Results CW and the topic model produced clusters for 517
+(2005) semantic feature norms with category information.                     nouns. As both models are non-parametric, they induce the
+These norms consist of 541 basic-level concepts (e.g., DOG                   number of clusters (i.e., categories) from the data as well as
+   1
+                                                                             which nouns belong to these clusters. The topic model parti-
+     Incorporating syntactic information into an incremental topic           tioned the target nouns into 167 clusters and CW into 35.
+model is less straightforward, although extensions of the basic LDA
+model have been proposed that take syntax into account (e.g., Boyd-             Compared to the gold-standard clustering, the topic model
+Graber and Blei 2009).                                                       achieved an F-score of 0.179; CW obtained an F-score
+   2
+     Available from http://bit.ly/categorization.                            of 0.212 when using a bag of words context window. The
+                                                                       258
+
+  The fendle is the very dense region consisting of nucleons              consisted of 3–5 paragraphs, each containing between 4–6
+  (daxs and tomas) at the center of a gazzer. Almost all of
+  the mass in a gazzer is made up from the daxs and tomas in              sentences in which a small number of re-occurring content
+  the fendle, with a very small contribution from the orbiting            words were replaced with nonce words (nine on average per
+  wugs. The diameter of the fendle is in the range of 1.5fm               document). The study was completed by 250 participants,
+  (1.75×10-15m) for tulver to about 15fm for the heaviest                 mostly undergraduates.
+  gazzers such as tupa.
+                                                                             One serious concern in conducting a study like this is en-
+                                                                          suring that participants do not actually perform a separate, but
+           fendle                                    tupa                 related task, instead determining the mapping between non-
+                                                                          sense words and their meaningful equivalents. We mitigated
+                            gazzer                   tulver               this problem by extracting the text from highly technical doc-
+   dax   toma                                                             uments, the subject matter of which would almost certainly
+                                                                          be unfamiliar to participants and thus limiting the amount of
+       wug                                                                world knowledge they could bring to bear. Also of concern
+                                                                          was avoiding priming subjects with the number of categories;
+                                                                          to avoid such influence, participants were asked to group tar-
+Figure 4: The incremental categorization task as seen by par-             get words into clusters by dragging items together on a virtual
+ticipants. Each trial consisted of a series of paragraphs from            canvas, rather than by assigning labels or placing items into
+the same source document; the words to be clustered (shown                pre-specified bins. A snapshot of the experimental interface
+in boldface) remained constant, with participants asked to up-            our participants saw is given in Figure 4.
+date their clustering after each trial.                                      The topic model and CW were trained on the same set of
+                                                                          paragraphs, and the interim clustering produced after process-
+model’s performance improved to an F-score of 0.371 when                  ing each document saved in order to investigate how well the
+dependency relations were used. To put these numbers into                 models captured the interim categories formed during incre-
+perspective, we also implemented a baseline algorithm that                mental learning. Note that both models were trained from a
+groups nouns into clusters randomly, which achieved an in-                blank state, reflecting a lack of pre-existing world knowledge.
+ferior F-Score of 0.135. Overall, our results indicate that               Again, we used a bag-of-words representation for CW as the
+more fine-grained linguistic information beyond simple co-                prevalence of nonsense words in the data resulted in many
+occurrence is beneficial for categorization. Figure 3 shows               parsing mistakes. Following on Experiment 1, we then ap-
+how performance on the category acquisition task varies over              plied the topic model and CW to the same set of paragraphs
+time (i.e., over the course of encountering all documents in              and evaluated the resulting categories against those produced
+the training set). As can be seen, the quality of clusters pro-           by participants, again using F-score (Agirre and Soroa 2007).
+duced by CW increases with additional data, i.e., the algo-
+rithm’s performance improves with more iterations.
+                                                                          Results Firstly, we assessed how well our participants
+                          Experiment 2                                    agreed on the category acquisition task.4 We computed the
+While the previous experiment explored how effectively the                F-score of a single participant’s clustering for each trial as
+two models capture large-scale category information it did                the average F-score between it and each of the other partici-
+not assess the effect of incrementality. The difficulty in per-           pants’ clusterings for that trial; and then calculated the mean
+forming such an evaluation is that it requires a snapshot of              reliability as the average F-score of all trials for all partic-
+category structure throughout the process of category acqui-              ipants. On the category acquisition experiment, participants
+sition. Getting such snapshots from children would be ideal,              achieved a mean reliability of 0.694. CW achieved a compa-
+however a longitudinal study of category acquisition would                rable F-score of 0.656, followed by the topic model with an
+be a major undertaking spanning several years. Getting such               F-score of 0.634. These F-scores were computed by a pro-
+snapshots from adults is also problematic, as they clearly pos-           cedure similar to the human reliability described above. The
+sess a great deal of world knowledge about the target words               model was treated as a single participant and the F-score for
+used in a hypothetical experiment. To rectify this, we con-               each stage was computed as the average F-score between the
+ducted a study in which participants were given a series of               model’s clustering in that stage and each participant’s clus-
+paragraphs containing nonsense words and asked, after hav-                tering, with the individual stage scores averaged to produce
+ing read each paragraph, to group the nonsense words into                 the final score. Figure 5 shows the F-scores achieved by the
+categories. The hope was that the results from such a study               two models for each trial against the human upper bound.
+would illuminate the kinds of interim categories the mind                 It is interesting to note that both models are close to human
+might construct when presented with minimal information                   performance, with Chinese Whispers having mostly the lead
+about a set of novel stimuli.                                             over the topic model. Counterintuitively, performance of both
+                                                                          models and human participants declines over time; this is pri-
+                                                                          marily an effect of increasing disagreement between partici-
+Method Thirteen source documents were compiled from
+                                                                          pants when exposed to additional observations.
+Wikipedia articles on various technical domains, including
+medicine, physics, biology, and mixology3 . Each document
+                                                                          ular gastronomy.
+    3                                                                         4
+      Molecular Mixology is the term applied to the process of creat-           Subject data for Experiment 3 is available from http://bit.
+ing cocktails using the scientific equipment and techniques of molec-     ly/categorization.
+                                                                      259
+
+            1                                                               mentally that are both meaningful and cognitively plausible.
+           0.9                                   Humans
+                                                 Topic Model                Interestingly, in this experiment the upper bound (i.e., inter-
+           0.8                                   Chinese Whispers           annotator agreement) is high despite the seeming difficulty of
+           0.7                                                              the task. This suggests that people are quite consistent in the
+                                                                            types of categories they form even when those categories are
+           0.6
+ F-score
+                                                                            based on only one or two pieces of information, and enforces
+           0.5                                                              the idea that, in the absence of real-world knowledge, peo-
+           0.4                                                              ple learn categories in an incremental fashion (Lamberts and
+           0.3                                                              Shapiro 2002).5
+                                                                               An important direction for future work is to model the hi-
+           0.2
+                                                                            erarchical structure of categories. Inspection of the clusters
+           0.1                                                              produced in Experiment 2 reveals that participants tend to or-
+            0                                                               ganize words into hierarchies rather than flat categories.
+                 1        2        3         4           5
+                      Number of paragraphs seen
+                                                                                                               References
+                                                                            Agirre, E. and Soroa, A. (2007). Semeval-2007 task 02: Evaluating word sense induc-
+Figure 5: Model performance and human upperbound after                         tion and discrimination systems. In Proceedings of the 4th International Workshop
+                                                                               on Semantic Evaluations (SemEval-2007), pages 7–12, Prague, Czech Republic.
+each trial.                                                                 Anderson, J. R. (1983). A spreading activation theory of memory. Journal of Verbal
+                                                                               Learning and Verbal Behavior, 22:261–295.
+                                                                            Anderson, J. R. (1990). The adaptive character of thought. Hillsdale, NJ: Erlbaum.
+                                                                            Anderson, J. R. (1991). The adaptive nature of human categorization. Psychological
+                                                                               Review, 98:409–429.
+                     General Discussion                                     Biemann, C. (2006). Chinese whispers - an efficient graph clustering algorithm and its
+                                                                               application to natural language processing problems. In Proceedings of TextGraphs:
+At first glance the scores on the large-scale task (Experi-                    the 1st Workshop on Graph Based Methods for Natural Language Processing, pages
+                                                                               73–80, New York City.
+ment 1) for both models appear quite low. Our aim in this                   Blei, D. M., Ng, A. Y., and Jordan, M. I. (2003). Latent Dirichlet allocation. Journal of
+first experiment, however, was merely to establish a com-                      Machine Learning Research, 3:993–1022.
+                                                                            Bornstein, M. H., Cote, L. R., Maital, S., Painter, K., Park, S.-Y., and Pascual, L. (2004).
+parison between the two approaches on a clustering task.                       Cross-linguistic analysis of vocabulary in young children: Spanish, Dutch, French,
+This is challenging considering that the models are expected                   Hebrew, Italian, Korean, and American English. Child Development, 75(4):1115–
+                                                                               1139.
+to assign 500+ words into an unspecified number of well-                    Bornstein, M. H. and Mash, C. (2010). Experience-based and on-line categorization of
+                                                                               objects in early infancy. Child Development, 81(3):884–897.
+defined semantic categories from word co-occurrence infor-                  Boyd-Graber, J. L. and Blei, D. (2009). Syntactic topic models. In Advances in Neural
+mation alone. Humans acquire semantic categories from a                        Information Processing Systems 21, pages 185–192.
+                                                                            Bullinaria, J. and Levy, J. (2007). Extracting semantic representations from word co-
+richer environment based on their sensorimotor experiences                     occurrence statistics: A computational study. Behavior Research Methods, 39:510–
+in addition to linguistic input.                                               526.
+                                                                            Collins, A. M. and Loftus, E. F. (1975). A spreading-activation theory of semantic
+   Regardless, a strict comparison of results shows that CW                    processing. Psychological Review, 82(6):407–428.
+outperformed the topic model on this large-scale category                   Fountain, T. and Lapata, M. (2010). Meaning representation in natural language cate-
+                                                                               gorization. In Proceedings of the 31st Annual Conference of the Cognitive Science
+experiment. Manual inspection of the clusters output by the                    Society, pages 1916–1921, Amsterdam, The Netherlands.
+                                                                            Griffiths, T. L., Canini, K. R., Sanborn, A. N., and Navarro, D. J. (2007a). Unifying
+topic model suggests an explanation: the learned topics, while                 rational models of categorization via the heriarchical Dirichlet process. In Proceed-
+clearly capturing some notion of semantic relatedness be-                      ings of the 29th Annual Conference of the Cognitive Science Society, pages 323–328,
+                                                                               Nashville, Tennessee.
+tween words, rarely correspond to the desired semantic cat-                 Griffiths, T. L., Steyvers, M., and Firl, A. (2007b). Google and the mind: Predicting
+egories. Instead they cut across categories, collating words                   fluency with pagerank. Psychological Science, 18(12):1069–1076.
+                                                                            Griffiths, T. L., Tenenbaum, J. B., and Steyvers, M. (2007c). Topics in semantic repre-
+that share a theme or context rather than words belonging to                   sentation. Psychological Review, 114:2007.
+                                                                            Jones, S. S., Smith, L. B., and Landau, B. (1991). Object properties and knowledge in
+a common category. The clusters output by CW, conversely,                      early lexical learning. Child Development, (62):499–516.
+capture more of the semantic category information but tend                  Kruschke, J. K. (1993). Human category learning: Implications for backpropagation
+                                                                               models. Connection Science, 5:3–36.
+to do so at a higher level (e.g. conflating FRUIT, VEGETABLE,               Lamberts, K. and Shapiro, L. (2002). Exemplar models and category-specific deficits.
+and FOOD into a single meta-category).                                         Behavioral and Brain Sciences, 24(3):484–485.
+                                                                            Landau, B., Smith, L., and Jones, S. (1998). Object perception and object naming in
+   This is particularly interesting in light of the differences be-            early development. Trends in Cognitive Science, 27:19–24.
+                                                                            Lin, D. (2001). LaTaT: Language and text analysis tools. In Proceedings of the 1st
+tween the two models; CW is a simpler model, both in terms                     Human Language Technology Conference, pages 222–227, San Francisco, CA.
+of the way it represents and forms categories. Recall that the              McRae, K., Cree, G. S., Seidenberg, M. S., and McNorgan, C. (2005). Semantic feature
+                                                                               production norms for a large set of living and non-living things. Behavioral Research
+algorithm creates a unipartite graph with one type of nodes                    Methods Instruments & Computers, 37(4):547–559.
+(i.e., words) which can be interconnected freely. In the topic              Medin, D. L. and Schaffer, M. M. (1978). Context theory of classification learning.
+                                                                               Psychological Review, 85(3):207–238.
+model, semantic information is organized in a bipartite graph               Nosofsky, R. M. (1988). Exemplar-based accounts of relations between classification,
+                                                                               recognition, and typicality. Journal of Experimental Psychology: Learning, Memory,
+consisting of words, topics, and their interconnections. This                  and Cognition, 14:700–708.
+more structured representation does not seem appropriate for                Reed, S. K. (1972). Pattern recognition and categorization. Cognitive Psychology,
+                                                                               3(3):382–407.
+the category acquisition task. In particular, the notion of topic           Storms, G., Boeck, P. D., and Ruts, W. (2000). Prototype and exemplar-based informa-
+as it is used in the context of the topic model is not equivalent              tion in natural language categories. Journal of Memory and Language, 42:51–73.
+                                                                            Teh, Y., Jordan, M., Beal, M., and Ble, D. (2006). Hierarchical Dirichlet processes.
+to that of a semantic category. The relative success of CW,                    Journal of the American Statistical Association, 101(476):1566–1581.
+combined with its simplicity and plausibility, suggests that                Tyler, L. K., Moss, H. E., Durrant-Peatfield, M. R., and Levy, J. P. (2000). Conceptual
+                                                                               structure and the structure of concepts: A distributed account of category-specific
+such comparatively simple models can often provide a bet-                      deficits. Brain and Language, 75:195–231.
+                                                                            Voorspoels, W., Vanpaemel, W., and Storms, G. (2008). Exemplars and prototypes in
+ter approach for modeling low-level cognitive tasks, such as                   natural language concepts: A typicality-based evaluation. Psychonomic Bulletin &
+predicting category-specific deficits in patients with cognitive               Review, 15(3):630–637.
+impairments (Tyler et al. 2000).                                                5
+                                                                                  While conceptually unsurprising, we nevertheless found this re-
+   The results of the second experiment show that CW (and                   sult somewhat unexpected given the number of complaints from par-
+the topic model to a lesser extent) produce categories incre-               ticipants regarding the difficulty of the task.
+                                                                      260
+

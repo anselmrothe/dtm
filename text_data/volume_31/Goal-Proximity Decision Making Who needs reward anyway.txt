@@ -1,0 +1,437 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Goal-Proximity Decision Making: Who needs reward anyway?
+Permalink
+https://escholarship.org/uc/item/10n0x2jm
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 31(31)
+Authors
+Gray, Wayne D.
+Schoelles, Michael J.
+Veksler, Vladislav D.
+Publication Date
+2009-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+                                            Goal-Proximity Decision Making:
+                                               Who needs reward anyway?
+                     Vladislav D. Veksler                   Wayne D. Gray                    Michael J. Schoelles
+                         (vekslv@rpi.edu)                    (grayw@rpi.edu)                   (schoem@rpi.edu)
+                                                      Cognitive Science Department
+                                                    Rensselaer Polytechnic Institute
+                                                               110 8th Street
+                                                          Troy, NY 12180 USA
+                               Abstract                                    The rest of this paper describes a key theoretical problem
+   Reinforcement learning (RL) models of decision-making
+                                                                        for RL models of decision-making (the 2-goal problem),
+   cannot account for human decisions in the absence of prior           briefly summarizes classic evidence in psychological
+   reward or punishment. We propose a mechanism for choosing            literature for reward-independent decision-making in
+   among available options based on goal-option association             humans and animals, and presents two computational
+   strengths, where association strengths between objects               models that exemplify non-RL-based decision-making. We
+   represent object proximity. The proposed mechanism, Goal-            then outline the implementation of the GPD mechanism
+   Proximity Decision-making (GPD), is implemented within the           within the ACT-R cognitive framework. Finally, we
+   ACT-R cognitive framework. A one-choice navigation
+   experiment is presented. GPD captures human performance in           describe a single-choice navigation experiment, and provide
+   the early trials of the experiment, where RL cannot.                 fits of GPD and RL decision mechanisms to human data.
+                                                                        We conclude that GPD can account for human performance
+   Keywords: RL, GPD, reinforcement learning, associative               where RL cannot – prior to any reward or punishment.
+   learning, latent learning, ACT-R, information scent, decision-
+   making, seeking behavior, navigation, model-tracing.
+                                                                        What this paper is not about
+                            Introduction                                Because everything in cognition is so closely knit, the GPD
+                                                                        theory may evoke topics that are outside of the scope of
+How does a cognitive agent choose a path of actions from
+                                                                        current work. The following topics are important to
+an infinitely large decision-space? Reinforcement learning
+                                                                        cognitive science but tangential to the focus of this paper.
+(RL) models, which are models of human trial-and-error
+                                                                           First, GPD is not meant to replace RL, but rather to
+behavior, explain how an agent may reduce its decision-
+                                                                        complement it. How GPD and RL may interact is a topic for
+space over time by attending to the reward structure of the
+                                                                        further research.
+task-environment. However, as goals change, so does the
+                                                                           Second, GPD does not address planning. GPD is a theory
+reward structure of the agent’s world. Relearning the reward
+                                                                        of immediate behavior; how this behavior may be used in
+structure for every possible goal may take an extremely long
+                                                                        complex planning procedures is a tangential topic.
+time. For greater efficiency, a cognitive agent should be able
+                                                                           Third, GPD partially addresses episodic memory and
+to learn more about its environment than just the reward
+                                                                        associative learning. However, associative learning is not
+structure, and to exploit this knowledge for achieving new
+                                                                        the focus of this paper. Rather, the focus here is on the goal-
+goals in the absence of prior reward/punishment. For
+                                                                        oriented decision-making that can emerge from a simple
+example, a person may see a hardware store on their way to
+                                                                        associative learning mechanism. The topic of associative
+the mall, and incidentally learn its location. Some time later,
+                                                                        learning should comprise other lines of research (e.g.
+if they need to go to a hardware store, the person can find
+                                                                        sequence recall, free association, priming) in addition to this
+their way to that store, because they know its location.
+                                                                        one, and is too extensive to address here.
+There had been no reward or punishment for the actions
+                                                                           Fourth, GPD describes how an agent may choose which
+leading to this hardware store, and so the ability to find its
+                                                                        option to approach given multiple possible paths. Although
+location cannot be explained solely through the principles of
+                                                                        avoidance behavior is just as important as approach
+reinforcement learning.
+                                                                        behavior, and should eventually become part of the GPD
+   We propose a mechanism for making decisions in the
+                                                                        theory, it is assumed here to be a separate topic.
+absence of prior reward or punishment, and provide initial
+tests of its fidelity and efficiency as compared to RL. Given
+                                                                        The 2-goal Problem
+multiple possible paths of action, the proposed mechanism
+chooses the path most strongly associated with the current              Consider a scenario where an agent has to achieve goal A,
+goal, regardless of prior reward. Strength of association               then goal B, in the same environment. To increase
+between any two items, in turn, depends on experienced                  efficiency humans and animals would learn the environment
+temporal proximity of those items. From here forth we refer             during task A, and perform faster on task B (the Experiment
+to the proposed mechanism as GPD (goal-proximity                        below provides evidence for this phenomenon). That is, we
+decision-making).                                                       do not just learn the positive utility for the actions that
+                                                                   1264
+
+helped us reach the goal, or the negative utility for the             The following subsections describe Model-based RL – a
+actions that failed to reach the goal; we also pick up on          RL framework that learns environmental contingencies
+other regularities in the environment that may help us with        beyond reward, Voicu & Schmajuk model of navigation – a
+possible future goals. RL-based architectures will have a          model capable of resolving the 2-goal problem, and SNIF-
+problem matching human performance on this 2-goal                  ACT – a model that implements a decision mechanism
+problem.                                                           similar to Voicu & Schmajuk within a unified cognitive
+   To make this example more concrete, imagine how an              framework.
+RL-based agent may perform on a specific 2-goal problem.
+In this example, the first goal, A, can be accomplished by         Model-based RL
+executing actions 1, 2, and 3. After trying the following          Model-based RL (Sutton & Barto, 1998) extends RL by
+sequences of actions, 1-2-4, 1-5-7, 1-4-3, finally the             learning the environmental structure beyond action utilities.
+sequence 1-2-3 is attempted. Upon reaching the desired goal        The term "Model" in "Model-based RL" refers to agent's
+A, actions 1, 2, and 3 will be positively reinforced. The          internal model of the environment. An agent based on this
+utility value of actions 1, 2, and 3 will increase every time      framework is capable of planning its route before execution.
+that A is reached via this route, and soon these actions will      However, the planning process itself is still based on RL.
+fire without fail, greatly improving the agent’s time to reach     Using the example from the 2-goal Problem section,
+the goal.                                                          presented with a new goal B, and having the knowledge that
+   Now imagine the task switches so that the agent has to          1-5-7 leads to B, a model-based RL agent will begin to plan
+find B in the same task environment. The shortest path to B        its route by considering random actions. In other words,
+would be to fire actions 1, 5, and then 7. Although the agent      because this framework uses a decision mechanism based
+had previously reached state B, actions leading to this state      on RL, having the additional knowledge about the world
+were not positively reinforced because B was not the goal at       does not reduce decision cycles.
+the time. Thus, when presented with this new goal, RL
+performance will be at chance level.                               Voicu & Schmajuk
+   RL, by definition, learns only the reward structure of the
+                                                                   Although models of space navigation can employ RL (e.g.
+world, ignoring the rest of the environmental contingencies
+                                                                   Sun & Peterson, 1998), there is a class of decision
+(with the exception discussed in the Model-based RL
+                                                                   mechanisms employed in many artificial navigation systems
+section below). In those cases where this ignored
+                                                                   that do not use RL representation (for review see Trullier,
+information may help in achieving new goals, it would be
+                                                                   Wiener, Berthoz, & Meyer, 1997). As Trullier et al. state,
+useful to have an additional mechanism for collecting and
+                                                                   “Navigation would be more adaptive if the spatial
+using this information (especially in the case of humans,
+                                                                   representation were goal-independent” (p. 489).
+where memory is relatively cheap as compared to additional
+                                                                      In a primary example of goal-independent representation
+trials). The mechanism proposed in this paper, GPD, should
+                                                                   Voicu and Schmajuk (2002) implemented a computational
+serve as such a complement for RL-based architectures.
+                                                                   model that learns the structure of the environment as a
+                                                                   network of adjacent cells. Once a goal is introduced, reward
+                        Background                                 signal spreads from the goal-cell through this network, such
+Stevenson (1954) provided evidence that children are               that the cells farther from the goal-cell receive less
+capable of resolving the 2-goal problem. In this study             activation than those that are close. Goal-driven behavior in
+children were placed at the apex of a V-shaped maze, and           this model comprises moving towards the cells with the
+the goal items were located at the ends of the arms of the V.      highest activation.
+Children were asked to find some goal-item A (a bird,                 Once this model memorizes the map of the environment,
+flower, or animal sticker), and later asked to find a new goal     it does not need to learn the reward structure through trial-
+B (a purse or a box). Although children were never                 and-error; rather, the utility of each action-path is identified
+rewarded for finding B, and did not know that they would           through spreading activation from the goal. In this manner,
+be asked to look for it at any point, once presented with this     this model resolves the 2-goal problem.
+goal, they proceeded to the correct arm of the maze more              One major limitation of this model is that it makes
+than 50% of the time.                                              unrealistic assumptions about the world (e.g. that it can be
+   This paradigm, called latent learning, does not just            neatly mapped out as a grid of adjacent spaces). This model
+provide evidence that learning occurs in the absence of            would be computationally infeasible for sufficiently large,
+reward/punishment, but also that, given a goal, the learned        dynamic, probabilistic environments. Additionally, this
+information is reflected in decision-making, and ultimately        model is not integrated within a larger cognitive framework.
+in performance. Tolman provided evidence for latent                As a standalone model of maze navigation behavior in an
+learning in rats in the context of maze running (Tolman,           oversimplified environment, there are questions as to the
+1948; Tolman & Honzik, 1930), and Quartermain & Scott              scalability and fidelity of the model. The following sections
+(1960) displayed latent learning in human adults,                  address how a similar mechanism, where decisions are
+substituting the maze environment for a cluttered cubicle          based on spreading activation from the goal, may be
+shelf.
+                                                               1265
+
+implemented within a unified cognitive framework, such               X is en route to B. While the agent is seeking some goal, A,
+that integration is at the core of modeling.                         it may be learning the proximity of elements in its
+                                                                     environment, including the proximity of X and B. Given a
+SNIF-ACT                                                             new goal, B, the agent can use its knowledge to judge the
+SNIF-ACT (Fu & Pirolli, 2007) is a model of human                    utility of approaching X to find B. In this manner, the
+information-seeking behavior on the World Wide Web. The              environmental contingencies learned while performing goal
+pertinence of SNIF-ACT to current work is that it is a model         A can help to improve agent performance on goal B, thus
+of how humans use declarative knowledge (rather than                 resolving the 2-goal problem.
+action utilities) in goal-driven behavior in a very rich and            We call this mechanism Goal-Proximity Decision-making
+unpredictable task-environment. The World Wide Web is                (GPD). In more generic terms, GPD (1) relies on having
+unpredictable in the sense that there is no way for any of its       associative memory, where association strengths between
+users to know what links they will encounter during web              memory elements represent experienced temporal proximity
+browsing. For this reason an agent must be able to evaluate          of these elements, and (2) chooses to approach the
+its actions (which link to click) without any prior                  environmental cue that is most closely associated with its
+reinforcement of those actions.                                      current goal.
+   The action of clicking a link in SNIF-ACT is based not on
+the previous reinforcement of clicking on that link, but             Implementation
+rather on the semantic association of the text in the link to        We implement GPD in the ACT-R cognitive architecture
+user goals (information scent). To implement this concept in         (Anderson & Lebiere, 1998). ACT-R comprises a
+ACT-R, Fu & Pirolli changed the utilities for clicking links         production system as the central executive module, a
+based on the link-goal association strengths (note the               declarative memory module, a goal module, and visual and
+similarity to the Voicu & Shmajuk model). This is different          motor modules.
+from the standard ACT-R implementation, where the                       To implement GPD in ACT-R, we developed an ACT-R
+decision mechanism is based on RL. Changing the utility              model that, given some goal G, looks through all the options
+mechanism in this way allows SNIF-ACT to make non-                   on screen, performing retrievals from memory. Retrievals
+random decisions between multiple matching actions that              from memory in ACT-R, among other factors, depend on
+have never been reinforced.                                          spreading activation from the goal – such that the memory
+   Besides being limited to text-link browsing, SNIF-ACT's           elements that are more strongly associated with G are more
+other major limitation is that it does not learn the association     likely to be retrieved. The GPD model then clicks on the last
+strengths between links and goals, but rather imports these          option to have been retrieved from memory.
+values from an external source. However, SNIF-ACT's                     Although ACT-R employs the spreading activation
+decision-making mechanism is an excellent example of how             mechanism, making for an easy implementation of the GPD
+to achieve goal-driven behavior in the absence of prior              model (only 13 productions), it does not make predictions
+reinforcement within the ACT-R framework.                            about how association strengths between memory elements
+                                                                     are learned. ACT-R 4.0 (an older version) had a mechanism
+          Goal-Proximity Decision Making                             for associative learning (Lebiere & Wallach, 2001; Wallach
+RL cannot account for human/animal decision-making in                & Lebiere, 2003). However, according to Anderson
+the absence of reward. The Voicu & Schmajuk and the Fu &             (Anderson, 2001), this particular form of associative
+Pirolli models described above suggest an alternative                learning turned out to be "disastrous", and produced "all
+decision mechanism where agent choice depends on                     sorts of unwanted side effects" (p. 6).
+spreading activation from the goal.                                     To implement associative learning in ACT-R we first
+   More specifically, these models employ reward-                    create an episodic buffer – a simple list containing the
+independent       associative     knowledge      to    represent     names of recently attended memory elements. Whenever the
+environmental contingencies. The decision mechanism in               model checks the contents of the visual buffer (visual
+both models works by approaching the option most strongly            attention), the name of the memory element from the visual
+associated with the goal element.                                    buffer is pushed into the episodic buffer.
+   In the Voicu & Schmajuk model, the strength of                       Next, we update association strengths between the latest
+association between two elements is inversely proportional           episode and every other item in the episodic buffer. To do
+to the physical distance of those elements in space. In SNIF-        this we employ error-driven learning. Error-driven learning,
+ACT, the strengths of associations are imported from an              also known as the Delta rule, is widely accepted as a
+external source – Pointwise Mutual Information engine                psychologically and biologically valid mechanism of
+(Turney, 2001), where association strength between two               associative learning (for psychological, computational, and
+words is incremented every time that the two words co-               biological review of error-driven learning see Gluck &
+occur within a window of text, and decremented every time            Bower, 1988; O'Reilly & Munakata, 2000; Shanks, 1994).
+that the two words occur in the absence of one another.              For each new element j and previously experienced element
+   In other words, the experienced temporospatial proximity          i, the strength of association between j and i, Sji, at current
+between items X and B may be employed to predict whether             time, n, is increased in the following manner:
+                                                                 1266
+
+                                                                             Materials
+where β is the learning rate parameter, and ai is the                           The experiment was presented as a point-and-click
+                                                                             application on a 17" computer screen, set to 1280x1024
+activation of each element i in the episodic buffer. Episodic
+                                                                             resolution. Participants were presented with 150x200 pixel
+activation, ai, is assumed to decrease by some decay
+                                                                             option buttons, where each button displayed either a letter
+parameter, э, at each tic. It should be noted that we did not
+                                                                             from the English alphabet, or one of the symbols shown in
+employ the ACT-R native constraints for memory activation
+                                                                             Figure 1.
+and decay – ACT-R memory decay implementation
+accounts for frequency, recency, and spreading activation,
+bearing peripheral complexity, to be examined at a future                     ☉☁☇☄☋☍★☼✧❍❑☗❖♁☽♘☮✘✂♨✈☎
+date. The pseudocode for the GPD model and this
+associative learning mechanism is provided in Table 1.                            ⚂♻✵☂❀❄♪⌛◍◣╡▜☃➲⥼⧰╲▓⎲␥⑃
+                                                                                       Figure 1. Stimuli used for 3-choice mazes.
+                   Table 1. Implementation of GPD.
+Sji is the association strength between memory elements j and i              Procedure and Design
+э is the rate of decay of activation of objects in episodic memory              The experiment employed a single-group design with no
+β is the associative learning rate parameter                                 between-subject variables. Participants were asked to
+#########################################                                    perform a simple exploratory maze navigation task. Each
+# GPD algorithm                                                              participant had to complete two 2-arm mazes (2 arms, 2 goal
+given a goal, G, and current best option, Y {                                items in each arm) and four 3-arm mazes (3 arms, 3 goal
+    for each option in the environment, X {                                  items in each arm) in the following order: 2-arm, 3-arm, 3-
+       learn episode (X)
+       given two options, X and Y {                                          arm, 2-arm, 3-arm, 3-arm. The choice and goal items in
+          attempt retrieval from declarative memory                          each of the 2-arm mazes were random letters of the English
+          spreading activation from G                                        alphabet, and the choice and goal items of the 3-arm mazes
+          set Y to be the retrieved memory element
+       }
+                                                                             were symbols randomly chosen from Figure 1. Participants
+    }                                                                        were required to continue with a given maze until they
+    learn episode (Y)                                                        completed 6 consecutive error-free trials (trials where only
+    approach option Y                                                        the correct path to the goal was taken) in the 2-arm mazes,
+}
+                                                                             or 12 consecutive error-free trials in the 3-arm mazes.
+#########################################                                       For each trial, participants were asked to find one of the
+# Episodic/associative learning                                              goal items (for example, in the maze displayed on left of
+learn episode (j) {
+                                                                             Figure 2, a goal could be: C, D, E, or F), such that no two
+   activationOfItem = э
+   for each item in episodic-buffer, i {                                     successive trials would have repeating goals. The idea here
+       Sji += β * (activationOfItem – Sji)                                   is to replicate the 2-goal (or rather n-goal) problem design –
+       activationOfItem = activationOfItem * э                               while participants are looking for a given goal item they
+   }                                                                         may be learning the maze, and will be able to perform above
+   push j into episodic-buffer
+}                                                                            chance-level when presented with the next goal item.
+                               Experiment
+The purpose of this experiment is to collect data for
+validation of how GPD can account for human choice where
+RL cannot. The structure of the experiment reflects the 2-
+goal problem. More precisely, this experiment requires the
+                                                                               Figure 2. Sample navigation mazes, 2-arm condition (left)
+participants to traverse a simple maze in search of different
+                                                                                               and 3-arm condition (right).
+goal-items presented one at a time. Whereas RL would
+predict that reward structure is updated after the agent
+                                                                             Trial Design:
+reaches a goal or a dead-end, GPD would predict that the
+                                                                                Each trial persisted until the participant found and clicked
+agent also learns where other items in the maze are located.
+                                                                             the required goal item. At the beginning of each trial,
+When asked to find a new goal, RL should perform at
+                                                                             participants were presented with the top-level options. After
+chance level (since there has been no reward for this goal),
+                                                                             choosing one of top-level options, participants were
+whereas GPD should perform above chance level. Human
+                                                                             presented with the bottom-level options (for example, in the
+data from this experiment should provide a stark contrast
+                                                                             2-arm maze in Figure 2, a participant is first presented with
+between the two decision mechanisms.
+                                                                             options A and B, and if they choose option A, they are
+Participants
+                                                                             presented with options C and D). If the participant chose the
+   Twenty-one            human        participants,        consisting of
+                                                                             wrong path to the goal, upon choosing one of the bottom-
+undergraduate students at RPI, were asked to participate for
+                                                                             level options, they were presented with a “Dead End”
+course extra credit, as specified by course instructor.
+                                                                             screen, and taken back to the top-level options. If the
+                                                                         1267
+
+participant found and clicked their current goal item, they                 Table 2. Sample data log for a human participant.
+were presented with their next goal.                                 Trial 1:     goal=D:
+                                                                        looked    at A, looked    at B, clicked A,
+Screen Design:                                                          looked    at C, looked    at D, clicked D, success
+   To ensure that participants attended each option, the             Trial 2:     goal=C:
+options were always covered with a grey screen until                    looked    at B, looked    at   A, clicked B,
+clicked. Another click was necessary to cover an uncovered              looked    at E, looked    at   F, clicked F, fail
+                                                                        looked    at B, looked    at   A, clicked A,
+option before proceeding. After the first option is uncovered           looked    at C, looked    at   D, clicked C, success
+and covered, a participant may proceed to uncover the next           …
+option. Once all options on screen have been viewed and
+covered, the participant could make their choice with an             Results and Simulation
+additional click. Additionally, participants were not be able           Each model’s performance was averaged over 10 model
+to rely on their location memory, as the location of each            runs for each decision point. Results from the first 2-arm
+option on screen was randomized; thus participants were              maze were ignored as training data. Results for human and
+forced to attend every item (i.e. the participant could not          model performances on the first choice of each of the first 6
+say, “when I go left, I get C and D,” they had to recall that,       trials for the other 2-arm maze (maze 4) are shown at the top
+“B leads to C and D,” instead).                                      of Figure 3 (only the first 6 trials are shown because some
+                                                                     participants did not have data beyond the 6th trial). Results
+Modeling                                                             for human and model performances on the first choice of
+Human data were analyzed in terms of agreement with four             each of the first 14 trials for the 3-arm mazes (averaged over
+models: GPD, RL, Random, and IdealPerformer. The                     all mazes: mazes 2, 3, 5, and 6) are shown at the bottom of
+Random model selected which option to click at random,               Figure 3 (only the first 14 trials are shown because some
+and the IdealPerformer model remembered everything                   participants did not have data beyond the 14th trial).
+perfectly (which choices followed which other choices) and
+made choices with perfect memory. The RL model simply
+increased the utility of a goal-choice pair if the choice led to
+the goal successfully, and decreased it otherwise; the option
+with the highest utility warranted a click (no noise was
+added), and if multiple options had the same utility, the
+choice was random. After a few (less than 10) variations
+were attempted, the best-fit GPD model was derived to have
+error-driven learning with the following parameters: э=.5,
+β=.01. No noise was added to spreading activation.
+   Model data was collected using the model-tracing
+technique (Anderson, Corbett, Koedinger, & Pelletier, 1995,
+as cited by Fu & Pirolli, 2007). For each human participant,
+for each decision, each model was provided with the same
+experience as the human participant up to that choice point,
+and then model’s would-be choice was recorded. For
+example, imagine that Table 2 presents data for a human
+participant having gone through the maze shown on left of
+Figure 2. At the bolded choice-point (trial 1), being that
+there is no experience with the maze, all models would
+choose randomly. Let us say that both the RL and the GPD
+models chose B. Thus, what will be recorded is that these
+two models made an error on trial 1, whereas the human
+participant did not. However, the experience added to the
+two models will be based on human choice. At the end of
+trial 1, RL will have learned that the D-A (if goal is D, click
+A) goal-choice pair has a positive utility. GPD will have
+learned that D is strongly associated with C, less so with A,
+and even less with B, and that C is strongly associated with
+A, and less so with B. At the underlined choice point (trial           Figure 3. Average performance from human participants,
+2, top), the RL model will still have to make a random                 GPD, RL, Random, and IdealPerformer models on the 2-
+choice (utilities for C-A and C-B goal-choice pairs are both           arm maze (top), and the 3-arm mazes (bottom). Error bars
+0 at that point). The GPD model, having learned that C is                   represent standard error based on 21 participants.
+more associated with A than with B, will choose A.
+                                                                 1268
+
+  Table 3. Root mean square error (RMSE) between human               In addition to testing GPD with board games and
+               and model performances, by trial.                   exploration of virtual worlds, it will be necessary to
+                                  2‐arm      3‐arm                 integrate GPD with RL, for more complete
+              GPD                 2.07%      7.95%                 approach/avoidance behavior. Future studies will focus on
+              RL                 14.84%     18.29%                 integration of GPD with other cognitive mechanisms, and
+              IdealPerformer      4.07%     16.34%                 testing the integrated framework across a wide range of
+              Random             45.32%     45.79%                 tasks.
+   Table 3 displays Root Mean Square Errors (RMSE)                                            References
+between average human and model performances for the               Anderson, J. R. (2001). Activation, Latency, and the Fan Effect.
+data displayed in Figure 3 – performance on the first choice         Presented at the Eighth Annual ACT-R Workshop, Pittsburgh,
+of each trial for the first 6 trials of the second 2-arm maze,       PA.
+and the first 14 trials of the four 3-arm mazes.                   Anderson, J. R., & Lebiere, C. (1998). The atomic components of
+   The key aspect to focus on is the early part of the curves        thought. Mahwah, NJ: Lawrence Erlbaum Associates
+in Figure 3, where RL simply cannot account for human-               Publishers.
+level performance. IdealPerformer model assumes that               Fu, W. T., & Pirolli, P. (2007). SNIF-ACT: A Cognitive Model of
+associations between the clicked top-level choices and their         User Navigation on the World Wide Web. Human Computer
+respective bottom-level objects are strengthened, and that           Interaction.
+                                                                   Gluck, M. A., & Bower, G. H. (1988). From Conditioning to
+the non-clicked top-level choices do not interfere. For              Category Learning - an Adaptive Network Model. Journal of
+example, on trial 1 shown in Table 2, the IdealPerformer             Experimental Psychology-General, 117(3), 227-247.
+model will have only learned the association between the           Lebiere, C., & Wallach, D. (2001). Sequence Learning in the ACT-
+clicked option, A, and the ensuing options, C and D. GPD,            R Cognitive Architecture: Empirical Analysis of a Hybrid
+however would increment association strengths between                Model. In R. Sun & C. L. Giles (Eds.), Sequence learning :
+C/D and all of their preceding items: both A and B. Thus,            paradigms, algorithms, and applications. New York: Springer.
+IdealPerformer learns unrealistically fast, and RL learns          O'Reilly, R. C., & Munakata, Y. (2000). Computational
+unrealistically slow.                                                explorations in cognitive neuroscience : understanding the mind
+                                                                     by simulating the brain. Cambridge, Mass.: MIT Press.
+                                                                   Quartermain, D., & Scott, T. H. (1960). Incidental learning in a
+                           Summary                                   simple task. Canadian Journal of Psychology/Revue
+Whereas reinforcement learning accounts for human                    Canadienne de Psychologie, 14(3), 175-182.
+decision-making based on prior reward, this paper proposes         Shanks, D. R. (1994). Human associative learning. In N. J.
+a mechanism to account for human choice in the absence of            Mackintosh (Ed.), Animal learning and cognition. (pp. 335-
+reward, based on associative learning. The proposed                  374). San Diego, CA: Academic Press.
+                                                                   Stevenson, H. W. (1954). Latent Learning in Children. Journal of
+mechanism, GPD, was implemented in the ACT-R
+                                                                     Experimental Psychology, 47(1), 17-21.
+cognitive architecture, and examined in its ability to             Sun, R., & Peterson, T. (1998). Autonomous learning of sequential
+simulate human behavior in a simple forced-choice                    tasks: Experiments and analyses. IEEE Transactions on Neural
+navigation task. GPD was able to account for human data              Networks, 9(6), 1217-1234.
+where RL could not – in the beginning of the task, before          Sutton, R. S., & Barto, A. G. (1998). Reinforcement Learning: An
+reward or punishment for finding a given goal could have             Introduction. Cambridge, Massachusetts: The MIT Press.
+been presented.                                                    Tolman, E. C. (1948). Cognitive maps in rats and men.
+   To implement GPD in the ACT-R cognitive architecture,             Psychological Review, 55(4), 189-208.
+it was necessary to add two things. First, we wrote an ACT-        Tolman, E. C., & Honzik, C. H. (1930). Introduction and removal
+                                                                     of reward, and maze performance in rats. University of
+R model that made retrievals based on spreading activation
+                                                                     California Publications in Psychology, 4, 257-275.
+from the goal, and clicked on the retrieved option. Second,        Trullier, O., Wiener, S. I., Berthoz, A., & Meyer, J. A. (1997).
+associative learning was introduced: keeping recently                Biologically based artificial navigation systems: review and
+attended memory elements in an episodic buffer, and using            prospects. Prog Neurobiol, 51(5), 483-544.
+error-driven learning to increase the strengths of association     Turney, P. (2001). Mining the Web for synonyms: PMI-IR versus
+between memory elements based on their proximity in the              LSA on TOEFL. Presented at the Twelfth European Conference
+episodic buffer.                                                     on Machine Learning, Berlin: Springer-Verlag.
+   GPD seems to be a necessary supplement to RL for                Voicu, H., & Schmajuk, N. (2002). Latent learning, shortcuts and
+explaining human decision-making. We are currently in the            detours: a computational model. Behavioural Processes, 59(2),
+                                                                     67-86.
+progress of using GPD to play Tic-Tac-Toe, providing
+                                                                   Wallach, D., & Lebiere, C. (2003). Implicit and explicit learning in
+initial grounds for the claim that GPD can be used in more           a unified architecture of cognition. In L. Jimenez (Ed.),
+than just navigation tasks, but rather in navigating any             Attention and implicit learning. (pp. 215-250). Amsterdam,
+decision-space, including board games. We are also                   Netherlands: John Benjamins Publishing Company.
+beginning to explore how this mechanism scales to more
+complex, dynamic task environments (e.g. exploration of
+Second Life virtual worlds).
+                                                               1269
+

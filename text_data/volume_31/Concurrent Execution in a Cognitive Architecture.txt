@@ -1,0 +1,393 @@
+UC Merced
+Proceedings of the Annual Meeting of the Cognitive Science
+Society
+Title
+Concurrent Execution in a Cognitive Architecture
+Permalink
+https://escholarship.org/uc/item/7542d3cm
+Journal
+Proceedings of the Annual Meeting of the Cognitive Science Society, 31(31)
+Author
+Choi, Dongkyu
+Publication Date
+2009-01-01
+Peer reviewed
+ eScholarship.org                                 Powered by the California Digital Library
+                                                                    University of California
+
+                              Concurrent Execution in a Cognitive Architecture
+                                               Dongkyu Choi (dongkyuc@stanford.edu)
+                                                          Cognitive Systems Laboratory
+                                              Center for the Study of Language and Information
+                                                Stanford University, Stanford, CA 94305 USA
+                               Abstract                                     sources for each procedure it evaluates, and uses this infor-
+                                                                            mation to find procedures that can occur at the same time.
+   Many human activities happen in parallel. People read while
+   eating, talk over a phone while walking, and steer their cars               In the following sections, we first present a brief review
+   while pushing the gas pedal. Therefore, cognitive architec-              of the I CARUS architecture, and introduce the urban driving
+   tures, as computational theories of human cognition, should              domain that we use throughout the paper for illustrative pur-
+   also have facilities to support this type of capability. In this pa-
+   per, we introduce extensions to our architecture, I CARUS, that          poses. Then we describe the two extensions for concurrent
+   support concurrent execution. We also provide some prelimi-              execution in more detail, with some experimental observa-
+   nary observations from our recent experiments.                           tions at a preliminary level. We conclude after a review of
+   Keywords: cognitive architectures, concurrent execution,                 related and future work.
+   parallel execution, multitasking
+                                                                                         Review of I CARUS Architecture
+                            Introduction                                    The I CARUS architecture grew out of the cognitive architec-
+People do multiple things at the same time. They read books                 ture movement, and it shares basic features with other sys-
+while they are eating lunch. They talk over a phone while                   tems like Soar (Laird et al., 1986) and ACT-R (Anderson,
+walking on a street. And when they are driving, they steer                  1993). It makes commitments to its representation and inter-
+their cars while they push the gas pedal. Sometimes these                   pretation of knowledge, and has memories that support these.
+concurrent activities can be serialized, and people can always              In this section, we briefly review the architecture, starting
+read books after finishing their lunch, or stop walking to take             with the representational components and then continuing to
+a phone call. But some other times these activities need to                 the processes that work over them.
+happen simultaneously to accomplish their desired results.
+                                                                            Representation and Memories
+For instance, a car will not be moving properly if the driver
+cannot steer and push pedals at the same time. Therefore,                   Based on psychological evidences, the I CARUS architecture
+cognitive architectures (Newell, 1990), which are computa-                  distinguishes conceptual and procedural knowledge, and it
+tional models of human cognition, will also need the ability                has separate long-term and short-term memories for each of
+to support simultaneous, concurrent execution.                              them.1 A conceptual long-term memory stores descriptive
+   Until recently, one such architecture, I CARUS (Langley &                knowledge structures that are similar to horn clauses, and a
+Choi, 2006b) could execute only one thing at a time. It was                 skill long-term memory includes procedural knowledge struc-
+still sufficient for many domains, including the Blocks World               tures that resemble S TRIPS operators. Both of these knowl-
+and FreeCell (Langley et al., in press). But when used in                   edge structures are organized in a hierarchical manner, allow-
+more dynamic domains like an urban driving domain (Choi                     ing multiple levels of abstraction.
+et al., 2007), it soon became clear that the system’s ability to               Tables 1 and 2 show examples of these structures,
+show natural behavior was limited, if it can perform only the               concepts and skills, respectively.              The first two con-
+serial execution. For example, an I CARUS agent that delivers               cepts, yellow-line and at-turning-speed are primi-
+packages in a city should perform various maneuvers, like left              tive, so they match variables against perceived objects
+or right turns. To execute a turn properly, it would constantly             and their attributes, and specify conditions among the
+adjust its speed to a right level and steer its vehicle at the              matched variables. On the other hand, the last con-
+right moment. However, a serial system can perform only                     cept, ready-for-right-turn refers to two other concepts,
+one of these activities at any given time, and it often misses              in-rightmost-lane and at-turning-speed, and therefore
+the timing for steering while it is focusing its attention to its           it is a non-primitive concept. Similarly, the last skill in Ta-
+speed, or vice versa.                                                       ble 2, in-intersection-for-right-turn is a primitive
+   To remedy this type of problem, we introduce two differ-                     1 Traditionally, I CARUS ’ skill short-term memory also served as
+ent extensions to the architecture. The first takes a represen-             a basic goal memory. Introduction of problem solving and learn-
+tational approach, which adds a new field in I CARUS’ proce-                ing modules (Langley & Choi, 2006a) required a more sophisticated
+                                                                            description of goal-related information, and the memory has been
+dural knowledge structure. In this field, users can explicitly              renamed to be a goal short-term memory in the recent versions of
+specify parallel procedures, for which the system will con-                 the architecture. While it still includes the short-term knowledge of
+sider concurrent execution within a single cycle. The other                 skills – the skill instances the system is currently working on, the
+                                                                            new name acknowledges the goal specification and bookkeeping as
+involves the capability to manage resources during the inter-               its main functions. This renamed memory is identical to the goal
+pretation of knowledge. The system tracks the required re-                  memory mentioned later in this section.
+                                                                        2753
+
+one, in which only actions the system needs to apply in the           The architecture also has a goal memory, where it stores its
+world are mentioned. The first two skills, however, are non-       top-level goals and the goal stacks associated with them. In-
+primitive, since they specify subgoals that, in turn, call for     formation stored in each goal stack includes a main goal, any
+other skills. In this manner, the I CARUS architecture allows      subgoals the system is currently working on, and retrieved
+complex description of the surrounding world and possible          skill instances for the goals. For example, if the system has a
+courses of action.                                                 goal, (on-street ME B), the system might retrieve the first
+                                                                   skill shown in Table 2, instantiate it, and store the information
+                                                                   in the goal memory as its current intention. Then depend-
+Table 1: Some sample I CARUS concepts for the urban driving
+                                                                   ing on the situation, I CARUS may select the first subgoal,
+domain.
+                                                                   and include an instance, (ready-for-right-turn ME) in
+                                                                   the memory.
+ ((yellow-line ?line)
+   :percepts ((lane-line ?line color YELLOW)))                     Inference, Evaluation, and Execution
+ ((at-turning-speed ?self)
+                                                                   The I CARUS architecture operates in distinct cycles, and on
+   :percepts ((self ?self speed ?speed))
+                                                                   each cycle, it invokes a series of processes. These include
+   :tests         ((>= ?speed 15)
+                                                                   the inference of the current belief state, the evaluation of its
+                   (<= ?speed 20)))
+                                                                   skills based on the inferred state, and the execution of actions
+ ((ready-for-right-turn ?self)                                     implied by the selected skill. The processes start with the
+   :relations ((in-rightmost-lane ?self ?l1 ?l2)                   sensory input from the environment at a given time. Based
+                   (at-turning-speed ?self)))                      on the perceptual information, the system infers instances of
+                                                                   all its concepts that are true in the current state. It starts with
+                                                                   the lowest level structures – primitive concepts, and moves
+                                                                   up the hierarchy to non-primitive concepts. Hence, any naive
+                                                                   approach to the inference process is prone to the combina-
+Table 2: Some sample I CARUS skills for the urban driving          torial effect caused in domains with many objects, and there
+domain.                                                            have been several efforts to alleviate this problem including
+                                                                   Asgharbeygi et al. (2005).
+                                                                      Once the system infers the current belief state, it starts eval-
+ ((on-street ?self ?tg)                                            uating its skills to achieve the given goals. It begins with the
+   :percepts ((self ?self)                                         first goal in its goal memory and retrieves all the skills that are
+                  (street ?st)                                     known to achieve the goal. Then the system evaluates them
+                  (street ?tg)                                     to find the first one that is executable in the current state, with
+                  (intersection ?int))                             a preference to more recently acquired skills among the dis-
+   :start       ((intersection-ahead ?self ?int ?tg)               junctive definitions. A non-primitive skill, which refers to
+                  (close-to-intersection ?self ?int))              subgoals in its body, is executable when all of its precondi-
+   :subgoals ((ready-for-right-turn ?self)                         tions are met and the first unsatisfied subgoal has at least one
+                  (in-intersection-for-right-turn                  executable skill that will achieve it. In the case of primitive
+                                       ?self ?int ?st ?tg)         skills, however, there are no subgoals for them, and there-
+                  (on-street ?self ?tg)))                          fore, they are executable once their preconditions are met. As
+ ((ready-for-right-turn ?self)                                     a result, the system effectively finds the first skill path that
+   :percepts ((self ?self))                                        consists entirely of executable skills given the current belief
+   :subgoals ((in-rightmost-lane ?self ?l1 ?l2)                    state.
+                  (at-turning-speed ?self)))                          At the leaf node of the selected skill path is a primitive
+                                                                   skill, which implies some actions the system needs to take in
+ ((in-intersection-for-right-turn                                  the environment. The I CARUS architecture takes these actions
+                                       ?self ?int ?c ?tg)          and applies them to make changes in its surroundings. In turn,
+   :percepts ((self ?self)                                         its perceptual input on the next cycle will change, and the
+                  (street ?c)                                      system repeats the processes based on the new sensory data.
+                  (street ?tg)                                     This allows reactive execution in I CARUS, while staying to be
+                  (intersection ?int))                             goal-directed. The balance between the two properties is an
+   :start       ((on-street ?self ?c)                              important feature of the architecture. In the sections below,
+                  (ready-for-right-turn ?self))                    we briefly describe the urban driving domain, and continue
+   :actions ((*cruise)))                                           our discussion on the architecture and its newest extensions
+                                                                   in more detail.
+                                                               2754
+
+                 An Illustrative Domain                              current behaviors. But the concurrency is naturally required
+Driving is a complex task. It involves the perception of both        in this domain, and the agent’s capability is easily tested us-
+static and dynamic objects and the control of the vehicle for        ing both qualitative and quantitative measures of the driving
+various maneuvers. Driving in an urban setting can be even           behavior. For example, one can simply see how smooth an
+more complicated, due to various types of objects to interact        agent’s driving behavior is. Alternatively, one can use the
+with. For this reason, the development for the urban driv-           time taken for a specific task like a right turn, or the amount
+ing domain continues, since its first use as a testbed for the       of deviation from the ideal driving path for the turn as a quan-
+I CARUS architecture (Choi et al., 2004). Figure 1 shows the         titative measure.
+driving environment in the current version of the domain. In
+this domain, there is a vehicle for an I CARUS agent, and there
+                                                                                Concurrent Execution in I CARUS
+are static objects including street segments, lane lines, side-      The latest extensions to I CARUS include two different meth-
+walks, and buildings. The environment also includes dynamic          ods for concurrent execution. One that uses a new field in
+objects like pedestrians and other cars. To drive around in this     skills allows explicit specifications of concurrency. Users can
+city, the I CARUS agent should control the steering angle and        specify subgoals that require simultaneous consideration for
+the amounts of gas and brake pedal application.                      execution in this field, and the system evaluates each and ev-
+                                                                     ery one of these parallel subgoals in a single cycle. When
+                                                                     this method is used, the user should make sure that there are
+                                                                     no conflicts among the subgoals, since the system does not
+                                                                     employ any facility to check if they are conflict-free.
+                                                                        The second method involves a more implicit way to rep-
+                                                                     resent concurrency, and it is also more complicated. In this
+                                                                     case, the system does not have any special field in its skill
+                                                                     structures but, instead, it assumes that all subgoals are candi-
+                                                                     dates for concurrent execution, subject to the resources they
+                                                                     require. The architecture tracks resources that are used for
+                                                                     each primitive skill, and prevents concurrent execution of
+                                                                     subgoals that lead to primitive skills with resource conflicts.
+                                                                     We describe the two methods in more detail in the following
+                                                                     sections, and explain how they lead to concurrent execution.
+                                                                     Explicit Concurrency
+                                                                     In the developer’s point of view, the most straightforward way
+                                                                     to implement an extension to cognitive architectures might
+                                                                     be creating a new field that will be interpreted in a certain
+     Figure 1: A screenshot of the urban driving domain.             way. The explicit specification of concurrency in I CARUS is
+                                                                     a good example of that, and here we added a new field to its
+                                                                     skill structure. When users intend to have certain subgoals
+   As shown later in this paper, basic driving tasks like left
+                                                                     executed in parallel, they can simply put the subgoals in this
+and right turns are often used, but several higher-level tasks
+                                                                     new field, and the system will consider them for simultaneous
+including package delivery are also composed. For all of
+                                                                     execution in a single cycle. In this section, we discuss the
+these tasks, the agent should perceive information on various
+                                                                     extended representation and its interpretation.
+objects in the world, decide its course of action to achieve
+its goal, and apply control actions in the environment. In the       Representation We have seen skills for serial execution
+case of package delivery, an agent can see the addresses on          in Table 2. When the concurrent execution of subgoals is
+its packages and check the addresses of buildings around it.         desired, one can use the new field, :parallel instead of
+With no map of the city provided, it can simply move around          :subgoals in skills. The syntax for this field is exactly the
+in the city until it finds the right street, and proceed to the      same as that of the :subgoals field, but the semantics are
+package address. During the execution, the agent faces many          different. While the ordering of the elements in :subgoals
+different challenges, from the basic negotiation of the roads,       reflects the priority, or simply the order in which they are to
+to collision avoidance with unexpected obstacles like pedes-         be executed, ordering in the :parallel fields do not have
+trians crossing the street.                                          any meaning. The field simply lists parallel subgoals.
+   The richness of the domain provides an interesting envi-             Table 3 shows the parallel version of one of the skills
+ronment for testing different aspects of agents, and it is par-      shown earlier. This modified skill, ready-for-right-turn
+ticularly useful to test their ability to perform multiple tasks     means that the system should consider the subgoals,
+simultaneously. With only a handful of control inputs, the           in-rightmost-lane and at-turning-speed simultane-
+domain is simple enough for a clear demonstration of con-            ously. This particular program is written so that the two par-
+                                                                 2755
+
+allel subgoals lead to different control actions at the leaf node
+of their skill paths, and therefore no conflicts occur during the
+                                                                                                                                                    (on‐street ME B)
+execution of this skill.                                                                                        precondi7ons:
+                                                                                                                                                                     0
+                                                                                                        (intersec7on‐ahead ME INT B)
+                                                                                                        (close‐to‐intersec7on ME INT)
+Table 3: A sample I CARUS skill for parallel execution in the                                                                                       (in‐intersec7on‐
+                                                                                                                   (ready‐for‐right‐turn              for‐right‐turn   (on‐street ME B)
+urban driving domain.                                                                                                       ME)            1          ME INT ST 3)
+                                                                                        precondi7ons:
+                                                                                             null
+   ((ready-for-right-turn ?self)
+    :percepts ((self ?self))                                                                 (in‐rightmost‐lane                                (at‐turning‐speed ME)
+                                                                                                   ME L1 L2)
+                                                                                                                     2                                               3
+    :parallel ((in-rightmost-lane ?self ?l1 ?l2)                         precondi7on:
+                                                                                                                              precondi7on:
+                                                                       (in‐leGmost‐lane
+                                                                                                                           (slow‐for‐turns ME)
+                    (at-turning-speed ?self)))                             ME L3 L4)
+                                                                                                  (*steer 15)                                   (*gas (‐ 15 ?speed))
+Interpretation During the evaluation of its skills, the                 Figure 2: Multiple skillpaths that are executable in parallel, in
+I CARUS architecture finds a path through its skill hiearchy            the middle of a run in the urban driving domain. The agent’s
+that is executable. When it reaches at a skill with parallel            car is currently in a leftmost lane and moving slower than the
+subgoals, it continues evaluating each of them independently,           desired turning speed. Ellipses denote goals, and rectangles
+as if each was a single subgoal at that point. Once all of the          represent actions. Numbers shown at the bottom-right corners
+parallel subgoals are evaluated, it checks if each and every            of the goals are used to show skill paths in the main text.
+one of them either returns some actions or is satisfied in the
+current belief state. If this is true, the system simply collects
+the resulting actions.                                                  goals an I CARUS agent might have. Users deposit subgoals in
+    For example, in Figure 2, the I CARUS agent has                     the existing field as usual, and the system finds opportunities
+a top-level goal, (on-street ME B). The system                          for concurrency among them. Whenever the resources allow,
+finds that it has a skill for the goal, with all the pre-               it will take the opportunities found for execution.
+conditions,        (intersection-ahead ME INT B)               and      Interpretation In this approach, I CARUS uses a new evalu-
+(close-to-intersection ME INT) met in the current                       ation method during the interpretation of its skill knowledge.
+state. The skill is a standard, serial skill, so the system selects     Here, the user pre-specifies the required resources for each
+the first unsatisfied subgoal, (ready-for-right-turn ME).               action, and the system tracks the resources used for each
+An available skill for this goal is the parallel skill shown in         primitive skill it evaluates. Instead of stopping the evalua-
+Table 3 that does not have any preconditions, and therefore             tion once an executable skill path is found, it marks resources
+the system considers its subgoals (in-rightmost-lane ME                 for the primitive skill on the first executable path as assigned,
+L1 L2) and (at-turning-speed ME) at the same time. All                  and continues its search for the next path. It inspects the sub-
+preconditions of the two skills for these goals are satisfied,          sequent executable paths, and decide whether to allow their
+so the system finds two executable skill paths, 0–1–2 and               execution or not by checking the required resources for them.
+0–1–3, for the top-level goal. It then executes implied actions         The ones that require any resource that is already assigned to
+from both paths, *steer and *gas.                                       prior paths are rejected. The system continues its search until
+Concurrency through Resource Management                                 either all available resources are assigned, or it reaches the
+                                                                        rightmost branch of its skill hierarchy.
+Another method for concurrency in I CARUS takes a more im-
+                                                                              For example, the system finds the same skill paths, 0–1–
+plicit approach. Execution in physical worlds mostly requires
+                                                                        2 and 0–1–3 shown in Figure 2, as in the first method. In
+some type of resource, and the concurrent execution requires
+                                                                        this case, however, the system finds them not because the
+resources to support all the actions involved. Therefore, we
+                                                                        two subgoals at the third level, in-right-most-lane and
+can use resource as a measure to check any interference or
+                                                                        at-turning-speed are marked as parallel, but because the
+conflicts between the candidates for concurrent execution. By
+                                                                        actions they lead to, *steer and *gas, require two different
+tracking the resources required for each skill, the I CARUS
+                                                                        resources. They require hands to control the steering wheel
+architecture can automatically resolve any conflicts, giving
+                                                                        and the right foot for the gas pedal, respectively. The system
+skills with higher priority the opportunity to fire before any
+                                                                        first finds the path, 0–1–2 as it would in the standard system.
+other lower priority skills that share some or all of the re-
+                                                                        But before searching through the hierarchy any further, it as-
+sources.
+                                                                        signs the required resource, hands, to the selected *steer
+Representation This approach requires no changes to the                 action. While continuing its search, the system finds another
+syntax of the existing knowledge structures. However, the               executable path, 0–1–3. It then checks if any of the resources
+system now interprets all elements in :subgoals fields as               this path requires are already assigned. When it finds the re-
+candidates for concurrent execution, as well as the top-level           source, right foot, is still available, it assigns that for the *gas
+                                                                    2756
+
+action. Once these two skill paths are found, the system stops             520
+its search through the skill hierarchy, since all the available
+                                                                           510
+resources are assigned.
+                                                                           500
+              Experimental Observations
+                                                                           490
+We hypothesize that the concurrent execution results in both
+qualitatively and quantitatively better behaviors. We also sus-            480
+pect that the system using the second method, namely, the one                  30   40   50    60    70   80   90  100  110  120  130
+that uses the resource management scheme for concurrent ex-                     (a) Right turns by the serial execution system
+ecution will perform as well as the system that uses manually
+specified :parallel fields. However, our research is still in
+its early stages, and the urban driving domain is not yet ready             520
+for serious quantitative experiments. Therefore, in this sec-               510
+tion, we compare the serial system and the concurrent system
+by observing the quality of their behaviors in the urdan driv-              500
+ing domain.                                                                 490
+   In this experiment, the agent starts at (38.5, 48.5), which is
+located in the rightmost lane on A street. Its goal is to be on             480
+second street, and for that, it needs to make a right turn at the               30   40   50    60    70   80   90  100  110  120  130
+upcoming intersection. In Figure 3, there is a building cor-
+ner at the coordinate (50, 490), and therefore traversing in the      (b) Right turns by the concurrent execution system that uses
+rectangular region, {(x, y) | x > 50, y < 490} is not allowed.        resource management
+With the serial execution system, the agent shows some insuf-
+ficient behaviors as shown in (a), where it could not execute         Figure 3: Some traces of the I CARUS agent’s actual driving
+the turn properly and dangerously moving toward the build-            paths for a right turn, using the serial execution system in (a)
+ing on four out of five times. The concurrent execution sys-          and using the concurrent execution system in (b). The hori-
+tem using the resource management scheme, however, com-               zontal and vertical axes denote x- and y-coordinates, respec-
+pletes the right turn properly on four out of five times, as          tively. Each plot shows the results from five different trials.
+shown in (b).
+   Considering the fact that the agents in both cases do not
+have any low-level feedback controllers, the driving paths in            More recently, Salvucci and Taatgen (2008) provided a
+(b) show significant improvements. We believe that the serial         broader view of the concurrent multitasking. They introduced
+execution system fails in many cases because it could not ac-         the notion of ’threads’ that resembles those in operating sys-
+celerate by pushing the gas pedal during the steering action          tems. As in our work on I CARUS, the work has its basis on
+that reduces the speed of the car. In the concurrent execution        a cognitive architecture, ACT-R (Anderson, 1993), providing
+system, however, both the steering action and the accelera-           better representation of multitasking behavior.
+tion can happen simultaneously, resulting in turns that follow           Compared to these systems, I CARUS controls concurrent
+smoother arcs.                                                        subgoals more loosely, and it only restricts the execution of
+                                                                      later tasks that require already assigned resources. However,
+               Related and Future Work                                the system imposes priorities to its goals, preferring the ones
+There have been various efforts to support concurrent exe-            to the left side of its skill hierarchy. Since I CARUS’ evaluation
+cution and resource management in related fields. Freed’s             process happens from left to right of the hierarchy, it always
+APEX (1998) manages resources and resolve conflicts us-               executes higher-priority tasks first even under resource con-
+ing explicit descriptions in its procedural knowledge. With           straints. Interruption and continuation of tasks happen in an
+temporal constraints and priorities specified in its knowl-           implicit way, again tied to the goal priorities. The system’s
+edge structure, the architecture provides a powerful execution        reactive nature forces it to pause any ongoing tasks when
+mechanism for multiple tasks.                                         higher-priority goals become false in its surroundings, and
+   PRS (Georgeff & Ingrand, 1989; Myers, 1996) also pro-              continue the paused tasks once these goals are achieved.
+vide a reactive execution capability that support multitasking.          We are working to make this process more explicit, how-
+It uses special constructs in its goal structures, and controls       ever. Through a mechanism for reactive goal nomination
+termination and continuation of processes explicitly. Perhaps         in the architecture, we have internally demonstrated that
+the closest work to PRS will be Firby’s RAP system (1994).            I CARUS can select and instantiate relevant top-level goals for
+This system manages multiple continous processes that inter-          the current situation. We also want this mechanism to handle
+act with each other, but in an implicit way. It does not use any      priorities among the goals during this process. But instead
+explicit constructs that interrupt and resume processes.              of the priority computation in a cost-based approach (e.g.,
+                                                                  2757
+
+Freed, 2000), we plan to associate certain concept instances         Choi, D., Morgan, M., Park, C., & Langley, P. (2007). A
+to each goal that will trigger nomination or abandonment of            testbed for evaluation of architectures for physical agents.
+the goal.                                                              In Proceedings of the aaai-2007 workshop on evaluating
+   The current version of I CARUS stores the concurrency it            architectures for intelligence. Vancouver, BC: AAAI Press.
+finds through resource management in a separate memory.              Firby, R. J. (1994). Task networks for controlling continu-
+Although we have implemented an initial version of the sys-            ous processes. In Proceedings of the second international
+tem that takes advantage of this knowledge, it cannot use the          conference on ai planning systems (pp. 49–54).
+information unless an exactly identical situation arises in the      Freed, M. (1998). Managing multiple tasks in complex, dy-
+future. We believe I CARUS should learn new skills or revise           namic environments. In Proceedings of the fifteenth na-
+the existing ones based on the concurrency it finds. This way,         tional conference on artificial intelligence (pp. 921–927).
+the system will be able to have more general knowledge that            Menlo Park, CA: AAAI Press.
+can be useful in a later time.                                       Freed, M. (2000). Reactive prioritization. In Proceedings of
+   Older versions of I CARUS could impose simple tempo-                the second nasa workshop on planning and scheduling in
+ral constraints through disjunctive skills chained together            space. San Francisco, CA.
+through preconditions, but its representational power was            Georgeff, M. P., & Ingrand, F. F. (1989). Decision-making
+limited. The current work on concurrent execution alleviates           in an embedded reasoning system. In Proceedings of the
+this limitation greatly, but still the system cannot express all       eleventh international joint conference on artificial intelli-
+possible temporal relations. An ongoing research involves an           gence (pp. 972–978). Morgan Kaufmann.
+extension to the architecture that allows explicit specification     Laird, J. E., Rosenbloom, P. S., & Newell, A. (1986). Chunk-
+of temporal constraints in both its concepts and skills.               ing in soar: The anatomy of a general learning mechanism.
+                                                                       Machine Learning, 1, 11–46.
+                         Conclusions                                 Langley, P., & Choi, D. (2006a). Learning recursive con-
+In this paper, we reported two extensions to the I CARUS ar-           trol programs from problem solving. Journal of Machine
+chitecture that support concurrent execution. The first method         Learning Research, 7, 493–518.
+uses a new field in the system’s procedural knowledge struc-         Langley, P., & Choi, D. (2006b). A unified cognitive archi-
+tures, which can be used to manually specify parallel sub-             tecture for physical agents. In Proceedings of the twenty-
+goals. This method lacks of any facility to ensure that the            first national conference on artificial intelligence. Boston:
+subgoals are conflict-free, and it puts the burden on users.           AAAI Press.
+The second method solves this problem using resource man-            Langley, P., Choi, D., & Rogers, S. (in press). Acquisition of
+agement, and automatically finds parallel subgoals that can be         hierarchical reactive skills in a unified cognitive architec-
+executed concurrently. Combined with I CARUS’ goal priori-             ture. Cognitive Systems Research.
+ties, this method provides a promising way to model human            Myers, K. L. (1996). A procedural knowledge approach to
+behavior, especially in dynamic domains like the urban driv-           task-level control. In Proceedings of the third international
+ing. But there are still more work to be done in this direction,       conference on ai planning systems.
+and we hope to report results from our ongoing work in a near        Newell, A. (1990). Unified theories of cognition. Cambridge,
+future.                                                                MA: Harvard University Press.
+                                                                     Salvucci, D. D., & Taatgen, N. A. (2008). Threaded cogni-
+                    Acknowledgments                                    tion: An integrated theory of concurrent multitasking. Psy-
+This research was funded in part by Grant HR0011-04-1-                 chological Review, 115, 101–130.
+0008 from DARPA IPTO. Discussions with Pat Langley,
+Chunki Park, David Stracuzzi, and Dan Shapiro contributed
+to many ideas presented here.
+                          References
+Anderson, J. R. (1993). Rules of the mind. Hillsdale, NJ:
+   Lawrence Erlbaum.
+Asgharbeygi, N., Nejati, N., Langley, P., & Arai, S. (2005).
+   Guiding inference through relational reinforcement learn-
+   ing. In Proceedings of the fifteenth international confer-
+   ence on inductive logic programming (pp. 20–37). Bonn,
+   Germany: Springer Verlag.
+Choi, D., Kaufman, M., Langley, P., Nejati, N., & Shapiro, D.
+   (2004). An architecture for persistent reactive behavior. In
+   Proceedings of the third international joint conference on
+   autonomous agents and multi agent systems (pp. 988–995).
+   New York: ACM Press.
+                                                                 2758
+
