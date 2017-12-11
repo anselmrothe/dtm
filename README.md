@@ -1,13 +1,8 @@
 # Workflow
-Download PDFs
 
-→ convert to txt 
-
-→ convert to bag of words 
-- data pruning (stemming/Lemmatisation, removing stop words, remove punctuations, connect words split by line breaks)
-→ ... 
-
-→ train DTM
+- model comparison with static topic model -- alex
+- topic popularity change over years; hotest topics in recent years; most changed topic over the years -- anselm
+- relations between topics via PCA /tsne -- zhiwei
 
 # work log:
 # Nov 23
