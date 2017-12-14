@@ -49,7 +49,7 @@ import codecs
 for d in dirs:
     fnames = os.listdir(d)
     # start with 1/10 of the data
-    fnames = [t[1] for t in enumerate(fnames) if t[0] % 10 == 0]
+    # fnames = [t[1] for t in enumerate(fnames) if t[0] % 10 == 0]
     for fn in fnames:
         with open(d + fn, 'r', encoding='utf-8') as f:
             fstring = ''
@@ -62,11 +62,11 @@ for d in dirs:
 for i in range(len(docs)):
     docs[i] = docs[i].replace('-\n', '')
 
-corpus, dictionary = preprocess(docs,no_below=10,no_above=0.5)
-#corpus, dictionary = preprocess(docs,no_below=36,no_above=0.5)
+# corpus, dictionary = preprocess(docs,no_below=10,no_above=0.5)
+corpus, dictionary = preprocess(docs,no_below=36,no_above=0.5)
 
 def doc_to_string(bow):
-    s = len(bow)
+    s = str(len(bow))
     for w in bow:
         s = "{} {}:{}".format(s, w[0], w[1])
     s = s + '\n'
@@ -80,4 +80,17 @@ with open('dtm_input-mult.dat', 'w') as f:
 ndoc_strings = [str(n) + '\n' for n in ndocs]
 
 with open('dtm_input-seq.dat', 'w') as f:
+    f.write(str(len(ndoc_strings)) + '\n')
     f.writelines(ndoc_strings)
+
+
+for y in [2, 5, 8, 11, 14, 17]:
+    sum_to_prev = np.sum(ndocs[:y-1])
+    prev = sum_to_prev + ndocs[y-1]
+    current = prev + ndocs[y]
+    with open('lda_input/prev_'+str(y), 'w') as f:
+        f.writelines(corpus_strings[sum_to_prev:prev])
+    with open('lda_input/all_'+str(y), 'w') as f:
+        f.writelines(corpus_strings[:prev])
+    with open('lda_input/test_'+str(y), 'w') as f:
+        f.writelines(corpus_strings[prev:current])
