@@ -3,6 +3,7 @@
 - model comparison with static topic model -- alex
 - topic popularity change over years; hotest topics in recent years; most changed topic over the years -- anselm
 - relations between topics via PCA /tsne -- zhiwei
+- what topics are gureckis lab talking about?
 
 # work log:
 # Nov 23
