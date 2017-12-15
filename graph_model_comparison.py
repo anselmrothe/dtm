@@ -7,5 +7,5 @@ df['Year'] = df['Year'] + 2000
 df['Model'] = df['Model'].replace({'dtm': 'DTM (all years)',
                                    'lda_all': 'LDA (all years)',
                                    'lda_prev': 'LDA (previous year)'})
-p = ggplot(aes(x='Year', y='LL', color='Model'), data=df) + geom_line() + ylab('Log Likelihood')
+p = ggplot(aes(x='Year', y='LL', color='Model'), data=df) + geom_line() + ylab('Log Likelihood') + theme_bw()
 p.save(filename='modelcomparison.png', width=14)
