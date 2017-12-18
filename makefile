@@ -1,2 +1,2 @@
 all:
-	pandoc -s proposal.md --filter pandoc-fignos -o proposal.pdf
+	pandoc -s report.md --filter pandoc-fignos -o report.pdf
