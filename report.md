@@ -13,7 +13,7 @@ header-includes:
 
 Topic models have been used successfully to capture structure in large text
 corpora and make these corpora more human-understandable (Blei, Ng & Jordan
-2003). However, traditional topic models to not capture the temporal ordering of
+2003). However, traditional topic models do not capture the temporal ordering of
 documents, and the way topics change over time. Dynamic topic models address
 this issue by allowing topic mixing proportions and the distribution of words in
 topics to change as a function of time (Blei & Lafferty 2006). In this project, we applied dynamic
@@ -85,9 +85,9 @@ We used python to scrape 7821 pdf files from the Cognitive Science Conference
 archives, representing submissions from 2000 to 2017. In general, each
 submission is a 6 page paper. We converted the pdfs to text using an automated
 pdftotxt utility. We tokenized the text based on whitespace, and removed lines
-in which few tokens were english words, because these lines tended to contain
+in which few tokens were English words, because these lines tended to contain
 equations. We also removed words that were less than four characters long and
-were not in a standard english dictionary, as these tended by be caused by
+were not in a standard english dictionary, as these tended to be caused by
 errors in the pdf parser. Finally, we removed tokens that occurred in fewer than
 36 documents (i.e., 2 documents per year on average), as well as tokens that
 occurred in more than 50% of documents. Our final vocabulary contained 9710 words.
@@ -95,16 +95,18 @@ occurred in more than 50% of documents. Our final vocabulary contained 9710 word
 ## Methodology
 
 We used the Blei lab's C implementation of the dynamic topic model
-(https://github.com/blei-lab/dtm) to fit the DTM to our data set. We assumed 20
-topics, and chose a fixed $\alpha$ of $.1$, and a topic drift rate of $\sigma^2=.005$. The model
-used for our qualitative results was fit using all 7821 pdf files from all 18
-years. To evaluate the DTM compared to a standard topic model, we fit a series
-of models in which we trained the model up to a given year, and then inferred
-the log-likelihood of the data for the given year. Using the Blei lab's topic
-model C implementation (https://github.com/blei-lab/lda-c), we compared this to a
-standard topic model trained up to the given year, and a standard topic model
-trained only on the prior year. We conducted this procedure for the years 2002,
-2005, 2008, 2011, 2014, and 2017. 
+(https://github.com/blei-lab/dtm) to fit the DTM to our data set. Following Blei
+& Lafferty's analysis of Science we assumed 20 topics, and and following Blei
+lab recommendations we chose a fixed $\alpha$ of $.1$ and a topic drift rate of
+$\sigma^2=.005$. The model used for our qualitative results was fit using all
+7821 pdf files from all 18 years. To evaluate the DTM compared to a standard
+topic model, we fit a series of models in which we trained the model up to a
+given year, and then inferred the log-likelihood of the data for the given year.
+Using the Blei lab's topic model C implementation
+(https://github.com/blei-lab/lda-c), with the same fixed $\alpha$, we compared
+this to a standard topic model trained up to the given year, and a standard
+topic model trained only on the prior year. We conducted this procedure for the
+years 2002, 2005, 2008, 2011, 2014, and 2017.
 
 As an aside, while attempting to fit the DTM up to a held out year we discovered
 an error in the C code that prevented this feature from functioning. We were able
