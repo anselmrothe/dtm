@@ -1,4 +1,6 @@
 # Potential expansions of current work
+- sanity check: is our result robust to different number of topics?
+
 - see if we get results that agree with the previous work (i.e. Cohen Priva & Austerweil paper)
 
 Especially, they could interpret a topic as "Framing topic" and say things like "over time Cognition turned from abstract theorizing to more experimental approaches." This is a small innovation compared to traditional TM analysis.
