@@ -1,3 +1,12 @@
+# Potential expansions of current work
+- see if we get results that agree with the previous work (i.e. Cohen Priva & Austerweil paper)
+
+Especially, they could interpret a topic as "Framing topic" and say things like "over time Cognition turned from abstract theorizing to more experimental approaches." This is a small innovation compared to traditional TM analysis.
+
+- study the diversity of the field by measuring topic entropy [see this linguistic paper](http://web.stanford.edu/~jurafsky/hallemnlp08.pdf)
+
+- study how much the year-to-year publication has changed (e.g. is there some years very different from the previous year) by measuring KL-divergence over years. [this paper studying Charles Darwin's reading](https://arxiv.org/pdf/1509.07175.pdf)
+
 # Workflow
 
 - model comparison with static topic model -- alex
