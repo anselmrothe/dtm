@@ -65,6 +65,15 @@ for i in range(len(docs)):
 # corpus, dictionary = preprocess(docs,no_below=10,no_above=0.5)
 corpus, dictionary = preprocess(docs,no_below=36,no_above=0.5)
 
+# remove too-short or too-long documents from the corpus, and update ndoc-counts
+temp_corpus = corpus
+segmented_corpus = []
+for i in range(len(ndocs)):
+    segmented_corpus.append([d for d in temp_corpus[:ndocs[i]] if len(d) > 200 and len(d) < 2000])
+    temp_corpus = temp_corpus[ndocs[i]:]
+corpus = [d for s in segmented_corpus for d in s]
+ndocs = [len(s) for s in segmented_corpus]
+
 def doc_to_string(bow):
     s = str(len(bow))
     for w in bow:
