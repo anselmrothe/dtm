@@ -1,0 +1,725 @@
+If xn denotes a partition of the n stimuli into clusters,
+and Fn denotes all observed features of these n stimuli,
+the probability that the (unobserved) target feature for
+the nth object has value j is computed by summing over
+all partitions,
+X
+P (j|Fn ) =
+P (j|xn , Fn )P (xn |Fn )
+(1)
+
+from a new cluster. Specifically, the prior probability of
+cluster k is
+(
+cnk
+nk > 0 (i.e., k is old)
+(1−c)+ci
+(4)
+P (k) =
+(1−c)
+nk = 0 (i.e., k is new)
+(1−c)+ci
+where nk is the number of stimuli in cluster k, and c is
+the probability that any two stimuli belong to the same
+cluster, which Anderson (1990, 1991) calls the coupling
+probability. If we imagine each cluster assignment being
+drawn sequentially from this prior, it can be shown that
+the resulting distribution on partitions of n stimuli gives
+each partition xn probability
+
+xn
+
+where P (xn |Fn ) is the posterior probability of a partition
+xn given Fn . This posterior probability can be obtained
+via Bayes’ rule, with
+P (Fn |xn )P (xn )
+0
+0
+x0n P (Fn |xn )P (xn )
+
+P (xn |Fn ) = P
+
+(2)
+
+s
+Y
+(1 − c)s cn−s
+P (xn ) = Qn−1
+(nk − 1)!
+i=0 [(1 − c) + ci] k=1
+
+where P (Fn |xn ) is the likelihood, the probability of the
+set of observed features given the partition xn , and
+P (xn ) is the prior probability of that partition. The sum
+in Equation 1 and the denominator of Equation 2 are intractable for large n, as the number of partitions grows
+rapidly with the number of stimuli.2 Consequently, an
+approximate inference algorithm is needed.
+Anderson (1990, 1991) identified two desiderata for an
+approximate inference algorithm: that it be incremental,
+assigning a stimulus to each cluster as it is seen, and that
+these assignments, once made, be fixed. These desiderata were based on beliefs about the nature of human
+category learning: that “people need to be able to make
+predictions all the time not just at particular junctures
+after seeing many objects and much deliberation” (Anderson, 1991, p. 412), and that “people tend to perceive
+objects as coming from specific categories” (Anderson,
+1991, p. 411). He developed a simple inference algorithm that satisfies these desiderata. We will refer to
+this algorithm as the local MAP algorithm, as it involves
+assigning each stimulus to the cluster that has the highest posterior probability (i.e., the maximum a posteriori
+or MAP cluster) given only the previous assignments.
+Computing the posterior probability of a cluster assignment for a new stimulus, given the assignments of
+the previous stimuli, is straightforward. Using the notation from Anderson (1991), the posterior probability
+that stimulus i + 1 was generated from cluster k is
+P (Fi+1 |k)P (k)
+P (k|Fi+1 ) = P
+k P (Fi+1 |k)P (k)
+
+(5)
+
+where s is the number of clusters in the partition.
+
+Dirichlet process mixture models
+The problem of predicting an arbitrary feature of a stimulus can be solved by estimating the joint probability of
+the features of a set of stimuli. This is the statistical
+problem of density estimation. In Bayesian statistics,
+this problem is addressed by defining a prior distribution
+over a set of possible densities, and then updating this
+distribution with the observed data to obtain a posterior
+distribution over densities. In nonparametric Bayesian
+statistics, the goal is to define a prior that includes as
+broad a range of densities as possible, so that complex
+densities can be inferred if they are warranted by the
+data. The standard model used to solve this problem
+is called the Dirichlet process mixture model (DPMM;
+Antoniak, 1974; Neal, 1998).
+The key idea behind the DPMM is to assume that observations are partitioned into clusters, with the probability of their features depending only on their cluster
+membership. The prior probability of a partition is
+s
+Y
+αs
+P (xn ) = Qn−1
+(nk − 1)!
+i=0 [α + i] k=1
+
+(6)
+
+where α is the concentration parameter of the Dirichlet
+process. This distribution over partitions can be produced by a simple sequential stochastic process (Blackwell & MacQueen 1973). If observations are assigned
+to clusters one after another and the probability that
+observation i + 1 is assigned to cluster k is
+½ nk
+i+α , nk > 0 (i.e., k is old)
+P (k) =
+(7)
+α
+i+α , nk = 0 (i.e., k is new)
+
+(3)
+
+In this expression P (Fi+1 |k) is the probability of the set
+of observed features given the assignment of the stimulus
+to cluster k, P (k) is the prior probability that the stimulus was generated from cluster k, and all probabilities are
+implicitly conditioned on the cluster assignments for the
+previous stimuli. We discuss the likelihood in greater detail below, and focus here on the prior P (k). In addition
+to placing a distribution over existing clusters, the prior
+used in the RMC allows a new stimulus to be generated
+
+we obtain Equation 6 for the probability of the resulting partition. This distribution has a number of nice
+properties, including exchangeability: the probability of
+a partition is unaffected by the order in which the observations are received (Aldous, 1985).
+It should be apparent from our description of the
+DPMM that it is similar in spirit to the probabilistic
+
+2
+The number of partitions of a set of n stimuli is given by
+the nth Bell number, with the first ten values being 1, 2, 5,
+15, 52, 203, 877, 4140, 21147, and 115975.
+
+727
+
+model underlying the RMC. In fact, the two are directly
+equivalent, a point that was first made in the statistics literature by Neal (1998). If we let α = (1 − c)/c,
+Equations 5 and 6 are equivalent, as are Equations 4
+and 7. Anderson (1990, 1991) (impressively) thus independently discovered one of the most celebrated models
+in nonparametric Bayesian statistics, deriving this distribution from first principles. Recognizing the connection
+between the DPMM and the RMC makes it possible to
+go beyond the assumptions behind the RMC. In particular, we can explore alternatives to the local MAP
+algorithm. In the remainder of the paper, we draw on
+the extensive literature on inference for the DPMM to
+offer two alternative algorithms for the RMC that offer
+asymptotically accurate approximations to Equation 1.
+
+The interesting term in Equation 9 is P (zi |Z−i ). Due
+to exchangeability, the order of the observations can be
+rearranged so that any particular observation is considered the last observation. Hence, we can use Equation 7
+to compute P (zi |Z−i ), with old clusters receiving probability in proportion to their popularity, and a new cluster being chosen with probability determined by α (or,
+equivalently, c). The other term, P (fi |zi , Z−i , F−i ), is
+the probability of the features of stimulus i under the
+partition that results from this choice of zi , and depends
+on the nature of the features. We discuss this in greater
+detail later in the paper.
+The Gibbs sampling algorithm for the DPMM (Neal,
+1998) is now straightforward. First, an initial assignment of stimuli to clusters is chosen. In the simulations,
+we simply assign all stimuli to a single cluster. Next, we
+cycle through all stimuli, sampling a cluster assignment
+from the distribution specified by Equation 9. This step
+is repeated, with each cycle potentially producing a new
+partition of the stimuli. Since the probability of obtaining a particular partition after each cycle depends only
+the previous cycle, this is a Markov chain. After enough
+cycles for the Markov chain to converge, we begin to save
+the partitions it produces. One cycle is not independent
+of the next, so some cycles are discarded to approximate
+independence. The partitions generated by the Gibbs
+(`)
+sampler can be used in the same way as samples xn in
+Equation 8. The resulting approximation becomes exact
+as m → ∞ (Gilks et al., 1996).
+The Gibbs sampler provides an effective means of approximating the sum in Equation 1, and thus of making
+accurate predictions about the unobserved features of
+stimuli. However, it does not satisfy the desiderata Anderson (1990, 1991) used to motivate his algorithm. In
+particular, it is not an incremental algorithm: it assumes
+that all data are available at the time of inference. This
+is both a strength and a weakness. The strength is that
+the Gibbs sampler is an excellent algorithm to model
+experiments where people do not receive stimuli one after another, but instead receive the full set of stimuli
+simultaneously. The weakness is that it needs to be run
+again each time new data are added, making it inefficient
+when predictions need to be made on each trial. In such
+situations, we need to use a different algorithm.
+
+Alternative inference algorithms
+Equation 1 gives the complete Bayesian solution to the
+problem of prediction under the DPMM. One way to
+approximate the intractable sum over partitions is to
+use Monte Carlo methods, with
+X
+
+m
+
+P (j|xn , Fn )P (xn |Fn ) ≈
+
+xn
+
+1 X
+P (j|x(`)
+n , Fn )
+m
+
+(8)
+
+`=1
+
+(1)
+
+(m)
+
+where xn , . . . , xn are m samples from P (xn |Fn ), and
+the approximation becomes exact as m → ∞. This is
+the principle behind the two algorithms we outline in
+this section. However, since sampling from P (xn |Fn )
+is not straightforward – even computing the posterior
+distribution requires an intractable sum – the two algorithms use more sophisticated Monte Carlo methods to
+generate a set of samples.
+
+Gibbs sampling
+The approximate inference algorithm most commonly
+used for the DPMM is Gibbs sampling, a Markov chain
+Monte Carlo method (see Gilks, Richardson, & Spiegelhalter, 1996). This algorithm involves constructing a
+Markov chain that will converge to the distribution from
+which we want to sample, in this case the posterior distribution over partitions. The state space of the Markov
+chain is the the set of partitions, and transitions between
+states are produced by sampling the cluster assignment
+of each stimulus from its conditional distribution, given
+the current assignments of all other stimuli.
+To describe this algorithm in more detail, we need to
+introduce some new notation. Let Zn = (z1 , . . . , zn ) be a
+vector of cluster assignments for a set of n stimuli, with
+each stimulus being assigned to one of s clusters. Any
+vector of cluster assignments corresponds to a partition,
+xn , so we can define our algorithm directly in terms of
+z1 , . . . , zn . The conditional probability of the assignment
+of stimulus i given the assignments of all other stimuli
+and all observed features is
+P (zi |Z−i , Fn ) ∝ P (fi |zi , Z−i , F−i )P (zi |Z−i )
+
+Particle filtering
+Particle filtering is a sequential Monte Carlo technique
+that provides a discrete approximation to a posterior distribution that can be updated with new data (Doucet, de
+Freitas, & Gordon, 2001). Each “particle” is a partition
+(`)
+xi of the stimuli from the first i trials. Unlike the local
+MAP algorithm, in which the posterior distribution is
+approximated with a single partition, the particle filter
+uses m partitions. Summing over these particles gives us
+an approximation to the posterior distribution
+m
+
+(9)
+
+P (xi |Fi ) ≈
+
+where Z−i is the assignments of all stimuli other than
+stimulus i, fi are the observed features of i, and F−i are
+the observed features of all other stimuli besides i.
+
+1 X
+(`)
+δ(xi − xi )
+m
+
+(10)
+
+`=1
+
+where δ(·) is 1 when its argument is 0, and 0 otherwise.
+728
+
+Using Equation 10 as an approximation to the posterior distribution over partitions for i trials, we can approximate the prior distribution for partitions of the first
+i + 1 trials with
+X
+P (xi+1 |Fi )
+
+=
+
+stages. First, we evaluate the accuracy with which the
+different algorithms approximate the actual predictions
+produced by Bayesian inference, using a classic data set
+from Medin and Schaffer (1978). Second, we examine
+how well the predictions of the algorithms correspond
+to human judgments. Due to space constraints, we do
+not reproduce all of the modeling results from Anderson
+(1990). Instead, we focus on two data sets: the experiment by Medin and Schaffer (1978) mentioned above,
+and order sensitivity data reported by Anderson (1990).
+To apply the algorithms to any dataset, a measure of
+the probability of a set of features given a partition of
+the stimuli needs to be introduced. The RMC assumes
+that the features of a stimulus are independent once the
+cluster it belongs to is known. Using this idea, we can
+write the probability of the features of a stimulus as
+Y
+P (fi+1 |xi+1 , Fi ) =
+P (fi+1,d |xi+1 , Fi )
+
+P (xi+1 |xi )P (xi |Fi )
+
+xi
+
+X
+
+≈
+
+P (xi+1 |xi )
+
+xi
+
+m
+1 X
+(`)
+δ(xi − xi )
+m
+`=1
+
+1 X
+(`)
+P (xi+1 |xi )
+m
+m
+
+=
+
+(11)
+
+`=1
+
+where P (xi+1 |xi ) is given by Equation 7. We can then
+approximate the posterior for the first i + 1 trials with
+X
+
+P (xi+1 |Fi+1 )
+
+∝
+
+P (fi+1 |xi+1 , Fi )P (xi+1 |Fi )
+
+xi
+
+≈
+
+d
+
+m
+1 X
+(`)
+P (fi+1 |xi+1 , Fi )P (xi+1 |xi ) (12)
+m
+
+where fi+1,d is the value of the dth feature. Anderson
+(1991) gives probabilities for both discrete and continuous features, but we only consider binary features here.
+Given the cluster, the value on each feature is assumed to
+have a Bernoulli distribution. Integrating out the parameter of this distribution with a Beta(β0 , β1 ) prior gives
+
+`=1
+
+The result is a discrete distribution over all the previous
+particle assignments and all possible assignments for the
+current stimulus. Drawing m samples from this distribution provides us with our new set of particles.
+The particle filter for the RMC is initialized with the
+first stimulus assigned to the first cluster for all m particles. On each following trial, the distribution in Equation 12 is calculated, based on the particles sampled in
+the last trial. On any trial, these particles provide an approximation to the posterior distribution on partitions.
+The stimuli are integrated into the representation incrementally, satisfying one of Anderson’s desiderata. The
+degree to which Anderson’s fixed assignment criterion is
+satisfied depends on the number of particles. The assignments in the particles themselves are fixed: once a
+stimulus has been assigned to a cluster in a particle,
+it cannot be reassigned. However, the probability of a
+previous assignment across particles can change when a
+new stimulus is introduced; when a new set of particles is
+sampled, the number of particles that carry a particular
+assignment of a stimulus to a cluster will likely change.
+As m → ∞, the assignment will not appear to be fixed
+as the particle filter produces exactly the correct answer.
+When m = 1, the the probability of previous assignments
+cannot change, and the criterion is unambiguously satisfied. In fact, the single-particle particle filter is very
+similar to the local MAP algorithm. Each assignment
+of a stimulus becomes fixed on the trial the stimulus is
+introduced. However, instead of selecting the most likely
+cluster for the new stimulus, a cluster is sampled based
+its posterior probability.
+
+P (fi+1,d = j|xi+1 , Fi ) =
+
+bj + βj
+b· + β0 + β1
+
+where bj is the number of stimuli with value j on the dth
+feature in the cluster that partition xi+1 assigns fi+1,d .
+The term b· denotes the number of stimuli in the cluster.
+We use β0 = β1 = 1 in all simulations.
+
+Making accurate predictions
+The local MAP algorithm, Gibbs sampler, and particle
+filter all give approximations to Equation 1. We now
+compare the accuracy of these approximations using the
+first experiment of Medin and Schaffer (1978). There
+were six training stimuli in this experiment with five binary features (including the category label, listed last):
+11111, 10101, 01011, 00000, 01000, and 10110. In an
+experiment with only six training examples, the exact
+solution to Equation 2 can be computed, as can the partition with the highest posterior probability (the global
+MAP solution). The algorithms were trained on the six
+examples, and the last feature of a set of test stimuli
+was then predicted. Three coupling probabilities were
+compared: c = 0.25, c = 0.45, and c = 0.75. The local
+MAP algorithm was run on all 720 possible orders of the
+training stimuli. The Gibbs sampler was run for 1100
+cycles on a single training order. The first 100 cycles
+were discarded and only every 10th cycle was kept for
+a total of 100 samples. The particle filter was run with
+100 particles on a single training order.
+The results shown in the top row of Figure 1 illustrate
+that the coupling parameter does not have a large effect
+on the exact solution of Equation 1. The particle filter
+and Gibbs sampler do a good job of approximating this
+solution, while the local MAP algorithm depends much
+
+Comparing the algorithms
+The existence of alternative algorithms that approximate
+the posterior distribution over partitions makes it possible to tease the predictions of the RMC that stem from
+the underlying statistical model apart from those that
+result from the local MAP algorithm. We do so in two
+729
+
+Global MAP
+
+Local MAP
+
+Particle Filter
+
+Gibbs Sampler
+
+0.55
+0.5
+0.45
+
+r = 0.79
+1
+r2 = 0.74
+r3 = 0.66
+
+0.4
+0.35
+5
+
+4
+
+r = 0.88
+1
+r2 = 0.69
+r3 = 0
+
+3
+2
+5
+4
+3
+Subjects’ Category 1 Ratings
+
+Parameters
+c1 = 0.25
+c2 = 0.45
+c3 = 0.75
+
+Ranked Stimuli
+1 : 1111
+2 : 0101
+3 : 1010
+4 : 1101
+5 : 0111
+6 : 0001
+7 : 1110
+8 : 1000
+9 : 0010
+10 : 1011
+11 : 0100
+12 : 0000
+
+r = 0.88
+1
+r2 = 0.83
+r3 = 0.43
+2
+Model’s Probability of Category 1
+
+Model’s Probability of Category 1
+
+Full Posterior
+0.6
+
+r = 0.78
+1
+r2 = 0.78
+r3 = 0.61
+
+r = 0.78
+1
+r2 = 0.74
+r3 = 0.62
+
+1
+
+Local MAP
+
+Particle Filter
+
+Gibbs Sampler
+
+0.8
+0.6
+0.4
+
+r1 = 0.95
+r2 = 0.94
+r3 = 0.48
+
+0.2
+0
+
+5
+
+4
+
+3
+
+r1 = 0.95
+r2 = 0.89
+r3 = 0.88
+2
+
+5
+4
+3
+2
+5
+Subjects’ Category 1 Ratings
+
+r1 = 0.94
+r2 = 0.93
+r3 = 0.86
+4
+
+3
+
+2
+
+Figure 1: Probability of choosing category 1 for the stimuli from the first experiment of Medin & Schaffer (1978). The
+ratings of the test stimuli (converted to a single six-point scale) are along the horizontal axis. In the first row only
+the first six trials are presented, while in the second row ten blocks of six trials each are presented. The three lines
+in each panel correspond to three different coupling parameters: c1 = 0.25, c2 = 0.45, and c3 = 0.75. Correlations
+between the human data and the simulation data are displayed on each plot for each value of the coupling parameter
+(e.g., correlation r1 corresponds to parameter c1 ).
+more on the coupling parameter. The global MAP solution, which the local MAP algorithm attempts to discover, is not a very good approximation of the full posterior. Overall, these results indicate that the predictions
+of the model can be quite strongly affected by the choice
+of algorithm.
+
+strength of the order effects produced by local MAP and
+the alternative algorithms introduced above.
+In Anderson and Matessa’s experiment, subjects were
+presented with a set of 16 stimuli in one of two orders,
+shown in Table 1. These stimuli were designed to either
+emphasize the first two features (“front-anchored stimuli”) or the last two features (“end-anchored stimuli”) in
+the first eight trials. Subjects were trained in one of the
+two orders. Following the training phase, subjects were
+shown the full set of stimuli on a sheet of paper and
+asked to divide the stimuli into two categories of eight
+stimuli each. The second column of Table 2 shows the
+probability of subjects using one of the first two features
+to split the stimuli into two categories. The stimuli could
+be split along any of the four features.
+
+Fitting human data
+Linear correlations with the human confidence ratings
+reported by Medin and Schaffer (1978) were computed
+for all algorithms described in the previous section, and
+are shown in Figure 1. The fits to the human data for all
+three approximation algorithms improve when they are
+trained on ten blocks of the six stimuli, which is not surprising given that this more closely resembles the training given to human participants. This is illustrated in
+the second row of Figure 1. With ten blocks of training,
+the alternative algorithms predict human ratings equally
+as well or better than the local MAP.
+The predictions of the local MAP algorithm depend
+strongly on the presentation order of the stimuli, since
+cluster assignments are made sequentially and fixed.
+Order effects are found in human cognition (Medin &
+Bettger 1994), but are not predicted by the DPMM because of exchangeability. Using data collected by Anderson and Matessa (Anderson, 1990), we explored the
+
+We compared order effects produced by the three approximation algorithms to the human data. For all three
+algorithms, c = 0.5, the value used for the local MAP
+by Anderson and Matessa (Anderson, 1990). The local
+MAP algorithm produces the same result each time it
+is run on these stimuli. The Gibbs sampler was run for
+20200 cycles. The first 200 cycles were discarded and
+every 20th cycle kept for a total of 1000 samples. The
+particle filter was run 1000 times with either 1 or 100
+particles. The results were restricted to allow only partitions that split the stimuli into two equal-sized groups
+730
+
+Table 1: Presentation Order of Anderson & Matessa Training Stimuli (from Anderson, 1990)
+Order Type
+Front-Anchored
+End-Anchored
+
+Stimuli
+1111, 1101, 0010, 0000, 0011, 0001, 1110, 1100, 0111, 1010, 1000, 0101, 0110, 1011, 1001, 0100
+0100, 0000, 1111, 1011, 0011, 0111, 1000, 1100, 1010, 0001, 0101, 1110, 1001, 0010, 0110, 1101
+
+based on one of the features. The Adjusted Rand Index
+(Hubert & Arabie, 1985), a standard measure of distance
+between partitions, was used to find the similarity of the
+RMC samples to each of the four partitions that split the
+stimuli along a single feature. The single-feature-based
+partition that had the highest Adjusted Rand Index was
+selected as the partition for that sample. If there was a
+tie, one of the best was selected with equal probability.
+The results of the simulations are shown in Table 2.
+The local MAP results illustrate a perfect bias for splitting the categories along the highlighted features: for the
+front-anchored stimuli, one of the first two features will
+always be used, and for the end-anchored stimuli, one
+of the last two features will always be used. Subjects
+showed a bias for the highlighted features, but not as
+strong a bias as predicted by the local MAP algorithm.
+Consistent with the DPMM, the particle filter with 100
+particles and the Gibbs sampler do not show an effect
+of the ordering of the stimuli. Reducing the number of
+particles in the particle filter results in an increased order bias. A particle filter using one particle produces a
+softer bias that is more in line with the human data.
+
+also providing asymptotic performance guarantees. A
+large number of particles will produce an accurate approximation of the posterior, while a small number of
+particles can capture both the variability and the ordersensitivity that people show when considering a sequence
+of stimuli. Varying the number of particles provides a
+way to explore the interaction between cognitive constraints and statistical inference, and a natural framework in which to define models that are rational not just
+in their construal of a computational problem, but in
+their approximate solution. More research is needed to
+test the predictions produced by these algorithms, but a
+particle filter with an intermediate number of particles is
+a promising candidate for explaining how people perform
+approximate Bayesian inference in a range of settings.
+Acknowledgments The authors thank Jonathan Nelson
+and three anonymous reviewers for helpful comments and
+Matthew Loper for running preliminary simulations using
+particle filters in the RMC. Adam Sanborn was supported
+by an NSF Graduate Research Fellowship.
+
+References
+Aldous, D. (1985). Exchangeability and related topics.
+In École d’été de probabilités de Saint-Flour, XIII—1983,
+pages 1–198. Springer, Berlin.
+Anderson, J. R. (1990). The adaptive character of thought.
+Erlbaum, Hillsdale, NJ.
+Anderson, J. R. (1991). The adaptive nature of human categorization. Psychological Review, 98(3):409–429.
+Antoniak, C. (1974). Mixtures of Dirichlet processes with applications to Bayesian nonparametric problems. The Annals
+of Statistics, 2:1152–1174.
+Ashby, F. G. and Alfonso-Reese, L. A. (1995). Categorization
+as probability density estimation. Journal of Mathematical
+Psychology, 39:216–233.
+Blackwell, D. and MacQueen, J. (1973). Ferguson distributions via Polya urn schemes. The Annals of Statistics,
+1:353–355.
+Doucet, A., de Freitas, N., and Gordon, N. (2001). Sequential
+Monte Carlo Methods in Practice. Springer, New York.
+Gilks, W., Richardson, S., and Spiegelhalter, D. J., editors
+(1996). Markov Chain Monte Carlo in Practice. Chapman
+and Hall, Suffolk.
+Hubert, L. and Arabie, P. (1985). Comparing partitions.
+Journal of Classification, 2:193–218.
+Medin, D. L. and Bettger, J. G. (1994). Presentation order
+and recognition of categorically related examples. Psychonomic Bulletin & Review, 1:250–254.
+Medin, D. L. and Schaffer, M. M. (1978). Context theory of
+classification learning. Psychological Review, 85:207–238.
+Murphy, G. L. and Ross, B. H. (1994). Predictions from uncertain categorizations. Cognitive Psychology, 27:148–193.
+Neal, R. M. (1998). Markov chain sampling methods for
+Dirichlet process mixture models. Technical Report 9815,
+Department of Statistics, University of Toronto.
+Nosofsky, R. M. (1986). Attention, similarity, and the
+identification-categorization relationship. Journal of Experimental Psychology: General, 115:39–57.
+Reed, S. K. (1972). Pattern recognition and categorization.
+Cognitive Psychology, 3:393–407.
+
+Conclusion
+Models of human categorization have assumed many different types of representations. The probabilistic model
+underlying the rational model of categorization (Anderson, 1990, 1991) is equivalent to the Dirichlet process
+mixture model used in nonparametric Bayesian statistics. However, exactly calculating the posterior distribution over assignments of stimuli to clusters in this
+model becomes impractical for any reasonable number
+of stimuli, making approximation algorithms necessary.
+We showed that the local MAP algorithm proposed by
+Anderson does not approximate the true posterior distribution well in all situations. The Gibbs sampler and
+particle filter, asymptotically correct algorithms that are
+more widely used in Bayesian statistics, produced closer
+approximations. These alternative algorithms thus allow us to directly test Anderson’s assumptions about
+the computational problem underlying categorization.
+Part of the motivation for Anderson’s (1990, 1991) local MAP algorithm was a desire for a procedure that
+could plausibly be used by people. The particle filter
+provides a nice alternative to the local MAP algorithm,
+having the same psychologically plausible properties, but
+Table 2: Probability of Clustering Stimuli Along Either
+of the First Two Features in Anderson & Matessa Data
+Method
+
+Experimental Data
+Local MAP
+Gibbs Sampler
+Particle Filter (100)
+Particle Filter (1)
+
+Order Type
+Front-Anchored End-Anchored
+0.55
+0.30
+1.00
+0.00
+0.48
+0.49
+0.50
+0.50
+0.59
+0.38
+
+731
+
+

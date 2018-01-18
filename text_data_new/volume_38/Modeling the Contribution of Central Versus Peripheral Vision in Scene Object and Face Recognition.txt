@@ -1,0 +1,461 @@
+Modeling the Contribution of Central Versus Peripheral Vision in Scene, Object,
+and Face Recognition
+Panqu Wang (pawang@ucsd.edu)
+Department of Electrical and Engineering, University of California San Diego
+9500 Gilman Dr 0407, La Jolla, CA 92093 USA
+
+Garrison W. Cottrell (gary@ucsd.edu)
+Department of Computer Science and Engineering, University of California San Diego
+9500 Gilman Dr 0404, La Jolla, CA 92093 USA
+Abstract
+
+mid-level visual areas (V1-V4), but also in higher-level regions, where perception and recognition for faces or scenes
+is engaged (Malach, Levy, & Hasson, 2002; Grill-Spector &
+Malach, 2004). More specifically, Malach et al. (2002) proposed that the need for visual resolution is a crucial factor
+in organizing object areas in higher-level visual cortex: object recognition that depends more on fine detail is associated
+with central-biased representations, such as faces and words;
+object recognition that depends more on large-scale integration is associated with peripheral-biased representations, such
+as buildings and scenes. This hypothesis is supported by
+fMRI evidence, which shows that the brain areas that are
+more activated for faces (FFA; Kanwisher, McDermott, and
+Chun (1997)) and words (VWFA; McCandliss, Cohen, and
+Dehaene (2003)) sit in the eccentricity band expanded by
+central visual-field bias, whereas buildings and scenes (PPA;
+Epstein, Harris, Stanley, and Kanwisher (1999)) are associated with peripheral bias. More recent studies even suggest that the central-biased pathway for recognizing faces and
+peripheral-biased pathway for recognizing scenes are segregated by mid-fusiform sulcus (MFS) to enable fast parallel
+processing (Gomez et al., 2015).
+
+It is commonly believed that the central visual field (fovea and
+parafovea) is important for recognizing objects and faces, and
+the peripheral region is useful for scene recognition. However,
+the relative importance of central versus peripheral information for object, scene, and face recognition is unclear. Larson
+and Loschky (2009) investigated this question in the context of
+scene processing using experimental conditions where a circular region only reveals the central visual field and blocks
+peripheral information (”Window”), and in a ”Scotoma” condition, where only the peripheral region is available. They
+measured the scene recognition accuracy as a function of visual angle, and demonstrated that peripheral vision was indeed
+more useful in recognizing scenes than central vision in terms
+of achieving maximum recognition accuracy. In this work,
+we modeled and replicated the result of Larson and Loschky
+(2009), using deep convolutional neural networks (CNNs).
+Having fit the data for scenes, we used the model to predict
+future data for large-scale scene recognition as well as for objects and faces. Our results suggest that the relative order of
+importance of using central visual field information is face
+recognition>object recognition>scene recognition, and viceversa for peripheral information. Furthermore, our results predict that central information is more efficient than peripheral
+information on a per-pixel basis across all categories, which is
+consistent with Larson and Loschky’s data.
+Keywords: face recognition; object recognition; scene recognition; central and peripheral vision; deep neural networks
+
+Introduction
+Viewing a real-world scene occupies the entire visual field,
+but the visual resolution across the visual field varies. The
+fovea, a small region in the center of the visual field that subtends approximately 1◦ of visual angle (Polyak, 1941), perceives the highest visual resolution of 20 to 45 cycles/degree
+(cpd) (Loschky, McConkie, Yang, & Miller, 2005). The
+parafovea has a slightly lower visual resolution and extends
+to about 4-5◦ eccentricity, where the highest density of rods
+is found (Wandell, 1995). Beyond the parafovea is generally
+considered to be peripheral vision (Holmes, Cohen, Haith, &
+Morrison, 1977), which receives the lowest visual resolution.
+Due to the high density and small receptive field of retinal
+receptors,the central (foveal and parafoveal) vision encodes
+information of higher spatial frequency and more detail; peripheral vision, on the contrary, encodes coarser and lower
+spatial frequency information.
+This retinotopic representation of the visual field is mapped
+to visual cortical areas through a log-polar representation.
+Recent studies have shown that orderly central and peripheral representations can be found not only in low-level to
+
+In the domain of behavioral research, studies have shown
+that object perception performance is the best around 1◦ -2◦
+of fixation point and drops rapidly as eccentricity increases
+(Henderson & Hollingworth, 1999; Nelson & Loftus, 1980).
+For scene recognition, Larson and Loschky (2009) used a
+”Window” and ”Scotoma” design (see Figure 1), to test the
+contributions of central versus peripheral vision to scene
+recognition. The Window condition (top rows of the righthand columns of Figure 1) presents central information at
+various visual angles to the subjects, while the Scotoma condition (second row on the right) blocks it. Using images from
+10 categories, subjects were required to verify the category
+in each condition. The recognition accuracy as a function of
+visual angle is shown in Figure 2. They found that foveal
+vision is not accurate for scene perception, while peripheral
+vision is, despite its much lower resolution. However, they
+also found that central vision is more efficient, in the sense
+that less area is needed to achieve equal accuracy. The visual
+area is equal at 10.8◦ , and the crossover point, where central
+vision starts to perform better than peripheral, is to the left of
+that point.
+
+1409
+
+Despite the common belief that central vision is important
+for face and object recognition, and peripheral vision is important for scene perception shown in studies above, a careful
+examination of the contribution of central versus peripheral
+vision in object, scene, and face recognition is needed. In this
+work, we modeled the experiment of Larson and Loschky
+(2009) using deep convolutional neural networks. Furthermore, we extended the modeling work to a greater range of
+stimuli, and answer the following questions: How does the
+model perform as the number of scene categories is scaled
+up? Besides scenes, can the model predict the importance
+of central vision versus peripheral information in object and
+face recognition? What is the result compared to scenes?
+In the following, we show that our modeling results match
+the observations of Larson and Loschky (2009), and that it
+scales up to over 200 scene categories. By running a similar analysis for large-scale object and face recognition, our
+model predicts that central vision is very important for face
+recognition, important for object recognition, and less important for scene recognition. Peripheral vision, however, serves
+an important role for scene recognition, but is less important for recognizing objects and faces. Furthermore, across
+all conditions we tried, central vision is more efficient than
+peripheral vision on a per-pixel basis (when equal areas are
+presented), which is consistent with the result of Larson and
+Loschky (2009).
+
+Figure 1: Examples of images used in our experiment. First
+column: original images. Second column: foveated images.
+Third to last column: images processed through ”Window”
+and ”Scotoma” conditions with different radii in degrees of
+visual angle.
+3◦ , 7◦ , 9◦ , 12◦ , and 16◦ . The example Window and Scotoma
+images are shown in Figure 1.
+
+Deep Convolutional Neural Networks (CNNs)
+
+Method
+Image Preprocessing
+To create foveated images, we preprocessed the images using
+the Space Variant Imaging System1 . To mimic human vision,
+we set the parameter that specifies the eccentricity at which
+resolution drops to half of the fovea to 2.3◦ . Example images
+and their preprocessed retinal versions are shown in the first
+and second columns of Figure 1.
+As in the experiments of Larson and Loschky (2009), we
+used the Window and Scotoma paradigms as specified by van
+Diepen, Wampers, and dYdewalle (1998) to process the input
+stimulus. The idea of both paradigms is to evaluate the value
+of missing information - if the missing information is needed,
+then the perception process may be disrupted and recognition
+performance may drop; if the missing information is not necessary, then the processing remains normal.
+Input images in our experiments are 256 × 256 pixels, and
+we assume that corresponds to 27◦ × 27◦ of visual angle,
+the number in (Larson & Loschky, 2009). In (Larson &
+Loschky, 2009), they used four sets of radius conditions for
+Windows and Scotomas: 1◦ represents the presence or absence of foveal vision; 5◦ represents the presence or absence
+of central vision; 10.8◦ presents equal viewable area inside
+the Windows or outside the Scotomas; 13.6◦ presents more
+viewable area in the Windows than the Scotomas. In order
+make the prediction of the model more accurate, we added
+five additional radius conditions in all of our experiments:
+1 http://svi.cps.utexas.edu/software.shtml
+
+Deep CNNs are neural networks with many layers that stack
+computations in a hierarchical way, repeatedly performing:
+1) 2-dimensional convolutions over the stimulus generated
+from previous layers using learned filters, which are connected locally to a small subregion of the visual field; 2) a
+pooling operation on local regions of the feature maps obtained from convolution operation, which is used to reduce
+the dimensionality and gain translational invariance; 3) nonlinearities to the upstream response, which is used to generate more discriminative features useful for the task. As layers
+go higher, the receptive fields of filters are generally larger,
+and the learned features go from low-level (edges, contours)
+to high-level object-related representations (object parts and
+shapes) (Zeiler & Fergus, 2014). Several fully-connected layers are usually added on top of these computations to learn
+more abstract and task-related features.
+We used deep CNNs in our experiments for two reasons.
+First, deep CNNs are the best models in computer vision:
+they achieve the state-of-the-art performance on many largescale computer vision tasks, such as image classification
+(Krizhevsky, Sutskever, & Hinton, 2012; He, Zhang, Ren,
+& Sun, 2015), object detection (Ren, He, Girshick, & Sun,
+2015), and scene recognition (Zhou, Lapedriza, Xiao, Torralba, & Oliva, 2014). Thus, the models should achieve decent performance in our experiments. Smaller networks or
+other algorithms are not competent for our tasks. Second,
+deep CNNs have been shown to be the best models of the visual cortex: they are able to explain a variety of neural data
+in human and monkey IT (Yamins et al., 2014; Güçlü & van
+Gerven, 2015; Wang, Malave, & Cipollini, 2015). As a result,
+
+1410
+
+it is natural to use them in our work modeling a behavioral
+study related to human vision.
+
+Experiments
+In this section, we first describe our model of the behavioral
+study of Larson and Loschky (2009). We then introduce the
+experiment for measuring the contribution of central versus
+peripheral vision for large-scale scene, object, and face recognition tasks.
+
+Modeling Larson and Loschky (2009)
+In Larson and Loschky (2009), scene recognition accuracy
+was measured across 100 human subjects on 10 categories:
+Beach, Desert, Forest, Mountain, River, Farm, Home, Market, Pool, and Street. For each trial in the Windows and Scotomas conditions, subjects were first presented a scene image, and then were asked to press ”yes” or ”no” for the cue
+(category name) presented on the screen. Their experimental
+result is summarized in Figure 2. They showed that central
+vision (5◦ window condition) performs less well than peripheral vision in terms of getting maximum recognition performance. They further demonstrated the peripheral advantage
+is due to more viewing areas in the Scotomas conditions, and
+central vision is more privileged when given equal viewable
+areas (10.8◦ ).
+We obtained the stimuli of the above 10 categories from
+the Places205 database (Zhou et al., 2014), which contains
+205 scene categories and 2.5 million images. All input stimuli were preprocessed using the retina model described in the
+above section. As 10 categories is small and can easily lead
+to overfitting problems in training deep CNNs, we trained
+our recognition model by performing fine-tuning (or transfer
+learning) based on pretrained models. The model pretrained
+on the Places205 database can be treated as a mature scene
+recognition pathway, and fine-tuning can be thought as additional training for the task. To investigate whether different
+network architectures, especially depth, have different impact
+on the modeling result, we applied three different pre-trained
+models, namely:
+
+Figure 2: Results for scene recognition accuracy as a function of viewing condition (Windows (w) and Scotomas (s))
+and visual angle. Left: result of Larson and Loschky (2009).
+Right: our modeling result.
+
+1. AlexNet (Krizhevsky et al., 2012): A network with 5 convolutional layers and 3 fully connected layers, about 60
+million trainable parameters. Achieved 81.10% top-5 accuracy on the Places205 validation set.
+2. VGG-16 (Simonyan & Zisserman, 2014): A network with
+13 convolutional layers and 3 fully connected layers, about
+138 million trainable parameters. Achieved 85.41% top-5
+accuracy on the Places205 validation set.
+3. GoogLeNet (Szegedy et al., 2015): A network with 21
+convolutional layers and 1 fully connected layer, about 6.8
+million trainable parameters. Achieved 87.70% top-5 accuracy on the Places205 validation set.
+For all models, the fine-tuning process starts by keeping the
+weights except for the last fully connected layer intact, and
+
+initializing the weights of the last layer to be random with
+zero mean and unit variance. To be compatible with the ”yes”
+or ”no” condition in the behavioral experiment, we replaced
+the last layer in the networks with a single logistic unit, and
+trained the networks for each of the 10 object categories separately, using half of the training images from the target category and half randomly selected from all other 9 categories.
+As the last layer needs more learning, we set the learning rate
+of the last layer to 0.001, and all previous layers to 1e−4 . The
+training set of the 10 scene categories contains a total number of 129,210 full resolution images, and we trained all networks using minibatch stochastic gradient descent with batch
+size from 32 to 256, using the Caffe deep learning framework
+(Jia et al., 2014) on NVIDIA Titan Black 6GB GPUs. All
+networks were trained for a maximum number of 24,000 iterations to ensure convergence. Each test set contains 200
+images (100 from target category and 100 from all other categories), and the label distribution is the same as the training
+set.. Test images were preprocessed to meet each of the Windows and Scotomas condition. We tested the performance of
+the fine-tuned models on all conditions by reporting the mean
+classification accuracy, which is shown in Figure 2.
+From Figure 2, we can clearly see our result for all
+three models qualitatively matches the result of Larson and
+Loschky (2009). First, for Window and Scotoma conditions,
+an increasing radius of visual angle (x axis) yields a monotonic increase or decrease in classification accuracy (y axis).
+The sharper increase from 1◦ to 5◦ in the behavioral study
+may be due to the higher efficiency of human central vision.
+Second, we replicated the fact that central vision (less than
+5◦ ) is less useful than peripheral vision in terms achieving the
+best scene recognition performance. Third, however, when
+using equal viewable areas (10.8◦ ), central vision performs
+better than peripheral, exhibiting higher efficiency. Fourth,
+the critical radius (the crossover point where the two conditions produce equal performance, see Figure 2b) is 8.26◦
+(averaged across all models), which is within the 8.22◦ -9.24◦
+range reported by Larson and Loschky (2009). This suggests
+our models are quite plausible.
+
+1411
+
+Figure 3: Results for large-scale scene recognition accuracy
+as a function of viewing condition (Windows (w) and Scotomas (s)) and visual angle. Softmax output is used instead
+of logistic unit, so chance is 0.005. Left: experiment using
+original images. Right: experiment using foveated images.
+
+Figure 4: Results for large-scale object recognition accuracy
+as a function of viewing condition (Windows (w) and Scotomas (s)) and visual angle. Softmax output is used instead
+of logistic unit, so chance is 0.001. Left: experiment with
+original images. Right: experiment with foveated images.
+
+When comparing the performance across the three models
+we use, we cannot find a notable difference in terms of performance, though GoogLeNet usually performs slightly better,
+indicating that depth of processing might be the key factor in
+obtaining better performance.
+
+which contains 1000 object categories and over 1.2 million
+training images. We used the pretrained models of AlexNet,
+VGG-16, and GoogLeNet, which achieve top-5 accuracy of
+80.13%, 88.44%, and 89.00%, respectively, on the ILSVRC
+2012 validation set. Similar to scene recognition, we tested
+all models under all Windows and Scotoma conditions, using original and foveated images. The results are shown in
+Figure 4.
+
+Large-Scale Scene, Object, and Face Recognition
+The above modeling work is based on a scene recognition
+task using 10 categories. In real life, however, there are a
+much larger number of scene categories. Beyond scenes, general object recognition and face recognition are the two most
+important recognition tasks that are performed regularly. The
+relative importance of central versus peripheral vision among
+the three categories needs to be examined carefully. Using a
+similar modeling approach, we describe our findings in largescale scene, object, and face recognition in the sections below.
+Scene Recognition We used all 205 categories in the
+Places205 dataset. The trained models of AlexNet, VGG-16,
+and GoogLeNet are deployed to examine the recognition accuracy on the Place205 validation set, which contains 20, 500
+images, in all Windows and Scotoma conditions. In addition,
+we tested the models using images both processed and unprocessed by the retina model to examine the generalization
+power of the learned features. The result is shown in Figure 3.
+From Figure 3, we can see the general trend that we observed in Figure 2 still holds: peripheral vision is more important than central vision, but central vision is more efficient.
+All models behave similarly. However, we can see the performance on images preprocessed through the retina model is
+inferior. Apparently, since there are many more categories in
+this experiment, the foveation has more of an effect. Recall
+that the models are trained using images with full resolution;
+missing the peripheral information may the cause learned features to imperfectly generalize.
+Object Recognition We ran our object recognition experiment on the ILSVRC 2012 dataset (Russakovsky et al., 2015),
+
+At the first glance of looking at Figure 4, we may draw the
+conclusion that the result is the same as scene recognition:
+central vision is still more important than peripheral vision.
+However, when we compare the scene and object recognition results (shown in Figure 5), we can clearly see that central information in object recognition is more important than
+that in scene recognition: the accuracy of the Scotoma conditions drops much faster for object recognition than scene
+recognition as visual angle increases from 1◦ to 7◦ , suggesting that losing central vision causes a greater impairment for
+object recognition performance. This is consistent with our
+knowledge that central vision plays a more important role in
+object recognition than scenes, as there are more high spatial frequency details in objects than scenes. Another finding from this experiment is that AlexNet (8 layers) performs
+much worse than VGG-16 (16 layers) and GoogLeNet (23
+layers), suggesting that depth is important to produce good
+performance.
+Face Recognition We performed the face recognition experiment on the Labeled Faces in the Wild (LFW) dataset
+(Huang, Ramesh, Berg, & Learned-Miller, 2007), which contains 13, 233 labeled images from 5, 749 individuals. As there
+is only 1 image for some identities, researchers usually pretrain their network on larger datasets (not publicly available)
+and test their models on the LFW dataset. In this experiment,
+we tested three pretrained models, namely Lighten-A (10 layers; (Wu, He, & Sun, 2015)), Lighten-B (16 layers), and
+VGG-Face (16 layers;(Parkhi, Vedaldi, & Zisserman, 2015)),
+
+1412
+
+Figure 5: Comparison results for scene and object recognition
+using the VGG-16 model. Losing central vision decreases
+performance for object recognition more quickly than scene
+recognition. Left: original images. Right: foveated images.
+on the face verification task for the LFW dataset, where they
+achieve accuracy of 90.33%, 92.37%, and 96.23%, respectively. Face images were preprocessed so that they occupy
+the entire visual field (Figure 1). Same as the previous experiments, we tested all models using Windows and Scotoma
+conditions, with original and foveated images. Results are
+shown in Figure 6.
+We see very different performance in Figure 6 compared
+to object and scene recognition. First, central information
+is obviously much more important than peripheral information for face recognition, given the accuracy at 5◦ is much
+higher for the Window condition than the Scotoma condition
+for Lighten models, and very similar with each other for the
+VGG model. This is consistent with our intuition that face
+recognition is a fine-grained discrimination process. Second,
+the Window performance grows much more slowly after 7◦ ,
+suggesting the more peripheral region provides little additional information for recognizing faces, unlike objects and
+scenes, which needs lots of peripheral information to obtain
+the maximal accuracy. Third, the foveated images produce
+nearly identical results as the original image, demonstrating
+that face recognition only involves central vision, and the
+blurred peripheral vision is not needed.
+Finally, as central vision appears to be more efficient (on a
+per-pixel basis) than peripheral vision in all experiments we
+tried, we tested the relative efficiency of the central vision
+over peripheral vision by measuring the recognition accuracy
+as a function of viewable area. The result is shown in Figure 7.
+From Figure 7, we can clearly see that the recognition accuracy of central vision is always superior than peripheral
+vision for all tasks. However, central vision is even more
+efficient when recognizing faces than recognizing objects or
+scenes, as viewable areas over 50% of the whole image can
+only provide a limited boost for face recognition, while significantly improving the accuracy of object and scene recognition. Contrarywise, peripheral information provides little to
+no help for face recognition, unless over 90% of the image is
+
+Figure 6: Results for large-scale face recognition accuracy
+as a function of viewing condition (Windows (w) and Scotomas (s)) and visual angle. Left: experiment with original images. Right: experiment with foveated images. For
+Lighten-A and Lighten-B models, the visual angle only expands to 9.5◦ , as the input image is smaller (144 × 144) than
+for the VGG model (256 × 256). The accuracy for face verification task is measured as the true positive rate at Equal Error
+Rate (EER) point on the ROC curve. Chance is 0.5.
+presented, but the accuracy still suffers due to the loss of central vision. However, peripheral information is important for
+object and scene recognition (and more important for scene
+recognition, as shown in Figure 5).
+These large-scale scene, object, and face recognition modeling results suggest there is an order of relative importance
+of central versus peripheral vision in those tasks: peripheral
+vision is most important for scene recognition, less important for object recognition, and basically not helpful for face
+recognition. Central vision, however, plays a crucial role in
+face recognition, is important for object recognition, and is
+less important for scene recognition.
+
+Conclusion
+In this paper, we modeled the contribution of central versus peripheral visual information for scene, object, and face
+recognition, using deep CNNs. We first modeled the behavioral study of Larson and Loschky (2009), and replicated their
+findings of the importance of peripheral vision in scene recognition. In addition, by running a large-scale scene, object, and
+face recognition simulation, our models make testable predictions for the relative order of importance for central versus
+peripheral vision for those tasks.
+
+Acknowledgments
+This work was supported by NSF grants IIS-1219252 and
+SMA 1041755 to GWC. PW was supported by a fellowship
+from Hewlett-Packard.
+
+References
+Epstein, R., Harris, A., Stanley, D., & Kanwisher, N. (1999).
+The parahippocampal place area: Recognition, navigation,
+or encoding? Neuron, 23(1), 115–125.
+
+1413
+
+Figure 7: Accuracy for object (left), scene (middle) and face
+(right) recognition as a function of the percentage of viewable area presented under Window (blue) and Scotoma (red)
+conditions, using original (solid line) and foveated images
+(dashed line).
+Gomez, J., Pestilli, F., Witthoft, N., Golarai, G., Liberman,
+A., Poltoratski, S., . . . Grill-Spector, K. (2015). Functionally defined white matter reveals segregated pathways
+in human ventral temporal cortex associated with categoryspecific processing. Neuron, 85(1), 216–227.
+Grill-Spector, K., & Malach, R. (2004). The human visual
+cortex. Annu. Rev. Neurosci., 27, 649–677.
+Güçlü, U., & van Gerven, M. A. (2015). Deep neural networks reveal a gradient in the complexity of neural representations across the ventral stream. The Journal of Neuroscience, 35(27), 10005–10014.
+He, K., Zhang, X., Ren, S., & Sun, J. (2015). Deep
+residual learning for image recognition. arXiv preprint
+arXiv:1512.03385.
+Henderson, J. M., & Hollingworth, A. (1999). The role of fixation position in detecting scene changes across saccades.
+Psychological Science, 10(5), 438–443.
+Holmes, D. L., Cohen, K. M., Haith, M. M., & Morrison,
+F. J. (1977). Peripheral visual processing. Perception &
+Psychophysics, 22(6), 571–577.
+Huang, G. B., Ramesh, M., Berg, T., & Learned-Miller, E.
+(2007). Labeled faces in the wild: A database for studying face recognition in unconstrained environments (Tech.
+Rep. No. 07-49). University of Massachusetts, Amherst.
+Jia, Y., Shelhamer, E., Donahue, J., Karayev, S., Long, J.,
+Girshick, R., . . . Darrell, T. (2014). Caffe: Convolutional
+architecture for fast feature embedding. arXiv preprint
+arXiv:1408.5093.
+Kanwisher, N., McDermott, J., & Chun, M. M. (1997). The
+fusiform face area: a module in human extrastriate cortex specialized for face perception. The Journal of Neuroscience, 17(11), 4302–4311.
+Krizhevsky, A., Sutskever, I., & Hinton, G. E. (2012). Imagenet classification with deep convolutional neural networks. In Advances in neural information processing systems (pp. 1097–1105).
+Larson, A. M., & Loschky, L. C. (2009). The contributions
+
+of central versus peripheral vision to scene gist recognition.
+Journal of Vision, 9(10), 6.
+Loschky, L., McConkie, G., Yang, J., & Miller, M. (2005).
+The limits of visual resolution in natural scene viewing. Visual Cognition, 12(6), 1057–1092.
+Malach, R., Levy, I., & Hasson, U. (2002). The topography of high-order human object areas. Trends in cognitive
+sciences, 6(4), 176–184.
+McCandliss, B. D., Cohen, L., & Dehaene, S. (2003). The
+visual word form area: expertise for reading in the fusiform
+gyrus. Trends in cognitive sciences, 7(7), 293–299.
+Nelson, W. W., & Loftus, G. R. (1980). The functional visual field during picture viewing. Journal of Experimental
+Psychology: Human Learning and Memory, 6(4), 391.
+Parkhi, O. M., Vedaldi, A., & Zisserman, A. (2015). Deep
+face recognition. In British machine vision conference.
+Polyak, S. L. (1941). The retina.
+Ren, S., He, K., Girshick, R., & Sun, J. (2015). Faster rcnn: Towards real-time object detection with region proposal networks. In Advances in neural information processing systems (pp. 91–99).
+Russakovsky, O., Deng, J., Su, H., Krause, J., Satheesh, S.,
+Ma, S., . . . Fei-Fei, L. (2015, April). ImageNet Large
+Scale Visual Recognition Challenge. International Journal
+of Computer Vision (IJCV), 1-42. doi: 10.1007/s11263015-0816-y
+Simonyan, K., & Zisserman, A. (2014). Very deep convolutional networks for large-scale image recognition. arXiv
+preprint arXiv:1409.1556.
+Szegedy, C., Liu, W., Jia, Y., Sermanet, P., Reed, S.,
+Anguelov, D., . . . Rabinovich, A. (2015, June). Going
+deeper with convolutions..
+van Diepen, P. M., Wampers, M., & dYdewalle, G. (1998).
+Functional division of the visual field: Moving masks and
+moving windows. Eye guidance in reading and scene perception, 337–355.
+Wandell, B. A. (1995). Foundations of vision. Sinauer Associates.
+Wang, P., Malave, V., & Cipollini, B. (2015). Encoding
+voxels with deep learning. The Journal of Neuroscience,
+35(48), 15769–15771.
+Wu, X., He, R., & Sun, Z. (2015). A lightened cnn for deep
+face representation. arXiv preprint arXiv:1511.02683.
+Yamins, D. L., Hong, H., Cadieu, C. F., Solomon, E. A., Seibert, D., & DiCarlo, J. J. (2014). Performance-optimized hierarchical models predict neural responses in higher visual
+cortex. Proceedings of the National Academy of Sciences,
+111(23), 8619–8624.
+Zeiler, M. D., & Fergus, R. (2014). Visualizing and understanding convolutional networks. In Computer vision–eccv
+2014 (pp. 818–833). Springer.
+Zhou, B., Lapedriza, A., Xiao, J., Torralba, A., & Oliva, A.
+(2014). Learning deep features for scene recognition using
+places database. In Advances in neural information processing systems (pp. 487–495).
+
+1414
+
+
