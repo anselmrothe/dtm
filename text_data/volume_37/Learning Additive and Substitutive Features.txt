@@ -1,382 +1,609 @@
-                                   Learning Additive and Substitutive Features
-                                                   Ting Qian (ting qian@brown.edu)
-                                        Joseph Austerweil (joseph austerweil@brown.edu)
-                         Department of Cognitive, Linguistic, and Psychological Sciences, 190 Thayer Street
-                                                           Providence, RI 02912 USA
-                               Abstract                                   as well. For instance, if we are given a group of cats and in-
-   To adapt in an ever-changing world, people infer what basic            fer “having whiskers”, “making meow sounds”, “furry”, and
-   units should be used to form concepts and guide generaliza-            “hairless” as the features for the concept “cat”, then a novel
-   tions. While recent computational models of human repre-               animal which both meows and looks furry is most likely a cat.
-   sentation learning have successfully predicted how people dis-
-   cover features from high-dimensional input in a number of do-          However, this additive assumption can be problematic when
-   mains (Austerweil & Griffiths, 2013), the learned features are         features are substitutive (Garner, 1978). For example, a cat is
-   assumed to be additive. However, this assumption is not al-            either furry or hairless, but it cannot be both furry and hair-
-   ways true in the real world. Sometimes a basic unit is substitu-
-   tive (Garner, 1978), which means it can only be one value out          less – they are two values of a “hair” feature. When learning
-   of a set of discrete values. For example, a cat is either furry        features from raw sensory input, people are not told whether
-   or hairless, but not both. In this paper, we explore how people        a feature is additive or substitutive, but must infer this while
-   form representations for substitutive features, and what com-
-   putational principles guide such behavior. In a behavioral ex-         constructing features. How do people infer whether a newly
-   periment, we show that not only are people capable of forming          constructed feature is additive or substitutive?
-   substitutive feature representations, but they also infer whether         Previous work has identified psychological consequences
-   a feature should be additive or substitutive depending on the
-   observed input. This learning behavior is predicted by our             of features being additive or substitutive (Garner, 1978; Gati
-   novel extension to the Austerweil and Griffiths (2011, 2013)’s         & Tversky, 1982; Kemp, 2012). For example, Kemp (2012)
-   feature construction framework, but not their original model.          found that some categories are easier to learn when they are
-   Our work contributes to the continuing effort to understand
-   how people form representations of the world.                          defined as substitutive rather than additive features. In these
-   Keywords: learning; additive features; substitutive features;
-                                                                          studies, participants knew whether a feature was additive or
-   Bayesian nonparametric modeling; feature learning                      substitutive based on prior knowledge. However, how do
-                                                                          people learn whether a newly constructed feature is additive
-                           Introduction                                   or substitutive in the first place (in which case, it might be-
-People have the remarkable capability of forming concepts                 come prior knowledge in the future)? Building on the work
-that enable them to generalize beyond what they have en-                  of Austerweil and Griffiths (2011, 2013), we present a novel
-countered so as to guide their behavior. To form these con-               computational model for capturing how people construct fea-
-cepts, one must deal with uncertainty, not only of what ob-               tures from raw sensory input, while learning whether those
-jects are present, but also of what the basic units of objects are        features should be additive or substitutive. The new model
-– or “features” – that represent the objects. Most theoretical            predicts a bias towards learning substitutive features when
-frameworks of concept learning treat these basic units as im-             parts of objects are negatively correlated in the input, and we
-mediately available to learners. However, there are an infinite           find support for this tendency in a behavioral experiment.
-array of properties that could be used as features to encode                 The outline of the paper is as follows. First, we review
-objects (Goodman, 1972), raising the question of whether                  Austerweil and Griffiths (2013)’s feature construction frame-
-people infer these basic units from their observations of the             work. Next, we develop a novel Bayesian nonparametric
-world, and if so, how. Recently, Austerweil and Griffiths                 model that constructs features while learning whether each
-(2011, 2013) presented a computational framework for ex-                  of those features should be substitutive or additive. Then,
-plaining how people construct feature representations from                we present a behavioral experiment testing a prediction of
-raw sensory input. Their framework captures several theo-                 the proposed model and demonstrate that it explains human
-retical aspects of human feature construction (e.g., arbitrary            behavior better than the original model from Austerweil and
-number of features and context sensitivity), as well as em-               Griffiths (2011). Finally, we discuss the implications of our
-pirical studies of human feature construction. Their findings             results and some directions for future research.
+Learning Additive and Substitutive Features
+Ting Qian (ting qian@brown.edu)
+Joseph Austerweil (joseph austerweil@brown.edu)
+Department of Cognitive, Linguistic, and Psychological Sciences, 190 Thayer Street
+Providence, RI 02912 USA
+Abstract
+To adapt in an ever-changing world, people infer what basic
+units should be used to form concepts and guide generalizations. While recent computational models of human representation learning have successfully predicted how people discover features from high-dimensional input in a number of domains (Austerweil & Griffiths, 2013), the learned features are
+assumed to be additive. However, this assumption is not always true in the real world. Sometimes a basic unit is substitutive (Garner, 1978), which means it can only be one value out
+of a set of discrete values. For example, a cat is either furry
+or hairless, but not both. In this paper, we explore how people
+form representations for substitutive features, and what computational principles guide such behavior. In a behavioral experiment, we show that not only are people capable of forming
+substitutive feature representations, but they also infer whether
+a feature should be additive or substitutive depending on the
+observed input. This learning behavior is predicted by our
+novel extension to the Austerweil and Griffiths (2011, 2013)’s
+feature construction framework, but not their original model.
+Our work contributes to the continuing effort to understand
+how people form representations of the world.
+Keywords: learning; additive features; substitutive features;
+Bayesian nonparametric modeling; feature learning
+
+Introduction
+People have the remarkable capability of forming concepts
+that enable them to generalize beyond what they have encountered so as to guide their behavior. To form these concepts, one must deal with uncertainty, not only of what objects are present, but also of what the basic units of objects are
+– or “features” – that represent the objects. Most theoretical
+frameworks of concept learning treat these basic units as immediately available to learners. However, there are an infinite
+array of properties that could be used as features to encode
+objects (Goodman, 1972), raising the question of whether
+people infer these basic units from their observations of the
+world, and if so, how. Recently, Austerweil and Griffiths
+(2011, 2013) presented a computational framework for explaining how people construct feature representations from
+raw sensory input. Their framework captures several theoretical aspects of human feature construction (e.g., arbitrary
+number of features and context sensitivity), as well as empirical studies of human feature construction. Their findings
 synthesize and complement previous research in the literature
 that shows people are able to infer features of objects from
-                                                                                        Modeling Feature Learning
-their environment (Schyns, Goldstone, & Thibaut, 1998).                   Inferring latent features in binary images
-   Computational models of feature learning typically as-                 Viewing feature learning as Bayesian nonparametric infer-
-sume that features are independent and additive (Austerweil               ence is one proposed explanation of how people discover
-& Griffiths, 2013; Goldstone, Greganov, Landy, & Roberts,                 the features of objects (Austerweil & Griffiths, 2013). For
-2008). That is, given a set of features inferred from objects             the particular problem of feature learning with binary im-
-of the same concept, a novel object exhibiting a combination              ages, the Indian Buffet Process (IBP; Griffiths & Ghahra-
-of those features should also be an instance of that concept              mani, 2011) with a noisy-or likelihood function (the IBP
-                                                                     1919
+their environment (Schyns, Goldstone, & Thibaut, 1998).
+Computational models of feature learning typically assume that features are independent and additive (Austerweil
+& Griffiths, 2013; Goldstone, Greganov, Landy, & Roberts,
+2008). That is, given a set of features inferred from objects
+of the same concept, a novel object exhibiting a combination
+of those features should also be an instance of that concept
 
-noisy-or model; Wood, Griffiths, & Ghahramani, 2006) is                baum, and Griffiths (2015). Here we describe the genera-
-typically used (Austerweil & Griffiths, 2013). According to            tive process definition. First, the probability of the nth object
-this model, the learning problem is formalized as finding the          having a pre-existing feature k is proportional to number of
-most probable assignment of features to objects Z and feature          objects that already have feature k (i.e., mk in Equation 2),
-images Y given the raw sensory input of a set of objects X.            divided by the number of objects observed so far (i.e., n):
+as well. For instance, if we are given a group of cats and infer “having whiskers”, “making meow sounds”, “furry”, and
+“hairless” as the features for the concept “cat”, then a novel
+animal which both meows and looks furry is most likely a cat.
+However, this additive assumption can be problematic when
+features are substitutive (Garner, 1978). For example, a cat is
+either furry or hairless, but it cannot be both furry and hairless – they are two values of a “hair” feature. When learning
+features from raw sensory input, people are not told whether
+a feature is additive or substitutive, but must infer this while
+constructing features. How do people infer whether a newly
+constructed feature is additive or substitutive?
+Previous work has identified psychological consequences
+of features being additive or substitutive (Garner, 1978; Gati
+& Tversky, 1982; Kemp, 2012). For example, Kemp (2012)
+found that some categories are easier to learn when they are
+defined as substitutive rather than additive features. In these
+studies, participants knew whether a feature was additive or
+substitutive based on prior knowledge. However, how do
+people learn whether a newly constructed feature is additive
+or substitutive in the first place (in which case, it might become prior knowledge in the future)? Building on the work
+of Austerweil and Griffiths (2011, 2013), we present a novel
+computational model for capturing how people construct features from raw sensory input, while learning whether those
+features should be additive or substitutive. The new model
+predicts a bias towards learning substitutive features when
+parts of objects are negatively correlated in the input, and we
+find support for this tendency in a behavioral experiment.
+The outline of the paper is as follows. First, we review
+Austerweil and Griffiths (2013)’s feature construction framework. Next, we develop a novel Bayesian nonparametric
+model that constructs features while learning whether each
+of those features should be substitutive or additive. Then,
+we present a behavioral experiment testing a prediction of
+the proposed model and demonstrate that it explains human
+behavior better than the original model from Austerweil and
+Griffiths (2011). Finally, we discuss the implications of our
+results and some directions for future research.
+
+Modeling Feature Learning
+Inferring latent features in binary images
+Viewing feature learning as Bayesian nonparametric inference is one proposed explanation of how people discover
+the features of objects (Austerweil & Griffiths, 2013). For
+the particular problem of feature learning with binary images, the Indian Buffet Process (IBP; Griffiths & Ghahramani, 2011) with a noisy-or likelihood function (the IBP
+
+1919
+
+noisy-or model; Wood, Griffiths, & Ghahramani, 2006) is
+typically used (Austerweil & Griffiths, 2013). According to
+this model, the learning problem is formalized as finding the
+most probable assignment of features to objects Z and feature
+images Y given the raw sensory input of a set of objects X.
 X, Y, and Z are all defined to be binary matrices (see Figure
-                                                                                                                mk
-1). X is the data matrix, where each row corresponds to the                                 p(Znk = 1|Z−nk ) ∝                       (2)
-image of an object, and each column contains the pixel values                                                    n
-at that location for all objects. So, Xnd = 1, indicates that the      where Z−nk is the feature assignments without Znk .
-dth pixel of the nth object is “turned on” (i.e., it is non-blank).       The nth object also can take on novel features as well. The
-Y is the feature image matrix where each row is the image of           probability that the nth has f novel features, which have not
-its corresponding feature, and each column indexes the pixel           been observed in the first n − 1 objects, is ppoisson ( f ; α/n).
-locations. So, Ykd = 1, indicates that the dth pixel of an object      That is, this probability is evaluated as the chance of obtain-
-should be “on” if that object has feature k (subject to the noise      ing the sample f from a Poisson distribution with a mean of
-introduced by the model; more details below). Finally, Z is            α/n. Here, α is a free parameter of the model, which we set to
-the feature ownership matrix, where each row corresponds               1 for models throughout this paper. The IBP noisy-or model
-to an object, and each column corresponds to a feature. So,            defines the prior distribution on Y by treating elements in Y
-Znk = 1, indicates that object n has feature k, which in turn          as independent and identically distributed, each with a prior
-suggests that the pixels that feature k can turn on are likely to      probability of θ to take the value 1 (Ykd ∼ Bernoulli(θ)).
-be present in object n.                                                The value of θ is set to 0.02 here, constraining the model to
-                                                                       prefer Y with empty feature images (i.e., values set to 0) un-
-                                                                       less the feature images describe X well.
-                                                                          The likelihood function p(X|Y, Z) is defined with respect
-                                                                       to the chance of generating the observed data X given a spe-
-                                                                       cific configuration of Y and Z. In the IBP noisy-or model, the
-                                                                       matrix product of Z and Y is first computed. This product is a
-                                                                       matrix of the same dimensions as X, whose elements can be
-                                                                       interpreted as “weights” that indicate the total strength pos-
-                                                                       sessed by the current latent feature representation (i.e., Z and
-Figure 1: A schematic illustration of the Z, Y, X matrices in          Y) to turn on various pixels of observed objects. Intuitively,
-the IBP noisy-or model. Figure reprinted from Austerweil               if the weights are large where elements in X are in fact 1,
-and Griffiths (2011) with permission.                                  and the weights are small where elements in X are 0, then the
-                                                                       corresponding Z and Y may be close to the optimal feature
-   One challenge in learning a latent feature representation           representation. Formally, the likelihood function is
-under this model is that one does not know a priori the num-
-ber of latent features that best accounts for the collection of                   p(X|Y, Z) = ∏ |xnd − (1 − ε)(1 − λ)zn yd |,        (3)
-objects X. Instead, that number needs to be inferred from the                                   n,d
-data as well. The inference problem is also highly undercon-
-strained because only X is observed, while both Y and Z need           where λ (set to 0.95) is the probability that a feature whose
-to be inferred from X. In terms of Bayesian inference, this            image has the current pixel on and is being used to represent
-means that the joint posterior distribution of Y and Z needs           the current object whose image succeeds to turn that pixel
-to be estimated solely based on the observed data X:                   on in the current object, ε is the probability that a pixel in
-                                                                       an image is on by chance (set to 0.05). As a result of jointly
-               p(Y, Z|X) ∝ p(X|Z, Y)p(Y)p(Z)                    (1)    maximizing the likelihood function and the prior probabilities
-                                                                       of Y and Z, the IBP noisy-or model trades off keeping the
-Using Bayes’ rule, Equation (1) shows how the inference of             feature representation as simple as possible with the model’s
-p(Y, Z|X) can be decomposed into two subtasks: to find the             ability to explain the data X.
-most likely Y and Z matrices, one should maximize the like-
-lihood p(X|Z, Y), corresponding to how well our feature rep-           The additive nature of the IBP noisy-or model
-resentation captures the observations, and the prior probabili-        Although the IBP noisy-or model has been shown to capture
-ties p(Y) and p(Z). In the IBP noisy-or model, the prior distri-       how the distribution of parts affects the feature representa-
-bution on Z is the IBP, which allows an infinite number of fea-        tions people form (Austerweil & Griffiths, 2011), the features
-tures to be inferred, but includes a penalty for overly complex        found by the model are always additive. For example, con-
-representations. Details on how the IBP prior achieves this            sider a scenario where half of the objects X have part A but
-goal, including the culinary metaphor that provides the intu-          not part B, the other half have part B but not part A, and no
-ition of IBP can be found in Austerweil, Gershman, Tenen-              object has both part A and part B. The IBP noisy-or model
-                                                                   1920
+1). X is the data matrix, where each row corresponds to the
+image of an object, and each column contains the pixel values
+at that location for all objects. So, Xnd = 1, indicates that the
+dth pixel of the nth object is “turned on” (i.e., it is non-blank).
+Y is the feature image matrix where each row is the image of
+its corresponding feature, and each column indexes the pixel
+locations. So, Ykd = 1, indicates that the dth pixel of an object
+should be “on” if that object has feature k (subject to the noise
+introduced by the model; more details below). Finally, Z is
+the feature ownership matrix, where each row corresponds
+to an object, and each column corresponds to a feature. So,
+Znk = 1, indicates that object n has feature k, which in turn
+suggests that the pixels that feature k can turn on are likely to
+be present in object n.
 
-will correctly discover these features and, through the learn-             and the other corresponding to Part B. The model favors this
-ing of the feature image matrix Y, encode the information                  representation over one with two additive features because
-that both feature A and feature B are valid features for this              the IBP prior favors feature representations with fewer fea-
-group of objects. With this representation, the model will not             tures. Given this representation, test objects with either Part
-only assign a high probability to any new object with either               A or Part B will be regarded as highly probable, because the
-feature A or feature B, it will also regard a novel test object            learned representation is exactly “one feature”, in the form of
-with both feature A and feature B as highly probable. The                  A or B. Test objects with both parts will however be consid-
-model considers feature A and feature B to be additive, be-                ered rather improbable, because the model lacks the neces-
-cause features are assumed to be independent of each other.                sary representation (which would be a two-feature represen-
-The negative correlation between feature A and feature B is                tation) to account for those two parts simultaneously. Note
-ignored by the model.1                                                     that additive features can also be learned by the model when
-                                                                           it is appropriate. This occurs when the pixels are all off for
-A substitutive variation of the IBP noisy-or model                         one of a feature’s images. Thus, in some sense, it is a gener-
-To add the capability of inferring substitutive features to the            alization of the original additive IBP noisy-or model.
-IBP noisy-or model, we propose a simple extension to the                      The inherently additive IBP noisy-or model and our newly
-original model. Instead of there being only one feature im-                proposed model are two hypotheses for how people learn fea-
-age matrix Y, the new model has two Y matrices: Y1 and Y2 .                ture representations. The question of interest is, in what cir-
-Therefore, a single feature has two alternative feature images             cumstances, if any, do people form substitutive representa-
-(i.e., the two values the feature can take), each represented by           tions of negatively correlated parts in objects? Our behavioral
-the corresponding row vector in Y1 and that in Y2 . Addition-              experiment aims to find an answer to this question.
-ally, we used a new indexing matrix F that is the same size
-as Z and whose elements encode which image matrix should                     Behavioral Experiment: Learning Additive or
-be used if an object takes a feature. The elements of F take                  Substitutive Features in Vertical Bar Images
-on the value of 0 when the corresponding value in Z is also                The goal of this experiment is to investigate whether people
-0, and the value of 1 or 2 when the corresponding value in                 form additive or substitutive feature representations given 1)
-Z is 1. That is, for features that are present in an object, as            the co-occurrence patterns of parts within each image and 2)
-indicated by Z, the values in F indicate which of the two Y                the way that parts are distributed across observed images. Ac-
-matrices (1 or 2) is its value.                                            cording to our model, the prediction is that people should
-   The feature learning problem is then to infer Y, Z and F                prefer an additive representation for parts that occur inde-
-from the observed X. Similar to Equation (1), we use Bayes’                pendently. People are expected to prefer a substitutive fea-
-rule to decompose the posterior into simpler terms:                        ture representation for negatively correlated parts – that is,
-                                                                           those that are never observed together in the same image,
-                                                                           even when they have been observed separately in the set of all
-          p(Y, Z, F|X) ∝ p(X|Y, Z, F)p(F|Z)p(Y)p(Z)                (4)
-                                                                           training images. Correspondingly, this experiment consists of
-                                                                           two conditions - an additive condition and a substitutive con-
-   The prior distribution on Z is the same IBP prior as in the
-                                                                           dition - which test these two predictions respectively.
+Figure 1: A schematic illustration of the Z, Y, X matrices in
+the IBP noisy-or model. Figure reprinted from Austerweil
+and Griffiths (2011) with permission.
+One challenge in learning a latent feature representation
+under this model is that one does not know a priori the number of latent features that best accounts for the collection of
+objects X. Instead, that number needs to be inferred from the
+data as well. The inference problem is also highly underconstrained because only X is observed, while both Y and Z need
+to be inferred from X. In terms of Bayesian inference, this
+means that the joint posterior distribution of Y and Z needs
+to be estimated solely based on the observed data X:
+p(Y, Z|X) ∝ p(X|Z, Y)p(Y)p(Z)
+
+(1)
+
+Using Bayes’ rule, Equation (1) shows how the inference of
+p(Y, Z|X) can be decomposed into two subtasks: to find the
+most likely Y and Z matrices, one should maximize the likelihood p(X|Z, Y), corresponding to how well our feature representation captures the observations, and the prior probabilities p(Y) and p(Z). In the IBP noisy-or model, the prior distribution on Z is the IBP, which allows an infinite number of features to be inferred, but includes a penalty for overly complex
+representations. Details on how the IBP prior achieves this
+goal, including the culinary metaphor that provides the intuition of IBP can be found in Austerweil, Gershman, Tenen-
+
+baum, and Griffiths (2015). Here we describe the generative process definition. First, the probability of the nth object
+having a pre-existing feature k is proportional to number of
+objects that already have feature k (i.e., mk in Equation 2),
+divided by the number of objects observed so far (i.e., n):
+p(Znk = 1|Z−nk ) ∝
+
+mk
+n
+
+(2)
+
+where Z−nk is the feature assignments without Znk .
+The nth object also can take on novel features as well. The
+probability that the nth has f novel features, which have not
+been observed in the first n − 1 objects, is ppoisson ( f ; α/n).
+That is, this probability is evaluated as the chance of obtaining the sample f from a Poisson distribution with a mean of
+α/n. Here, α is a free parameter of the model, which we set to
+1 for models throughout this paper. The IBP noisy-or model
+defines the prior distribution on Y by treating elements in Y
+as independent and identically distributed, each with a prior
+probability of θ to take the value 1 (Ykd ∼ Bernoulli(θ)).
+The value of θ is set to 0.02 here, constraining the model to
+prefer Y with empty feature images (i.e., values set to 0) unless the feature images describe X well.
+The likelihood function p(X|Y, Z) is defined with respect
+to the chance of generating the observed data X given a specific configuration of Y and Z. In the IBP noisy-or model, the
+matrix product of Z and Y is first computed. This product is a
+matrix of the same dimensions as X, whose elements can be
+interpreted as “weights” that indicate the total strength possessed by the current latent feature representation (i.e., Z and
+Y) to turn on various pixels of observed objects. Intuitively,
+if the weights are large where elements in X are in fact 1,
+and the weights are small where elements in X are 0, then the
+corresponding Z and Y may be close to the optimal feature
+representation. Formally, the likelihood function is
+p(X|Y, Z) = ∏ |xnd − (1 − ε)(1 − λ)zn yd |,
+
+(3)
+
+n,d
+
+where λ (set to 0.95) is the probability that a feature whose
+image has the current pixel on and is being used to represent
+the current object whose image succeeds to turn that pixel
+on in the current object, ε is the probability that a pixel in
+an image is on by chance (set to 0.05). As a result of jointly
+maximizing the likelihood function and the prior probabilities
+of Y and Z, the IBP noisy-or model trades off keeping the
+feature representation as simple as possible with the model’s
+ability to explain the data X.
+
+The additive nature of the IBP noisy-or model
+Although the IBP noisy-or model has been shown to capture
+how the distribution of parts affects the feature representations people form (Austerweil & Griffiths, 2011), the features
+found by the model are always additive. For example, consider a scenario where half of the objects X have part A but
+not part B, the other half have part B but not part A, and no
+object has both part A and part B. The IBP noisy-or model
+
+1920
+
+will correctly discover these features and, through the learning of the feature image matrix Y, encode the information
+that both feature A and feature B are valid features for this
+group of objects. With this representation, the model will not
+only assign a high probability to any new object with either
+feature A or feature B, it will also regard a novel test object
+with both feature A and feature B as highly probable. The
+model considers feature A and feature B to be additive, because features are assumed to be independent of each other.
+The negative correlation between feature A and feature B is
+ignored by the model.1
+
+A substitutive variation of the IBP noisy-or model
+To add the capability of inferring substitutive features to the
+IBP noisy-or model, we propose a simple extension to the
+original model. Instead of there being only one feature image matrix Y, the new model has two Y matrices: Y1 and Y2 .
+Therefore, a single feature has two alternative feature images
+(i.e., the two values the feature can take), each represented by
+the corresponding row vector in Y1 and that in Y2 . Additionally, we used a new indexing matrix F that is the same size
+as Z and whose elements encode which image matrix should
+be used if an object takes a feature. The elements of F take
+on the value of 0 when the corresponding value in Z is also
+0, and the value of 1 or 2 when the corresponding value in
+Z is 1. That is, for features that are present in an object, as
+indicated by Z, the values in F indicate which of the two Y
+matrices (1 or 2) is its value.
+The feature learning problem is then to infer Y, Z and F
+from the observed X. Similar to Equation (1), we use Bayes’
+rule to decompose the posterior into simpler terms:
+
+p(Y, Z, F|X) ∝ p(X|Y, Z, F)p(F|Z)p(Y)p(Z)
+
+(4)
+
+The prior distribution on Z is the same IBP prior as in the
 original IBP noisy-or model. Conditioned on object n taking
-feature k (Znk = 1), Fnk is equally likely to be 1 or 2. If object         Methods
-n does not take feature k (Znk = 0), then Fnk = 0 with proba-
-                                                                           Participants Forty Amazon Mechanical Turk workers par-
-bility 1. So, its value for the infinite number of features that
-                                                                           ticipated in this experiment (20 in each condition). Each was
+feature k (Znk = 1), Fnk is equally likely to be 1 or 2. If object
+n does not take feature k (Znk = 0), then Fnk = 0 with probability 1. So, its value for the infinite number of features that
 are not assigned to any object is 0. The prior on each Y is the
-                                                                           paid $0.20 for about 90 seconds of work.
-same as in the original model. The calculation of the likeli-
-hood p(X|Y, Z, F) is also similar to the case of the original              Stimuli We designed artificial stimuli in the form of images
-model, except that feature images are retrieved conditioned                containing vertical bars within a square box. Each box had 4
-on the values of F and Z rather than on Z alone.                           slots where vertical bars can appear. In both conditions, par-
-   Crucially, this new model is capable of representing a sub-             ticipants were exposed to a total of six stimuli (i.e., six square
-stitutive feature, because the elements in the F matrix are ei-            boxes with vertical bars in them). Four of the six stimuli were
-ther 1 or 2, but not both. For example, if a pair of parts, A and          shared between the two conditions (see Figure 2). These four
-B, are negatively correlated across objects in the input (mean-            images are selected so that the locations of bars are counter-
-ing that they almost never occur together), this new model                 balanced and images with 1, 2, and 3 bars were all observed.
-will strongly favor a representation of a single feature with                 The crucial difference between the additive condition and
-two alternative features images, one corresponding to Part A               the substitutive condition is the two additional images.2 In the
-    1 Existing connectionist feature learning methods (e.g., CPLUS;            2 We also ran a baseline condition, which consisted of only the 4
-Goldstone et al., 2008) would also struggle learning substitutive fea-     training images shown in Figure 2. The results were identical to the
-tures. One way to extend them to learn substitutive features would         substitutive condition reported here. This suggests people are biased
-be to use a gating mechanism (Frank, Loughry, & O’Reilly, 2001).           towards the substitutive interpretation of features.
-                                                                       1921
+same as in the original model. The calculation of the likelihood p(X|Y, Z, F) is also similar to the case of the original
+model, except that feature images are retrieved conditioned
+on the values of F and Z rather than on Z alone.
+Crucially, this new model is capable of representing a substitutive feature, because the elements in the F matrix are either 1 or 2, but not both. For example, if a pair of parts, A and
+B, are negatively correlated across objects in the input (meaning that they almost never occur together), this new model
+will strongly favor a representation of a single feature with
+two alternative features images, one corresponding to Part A
+1 Existing
 
-                                                                          collection of different images on its walls. The archae-
-                                                                          ologists believe the images could have been left by a
-                                                                          prehistoric civilization. The images are shown below.
-                                                                          Please take a few moments to investigate the images.
-                                                                          You’ll be asked questions about these images later.
-Figure 2: Four training stimuli were shared between the ad-
-ditive condition and the substitutive condition.                          Participants had to spend at least 30 seconds studying the
-                                                                       training images before they were able to continue (although
-                                                                       they could study the images for as long as they wanted). Af-
-                                                                       terwards, they were given the following test instructions:
-                                                                          It looks like there are many more images on the cave
-                                                                          wall that the archaeologists have not yet had a chance
-       (a) Additive condition        (b) Substitutive condition           to record. If the archaeologists explored the cave wall
-                                                                          further, which images do you think they would be likely
-Figure 3: Two additional training stimuli were different be-
-                                                                          to see?
-tween conditions. In the substitutive condition, the second
-and third vertical bars were perfectly negatively correlated.             You will be presented with a few images, and your task
-                                                                          is to rate how likely you believe it is that each image will
-                                                                          be discovered in that cave, based on the images that you
-additive condition, as shown in Figure 3a, these additional im-           just studied.
-ages demonstrate that all vertical bars can co-occur in a stim-
-ulus, most evidently shown by the image where all four bars               Each test trial presented one test stimulus, and to minimize
-appeared together. In the substitutive condition, as shown in          memory effects, training images were also shown alongside
-Figure 3b, these additional images are consistent with a pat-          the test stimulus. For each test stimulus, participants were
-tern that is already in the four shared images: the second and         asked “How likely do you believe this image will be discov-
-third vertical bars are never observed together.                       ered in the cave?” and instructed to rate the likelihood using
-                                                                       a scale ranging from 1 to 5. They were clearly instructed that
-                                                                       1 meant least likely and 5 meant most likely. Once partici-
-                                                                       pants committed to a rating, the experiment was programmed
-                                                                       in such a way that they could not go back to previous test
-                                                                       trials to modify their ratings.
-        (a) co-occurring           (b) single    (c) non-occurring
-                                                                       Results and Discussion
-Figure 4: Test stimuli were grouped into three types depend-           Figure 5 shows the average ratings of participants for each
-ing on the configuration of the second and third bars.                 group of test stimuli in both conditions. In the additive condi-
-                                                                       tion (see Figure 5a), participants rated the test stimuli from all
-   In both conditions, participants rated the likelihood of ob-        three groups equally large (F(2, 77) = 1.60, p > 0.2), regard-
-serving the four novel test stimuli while the training stimuli         less of whether the second and third bars were in the same
-remained visible (more details in the procedure section be-            image (the co-occurring group), only one of the two bars was
-low). Because the crucial difference between the additive              in an image (the single group), or neither of the two bars was
-and substitutive conditions is whether the second and third            in an image (the non-occurring group). Crucially, there was
-bars co-occurred in the training set, these test stimuli were          no difference in the ratings between test co-occuring and sin-
-grouped into 3 different groups defined by the arrangement             gle test stimuli (mean difference = -0.075, post-hoc Tukey
-of those two bars for evaluating participant ratings: a “co-           test p > 0.5), indicating that participants treated the second
-occurring” groups where both the second and third bars are in          and third bars as additive features, allowing them to appear in
-a test stimulus, which included the two stimuli in Figure 4a;          the same image. Participants did not distinguish between sin-
-a “single-occurring” group where either the second or third            gle and non-occurring stimuli either (mean difference = -0.5,
-bar is in a test stimulus (see 4b), and a “non-occurring” group        post-hoc Tukey test p > 0.3).
-where neither of the two bars is in a test stimulus (see 4c).             In contrast, participants in the substitutive condition gave
-                                                                       significantly different ratings to the test stimuli of the three
+connectionist feature learning methods (e.g., CPLUS;
+Goldstone et al., 2008) would also struggle learning substitutive features. One way to extend them to learn substitutive features would
+be to use a gating mechanism (Frank, Loughry, & O’Reilly, 2001).
+
+and the other corresponding to Part B. The model favors this
+representation over one with two additive features because
+the IBP prior favors feature representations with fewer features. Given this representation, test objects with either Part
+A or Part B will be regarded as highly probable, because the
+learned representation is exactly “one feature”, in the form of
+A or B. Test objects with both parts will however be considered rather improbable, because the model lacks the necessary representation (which would be a two-feature representation) to account for those two parts simultaneously. Note
+that additive features can also be learned by the model when
+it is appropriate. This occurs when the pixels are all off for
+one of a feature’s images. Thus, in some sense, it is a generalization of the original additive IBP noisy-or model.
+The inherently additive IBP noisy-or model and our newly
+proposed model are two hypotheses for how people learn feature representations. The question of interest is, in what circumstances, if any, do people form substitutive representations of negatively correlated parts in objects? Our behavioral
+experiment aims to find an answer to this question.
+
+Behavioral Experiment: Learning Additive or
+Substitutive Features in Vertical Bar Images
+The goal of this experiment is to investigate whether people
+form additive or substitutive feature representations given 1)
+the co-occurrence patterns of parts within each image and 2)
+the way that parts are distributed across observed images. According to our model, the prediction is that people should
+prefer an additive representation for parts that occur independently. People are expected to prefer a substitutive feature representation for negatively correlated parts – that is,
+those that are never observed together in the same image,
+even when they have been observed separately in the set of all
+training images. Correspondingly, this experiment consists of
+two conditions - an additive condition and a substitutive condition - which test these two predictions respectively.
+
+Methods
+Participants Forty Amazon Mechanical Turk workers participated in this experiment (20 in each condition). Each was
+paid $0.20 for about 90 seconds of work.
+Stimuli We designed artificial stimuli in the form of images
+containing vertical bars within a square box. Each box had 4
+slots where vertical bars can appear. In both conditions, participants were exposed to a total of six stimuli (i.e., six square
+boxes with vertical bars in them). Four of the six stimuli were
+shared between the two conditions (see Figure 2). These four
+images are selected so that the locations of bars are counterbalanced and images with 1, 2, and 3 bars were all observed.
+The crucial difference between the additive condition and
+the substitutive condition is the two additional images.2 In the
+2 We
+
+also ran a baseline condition, which consisted of only the 4
+training images shown in Figure 2. The results were identical to the
+substitutive condition reported here. This suggests people are biased
+towards the substitutive interpretation of features.
+
+1921
+
+collection of different images on its walls. The archaeologists believe the images could have been left by a
+prehistoric civilization. The images are shown below.
+Please take a few moments to investigate the images.
+You’ll be asked questions about these images later.
+Figure 2: Four training stimuli were shared between the additive condition and the substitutive condition.
+
+(a) Additive condition
+
+Participants had to spend at least 30 seconds studying the
+training images before they were able to continue (although
+they could study the images for as long as they wanted). Afterwards, they were given the following test instructions:
+It looks like there are many more images on the cave
+wall that the archaeologists have not yet had a chance
+to record. If the archaeologists explored the cave wall
+further, which images do you think they would be likely
+to see?
+
+(b) Substitutive condition
+
+Figure 3: Two additional training stimuli were different between conditions. In the substitutive condition, the second
+and third vertical bars were perfectly negatively correlated.
+additive condition, as shown in Figure 3a, these additional images demonstrate that all vertical bars can co-occur in a stimulus, most evidently shown by the image where all four bars
+appeared together. In the substitutive condition, as shown in
+Figure 3b, these additional images are consistent with a pattern that is already in the four shared images: the second and
+third vertical bars are never observed together.
+
+(a) co-occurring
+
+(b) single
+
+(c) non-occurring
+
+Figure 4: Test stimuli were grouped into three types depending on the configuration of the second and third bars.
+In both conditions, participants rated the likelihood of observing the four novel test stimuli while the training stimuli
+remained visible (more details in the procedure section below). Because the crucial difference between the additive
+and substitutive conditions is whether the second and third
+bars co-occurred in the training set, these test stimuli were
+grouped into 3 different groups defined by the arrangement
+of those two bars for evaluating participant ratings: a “cooccurring” groups where both the second and third bars are in
+a test stimulus, which included the two stimuli in Figure 4a;
+a “single-occurring” group where either the second or third
+bar is in a test stimulus (see 4b), and a “non-occurring” group
+where neither of the two bars is in a test stimulus (see 4c).
 Procedure The procedure is identical in both conditions
-                                                                       different groups (F(2, 77) = 3.29, p < 0.05; see Figure 5b).
 (they only differed in which two extra images were given).
-                                                                       In particular, stimuli of the co-occurring group present re-
-At the beginning of an experiment, participants were pre-
-                                                                       ceived a much lower rating than stimuli of the single group
-sented with the 6 training images appropriate to their con-
-                                                                       (mean difference = -0.88, post-hoc Tukey test p < 0.05). This
-ditions along with the following cover story:
-                                                                       difference in rating suggests that participants formed a sub-
-   Recently a group of archaeologists found a cave with a              stitutive feature representation for the second and third bars –
-                                                                   1922
+At the beginning of an experiment, participants were presented with the 6 training images appropriate to their conditions along with the following cover story:
+Recently a group of archaeologists found a cave with a
 
-                           (a) additive condition (N=20)      (b) substitutive condition (N=20)       shown in Figure 5. As expected, the original IBP noisy-
-                      5            n.s.                       5             * p<0.05                  or model (Figure 6a) rated co-occurring, single, and non-
-                                                                                                      occurring stimuli equally high regardless of whether the train-
-                      4                                       4
+You will be presented with a few images, and your task
+is to rate how likely you believe it is that each image will
+be discovered in that cave, based on the images that you
+just studied.
+Each test trial presented one test stimulus, and to minimize
+memory effects, training images were also shown alongside
+the test stimulus. For each test stimulus, participants were
+asked “How likely do you believe this image will be discovered in the cave?” and instructed to rate the likelihood using
+a scale ranging from 1 to 5. They were clearly instructed that
+1 meant least likely and 5 meant most likely. Once participants committed to a rating, the experiment was programmed
+in such a way that they could not go back to previous test
+trials to modify their ratings.
+
+Results and Discussion
+Figure 5 shows the average ratings of participants for each
+group of test stimuli in both conditions. In the additive condition (see Figure 5a), participants rated the test stimuli from all
+three groups equally large (F(2, 77) = 1.60, p > 0.2), regardless of whether the second and third bars were in the same
+image (the co-occurring group), only one of the two bars was
+in an image (the single group), or neither of the two bars was
+in an image (the non-occurring group). Crucially, there was
+no difference in the ratings between test co-occuring and single test stimuli (mean difference = -0.075, post-hoc Tukey
+test p > 0.5), indicating that participants treated the second
+and third bars as additive features, allowing them to appear in
+the same image. Participants did not distinguish between single and non-occurring stimuli either (mean difference = -0.5,
+post-hoc Tukey test p > 0.3).
+In contrast, participants in the substitutive condition gave
+significantly different ratings to the test stimuli of the three
+different groups (F(2, 77) = 3.29, p < 0.05; see Figure 5b).
+In particular, stimuli of the co-occurring group present received a much lower rating than stimuli of the single group
+(mean difference = -0.88, post-hoc Tukey test p < 0.05). This
+difference in rating suggests that participants formed a substitutive feature representation for the second and third bars –
+
+1922
+
+(a) additive condition (N=20)
+
 Participant ratings
-                                                                                                      ing condition was additive or substitutive. This is because the
-                      3                                       3                                       original IBP noisy-or model inferred four independent fea-
-                                                                                                      tures, each of which represented a vertical bar at one of the
-                      2                                       2                                       four possible locations in a stimulus. Although such an addi-
-                                                                                                      tive representation correctly predicted the average rating be-
-                      1                                       1
-                                                                                                      havior of participants in the additive condition (R2 = 0.99), it
-                      0                                       0                                       failed to explain the lower ratings for the co-occurring stimuli
-                          co-occurring single non-occurring       co-occurring single non-occurring   in the substitutive condition (R2 = 0.44).
-                                                                                                         The substitutive IBP noisy-or model, successfully pre-
-Figure 5: Subjects in the additive condition rated images with                                        dicted participant ratings in both conditions (Figure 6b).
-both the second and third bars as high as images without only                                         Given the substitutive images, it rated co-occurring stimuli
-one of those bars. Meanwhile, subjects in the substitutive                                            much lower than the other two types of test stimuli (R2 =
-condition gave images with both the second and third bars a                                           0.83), because it represented the negatively correlated parts
-significantly lower rating.                                                                           (i.e., the second and third bars in the training images) as two
-                                                                                                      alternative, but never co-occurring, values of a single feature.
-                                                                                                      At the same time, it also predicted behavior relatively well in
-only one of them can be in an image at a time. No significant                                         the additive condition (R2 = 0.86). The R2 value is slightly
-difference was found between the ratings of the co-occurring                                          lower for the additive condition, which is most likely due to
-and non-occurring groups (mean difference = -0.53, post-hoc                                           its built-in tendency towards substitutivity by having two Y
-Tukey test p > 0.3), or between the single and non-occurring                                          matrices hardcoded in the model. However, it still qualita-
-groups (mean difference = 0.35, p > 0.5).                                                             tively captured human performance in the additive condition.
-Comparison to Model Predictions Overall, the results                                                  Thus, our newly proposed model described the overall pat-
-suggest that people can infer a substitutive feature represen-                                        tern of human feature learning in our experiment better than
-tation for parts that are consistently negatively correlated in                                       the original IBP noisy-or model.
-the input. They can also infer an additive feature representa-
-tion when it is appropriate. Qualitatively, this contrasts with                                               Conclusions and Future Directions
-the prediction of the original IBP noisy-or model, which only
-                                                                                                      In this paper, we explored how people learn additive or sub-
-forms additive representation of features regardless of the
-                                                                                                      stitutive features depending on the distribution of parts over
-distribution of parts within and across objects. To examine
-                                                                                                      objects using computational models and a behavioral exper-
-the extent to which the original IBP noisy-or model and our
-                                                                                                      iment. In the experiment, one group of participants received
-proposed substitutive extension can describe human feature
-                                                                                                      images without negatively correlated parts (i.e., the additive
-learning, we compared participant ratings to the predictions
-                                                                                                      condition), and the other group received images where two
-of these two models. To simplify the computational work-
-                                                                                                      parts were never seen together (i.e., the substitutive condi-
-load, the training images were downsampled to a resolution of
-                                                                                                      tion). Our results demonstrated that the latter group readily
-4 by 4 pixels without affecting the distributional information
-                                                                                                      treated the negative correlated parts as substitutive features:
-in these images. A Gibbs sampler was implemented for each
-                                                                                                      novel images with both those parts present were given a sig-
-model and run for 2000 iterations, where the 1001-2000th
-                                                                                                      nificantly lower rating than novel images with only one of
-posterior samples were extracted as hypotheses of latent rep-
-                                                                                                      those parts. However, what computational principles do peo-
-resentations inferred by the models. We then searched among
-                                                                                                      ple use to form substitutive feature representations? To an-
-the 1000 hypotheses and extracted the one that maximized the
-                                                                                                      swer this question, we proposed an extension to the original
-generative probability of the test stimulus t:
-                                                                                                      IBP noisy-or model (Austerweil & Griffiths, 2011), which
-                      p(t|training stimuli) = max p(t|inferred feature reps)                 (5)      allows a single feature to be realized in two alternative, but
-                                                                                                      never co-occurring forms. The resulting substitutive IBP
-where a “feature rep” is the inferred Z and Y matrices in the                                         noisy-or model successfully captured the rating pattern of
-original IBP noisy-or model, and Z, F, and two Y matrices in                                          participants in the substitutive condition, improving upon the
-our substitutive extension to the IBP noisy-or model. These                                           original IBP noisy-or model that failed to do so.
-probabilities were then normalized to a 1-5 scale so that the                                            Building upon the behavioral paradigm and computational
-results are comparable to participant ratings.                                                        framework introduced in this paper, we plan to further investi-
-   Unsurprisingly, model predictions were more extreme and                                            gate the issue of substitutive representation in human feature
-did not show as much variation as in participant ratings. How-                                        learning. First, we will test the generality of the results by
-ever, we can still assess the qualitative similarity between the                                      using more natural perceptual and conceptual stimuli. This
-model ratings as shown in Figure 6 and participant ratings                                            should also help address the potential confound of there be-
-                                                                                                 1923
 
-                                          Original IBP Noisy-or                                     Substitutive IBP Noisy-or
-                               additive (R =0.99)
-                                          2
-                                                           substitutive (R = 0.44)
-                                                                         2
-                                                                                           additive (R2=0.86)          substitutive (R2=0.83)
-                           5                                                         5
-      Normalized ratings
-                           4                                                         4
-                           3                                                         3
-                           2                                                         2
-                           1                                                         1
-                           0                                                         0
-                               c      s       n             c       s        n              c      s       n            c       s        n
-                                                    Type of test stimuli (c=co-occurring, s=single, n=non-occurring)
+5
+
+n.s.
+
+(b) substitutive condition (N=20)
+5
+
+4
+
+4
+
+3
+
+3
+
+2
+
+2
+
+1
+
+1
+
+0
+
+* p<0.05
+
+0
+co-occurring single non-occurring
+
+co-occurring single non-occurring
+
+Figure 5: Subjects in the additive condition rated images with
+both the second and third bars as high as images without only
+one of those bars. Meanwhile, subjects in the substitutive
+condition gave images with both the second and third bars a
+significantly lower rating.
+
+only one of them can be in an image at a time. No significant
+difference was found between the ratings of the co-occurring
+and non-occurring groups (mean difference = -0.53, post-hoc
+Tukey test p > 0.3), or between the single and non-occurring
+groups (mean difference = 0.35, p > 0.5).
+Comparison to Model Predictions Overall, the results
+suggest that people can infer a substitutive feature representation for parts that are consistently negatively correlated in
+the input. They can also infer an additive feature representation when it is appropriate. Qualitatively, this contrasts with
+the prediction of the original IBP noisy-or model, which only
+forms additive representation of features regardless of the
+distribution of parts within and across objects. To examine
+the extent to which the original IBP noisy-or model and our
+proposed substitutive extension can describe human feature
+learning, we compared participant ratings to the predictions
+of these two models. To simplify the computational workload, the training images were downsampled to a resolution of
+4 by 4 pixels without affecting the distributional information
+in these images. A Gibbs sampler was implemented for each
+model and run for 2000 iterations, where the 1001-2000th
+posterior samples were extracted as hypotheses of latent representations inferred by the models. We then searched among
+the 1000 hypotheses and extracted the one that maximized the
+generative probability of the test stimulus t:
+p(t|training stimuli) = max p(t|inferred feature reps)
+
+Conclusions and Future Directions
+
+(5)
+
+where a “feature rep” is the inferred Z and Y matrices in the
+original IBP noisy-or model, and Z, F, and two Y matrices in
+our substitutive extension to the IBP noisy-or model. These
+probabilities were then normalized to a 1-5 scale so that the
+results are comparable to participant ratings.
+Unsurprisingly, model predictions were more extreme and
+did not show as much variation as in participant ratings. However, we can still assess the qualitative similarity between the
+model ratings as shown in Figure 6 and participant ratings
+
+shown in Figure 5. As expected, the original IBP noisyor model (Figure 6a) rated co-occurring, single, and nonoccurring stimuli equally high regardless of whether the training condition was additive or substitutive. This is because the
+original IBP noisy-or model inferred four independent features, each of which represented a vertical bar at one of the
+four possible locations in a stimulus. Although such an additive representation correctly predicted the average rating behavior of participants in the additive condition (R2 = 0.99), it
+failed to explain the lower ratings for the co-occurring stimuli
+in the substitutive condition (R2 = 0.44).
+The substitutive IBP noisy-or model, successfully predicted participant ratings in both conditions (Figure 6b).
+Given the substitutive images, it rated co-occurring stimuli
+much lower than the other two types of test stimuli (R2 =
+0.83), because it represented the negatively correlated parts
+(i.e., the second and third bars in the training images) as two
+alternative, but never co-occurring, values of a single feature.
+At the same time, it also predicted behavior relatively well in
+the additive condition (R2 = 0.86). The R2 value is slightly
+lower for the additive condition, which is most likely due to
+its built-in tendency towards substitutivity by having two Y
+matrices hardcoded in the model. However, it still qualitatively captured human performance in the additive condition.
+Thus, our newly proposed model described the overall pattern of human feature learning in our experiment better than
+the original IBP noisy-or model.
+
+In this paper, we explored how people learn additive or substitutive features depending on the distribution of parts over
+objects using computational models and a behavioral experiment. In the experiment, one group of participants received
+images without negatively correlated parts (i.e., the additive
+condition), and the other group received images where two
+parts were never seen together (i.e., the substitutive condition). Our results demonstrated that the latter group readily
+treated the negative correlated parts as substitutive features:
+novel images with both those parts present were given a significantly lower rating than novel images with only one of
+those parts. However, what computational principles do people use to form substitutive feature representations? To answer this question, we proposed an extension to the original
+IBP noisy-or model (Austerweil & Griffiths, 2011), which
+allows a single feature to be realized in two alternative, but
+never co-occurring forms. The resulting substitutive IBP
+noisy-or model successfully captured the rating pattern of
+participants in the substitutive condition, improving upon the
+original IBP noisy-or model that failed to do so.
+Building upon the behavioral paradigm and computational
+framework introduced in this paper, we plan to further investigate the issue of substitutive representation in human feature
+learning. First, we will test the generality of the results by
+using more natural perceptual and conceptual stimuli. This
+should also help address the potential confound of there be-
+
+1923
+
+Original IBP Noisy-or
+additive (R =0.99)
+
+Normalized ratings
+
+5
+
+Substitutive IBP Noisy-or
+
+substitutive (R = 0.44)
+
+2
+
+2
+
+5
+
+4
+
+4
+
+3
+
+3
+
+2
+
+2
+
+1
+
+1
+
+0
+
+c
+
+s
+
+n
+
+c
+
+s
+
+0
+
+n
+
+additive (R2=0.86)
+
+c
+
+s
+
+n
+
+substitutive (R2=0.83)
+
+c
+
+s
+
+n
+
+Type of test stimuli (c=co-occurring, s=single, n=non-occurring)
+
 Figure 6: The both the original IBP noisy-or model and our model captured the additive condition reasonably well, but only
 our model predicted subjects’ ratings in the substitutive condition.
-ing more bars in the substitutive condition than additive con-                       Austerweil, J. L., & Griffiths, T. L. (2013). A nonparametric
-dition (this can also be addressed by having six possible bars                              bayesian framework for constructing flexible feature
-and equating the number of bars in each image across condi-                                 representations. Psychological Review, 120(4), 817–
-tions). We will also pursue how well the substitutive model                                 851.
-explains human performance while parametrically manipu-                              Ferguson, T. (1973). A Bayesian analysis of some nonpara-
-lating the negative correlation of the parts. In the substitutive                           metric problems. The Annals of Statistics, 1, 209-230.
-condition of the current experiment, the parts of interest are                       Frank, M. J., Loughry, B., & O’Reilly, R. C. (2001). In-
-perfectly negatively correlated. However, presumably, such a                                teractions between frontal cortex and basal ganglia in
-strong correlation is rare in the real world, and people should                             working memory: a computational model. Cognitive,
-adjust their representation between extreme additivity and ex-                              Affective, & Behavioral Neuroscience, 1(2), 137-160.
-treme substitutivity based on the observed correlation. Fur-                         Garner, W. R. (1978). Aspects of a stimulus. In Cogni-
-ther, we will generalize the substitutive IBP noisy-or model                                tion and categorization (pp. 99–133). Hillsdale, NJ:
-to learn substitutive features with more than two values (e.g.,                             Lawrence Erlbaum Associates.
-line styles can be “solid”, “dashed”, or “dotted”), as previ-                        Gati, I., & Tversky, A. (1982). Representation of qualitative
-ous work has demonstrated people can learn categories with                                  and quantitative dimensions. Journal of Experimen-
-three-valued features (Aitkin & Feldman, 2006). One poten-                                  tal Psychology: Human Perception and Performance,
-tial way to address this limitation is to generate a set of fea-                            8(2), 325–340.
-ture image matrices from a Dirichlet Process (DP; Ferguson,                          Goldstone, R. L., Greganov, A., Landy, D., & Roberts, M. E.
-1973). This results in the number of feature image matrices                                 (2008). Learning to see and conceive. In L. Tommasi,
-also being inferred, which will enable the model to represent                               M. Peterson, & L. Nadel (Eds.), The new cognitive sci-
-multi-valued substitutive features, thus extending the current                              ences (p. 163-188). Cambridge, MA: MIT Press.
-model’s assumption that substitutive features can only have                          Goodman, N. (1972). Seven strictures on similarity. In
-two possible values. Together with the current findings, fu-                                N. Goodman (Ed.), Problems and projects. New York:
-ture work will further illuminate how people construct repre-                               The Bobbs-Merrill Co.
-sentations beyond the simple case of binary additive features.                       Griffiths, T. L., & Ghahramani, Z. (2011). The indian buffet
-                                                                                            process: An introduction and review. Journal of Ma-
-                                     References                                             chine Learning Research, 12, 1185–1224.
-Aitkin, C. D., & Feldman, J. (2006). Subjective complexity of                        Kemp, C. (2012). Exploring the conceptual universe. Psy-
-      categories defined over three-valued features. In R. Sun                              chological Review, 119(4), 685–722.
-      & N. Miyake (Eds.), Proceedings of the 28th annual                             Schyns, P. G., Goldstone, R. L., & Thibaut, J. (1998). Devel-
-      conference of the cognitive science society (p. 961-                                  opment of features in object concepts. Behavioral and
-      966). New York: Psychology Press.                                                     Brain Sciences, 21, 1–17.
-Austerweil, J. L., Gershman, S. J., Tenenbaum, J. B., & Grif-                        Wood, F., Griffiths, T. L., & Ghahramani, Z. (2006). A
-      fiths, T. L. (2015). Structure and flexibility in bayesian                            non-parametric bayesian method for inferring hidden
-      models of cognition. In Oxford handbook of computa-                                   causes. In R. Dechter & T. Richardson (Eds.), Pro-
-      tional and mathematical psychology. Oxford Univer-                                    ceedings of the 22nd uai (pp. 536–543). Arlington, VA:
-      sity Press.                                                                           AUAI Press.
-Austerweil, J. L., & Griffiths, T. L. (2011). A rational model
-      of the effects of distributional information on feature
-      learning. Cognitive Psychology, 63, 173–209.
-                                                                                 1924
+ing more bars in the substitutive condition than additive condition (this can also be addressed by having six possible bars
+and equating the number of bars in each image across conditions). We will also pursue how well the substitutive model
+explains human performance while parametrically manipulating the negative correlation of the parts. In the substitutive
+condition of the current experiment, the parts of interest are
+perfectly negatively correlated. However, presumably, such a
+strong correlation is rare in the real world, and people should
+adjust their representation between extreme additivity and extreme substitutivity based on the observed correlation. Further, we will generalize the substitutive IBP noisy-or model
+to learn substitutive features with more than two values (e.g.,
+line styles can be “solid”, “dashed”, or “dotted”), as previous work has demonstrated people can learn categories with
+three-valued features (Aitkin & Feldman, 2006). One potential way to address this limitation is to generate a set of feature image matrices from a Dirichlet Process (DP; Ferguson,
+1973). This results in the number of feature image matrices
+also being inferred, which will enable the model to represent
+multi-valued substitutive features, thus extending the current
+model’s assumption that substitutive features can only have
+two possible values. Together with the current findings, future work will further illuminate how people construct representations beyond the simple case of binary additive features.
 
+References
+Aitkin, C. D., & Feldman, J. (2006). Subjective complexity of
+categories defined over three-valued features. In R. Sun
+& N. Miyake (Eds.), Proceedings of the 28th annual
+conference of the cognitive science society (p. 961966). New York: Psychology Press.
+Austerweil, J. L., Gershman, S. J., Tenenbaum, J. B., & Griffiths, T. L. (2015). Structure and flexibility in bayesian
+models of cognition. In Oxford handbook of computational and mathematical psychology. Oxford University Press.
+Austerweil, J. L., & Griffiths, T. L. (2011). A rational model
+of the effects of distributional information on feature
+learning. Cognitive Psychology, 63, 173–209.
+
+Austerweil, J. L., & Griffiths, T. L. (2013). A nonparametric
+bayesian framework for constructing flexible feature
+representations. Psychological Review, 120(4), 817–
+851.
+Ferguson, T. (1973). A Bayesian analysis of some nonparametric problems. The Annals of Statistics, 1, 209-230.
+Frank, M. J., Loughry, B., & O’Reilly, R. C. (2001). Interactions between frontal cortex and basal ganglia in
+working memory: a computational model. Cognitive,
+Affective, & Behavioral Neuroscience, 1(2), 137-160.
+Garner, W. R. (1978). Aspects of a stimulus. In Cognition and categorization (pp. 99–133). Hillsdale, NJ:
+Lawrence Erlbaum Associates.
+Gati, I., & Tversky, A. (1982). Representation of qualitative
+and quantitative dimensions. Journal of Experimental Psychology: Human Perception and Performance,
+8(2), 325–340.
+Goldstone, R. L., Greganov, A., Landy, D., & Roberts, M. E.
+(2008). Learning to see and conceive. In L. Tommasi,
+M. Peterson, & L. Nadel (Eds.), The new cognitive sciences (p. 163-188). Cambridge, MA: MIT Press.
+Goodman, N. (1972). Seven strictures on similarity. In
+N. Goodman (Ed.), Problems and projects. New York:
+The Bobbs-Merrill Co.
+Griffiths, T. L., & Ghahramani, Z. (2011). The indian buffet
+process: An introduction and review. Journal of Machine Learning Research, 12, 1185–1224.
+Kemp, C. (2012). Exploring the conceptual universe. Psychological Review, 119(4), 685–722.
+Schyns, P. G., Goldstone, R. L., & Thibaut, J. (1998). Development of features in object concepts. Behavioral and
+Brain Sciences, 21, 1–17.
+Wood, F., Griffiths, T. L., & Ghahramani, Z. (2006). A
+non-parametric bayesian method for inferring hidden
+causes. In R. Dechter & T. Richardson (Eds.), Proceedings of the 22nd uai (pp. 536–543). Arlington, VA:
+AUAI Press.
+
+1924
+
+

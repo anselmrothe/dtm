@@ -3,386 +3,618 @@ Proceedings of the Annual Meeting of the Cognitive Science
 Society
 Title
 Predicting Information Needs: Adaptive Display in Dynamic Environments
+
 Permalink
 https://escholarship.org/uc/item/109571jv
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 30(30)
+
 Authors
 Love, Bradley C.
 JOnes, Matt
 Tomlinson, Marc T.
 et al.
+
 Publication Date
 2008-01-01
 Peer reviewed
- eScholarship.org                                  Powered by the California Digital Library
-                                                                    University of California
 
-       Predicting Information Needs: Adaptive Display in Dynamic Environments
-         Bradley C. Love (brad love@mail.utexas.edu)                                Matt Jones (mcj@colorado.edu)
-                       Department of Psychology                                          Department of Psychology
-                         Austin, TX 78712 USA                                             Boulder, CO 80309 USA
-   Marc T. Tomlinson (mtomlinson@love.psy.utexas.edu)                     Michael Howe (michael.howe@mail.utexas.edu)
-                       Department of Psychology                                          Department of Psychology
-                         Austin, TX 78712 USA                                              Austin, TX 78712 USA
-                              Abstract                                 canny ability to deliver information to his commander mo-
-   Although the information available to human operators can in-       ments before the commander formulated his request, much
-   crease without obvious bound, human information processing          like how RADAR learns to anticipate the information needs
-   capacities remain fixed. Finding and selecting the relevant in-     of the user to reduce cognitive load. Before presenting
-   formation to display in this deluge of options imposes a burden
-   on the user. We describe a domain-general system, Responsive        RADAR and empirically evaluating it in a well-controlled ex-
-   Adaptive Display Anticipates Requests (RADAR), that learns          periment, we briefly review related work.
-   to highlight the information a user would select if the user
-   searched through all possible options. By offloading this se-                             Related Efforts
-   lection process to RADAR, the user can concentrate on the pri-
-   mary task. Tests with human subjects in a tank video game en-       The topic of plan recognition in AI is concerned with cor-
-   vironment that required monitoring several information chan-        rectly attributing intentions, beliefs, and goals to the user.
-   nels while maintaining situation awareness revealed that play-
-   ers performed better with RADAR selecting which channel to          Plan recognition models tend to subscribe to the Belief-
-   display. RADAR can customize its predictions to a user to           Desires-Intention framework (McTear, 1993). This line of
-   take into account individual differences and changes within a       work relies on knowledge-based approaches for user mod-
-   user over time. RADAR’s emphasis on learning by observing
-   minimizes the need for explicit guidance from subject matter        eling and encoding insights from domain-specific experts
-   experts.                                                            (Goodman & Litman, 1992). These approaches can involve
-                                                                       identifying a user’s subgoals through task-analysis (Yi & Bal-
-                          Introduction                                 lard, 2006). Once a user’s beliefs, intentions, and goals are
-We increasingly find ourselves in information-rich environ-            understood, display can be adapted appropriately (Goodman
-ments. Often, many information sources are potentially use-            & Litman, 1992).
-ful for completing a task. For example, in coordinating dis-              Instead of focusing on identifying the internal state of the
-aster relief, sources of potentially useful information include        user, other approaches rely on input from domain experts to
-video feeds, weather forecasts, inventories of relief supplies,        adapt display to emphasize the information to which the user
-GPS tracking of support vehicles, etc. Likewise, the many              should attend. For example human experts can label episodes
-sensors, gauges, and navigation systems in a modern auto-              and these episodes can serve as training instances for machine
-mobile are potentially useful to the driver.                           learning models that prioritize display elements (St. John,
-   One key challenge people face is identifying which source           Smallman, & Manes, 2005). Alternatively, input from hu-
-of information is desired at the current moment. Although the          man experts can be used to build expert systems or Bayesian
-information available to a human operator can increase with-           models to prioritize display (Horvitz & Barry, 1995).
-out obvious bound, our basic information processing capaci-               Our approach diverges from the aforementioned work.
-ties remain fixed. Each additional information source incurs           Rather than prescribe which information source a user should
-a cost to the human operator by increasing the complexity of           prioritize, we attempt to highlight the information a user
-the selection process. As informational channels are added,            would select if the user searched through all possible options.
-at some point, the marginal costs (in terms of cognitive load)         Unlike work in plan recognition, we sidestep the problem of
-eclipse the marginal benefits.                                         ascribing and ascertaining the user’s internal mental state. In-
-   In this report, we propose and evaluate a system that eases         stead, RADAR learns to directly predict a user’s desired dis-
-this selection process by highlighting the information chan-           play from contextual (i.e., situational) features. Our approach
-nel desired by the user. The system, Responsive Adaptive               emphasizes learning as opposed to preprogrammed interfaces
-Display Anticipates Requests (RADAR), learns to approxi-               (Mäntyjärvi & Seppänen, 2002). Adopting a learning ap-
-mate the selection process of the human operator by observ-            proach to adaptive display has a number of positive conse-
-ing the user’s selection behavior. In cases where RADAR                quences, including the ability to take into account individ-
-successfully approximates the human’s selection process, the           ual differences across users (Schneider-Hufschmidt, Kühme,
-cognitive cost of information selection can be offloaded to            & Malinowski, 1993). Another positive consequence is that
-RADAR.                                                                 minimal input from subject matter experts is required to build
-   RADAR is named after the character Radar O’Reilly from              a system. Like other keyhole approaches (Albrecht, Zuker-
-the television series M*A*S*H. Radar O’Reilly had an un-               man, & Nicholson, 1998), our approach is based on observ-
-                                                                   875
+eScholarship.org
 
-ing the user’s behavior without interfering with or directly          be desired in 250 ms. This constancy would dominate learn-
-querying the user.                                                    ing if both stages were combined. The second stage’s focus
-                                                                      on display transitions allows for improved estimation of these
-                   Overview of RADAR                                  relatively rare, but critical, events. Psychologically, the first
-RADAR is designed to operate in task environments in which            stage corresponds to identifying key events in a continuous
-the user must select which display among numerous displays            (unsegmented) environment, whereas the second stage corre-
-to monitor. For example, we evaluate RADAR in an arcade               sponds to predicting event transitions. To make an analogy
-game environment in which players select which of eight pos-          to speech perception, people segment the continuous speech
-sible displays to show on a Head-Up Display (HUD). Figure 1           stream into words (akin to RADAR’s first stage) in the ab-
-illustrates how RADAR operates in such task environments.             sence of reliable acoustical gaps between words (Saffran,
-RADAR takes as input the current context (e.g, recent game            2003). Akin to RADAR’s second stage, people anticipate
-history) encoded as a feature vector and outputs to the HUD           which word (i.e., event) is likely to follow given the proceed-
-the display it thinks the user wishes to view. The user is free       ing words (McRae, Spivey-Knowlton, & Tanenhaus, 1998).
-to override RADAR’s choice. RADAR learns from the user’s                 The probability distributions associated with both stages
-acceptance or rejection of its display choices and over time          are estimated by simple buffer networks (Cleeremans, 1993).
-converges to selecting the displays the user desires. Alterna-        As shown in Figure 2, buffer networks represent time spa-
-tively, RADAR can observe and learn to mimic a user’s dis-            tially as a series of slots, each containing the context (e.g.,
-play preferences offline. After online training, RADAR can            game situation) at a recent time slice, encoded as a feature
-be used to select displays. In the studies reported here, offline     vector. The buffer allows both ongoing events and events
-training was used.                                                    from the recent past to influence display prediction. Despite
-                                                                      their simplicity, buffer networks have been shown to account
-                                                                      for a surprising number of findings in human sequential learn-
-   Current
-                            RADAR                    HUD              ing (Gureckis & Love, 2007). At each time step, weights
-   Context                                                            from the buffer are increased from activated features to the
-                                                                      display option shown in the HUD, whereas weights to the
-                                        learning                      other display options are decreased. Over time, this simple
-                                                                      error correction learning process approximates a user’s infor-
-                                                  User’s              mation preferences.
-                                                  Selection
-                                                                                   RADAR’s Formal Description
-Figure 1: RADAR takes as input the current context (e.g.,             Player Model Our model of the player’s choice behavior
-recent game history) and outputs its preferred display to             assumes that the player’s preferred channel at any time, t, is
-the HUD. The user (e.g., the game player) can override                determined by the state of the game at that time, St , together
-RADAR’s choice. Such corrections serve as learning signals            with the recent history of the game, (St − l)1≤l<L . The recent
-to RADAR and increase the likelihood that RADAR will se-              history is included, in addition to the current state, to allow for
-lect the user’s preferred display in similar situations in the        fixed delays in information need (e.g., the player wants to see
-future. Over time, RADAR approximates the information                 channel Y, l timesteps after event X occurs). The parameter L
-preferences of a specific user, allowing the user to offload the      determines the maximum delay, that is, the longest time that
-task of selecting the relevant information source (i.e., display)     past information can remain relevant to the player’s choice.
-from numerous competing options.                                      This parameter is currently set to 10 (i.e., 2.5 s).
-                                                                         For compactness, we write the sequence of current and re-
-   In terms of current implementation, RADAR employs a                cent game states as
+Powered by the California Digital Library
+University of California
+
+Predicting Information Needs: Adaptive Display in Dynamic Environments
+Bradley C. Love (brad love@mail.utexas.edu)
+
+Matt Jones (mcj@colorado.edu)
+
+Department of Psychology
+Austin, TX 78712 USA
+
+Department of Psychology
+Boulder, CO 80309 USA
+
+Marc T. Tomlinson (mtomlinson@love.psy.utexas.edu)
+
+Michael Howe (michael.howe@mail.utexas.edu)
+
+Department of Psychology
+Austin, TX 78712 USA
+
+Department of Psychology
+Austin, TX 78712 USA
+
+Abstract
+
+canny ability to deliver information to his commander moments before the commander formulated his request, much
+like how RADAR learns to anticipate the information needs
+of the user to reduce cognitive load. Before presenting
+RADAR and empirically evaluating it in a well-controlled experiment, we briefly review related work.
+
+Although the information available to human operators can increase without obvious bound, human information processing
+capacities remain fixed. Finding and selecting the relevant information to display in this deluge of options imposes a burden
+on the user. We describe a domain-general system, Responsive
+Adaptive Display Anticipates Requests (RADAR), that learns
+to highlight the information a user would select if the user
+searched through all possible options. By offloading this selection process to RADAR, the user can concentrate on the primary task. Tests with human subjects in a tank video game environment that required monitoring several information channels while maintaining situation awareness revealed that players performed better with RADAR selecting which channel to
+display. RADAR can customize its predictions to a user to
+take into account individual differences and changes within a
+user over time. RADAR’s emphasis on learning by observing
+minimizes the need for explicit guidance from subject matter
+experts.
+
+Related Efforts
+The topic of plan recognition in AI is concerned with correctly attributing intentions, beliefs, and goals to the user.
+Plan recognition models tend to subscribe to the BeliefDesires-Intention framework (McTear, 1993). This line of
+work relies on knowledge-based approaches for user modeling and encoding insights from domain-specific experts
+(Goodman & Litman, 1992). These approaches can involve
+identifying a user’s subgoals through task-analysis (Yi & Ballard, 2006). Once a user’s beliefs, intentions, and goals are
+understood, display can be adapted appropriately (Goodman
+& Litman, 1992).
+Instead of focusing on identifying the internal state of the
+user, other approaches rely on input from domain experts to
+adapt display to emphasize the information to which the user
+should attend. For example human experts can label episodes
+and these episodes can serve as training instances for machine
+learning models that prioritize display elements (St. John,
+Smallman, & Manes, 2005). Alternatively, input from human experts can be used to build expert systems or Bayesian
+models to prioritize display (Horvitz & Barry, 1995).
+Our approach diverges from the aforementioned work.
+Rather than prescribe which information source a user should
+prioritize, we attempt to highlight the information a user
+would select if the user searched through all possible options.
+Unlike work in plan recognition, we sidestep the problem of
+ascribing and ascertaining the user’s internal mental state. Instead, RADAR learns to directly predict a user’s desired display from contextual (i.e., situational) features. Our approach
+emphasizes learning as opposed to preprogrammed interfaces
+(Mäntyjärvi & Seppänen, 2002). Adopting a learning approach to adaptive display has a number of positive consequences, including the ability to take into account individual differences across users (Schneider-Hufschmidt, Kühme,
+& Malinowski, 1993). Another positive consequence is that
+minimal input from subject matter experts is required to build
+a system. Like other keyhole approaches (Albrecht, Zukerman, & Nicholson, 1998), our approach is based on observ-
+
+Introduction
+We increasingly find ourselves in information-rich environments. Often, many information sources are potentially useful for completing a task. For example, in coordinating disaster relief, sources of potentially useful information include
+video feeds, weather forecasts, inventories of relief supplies,
+GPS tracking of support vehicles, etc. Likewise, the many
+sensors, gauges, and navigation systems in a modern automobile are potentially useful to the driver.
+One key challenge people face is identifying which source
+of information is desired at the current moment. Although the
+information available to a human operator can increase without obvious bound, our basic information processing capacities remain fixed. Each additional information source incurs
+a cost to the human operator by increasing the complexity of
+the selection process. As informational channels are added,
+at some point, the marginal costs (in terms of cognitive load)
+eclipse the marginal benefits.
+In this report, we propose and evaluate a system that eases
+this selection process by highlighting the information channel desired by the user. The system, Responsive Adaptive
+Display Anticipates Requests (RADAR), learns to approximate the selection process of the human operator by observing the user’s selection behavior. In cases where RADAR
+successfully approximates the human’s selection process, the
+cognitive cost of information selection can be offloaded to
+RADAR.
+RADAR is named after the character Radar O’Reilly from
+the television series M*A*S*H. Radar O’Reilly had an un-
+
+875
+
+ing the user’s behavior without interfering with or directly
+querying the user.
+
+be desired in 250 ms. This constancy would dominate learning if both stages were combined. The second stage’s focus
+on display transitions allows for improved estimation of these
+relatively rare, but critical, events. Psychologically, the first
+stage corresponds to identifying key events in a continuous
+(unsegmented) environment, whereas the second stage corresponds to predicting event transitions. To make an analogy
+to speech perception, people segment the continuous speech
+stream into words (akin to RADAR’s first stage) in the absence of reliable acoustical gaps between words (Saffran,
+2003). Akin to RADAR’s second stage, people anticipate
+which word (i.e., event) is likely to follow given the proceeding words (McRae, Spivey-Knowlton, & Tanenhaus, 1998).
+The probability distributions associated with both stages
+are estimated by simple buffer networks (Cleeremans, 1993).
+As shown in Figure 2, buffer networks represent time spatially as a series of slots, each containing the context (e.g.,
+game situation) at a recent time slice, encoded as a feature
+vector. The buffer allows both ongoing events and events
+from the recent past to influence display prediction. Despite
+their simplicity, buffer networks have been shown to account
+for a surprising number of findings in human sequential learning (Gureckis & Love, 2007). At each time step, weights
+from the buffer are increased from activated features to the
+display option shown in the HUD, whereas weights to the
+other display options are decreased. Over time, this simple
+error correction learning process approximates a user’s information preferences.
+
+Overview of RADAR
+RADAR is designed to operate in task environments in which
+the user must select which display among numerous displays
+to monitor. For example, we evaluate RADAR in an arcade
+game environment in which players select which of eight possible displays to show on a Head-Up Display (HUD). Figure 1
+illustrates how RADAR operates in such task environments.
+RADAR takes as input the current context (e.g, recent game
+history) encoded as a feature vector and outputs to the HUD
+the display it thinks the user wishes to view. The user is free
+to override RADAR’s choice. RADAR learns from the user’s
+acceptance or rejection of its display choices and over time
+converges to selecting the displays the user desires. Alternatively, RADAR can observe and learn to mimic a user’s display preferences offline. After online training, RADAR can
+be used to select displays. In the studies reported here, offline
+training was used.
+
+Current
+Context
+
+RADAR
+
+HUD
+learning
+
+User’s
+Selection
+
+RADAR’s Formal Description
+Player Model Our model of the player’s choice behavior
+assumes that the player’s preferred channel at any time, t, is
+determined by the state of the game at that time, St , together
+with the recent history of the game, (St − l)1≤l<L . The recent
+history is included, in addition to the current state, to allow for
+fixed delays in information need (e.g., the player wants to see
+channel Y, l timesteps after event X occurs). The parameter L
+determines the maximum delay, that is, the longest time that
+past information can remain relevant to the player’s choice.
+This parameter is currently set to 10 (i.e., 2.5 s).
+For compactness, we write the sequence of current and recent game states as
+
+Figure 1: RADAR takes as input the current context (e.g.,
+recent game history) and outputs its preferred display to
+the HUD. The user (e.g., the game player) can override
+RADAR’s choice. Such corrections serve as learning signals
+to RADAR and increase the likelihood that RADAR will select the user’s preferred display in similar situations in the
+future. Over time, RADAR approximates the information
+preferences of a specific user, allowing the user to offload the
+task of selecting the relevant information source (i.e., display)
+from numerous competing options.
+In terms of current implementation, RADAR employs a
 two-stage stochastic decision process at every time step. In
-the first stage, RADAR estimates the probability that a user                                     S = (St−l )0≤l<L                     (1)
+the first stage, RADAR estimates the probability that a user
 will update the HUD given the current context. When the
-sampled probability from the first stage results in a display            Because changing channels incurs a cost in terms of atten-
-update, RADAR proceeds to the second stage (otherwise the             tion and motor resources, we do not assume that the player
-current display remains unchanged). In the second stage,              changes the HUD to his or her preferred channel whenever
-RADAR estimates the probability distribution for the next             that preference changes. Instead, we assume a two-step
-display choice given the current context, and samples this            stochastic process, in which at every timestep there is a prob-
-probability distribution to select the next display.                  ability that the player will change channels and, if the channel
-   The motivation for the two-stage approach is both compu-           is changed, a probability distribution over the channel to be
-tational and psychological. Separating display prediction into        selected. The probability of switching channels is given by
-two stages improves RADAR’s ability to predict display tran-
-sitions. The same display currently desired is highly likely to                     t
-                                                                                   Pchange (Ct , S) = P[change(t + 1)|Ct , S]         (2)
-                                                                  876
+sampled probability from the first stage results in a display
+update, RADAR proceeds to the second stage (otherwise the
+current display remains unchanged). In the second stage,
+RADAR estimates the probability distribution for the next
+display choice given the current context, and samples this
+probability distribution to select the next display.
+The motivation for the two-stage approach is both computational and psychological. Separating display prediction into
+two stages improves RADAR’s ability to predict display transitions. The same display currently desired is highly likely to
 
-                       D1  Detector                                      (v), and lag (l); the weights for pchoice are also additionally
-                                                                         indexed by the value of the candidate new channel ( j). The
-                                                                         system’s predictions are derived as a linear combination of
-                                                                         these weights, weighted by the corresponding unit activation
-                                                                         values:
-                                                          0
-                                                      1      Time
-                                                                                             t
-                                                                                           Pchange  (Ct , S) =  ∑ wchange       · at
-                                                                                                                      Ct ,f,l,v f,l,v
-                                                                                                                                                  (4)
-                                                             Slice                                              f,l,v
-                            Previous Events (t-n)   0
-  m
-    t-P
-                               m
-                                t-3
-                                     m
-                                      t-2
-                                           m
-                                              t-1
-                                                  m
-                                                    t
-                                                                                           t
-                                                                                          Pchoice (Ct , j, S) =  ∑ wchoice           t
-                                                                                                                      Ct ,j,f,l,v · af,l,v        (5)
-                                                                                                                f,l,v
- Shift Register Memory
-                                                                         Operation At each timestep the system changes the chan-
-Figure 2: RADAR utilizes a buffer network to represent and               nel with probability pchange(Ct , S). When it does change
-learn from recent context (e.g., game history). Context is rep-          the channel, it selects the channel j that maximizes
-resented as a series of time slices. The tank game results are           pchoice (Ct , j, S) subject to j 6= Ct .
-based on a context consisting of ten time slices of 250 ms               Learning The weights wchange and wchoice are computed
-each. The buffer functions as a shift register — the slice               from the player’s manual choice behavior, by miminizing the
-from the immediate time step enters one side of the buffer,              following error terms
+S = (St−l )0≤l<L
+
+(1)
+
+Because changing channels incurs a cost in terms of attention and motor resources, we do not assume that the player
+changes the HUD to his or her preferred channel whenever
+that preference changes. Instead, we assume a two-step
+stochastic process, in which at every timestep there is a probability that the player will change channels and, if the channel
+is changed, a probability distribution over the channel to be
+selected. The probability of switching channels is given by
+t
+Pchange
+(Ct , S) = P[change(t + 1)|Ct , S]
+
+876
+
+(2)
+
+D1
+
+(v), and lag (l); the weights for pchoice are also additionally
+indexed by the value of the candidate new channel ( j). The
+system’s predictions are derived as a linear combination of
+these weights, weighted by the corresponding unit activation
+values:
+
+Detector
+
+0
+1
+Previous Events (t-n)
+t-P
+
+t-3
+
+m
+
+m
+
+t-2
+
+m
+
+t-1
+
+m
+
+0
+
+t
+Pchange
+(Ct , S) =
+
+Time
+Slice
+
+(4)
+
+t
+∑ wchoice
+Ct ,j,f,l,v · af,l,v
+
+(5)
+
+f,l,v
+t
+Pchoice
+(Ct , j, S) =
+
+t
+
+m
+
+f,l,v
+
+Shift Register Memory
+
+Operation At each timestep the system changes the channel with probability pchange(Ct , S). When it does change
+the channel, it selects the channel j that maximizes
+pchoice (Ct , j, S) subject to j 6= Ct .
+
+Figure 2: RADAR utilizes a buffer network to represent and
+learn from recent context (e.g., game history). Context is represented as a series of time slices. The tank game results are
+based on a context consisting of ten time slices of 250 ms
+each. The buffer functions as a shift register — the slice
+from the immediate time step enters one side of the buffer,
 all other time slices shift over one slot to accommodate the
-                                                                                                        (pchange )2         Ct+1 = Ct
-                                                                                                   
 new entry, and the least recent time slice is removed from the
-                                                                                     E change =                       2                           (6)
-buffer. Each time slice consists of a feature vector describing                                         (1 − pchange ) Ct+1 = Ct
+buffer. Each time slice consists of a feature vector describing
 the current situation. Table 1 lists the features used for the
-tank game. Each possible display in the HUD has a detector                                                       2
-                                                                             E choice = 1 − pchoice (Ct+1 ) +                       pchoice ( j)2
-                                                                                          
-that collects evidence to determine whether it is the situation-                                                           ∑                      (7)
-ally appropriate display. Association weights between fea-                                                            j6=Ct ,Ct+1
-tures at various positions along the buffer and each detector
-are learned through error correction learning. For example,                 The former is summed over all timesteps, and the latter is
-if a user prefers to have the fuel scope displayed when fuel             summed over all timesteps on which the player changed chan-
-is low, the weight from the fuel level feature’s low value at            nels. In practice, the weights in RADAR’s buffer networks
-various positions along the buffer to the fuel scope display             are estimated directly and efficiently using optimized linear
-detector will develop large, positive weights.                           algebra routines (Anderson et al., 1999) rather than trial-by-
-                                                                         trial error correction procedures. Both methods converge to
-                                                                         the same solution, but trial-by-trial learning takes longer to
-where Ct is the current channel. If the player does change               do so.
-channels, the probability of selecting channel j is equal to             Prescience The model is trained so as to predict players’
-                                                                         display-selection behavior in advance of when that behavior
-                                                                         would actually occur. This is accomplished by shifting the
-          t
-         Pchoice ( j, S) = P[Ct+1 = j|change(t + 1), Ct , S]     (3)     channel values relative to the feature values in the training
-                                                                         set. The sequence of channel values (i.e. on all timesteps
-Context Representation The state of the game at any time,                during play) is moved earlier by τ steps, which effectively
-t, is represented by a vector of F feature values:                       teaches the model to predict players’ behavior τ steps into
-    St = (Stf )1≤f≤F                                                     the future. Thus, when allowed to control the display, the
-    These features used in the studies reported here are listed in       model is able to immediately select the player’s (predicted)
-Table 1. Continuous features are discretized, and all features           preference τ steps into the future. The shift, τ, is currently set
-are coded to take on values 0 ≤ S f < V f (where V f is the              to 2 timesteps, i.e. 500 ms.
-number of possible values of feature f ).
-Prediction The display system operates by predicting two                                        Evaluating RADAR
-sets of probabilities, corresponding to the two steps in the             RADAR was evaluated in a video game task environment in
-model of the player’s choice behavior: pchange , the proba-              which human players battled robot tanks. The task environ-
-bility that the player will change channels; and pchoice , the           ment was adapted from the open source BZFlag 3D tank bat-
-distribution over the new channel if the channel is changed.             tle game (see www.bzflag.org). Modifications to BZFlag in-
-Both types of probabilities are predicted from the informa-              cluded expanding the state of a player’s tank to include lim-
-tion in the game history, S. The system learns a separate set            ited ammunition, fuel, and health. Players could pick up cor-
-of weights for the two types of predictions, each indexed by             responding flags in the game to replenish these assets. Addi-
-the current channel (Ct ), feature ( f ), value for that feature         tionally, the display was modified to include a pop-up menu
-                                                                     877
+tank game. Each possible display in the HUD has a detector
+that collects evidence to determine whether it is the situationally appropriate display. Association weights between features at various positions along the buffer and each detector
+are learned through error correction learning. For example,
+if a user prefers to have the fuel scope displayed when fuel
+is low, the weight from the fuel level feature’s low value at
+various positions along the buffer to the fuel scope display
+detector will develop large, positive weights.
 
-that allowed players to select one of eight possible displays to
+Learning The weights wchange and wchoice are computed
+from the player’s manual choice behavior, by miminizing the
+following error terms
+
+(pchange )2
+Ct+1 = Ct
+change
+E
+=
+(6)
+(1 − pchange )2 Ct+1 = Ct
+
+2
+E choice = 1 − pchoice (Ct+1 ) +
+
+∑
+
+pchoice ( j)2
+
+(7)
+
+j6=Ct ,Ct+1
+
+The former is summed over all timesteps, and the latter is
+summed over all timesteps on which the player changed channels. In practice, the weights in RADAR’s buffer networks
+are estimated directly and efficiently using optimized linear
+algebra routines (Anderson et al., 1999) rather than trial-bytrial error correction procedures. Both methods converge to
+the same solution, but trial-by-trial learning takes longer to
+do so.
+
+where Ct is the current channel. If the player does change
+channels, the probability of selecting channel j is equal to
+t
+Pchoice
+( j, S) = P[Ct+1 = j|change(t + 1), Ct , S]
+
+· at
+∑ wchange
+Ct ,f,l,v f,l,v
+
+Prescience The model is trained so as to predict players’
+display-selection behavior in advance of when that behavior
+would actually occur. This is accomplished by shifting the
+channel values relative to the feature values in the training
+set. The sequence of channel values (i.e. on all timesteps
+during play) is moved earlier by τ steps, which effectively
+teaches the model to predict players’ behavior τ steps into
+the future. Thus, when allowed to control the display, the
+model is able to immediately select the player’s (predicted)
+preference τ steps into the future. The shift, τ, is currently set
+to 2 timesteps, i.e. 500 ms.
+
+(3)
+
+Context Representation The state of the game at any time,
+t, is represented by a vector of F feature values:
+St = (Stf )1≤f≤F
+These features used in the studies reported here are listed in
+Table 1. Continuous features are discretized, and all features
+are coded to take on values 0 ≤ S f < V f (where V f is the
+number of possible values of feature f ).
+
+Evaluating RADAR
+
+Prediction The display system operates by predicting two
+sets of probabilities, corresponding to the two steps in the
+model of the player’s choice behavior: pchange , the probability that the player will change channels; and pchoice , the
+distribution over the new channel if the channel is changed.
+Both types of probabilities are predicted from the information in the game history, S. The system learns a separate set
+of weights for the two types of predictions, each indexed by
+the current channel (Ct ), feature ( f ), value for that feature
+
+RADAR was evaluated in a video game task environment in
+which human players battled robot tanks. The task environment was adapted from the open source BZFlag 3D tank battle game (see www.bzflag.org). Modifications to BZFlag included expanding the state of a player’s tank to include limited ammunition, fuel, and health. Players could pick up corresponding flags in the game to replenish these assets. Additionally, the display was modified to include a pop-up menu
+
+877
+
+that allowed players to select one of eight possible displays to
 view on the HUD.
-   The eight possible displays for the HUD correspond to the
+The eight possible displays for the HUD correspond to the
 first eight features listed in Table 1. Three of the displays
 provided the levels of the aforementioned assets. Three other
-displays were player-centered scopes that indicated the loca-
-tion of flags to replenish the corresponding asset. The remain-
-ing two displays consisted of a terrain map and a line-of-sight
+displays were player-centered scopes that indicated the location of flags to replenish the corresponding asset. The remaining two displays consisted of a terrain map and a line-of-sight
 unit radar that provided the positions of enemy tanks and fire
 when not obscured by building structures. Figure 3 illustrates
-the menu for selecting which display to send to the HUD dis-
-play as well as an example HUD.
-Table 1: The features used to describe the current game con-
-text are listed. These features serve as inputs to RADAR.
+the menu for selecting which display to send to the HUD display as well as an example HUD.
+Table 1: The features used to describe the current game context are listed. These features serve as inputs to RADAR.
 From these inputs, RADAR predicts which display the user
 wishes to view.
-        Feature Type                  Feature Name
-  Display Shown (1-8)        Terrain Map       Unit Radar
-                             Ammo Status       Ammo Scope
-                             Health Status     Health Scope
-                             Fuel Status       Fuel Scope
-  Tank Condition (9-12)      Ammo Level        Health Level
-                             Fuel Level        Out of Fuel
-  Flag in View (13-16)       Any Flag          Ammo Flag
-                             Health Flag       Fuel Flag
-  Flag Picked Up (17-20)     Any Flag          Ammo Flag
-                             Health Flag       Fuel Flag
-  Dynamic/Battle (21-23)     Tank is moving Tank hit
-                             Number of enemy tanks in view
-                                                                     Figure 3: Screenshots from our modified version of the
-                                                                     BZFlag tank game are shown. The top panel shows the se-
-   RADAR’s task was to anticipate the displays a player              lection menu listing the eight possible displays from which
-wished to have shown on the HUD, thus allowing the player            players can choose. These eight possible displays correspond
-to offload display selection to RADAR and devote full atten-         to the first eight features listed in Table 1. Once a display is
-tion to game play. Successful game play requires maintaining         selected, the menu is replaced with the chosen display in the
-situation awareness of the state of one’s tank, the locations of     HUD, as shown in the bottom panel. Players can offload the
-flags to replenish assets, and the position of enemy tanks. Our      task of selecting relevant displays to RADAR.
+Feature Type
+Display Shown (1-8)
+
+Tank Condition (9-12)
+Flag in View (13-16)
+Flag Picked Up (17-20)
+Dynamic/Battle (21-23)
+
+Feature Name
+Terrain Map
+Unit Radar
+Ammo Status
+Ammo Scope
+Health Status
+Health Scope
+Fuel Status
+Fuel Scope
+Ammo Level
+Health Level
+Fuel Level
+Out of Fuel
+Any Flag
+Ammo Flag
+Health Flag
+Fuel Flag
+Any Flag
+Ammo Flag
+Health Flag
+Fuel Flag
+Tank is moving Tank hit
+Number of enemy tanks in view
+
+Figure 3: Screenshots from our modified version of the
+BZFlag tank game are shown. The top panel shows the selection menu listing the eight possible displays from which
+players can choose. These eight possible displays correspond
+to the first eight features listed in Table 1. Once a display is
+selected, the menu is replaced with the chosen display in the
+HUD, as shown in the bottom panel. Players can offload the
+task of selecting relevant displays to RADAR.
+
+RADAR’s task was to anticipate the displays a player
+wished to have shown on the HUD, thus allowing the player
+to offload display selection to RADAR and devote full attention to game play. Successful game play requires maintaining
+situation awareness of the state of one’s tank, the locations of
+flags to replenish assets, and the position of enemy tanks. Our
 prediction is that players using RADAR should outperform
 those in control conditions.
-   Below, we discuss results from three studies comparing            the same version of RADAR rather than a user-customized
-player performance under RADAR to various controls. In               version. To further simplify evaluation, eight hours (across
-each study, subjects were evaluated in game situations in-           all five subjects) of game data without a functioning adap-
-volving two enemy (robot) tanks. A game ended when the               tive display (i.e., all display choices were determined by the
-subject’s tank was destroyed. When an enemy tank was de-             subject) were used to derive RADAR’s weights, as opposed
-stroyed, it was replaced by a new enemy tank at a random             to incrementally training RADAR online. These evaluation
-location.                                                            choices make interpretation of the results clearer, but poten-
-                                                                     tially reduced RADAR’s benefits as individual differences in
-Study 1: Group Model Evaluation                                      information preferences and drift within an individual’s pref-
-Experimental Methods Five undergraduate student volun-               erences over time are not captured by this procedure. The
-teers in the laboratory served as the research subjects. These       features that describe the game history for each time slice are
-students each had over ten hours experience playing the tank         listed in Table 1.
-game without RADAR operational (i.e., all displays were                 To provide a stringent test of the adaptive display system,
-manually selected from the menu). Because this is the first          subjects’ ability to manually select displays (i.e., override
-evaluation of RADAR, the testing procedure was simplified            RADAR) was disabled. Removing this ability forces subjects
-to the greatest extent possible. A single set of weights that        to completely rely on RADAR for information updates and
-predict display preferences was calculated, as opposed to de-        simulates conditions in which operators do not have the op-
-riving a separate set of predictive weights for each subject.        tion of scrolling through menus while on task. Performance
-Thus, at test, each subject interacted and was evaluated with        with RADAR functioning was compared to a closely matched
-                                                                 878
+Below, we discuss results from three studies comparing
+player performance under RADAR to various controls. In
+each study, subjects were evaluated in game situations involving two enemy (robot) tanks. A game ended when the
+subject’s tank was destroyed. When an enemy tank was destroyed, it was replaced by a new enemy tank at a random
+location.
 
-control condition. In the control condition, displays were
+the same version of RADAR rather than a user-customized
+version. To further simplify evaluation, eight hours (across
+all five subjects) of game data without a functioning adaptive display (i.e., all display choices were determined by the
+subject) were used to derive RADAR’s weights, as opposed
+to incrementally training RADAR online. These evaluation
+choices make interpretation of the results clearer, but potentially reduced RADAR’s benefits as individual differences in
+information preferences and drift within an individual’s preferences over time are not captured by this procedure. The
+features that describe the game history for each time slice are
+listed in Table 1.
+To provide a stringent test of the adaptive display system,
+subjects’ ability to manually select displays (i.e., override
+RADAR) was disabled. Removing this ability forces subjects
+to completely rely on RADAR for information updates and
+simulates conditions in which operators do not have the option of scrolling through menus while on task. Performance
+with RADAR functioning was compared to a closely matched
+
+Study 1: Group Model Evaluation
+Experimental Methods Five undergraduate student volunteers in the laboratory served as the research subjects. These
+students each had over ten hours experience playing the tank
+game without RADAR operational (i.e., all displays were
+manually selected from the menu). Because this is the first
+evaluation of RADAR, the testing procedure was simplified
+to the greatest extent possible. A single set of weights that
+predict display preferences was calculated, as opposed to deriving a separate set of predictive weights for each subject.
+Thus, at test, each subject interacted and was evaluated with
+
+878
+
+control condition. In the control condition, displays were
 shown for the same durations as the experimental condition
 (i.e., the base rates and mean durations of the eight displays
-were matched), but transitions between displays were deter-
-mined at random rather than selected by RADAR. Thus, any
+were matched), but transitions between displays were determined at random rather than selected by RADAR. Thus, any
 benefit of RADAR over the control condition is attributable
 to RADAR’s selecting the situationally appropriate displays
 for the HUD, as opposed to RADAR’s merely learning which
 displays are most valuable in general. For each game, the
-probabilities of a subject being assigned to the experimen-
-tal or control display conditions were 80% and 20%, respec-
-tively. Each player completed fifty test games.
+probabilities of a subject being assigned to the experimental or control display conditions were 80% and 20%, respectively. Each player completed fifty test games.
 Experiment Results The primary dependent measure was
 the mean number of enemy tanks destroyed per game. As
-predicted, subjects killed significantly more (4.54 vs. 3.29)        Figure 4: Study 2 demonstrates that players are more likely
-enemy tanks in the experimental than in the control condition,       to lose situation awareness and die from somewhat avoidable
-t(4) = 10.60, p < .001. All five subjects showed an advantage        causes, such as running out fuel, when RADAR is not oper-
-with RADAR. These results indicate RADAR’s effectiveness.            ating.
+predicted, subjects killed significantly more (4.54 vs. 3.29)
+enemy tanks in the experimental than in the control condition,
+t(4) = 10.60, p < .001. All five subjects showed an advantage
+with RADAR. These results indicate RADAR’s effectiveness.
+
+Figure 4: Study 2 demonstrates that players are more likely
+to lose situation awareness and die from somewhat avoidable
+causes, such as running out fuel, when RADAR is not operating.
+
 Study 2: Maintaining Situation Awareness
-Study 2 was patterned after Study 1. The same RADAR                  using only that player’s own training data. In the Other Indi-
-group model, experimental conditions, and methods were               vidual condition, subjects were assigned to another player’s
-used. Nine inexperienced players participating in a 36-hour          individual RADAR model. To evaluate RADAR’s promise in
-sleep deprivation study served as subjects. The question of          contexts where minimal input from subject matter experts is
-primary interest was whether RADAR helps subjects main-              available, a minimal feature set was used to predict display
-tain situation awareness. If so, subjects using RADAR should         preferences in all RADAR models. This minimal set con-
-be aware of the state of their tank and die at lower rates from      sisted of the “Display Shown” and “Tank Condition” features
-causes that are somewhat avoidable, such as running out of           shown in Table 1. Each player completed 12 test games in
-fuel or ammunition. Subjects who maintain awareness of the           each of the four conditions. Game order was randomly de-
-state of their vehicle are more likely to replenish fuel and am-     termined for each subject with games from the various condi-
-munition when necessary. The distribution of player deaths           tions interleaved. Study 3 evaluates whether RADAR offers
-by condition is shown in Figure 4. As predicted, a greater pro-      a potential benefit over purely manual operation.
-portion of games ended with fuel and ammunition depleted             Experiment Results Mean kills per condition are shown in
-in the control condition than when RADAR was operating,              Figure 5. Subjects killed significantly more tanks in the In-
-χ2 (2, N = 713) = 12.58, p < .01. These results suggest that         dividual and Other Individual conditions than in the Manual
-players were less aware of the state of their vehicle in the         condition, t(4) = 3.02, p < .05 and t(4) = 2.84, p < .05, re-
-control condition.                                                   spectively. The advantage of these RADAR conditions over
-                                                                     the Manual condition held for all five subjects. Interest-
-Study 3: Assessing Individual Models                                 ingly, this advantage for RADAR did not arise because of
-Experimental Methods Five undergraduate student volun-               a reduction in the rate of manual requests. In fact, subjects
-teers in the laboratory served as the research subjects. These       made significantly more requests per second (.13 vs. .12)
-students each had over ten hours experience playing the tank         in the Individual condition than in the Manual condition,
-game without RADAR operational prior to test data collec-            t(4) = 3.91, p < .05, with the effect holding for every sub-
-tion. Four hours of manual play data from each subject               ject.
-were used to train the various RADAR models evaluated at                These results indicate that individual RADAR models are
-test. Unlike Study 1, subjects at test could manually override       more effective than purely manual operation. The strong per-
-RADAR’s display choices. Subjects completed test games in            formance in the Other Individual condition was attributable
-four conditions: Manual, Group, Individual, and Other In-            to relatively novice subjects benefiting from using the dis-
-dividual. In the Manual condition, no RADAR model was                play models of more experienced subjects. This serendipitous
-operable and subjects manually selected all displays (as in          result suggests that RADAR may prove effective as a train-
-the training phase). In the remaining three conditions, a ver-       ing system in which novice subjects train under an expert’s
-sion of RADAR was operable at test. In the Group condition,          RADAR model. The fact that more manual requests were
-a RADAR model was derived for each player using training             made in the Individual condition than in the Manual condi-
-data from all the other players combined. In the Individual          tion suggests that RADAR freed cognitive resources so that
-condition, a RADAR model was derived for each subjects               subjects could seek additional information.
-                                                                 879
+using only that player’s own training data. In the Other Individual condition, subjects were assigned to another player’s
+individual RADAR model. To evaluate RADAR’s promise in
+contexts where minimal input from subject matter experts is
+available, a minimal feature set was used to predict display
+preferences in all RADAR models. This minimal set consisted of the “Display Shown” and “Tank Condition” features
+shown in Table 1. Each player completed 12 test games in
+each of the four conditions. Game order was randomly determined for each subject with games from the various conditions interleaved. Study 3 evaluates whether RADAR offers
+a potential benefit over purely manual operation.
 
-                                                                                              References
-                                                                    Albrecht, D. W., Zukerman, I., & Nicholson, A. E. (1998).
-                                                                          Bayesian models for keyhole plan recognition in an ad-
-                                                                          venture game. User Modeling and User-Adapted Inter-
-                                                                          action, 8(1-2), 5–47.
-                                                                    Anderson, E., Bai, Z., Bischof, C., Blackford, S., Demmel,
-                                                                          J., Dongarra, J., et al. (1999). LAPACK users’ guide
-                                                                          (Third ed.). Philadelphia, PA: Society for Industrial
-                                                                          and Applied Mathematics.
-                                                                    Cleeremans, A. (1993). Mechanisms of implicit learning:
-                                                                          Connectionist models of sequence processing. Cam-
-                                                                          bridge, MA: MIT Press.
-                                                                    Goodman, B. A., & Litman, D. J. (1992). On the inter-
-                                                                          action between plan recognition and intelligent inter-
-    Figure 5: Mean kills per game by condition for Study 3.               faces. UMUAI, 2, 83-115.
-                                                                    Gureckis, T., & Love, B. C. (2007). Behaviorism reborn?
-                                                                          statistical learning as simple conditioning. Proceedings
-                                                                          of the Annual Meeting of Cognitive Science Society.
-                    General Discussion                              Horvitz, E., & Barry, M. (1995). Display of information
-                                                                          for time-critical decision making. In Proc. of conf. on
-Advances in information technology make large quantities of               uncertainty in ai (p. 296-305).
-information available to human decision makers. In this del-        Mäntyjärvi, J., & Seppänen, T. (2002). Adapting applications
-uge of information, finding and selecting the relevant piece              in mobile terminals using fuzzy context information. In
-of information imposes a burden on the user. This burden is               Mobile hci (p. 95-107).
-particularly onerous in dynamic environments in which de-           McRae, K., Spivey-Knowlton, M. J., & Tanenhaus, M. K.
-cisions must be made rapidly. RADAR is a domain-general                   (1998). Modeling the influence of thematic fit (and
-system that learns to approximate the information search pro-             other constraints) in on-line sentence comprehension.
-cess of an individual user. By offloading this search process             Journal of Memory and Language, 38, 283-312.
-to RADAR, the user can concentrate on the primary task. Ex-         McTear, M. F. (1993). User modeling for adaptive computer
-perimental results in a tank video game environment in which              systems: a survey of recent developments. Artificial
-the player must maintain situation awareness demonstrate                  Intelligence Review, 7, 157-184.
-RADAR’s promise. Players performed better with RADAR.               Miller, C., Funk, H., Goldman, R., Meisner, J., & Wu, P.
-    Systems that automate tasks for humans often result in                (2005). Implications of adaptive vs. adaptable UIs on
-unexpected negative consequences (Miller, Funk, Goldman,                  decision making: Why automated adaptiveness is not
-Meisner, & Wu, 2005). We believe RADAR’s design makes                     always the right answer. In Proc. of the 1st inter. conf.
-it less likely than most systems to suffer from these problems.           on augmented cognition.
-Users can maintain basic control by overriding RADAR’s dis-         Saffran, J. R. (2003). Statistical language learning: Mech-
-play choices (see Figure 1). Mode errors are unlikely because             anisms and constraints. Current Directions in Psycho-
-all automatic updates involve a change of display, which the              logical Science, 12, 110-114.
-user should notice. Trust in the system should be high as           Schneider-Hufschmidt, M., Kühme, T., & Malinowski, U.
-RADAR learns to approximate a user’s desired display pref-                (1993). Adaptive user interfaces: Principles and prac-
-erences, rather than prescribe what the user should view. Fi-             tice. North-Holland.
-nally, RADAR can be incrementally deployed with increasing          St. John, M., Smallman, H. S., & Manes, D. I. (2005). As-
-rates of automatization over time.                                        sisted focus: Heuristic automation for guiding users’
-    All the current studies trained variants of RADAR mod-                attention toward critical information. In Proc. of the
-els from data collected under purely manual conditions. The               1st inter. conf. on augmented cognition.
-results of Studies 1-3 demonstrate that people perform differ-      Yi, W., & Ballard, D. (2006). Behavior recognition in human
-ently with RADAR operating. Thus, future work will involve                object interactions with a task model. In AVSS (p. 64-
-training RADAR models online so that RADAR and human                      64).
+Study 2 was patterned after Study 1. The same RADAR
+group model, experimental conditions, and methods were
+used. Nine inexperienced players participating in a 36-hour
+sleep deprivation study served as subjects. The question of
+primary interest was whether RADAR helps subjects maintain situation awareness. If so, subjects using RADAR should
+be aware of the state of their tank and die at lower rates from
+causes that are somewhat avoidable, such as running out of
+fuel or ammunition. Subjects who maintain awareness of the
+state of their vehicle are more likely to replenish fuel and ammunition when necessary. The distribution of player deaths
+by condition is shown in Figure 4. As predicted, a greater proportion of games ended with fuel and ammunition depleted
+in the control condition than when RADAR was operating,
+χ2 (2, N = 713) = 12.58, p < .01. These results suggest that
+players were less aware of the state of their vehicle in the
+control condition.
+
+Experiment Results Mean kills per condition are shown in
+Figure 5. Subjects killed significantly more tanks in the Individual and Other Individual conditions than in the Manual
+condition, t(4) = 3.02, p < .05 and t(4) = 2.84, p < .05, respectively. The advantage of these RADAR conditions over
+the Manual condition held for all five subjects. Interestingly, this advantage for RADAR did not arise because of
+a reduction in the rate of manual requests. In fact, subjects
+made significantly more requests per second (.13 vs. .12)
+in the Individual condition than in the Manual condition,
+t(4) = 3.91, p < .05, with the effect holding for every subject.
+These results indicate that individual RADAR models are
+more effective than purely manual operation. The strong performance in the Other Individual condition was attributable
+to relatively novice subjects benefiting from using the display models of more experienced subjects. This serendipitous
+result suggests that RADAR may prove effective as a training system in which novice subjects train under an expert’s
+RADAR model. The fact that more manual requests were
+made in the Individual condition than in the Manual condition suggests that RADAR freed cognitive resources so that
+subjects could seek additional information.
+
+Study 3: Assessing Individual Models
+Experimental Methods Five undergraduate student volunteers in the laboratory served as the research subjects. These
+students each had over ten hours experience playing the tank
+game without RADAR operational prior to test data collection. Four hours of manual play data from each subject
+were used to train the various RADAR models evaluated at
+test. Unlike Study 1, subjects at test could manually override
+RADAR’s display choices. Subjects completed test games in
+four conditions: Manual, Group, Individual, and Other Individual. In the Manual condition, no RADAR model was
+operable and subjects manually selected all displays (as in
+the training phase). In the remaining three conditions, a version of RADAR was operable at test. In the Group condition,
+a RADAR model was derived for each player using training
+data from all the other players combined. In the Individual
+condition, a RADAR model was derived for each subjects
+
+879
+
+References
+Albrecht, D. W., Zukerman, I., & Nicholson, A. E. (1998).
+Bayesian models for keyhole plan recognition in an adventure game. User Modeling and User-Adapted Interaction, 8(1-2), 5–47.
+Anderson, E., Bai, Z., Bischof, C., Blackford, S., Demmel,
+J., Dongarra, J., et al. (1999). LAPACK users’ guide
+(Third ed.). Philadelphia, PA: Society for Industrial
+and Applied Mathematics.
+Cleeremans, A. (1993). Mechanisms of implicit learning:
+Connectionist models of sequence processing. Cambridge, MA: MIT Press.
+Goodman, B. A., & Litman, D. J. (1992). On the interaction between plan recognition and intelligent interfaces. UMUAI, 2, 83-115.
+Gureckis, T., & Love, B. C. (2007). Behaviorism reborn?
+statistical learning as simple conditioning. Proceedings
+of the Annual Meeting of Cognitive Science Society.
+Horvitz, E., & Barry, M. (1995). Display of information
+for time-critical decision making. In Proc. of conf. on
+uncertainty in ai (p. 296-305).
+Mäntyjärvi, J., & Seppänen, T. (2002). Adapting applications
+in mobile terminals using fuzzy context information. In
+Mobile hci (p. 95-107).
+McRae, K., Spivey-Knowlton, M. J., & Tanenhaus, M. K.
+(1998). Modeling the influence of thematic fit (and
+other constraints) in on-line sentence comprehension.
+Journal of Memory and Language, 38, 283-312.
+McTear, M. F. (1993). User modeling for adaptive computer
+systems: a survey of recent developments. Artificial
+Intelligence Review, 7, 157-184.
+Miller, C., Funk, H., Goldman, R., Meisner, J., & Wu, P.
+(2005). Implications of adaptive vs. adaptable UIs on
+decision making: Why automated adaptiveness is not
+always the right answer. In Proc. of the 1st inter. conf.
+on augmented cognition.
+Saffran, J. R. (2003). Statistical language learning: Mechanisms and constraints. Current Directions in Psychological Science, 12, 110-114.
+Schneider-Hufschmidt, M., Kühme, T., & Malinowski, U.
+(1993). Adaptive user interfaces: Principles and practice. North-Holland.
+St. John, M., Smallman, H. S., & Manes, D. I. (2005). Assisted focus: Heuristic automation for guiding users’
+attention toward critical information. In Proc. of the
+1st inter. conf. on augmented cognition.
+Yi, W., & Ballard, D. (2006). Behavior recognition in human
+object interactions with a task model. In AVSS (p. 6464).
+
+Figure 5: Mean kills per game by condition for Study 3.
+
+General Discussion
+Advances in information technology make large quantities of
+information available to human decision makers. In this deluge of information, finding and selecting the relevant piece
+of information imposes a burden on the user. This burden is
+particularly onerous in dynamic environments in which decisions must be made rapidly. RADAR is a domain-general
+system that learns to approximate the information search process of an individual user. By offloading this search process
+to RADAR, the user can concentrate on the primary task. Experimental results in a tank video game environment in which
+the player must maintain situation awareness demonstrate
+RADAR’s promise. Players performed better with RADAR.
+Systems that automate tasks for humans often result in
+unexpected negative consequences (Miller, Funk, Goldman,
+Meisner, & Wu, 2005). We believe RADAR’s design makes
+it less likely than most systems to suffer from these problems.
+Users can maintain basic control by overriding RADAR’s display choices (see Figure 1). Mode errors are unlikely because
+all automatic updates involve a change of display, which the
+user should notice. Trust in the system should be high as
+RADAR learns to approximate a user’s desired display preferences, rather than prescribe what the user should view. Finally, RADAR can be incrementally deployed with increasing
+rates of automatization over time.
+All the current studies trained variants of RADAR models from data collected under purely manual conditions. The
+results of Studies 1-3 demonstrate that people perform differently with RADAR operating. Thus, future work will involve
+training RADAR models online so that RADAR and human
 operators can co-evolve.
-                    Acknowledgements
-This work was supported by AFOSR grant FA9550-04-1-
-0226 and NSF CAREER grant #0349101 to the first author.
-                                                                880
 
+Acknowledgements
+This work was supported by AFOSR grant FA9550-04-10226 and NSF CAREER grant #0349101 to the first author.
+
+880
+
+

@@ -1,327 +1,456 @@
-                                                                    the pose angles are determined, a neural network regressor es-
-                                                                    timates the gaze direction. This step is necessary, since small
-                                                                    head pose changes towards peripheries of the visual field are
-                                                                    usually indicative of larger deviations of the gaze direction.
-                                                                    We assume that the embodied agent is not sufficiently stable
-                                                                    to extract an accurate estimate of the gaze direction directly
-                                                                    by analysing the eye and iris area of the experimenter.
-                                                                       A second neural network regressor is used to estimate the
-                                                                    distance of the target object along the gaze direction. These
-                                                                    two estimates are probabilistically combined to yield a coarse
-                                                                    estimate for the center of the target object. By pooling a es-
-                                                                    timates from a number of consecutive frames, a more robust
-                                                                    decision on the target is generated.
-                                                                       The rough localization of the attended object is refined by a
-                                                                    bottom-up saliency scheme, which also segments out the tar-
-                                                                    get object. If the experimenter continues to maintain a certain
-                                                                    head pose, alternative target locations are eventually explored
-                                                                    as a result of an inhibition-of-return mechanism. We now de-
-                                                                    scribe each of these steps in more detail.
-                                                                                        Head Pose Tracking
-             Figure 1: Basic steps of the algorithm.                The real-time head tracking and 3D pose estimation algo-
-                                                                    rithm is initialized using the popular Viola-Jones face detec-
-                                                                    tion method, which employs an Adaboost classifier with Haar
-pearance of the experimenter with angles that specify its pose.
-                                                                    wavelet features (Viola & Jones, 2001). The 3D pose estima-
-For each facial appearance in the training set, the head orien-
-                                                                    tion is implemented via continuous tracking with the Lucas-
-tation is manually annotated.
-                                                                    Kanade optical flow method (Lucas & Kanade, 1981).
-   The distinction of following the head pose and the gaze di-
-                                                                       The pose of the head relating frame Ft at time t is repre-
-rection itself is an important one that we explicitly stress in
-                                                                    sented with a pose vector pt , which is initialized by assuming
-this paper. It appears that young infants first follow the head
-                                                                    that F0 contains a fully frontal face, where the eye-contact is
-movements of others, and only in time develop the ability to
-                                                                    established between the agent and the experimenter. Thus the
-follow the gaze direction (Corkum & Moore, 1995). Most of
-                                                                    rotation parameters are all set to 0 and the translation param-
-the joint attention approaches in the literature do not explic-
-                                                                    eters are initialized considering the detected face location of
-itly correct for the discrepancy between the head pose and
-                                                                    the experimenter.
-gaze direction, which is reported to be normally distributed
-                                                                       For simplicity and fast computation, the 3D motion is sum-
-with a mean of five degrees in natural settings (Hayhoe, Land,
-                                                                    marized by a set of points that are obtained by regular sam-
-& Shrivastava, 1999 ; Triesch, Jasso, & Deák, 2007). Esti-
-                                                                    pling on the cylinder surface (See Figure 2 (a)). The relation
-mating the gaze direction has received a lot of attention for
-                                                                    between these points and their corresponding projections on
-obvious reasons, see (Hansen & Ji, to appear) for a recent
-                                                                    the 2D image plane is established by a perspective projection
-overview of eye and gaze models.
-                                                                    based on a simple pin hole camera model. Let pi be a point
-   In the next section, we describe a fast model for joint at-      sampled from the surface of the cylinder at Fi and ui be its
-tention modeling, which is based on estimating the head pose        projection on the image plane. If the cylinder is observed at
-of the experimenter. The individual components of the sys-          different locations and with different orientations at two con-
-tem are described with dedicated sections, followed by our          secutive frames Fi and Fi+1 , this is expressed as an update in
-experimental results.                                               pose vector pi by the rigid motion vector ∆µi ,
-           Overall Description of the Model                                                   pi+1 = ∆µi pi .
-The basic steps of the proposed algorithm are summarized            In order to compute this motion vector, we need to establish
-in Figure 1. The first step of the proposed metod is detect-        the relation between pi and ui for Fi and their corresponding
-ing the face of the experimenter with the Viola-Jones algo-         locations on Fi+1 . The new location of the point at Fi+1 is
-rithm (Viola & Jones, 2001). The details of this step are omit-     found by projecting ui onto the cylindrical model, applying
-ted, as the method is fairly mainstream, and a widely used im-      the pose update and mapping back to the image coordinates.
-plementation exists in the OpenCV library. The head pose of         If the intensity of the pixel I(u) is assumed to be constant
-the experimenter is tracked by adapting a 3D elliptic cylindri-     between the images, the pose update satisfies:
-cal model to the face region. The pose vector consists of the
-                                                                              ∆µi = −( ∑ (Iu Fµ )t (Iu Fµ ))−1  ∑ (It (Iu Fµ )t )
-roll, pitch, and yaw angle parameters of the cylinder. Once                             u∈Ω                    u∈Ω
-                                                                3140
+the pose angles are determined, a neural network regressor estimates the gaze direction. This step is necessary, since small
+head pose changes towards peripheries of the visual field are
+usually indicative of larger deviations of the gaze direction.
+We assume that the embodied agent is not sufficiently stable
+to extract an accurate estimate of the gaze direction directly
+by analysing the eye and iris area of the experimenter.
+A second neural network regressor is used to estimate the
+distance of the target object along the gaze direction. These
+two estimates are probabilistically combined to yield a coarse
+estimate for the center of the target object. By pooling a estimates from a number of consecutive frames, a more robust
+decision on the target is generated.
+The rough localization of the attended object is refined by a
+bottom-up saliency scheme, which also segments out the target object. If the experimenter continues to maintain a certain
+head pose, alternative target locations are eventually explored
+as a result of an inhibition-of-return mechanism. We now describe each of these steps in more detail.
 
-                                                                    pose angles obtained as the experimenter looks at each ob-
-                                                                    ject for a few seconds. The head pose angles are grouped
-                                                                    (and coloured) according to the target object, which reveals a
-                                                                    clear clustering, as well as the nonlinear nature of the relation
-                                                                    between head pose and gaze direction.
-                                                                       Some approaches resolve gaze direction from head pose
-                                                                    implicitly by incorporating additional assumptions. For in-
-                                                                    stance in (Stiefelhagen, Yang, & Waibel, 1999), the focus of
-                                                                    attention is assumed to rest on a person, and the estimated
-                                                                    head pose is corrected to select the closest person as the target
-                                                                    of the gaze. In this paper we assume that precise eye-center
-                                                                    positioning and 3D interpolation of the gaze vector in real
-                               (a)                                  time is not realistic for the embodied agent. We use a two-
-                                                                    layer backpropagation neural network to interpolate the gaze
-                                                                    direction from a given 3D head pose vector estimate (Bishop,
-                                                                    1995).
-                                                                       The input layer of the feedforward artificial neural network
-                                                                    receives the three-dimensional estimated pose vector and
-                                                                    maps this input to a gaze direction, represented by a single
-                                                                    angle on the image plane. We have used 10 hidden units, an
-                                                                    initial learning rate of 0.1, which is exponentially decreased
-                                                                    during training, and an online training scheme. Weights in
-                                                                    both layers are initialized randomly from the (−0.5, 0.5) in-
-                                                                    terval. A validation set is monitored for error decrease to pre-
-                                                                    vent overfitting. The training samples required for the super-
-                                                                    vised training of the neural network are obtained by manual
-                               (b)                                  annotation of the target object location for each frame of the
-                                                                    video.
-Figure 2: (a) The experimental setup. Object indices and cen-          Our experiments indicate that the angle with which the
-ters are manually annotated by the user. The annotated gaze         head is turned towards the focused object underestimates the
-direction points towards the object centre, the estimated gaze      actual gaze direction, both horizontally and vertically. Fig-
-directions are shown with a tolerance band around it. (b) Dis-      ure 3 illustrates the estimated gaze direction through head
-tribution of pose angles.                                           pose computation and the gaze direction estimated through
-                                                                    the neural network regressor. The neural network interpola-
-where Iu and It are the spatial and temporal image gradients,       tion (or extrapolation, in most cases) achieves both 3D and 2D
-respectively (Lucas & Kanade, 1981). Solving for ∆µ for each        coordinate mapping, and provides more accurate estimates of
-frame Fi , we obtain a continuously updated pose vector for         the gaze direction. For the particular case presented in Fig-
-all frames in the sequence. For further details, the reader is      ure 3, the improvement per frame is 0.14 radians as measured
-referred to (Valenti, Yücel, & Gevers, 2009).                      on the image plane.
-                                                                       The actual depth is not specified by the gaze direction vec-
-   Gaze Direction and Target Depth Estimation                       tor on the image plane, yet this information is present to
-                                                                    some extent in the 3D head pose vector estimated in the first
-Head pose estimation is primarily used to determine the fo-
-                                                                    step. Therefore another neural network module is trained to
-cus of attention of a person. Wu and Toyama previously de-
-                                                                    obtain an estimate for the depth of object of interest. The
-veloped a method that is based on fitting an ellipsoidal head
-                                                                    parametrization is similar to the first regressor, with three in-
+Head Pose Tracking
+
+Figure 1: Basic steps of the algorithm.
+pearance of the experimenter with angles that specify its pose.
+For each facial appearance in the training set, the head orientation is manually annotated.
+The distinction of following the head pose and the gaze direction itself is an important one that we explicitly stress in
+this paper. It appears that young infants first follow the head
+movements of others, and only in time develop the ability to
+follow the gaze direction (Corkum & Moore, 1995). Most of
+the joint attention approaches in the literature do not explicitly correct for the discrepancy between the head pose and
+gaze direction, which is reported to be normally distributed
+with a mean of five degrees in natural settings (Hayhoe, Land,
+& Shrivastava, 1999 ; Triesch, Jasso, & Deák, 2007). Estimating the gaze direction has received a lot of attention for
+obvious reasons, see (Hansen & Ji, to appear) for a recent
+overview of eye and gaze models.
+In the next section, we describe a fast model for joint attention modeling, which is based on estimating the head pose
+of the experimenter. The individual components of the system are described with dedicated sections, followed by our
+experimental results.
+
+The real-time head tracking and 3D pose estimation algorithm is initialized using the popular Viola-Jones face detection method, which employs an Adaboost classifier with Haar
+wavelet features (Viola & Jones, 2001). The 3D pose estimation is implemented via continuous tracking with the LucasKanade optical flow method (Lucas & Kanade, 1981).
+The pose of the head relating frame Ft at time t is represented with a pose vector pt , which is initialized by assuming
+that F0 contains a fully frontal face, where the eye-contact is
+established between the agent and the experimenter. Thus the
+rotation parameters are all set to 0 and the translation parameters are initialized considering the detected face location of
+the experimenter.
+For simplicity and fast computation, the 3D motion is summarized by a set of points that are obtained by regular sampling on the cylinder surface (See Figure 2 (a)). The relation
+between these points and their corresponding projections on
+the 2D image plane is established by a perspective projection
+based on a simple pin hole camera model. Let pi be a point
+sampled from the surface of the cylinder at Fi and ui be its
+projection on the image plane. If the cylinder is observed at
+different locations and with different orientations at two consecutive frames Fi and Fi+1 , this is expressed as an update in
+pose vector pi by the rigid motion vector ∆µi ,
+
+Overall Description of the Model
+
+pi+1 = ∆µi pi .
+
+The basic steps of the proposed algorithm are summarized
+in Figure 1. The first step of the proposed metod is detecting the face of the experimenter with the Viola-Jones algorithm (Viola & Jones, 2001). The details of this step are omitted, as the method is fairly mainstream, and a widely used implementation exists in the OpenCV library. The head pose of
+the experimenter is tracked by adapting a 3D elliptic cylindrical model to the face region. The pose vector consists of the
+roll, pitch, and yaw angle parameters of the cylinder. Once
+
+In order to compute this motion vector, we need to establish
+the relation between pi and ui for Fi and their corresponding
+locations on Fi+1 . The new location of the point at Fi+1 is
+found by projecting ui onto the cylindrical model, applying
+the pose update and mapping back to the image coordinates.
+If the intensity of the pixel I(u) is assumed to be constant
+between the images, the pose update satisfies:
+
+3140
+
+∆µi = −( ∑ (Iu Fµ )t (Iu Fµ ))−1
+u∈Ω
+
+∑ (It (Iu Fµ )t )
+
+u∈Ω
+
+(a)
+
+(b)
+Figure 2: (a) The experimental setup. Object indices and centers are manually annotated by the user. The annotated gaze
+direction points towards the object centre, the estimated gaze
+directions are shown with a tolerance band around it. (b) Distribution of pose angles.
+where Iu and It are the spatial and temporal image gradients,
+respectively (Lucas & Kanade, 1981). Solving for ∆µ for each
+frame Fi , we obtain a continuously updated pose vector for
+all frames in the sequence. For further details, the reader is
+referred to (Valenti, Yücel, & Gevers, 2009).
+
+Gaze Direction and Target Depth Estimation
+Head pose estimation is primarily used to determine the focus of attention of a person. Wu and Toyama previously developed a method that is based on fitting an ellipsoidal head
 model to the 2D video image to estimate the pose angle, not
-                                                                    put values and a single depth value measured from the head
 unlike our approach detailed in the previous section (Wu &
-                                                                    centre as the output value.
 Toyama, 2000). This method was also employed to follow the
 gaze of the instructor in a shared-attention scenario (Hoffman
 et al., 2006).
-                                                                              Target Object Location Estimation
-   The head pose is certainly indicative of the gaze direction.     Once the gaze direction is estimated, we determine a feasible
-However, it does not completely specify the gaze direction,         region for directing the focus of attention. The estimate for
-since gaze involves eye movements, in addition to the head          the gaze direction is allowed a tolerance interval, shown in
-pose. Our experimental setup involves an experimenter look-         Figure 2 (a) with a yellow gaze cone, and the target for the
-ing at several objects placed on a flat surface, shown in Fig-      joint attention is assumed to fall within this gaze cone. We
-ure 2 (a). Figure 2 (b) illustrates the distribution of head        have experimentally set the maximum deviation from the es-
-                                                                3141
+The head pose is certainly indicative of the gaze direction.
+However, it does not completely specify the gaze direction,
+since gaze involves eye movements, in addition to the head
+pose. Our experimental setup involves an experimenter looking at several objects placed on a flat surface, shown in Figure 2 (a). Figure 2 (b) illustrates the distribution of head
 
-                                                                                                   tion. The tracking and interpretation of the head pose itself
-                                1
-                                                                              Pose from CHM        is noisy, and by itself not sufficient to single out the target.
-                               0.9                                            Annotated
-                                                                              NN regression        If there is more information available as to the experimenters
-                               0.8
-                                                                                                   intentions, or an instruction history that can provide back-
-        Resolved Angle (rad)
-                               0.7
-                                                                                                   ground probabilities with regards to which objects are more
-                               0.6
-                                                                                                   likely to receive attention, these can be integrated into the
-                               0.5
-                               0.4
-                                                                                                   saliency computation in a top-down manner, by for instance
-                               0.3
-                                                                                                   modulating the responses of individual feature channels ap-
-                               0.2
-                                     Mean improvement 0.14522                                      propriately. In Hoffman et al., the probability that an ex-
-                               0.1
-                                                                                                   perimenter selects a particular object is learned by fitting a
-                                0
-                                                                                                   Gaussian mixture model on the pixel distribution. We do not
-                                 0          50       100       150
-                                                           Frame Number
-                                                                        200       250     300
-                                                                                                   model the top-down influence at this stage, simply because in
-                                                                                                   the absence of specific contextual models, this additional in-
-Figure 3: Improvement of gaze direction estimation over head                                       formation presented to the system would optimistically bias
-pose estimation introduced by neural network regression.                                           the results.
-                                                                                                      Using saliency to fixate on the interesting objects serves
-timated gaze angle to 3π/64. The rough depth estimate helps                                        a twofold purpose. Firstly, it reduces the uncertainty in the
-to further narrow down the search.                                                                 estimation of the gaze direction. We may safely conjec-
-   The intersection of the gaze vector and the line of depth                                       ture that since saliency computation in the early layers of
-gives a single point in the image plane, indicative of the best                                    the visual system precedes the estimation of gaze direction,
-estimate for the target location. Examples of the resulting                                        the saliency-based grafting of the gaze to interesting objects
-estimates for focus of attention on the 2D image plane are                                         should serve as a supervisory system for learning to estimate
-presented in Figure 4.                                                                             the gaze direction. A consequence of this learning is the de-
-                                                                                                   veloping ability of the infant to estimate the attention focus
-                                                                                                   of the experimenter even when it lies beyond the visual field
-                                                                                                   of the child.
-                                                                                                      Secondly, saliency-based grafting compensates the dis-
-                                                                                                   crepancy between intended motor commands and executed
-                                                                                                   physical actions, an issue which is particularly relevant for
-                                                                                                   robotic implementations. The movement of the simulated
-Figure 4: Estimates for focus attention. This figure is best                                       fovea effectively creates an object-centered coordinate sys-
-viewed in colour.                                                                                  tem, which is a precondition of parsimonious mental object
-                                                                                                   representations.
-                                                 Saliency Model                                       In our model, the bottom-up saliency model receives a
-                                                                                                   modified image from the gaze estimation module, where a
-Once the gaze direction is estimated, the agent attempts to                                        particular region around the estimated gaze retains image in-
-determine the focus of attention of the experimenter. For this                                     formation and the rest of the visual field is suppressed. This
-purpose, we employ the popular bottom-up saliency scheme                                           forces the WTA to attend only to salient parts within the gaze
-proposed in (Itti, Koch, & Niebur, 1998). This approach                                            cone.
+pose angles obtained as the experimenter looks at each object for a few seconds. The head pose angles are grouped
+(and coloured) according to the target object, which reveals a
+clear clustering, as well as the nonlinear nature of the relation
+between head pose and gaze direction.
+Some approaches resolve gaze direction from head pose
+implicitly by incorporating additional assumptions. For instance in (Stiefelhagen, Yang, & Waibel, 1999), the focus of
+attention is assumed to rest on a person, and the estimated
+head pose is corrected to select the closest person as the target
+of the gaze. In this paper we assume that precise eye-center
+positioning and 3D interpolation of the gaze vector in real
+time is not realistic for the embodied agent. We use a twolayer backpropagation neural network to interpolate the gaze
+direction from a given 3D head pose vector estimate (Bishop,
+1995).
+The input layer of the feedforward artificial neural network
+receives the three-dimensional estimated pose vector and
+maps this input to a gaze direction, represented by a single
+angle on the image plane. We have used 10 hidden units, an
+initial learning rate of 0.1, which is exponentially decreased
+during training, and an online training scheme. Weights in
+both layers are initialized randomly from the (−0.5, 0.5) interval. A validation set is monitored for error decrease to prevent overfitting. The training samples required for the supervised training of the neural network are obtained by manual
+annotation of the target object location for each frame of the
+video.
+Our experiments indicate that the angle with which the
+head is turned towards the focused object underestimates the
+actual gaze direction, both horizontally and vertically. Figure 3 illustrates the estimated gaze direction through head
+pose computation and the gaze direction estimated through
+the neural network regressor. The neural network interpolation (or extrapolation, in most cases) achieves both 3D and 2D
+coordinate mapping, and provides more accurate estimates of
+the gaze direction. For the particular case presented in Figure 3, the improvement per frame is 0.14 radians as measured
+on the image plane.
+The actual depth is not specified by the gaze direction vector on the image plane, yet this information is present to
+some extent in the 3D head pose vector estimated in the first
+step. Therefore another neural network module is trained to
+obtain an estimate for the depth of object of interest. The
+parametrization is similar to the first regressor, with three input values and a single depth value measured from the head
+centre as the output value.
+
+Target Object Location Estimation
+Once the gaze direction is estimated, we determine a feasible
+region for directing the focus of attention. The estimate for
+the gaze direction is allowed a tolerance interval, shown in
+Figure 2 (a) with a yellow gaze cone, and the target for the
+joint attention is assumed to fall within this gaze cone. We
+have experimentally set the maximum deviation from the es-
+
+3141
+
+tion. The tracking and interpretation of the head pose itself
+is noisy, and by itself not sufficient to single out the target.
+If there is more information available as to the experimenters
+intentions, or an instruction history that can provide background probabilities with regards to which objects are more
+likely to receive attention, these can be integrated into the
+saliency computation in a top-down manner, by for instance
+modulating the responses of individual feature channels appropriately. In Hoffman et al., the probability that an experimenter selects a particular object is learned by fitting a
+Gaussian mixture model on the pixel distribution. We do not
+model the top-down influence at this stage, simply because in
+the absence of specific contextual models, this additional information presented to the system would optimistically bias
+the results.
+
+1
+Pose from CHM
+Annotated
+NN regression
+
+0.9
+
+Resolved Angle (rad)
+
+0.8
+0.7
+0.6
+0.5
+0.4
+0.3
+Mean improvement 0.14522
+
+0.2
+0.1
+0
+0
+
+50
+
+100
+
+150
+200
+Frame Number
+
+250
+
+300
+
+Figure 3: Improvement of gaze direction estimation over head
+pose estimation introduced by neural network regression.
+
+Using saliency to fixate on the interesting objects serves
+a twofold purpose. Firstly, it reduces the uncertainty in the
+estimation of the gaze direction. We may safely conjecture that since saliency computation in the early layers of
+the visual system precedes the estimation of gaze direction,
+the saliency-based grafting of the gaze to interesting objects
+should serve as a supervisory system for learning to estimate
+the gaze direction. A consequence of this learning is the developing ability of the infant to estimate the attention focus
+of the experimenter even when it lies beyond the visual field
+of the child.
+
+timated gaze angle to 3π/64. The rough depth estimate helps
+to further narrow down the search.
+The intersection of the gaze vector and the line of depth
+gives a single point in the image plane, indicative of the best
+estimate for the target location. Examples of the resulting
+estimates for focus of attention on the 2D image plane are
+presented in Figure 4.
+
+Secondly, saliency-based grafting compensates the discrepancy between intended motor commands and executed
+physical actions, an issue which is particularly relevant for
+robotic implementations. The movement of the simulated
+fovea effectively creates an object-centered coordinate system, which is a precondition of parsimonious mental object
+representations.
+
+Figure 4: Estimates for focus attention. This figure is best
+viewed in colour.
+
+Saliency Model
+Once the gaze direction is estimated, the agent attempts to
+determine the focus of attention of the experimenter. For this
+purpose, we employ the popular bottom-up saliency scheme
+proposed in (Itti, Koch, & Niebur, 1998). This approach
 is based on the feature integration theory of Treisman and
-Gelade, and decomposes the saliency of a scene into sepa-                                              Since human eye makes three to five saccades per second,
-rate feature channels. The presence of illumination intensity,                                     it is not realistic to compute saliency for a 25 f ps rate. There-
-colors, oriented features and motion are indicative of salient                                     fore we form bins of consecutive frames by considering five
-locations in the scene. Each feature channel is separately used                                    consecutive frames to belong to the same bin and calculate the
-to determine a feature-specific saliency map, which are then                                       2D location of focus of attention for each of them. Since we
-combined to a saliency master map. In the original model, the                                      do not expect the focus of attention change drastically in this
-saccadic eye movements are simulated by directing a foveal                                         short time interval, we perform a smoothing operation on the
-window to the most salient location, determined by a dynamic                                       estimated point by using a low pass filter. Five Gaussian dis-
-and competitive Winner-Take-All (WTA) network (Itti et al.,                                        tributions are then positioned around the resultant estimates
-1998). Once a location is selected, it is suppressed by an                                         and an eventual feasible region is obtained. Saliency com-
-inhibition-of-return mechanism to allow the next most-salient                                      putation followed by object segmentation is performed in the
-location to receive attention.                                                                     eventual feasible region and thereby the object of interest is
-   We use this model for determining the most salient object                                       resolved. It is observed that in most of the cases the coarse
-in the immediate neighbourhood of the estimated target loca-                                       object location estimates fall on the object.
-                                                                                                3142
+Gelade, and decomposes the saliency of a scene into separate feature channels. The presence of illumination intensity,
+colors, oriented features and motion are indicative of salient
+locations in the scene. Each feature channel is separately used
+to determine a feature-specific saliency map, which are then
+combined to a saliency master map. In the original model, the
+saccadic eye movements are simulated by directing a foveal
+window to the most salient location, determined by a dynamic
+and competitive Winner-Take-All (WTA) network (Itti et al.,
+1998). Once a location is selected, it is suppressed by an
+inhibition-of-return mechanism to allow the next most-salient
+location to receive attention.
+We use this model for determining the most salient object
+in the immediate neighbourhood of the estimated target loca-
 
-                                          Experimental Results
-                                                                                           Table 1: Performance evaluation, see text for details.
-We have collected ten video sequences at 25 f ps for a total                              Quality Measure near      f ar central peripheral
-of 4211 frames, where the ground truth for experimenter’s                                    Q1             0.04 0.06        0.06         0.04
-attention is manually annotated. The results are reported by                                 Q2 (h)         0.33 0.00        0.00         0.25
-ten-fold validation, where one session is used for training,                                 Q2 (hg)        0.33 0.16        0.55         0.25
-and the remaining nine are used to evaluate the accuracy of                                  Q2 (hgd)       0.87 0.72        0.80         0.76
+In our model, the bottom-up saliency model receives a
+modified image from the gaze estimation module, where a
+particular region around the estimated gaze retains image information and the rest of the visual field is suppressed. This
+forces the WTA to attend only to salient parts within the gaze
+cone.
+Since human eye makes three to five saccades per second,
+it is not realistic to compute saliency for a 25 f ps rate. Therefore we form bins of consecutive frames by considering five
+consecutive frames to belong to the same bin and calculate the
+2D location of focus of attention for each of them. Since we
+do not expect the focus of attention change drastically in this
+short time interval, we perform a smoothing operation on the
+estimated point by using a low pass filter. Five Gaussian distributions are then positioned around the resultant estimates
+and an eventual feasible region is obtained. Saliency computation followed by object segmentation is performed in the
+eventual feasible region and thereby the object of interest is
+resolved. It is observed that in most of the cases the coarse
+object location estimates fall on the object.
+
+3142
+
+Experimental Results
+We have collected ten video sequences at 25 f ps for a total
+of 4211 frames, where the ground truth for experimenter’s
+attention is manually annotated. The results are reported by
+ten-fold validation, where one session is used for training,
+and the remaining nine are used to evaluate the accuracy of
 the system for each fold. The mean values are reported for ten
 such batches. For each sequence, the experimenter focuses on
 each of the seven objects for several seconds in random order.
-Since accuracies depend on the placement of the objects, we                           tribution of each part of our proposed method, we present
-partition the objects into groups that indicate distance from                         results in three different experimental settings. In the first set-
-the experimenter (i.e. near and far), as well as into groups                          ting (only head), the head pose is assumed to be exactly the
-that indicate angular distance from the frontal gaze direction                        same as gaze direction, and the tolerance band is positioned
-(i.e. central and peripheral).                                                        directly around the pose vector. In the second setting (head +
-   We assume that if the computed focus of attention is suffi-                        gaze), the neural network regressor for the gaze estimation is
-ciently close to the target object, the detection is successful.                      taken into account. Finally, for the third setting (head + gaze
-The threshold for accepting success, however, can be deter-                           + depth), the neural network regressor for the depth estima-
-mined arbitrarily. In order to determine a reasonable value                           tion is used to determine the focus of attention. The last three
-for the tolerance interval around the estimated gaze direc-                           rows of Table 1 show the ratio of times the estimated gaze in-
-tion, we inspect the cumulative match characteristics curve                           tersects the bounding box of the target object to all estimates
-(CMC), given in Figure 5. The CMC curve plots the accu-                               for each of these settings, denoted by Q2 . This value is ideally
-racy of the system for a whole range of thresholds, where a                           close to unity. Since the segmentation step can recover from
-particular value τ of the threshold means that angular devia-                         gaze estimation errors, it is important to distinguish between
-tions from the target less than τ are acceptable at this stage.                       cases of complete miss and cases where the gaze cone touches
-The final threshold to be used in the actual deployment also                          the object, and with high probability the saccadic search will
-depends on the attention module; a larger threshold means                             visit the correct object in time.
-that a larger area needs to be searched by the attention mod-
-ule, and increases the probability of off-object fixations. We
+Since accuracies depend on the placement of the objects, we
+partition the objects into groups that indicate distance from
+the experimenter (i.e. near and far), as well as into groups
+that indicate angular distance from the frontal gaze direction
+(i.e. central and peripheral).
+We assume that if the computed focus of attention is sufficiently close to the target object, the detection is successful.
+The threshold for accepting success, however, can be determined arbitrarily. In order to determine a reasonable value
+for the tolerance interval around the estimated gaze direction, we inspect the cumulative match characteristics curve
+(CMC), given in Figure 5. The CMC curve plots the accuracy of the system for a whole range of thresholds, where a
+particular value τ of the threshold means that angular deviations from the target less than τ are acceptable at this stage.
+The final threshold to be used in the actual deployment also
+depends on the attention module; a larger threshold means
+that a larger area needs to be searched by the attention module, and increases the probability of off-object fixations. We
 determine from the curve that a tolerance interval of 3π/64
 leads to a reasonable detection rate.
-                                          Cumulative Match Characteristics
-                                     1
-                                                                                                       (a)                          (b)
-        Average Correct Detection
-                                    0.8
-                                    0.6
-                                    0.4
-                                    0.2
-                                                                                                       (c)                          (d)
-                                     0
-                                      0      π/32      π/16      3π/32       π/8      Figure 6: Example frames where the object of interest is de-
-                                               Acceptance Threshold
-                                                                                      tected.
+
+Table 1: Performance evaluation, see text for details.
+Quality Measure near
+f ar central peripheral
+Q1
+0.04 0.06
+0.06
+0.04
+Q2 (h)
+0.33 0.00
+0.00
+0.25
+Q2 (hg)
+0.33 0.16
+0.55
+0.25
+Q2 (hgd)
+0.87 0.72
+0.80
+0.76
+
+tribution of each part of our proposed method, we present
+results in three different experimental settings. In the first setting (only head), the head pose is assumed to be exactly the
+same as gaze direction, and the tolerance band is positioned
+directly around the pose vector. In the second setting (head +
+gaze), the neural network regressor for the gaze estimation is
+taken into account. Finally, for the third setting (head + gaze
++ depth), the neural network regressor for the depth estimation is used to determine the focus of attention. The last three
+rows of Table 1 show the ratio of times the estimated gaze intersects the bounding box of the target object to all estimates
+for each of these settings, denoted by Q2 . This value is ideally
+close to unity. Since the segmentation step can recover from
+gaze estimation errors, it is important to distinguish between
+cases of complete miss and cases where the gaze cone touches
+the object, and with high probability the saccadic search will
+visit the correct object in time.
+
+Cumulative Match Characteristics
+
+Average Correct Detection
+
+1
+
+(a)
+
+(b)
+
+(c)
+
+(d)
+
+0.8
+0.6
+0.4
+0.2
+0
+0
+
+π/32
+π/16
+3π/32
+Acceptance Threshold
+
+Figure 6: Example frames where the object of interest is detected.
+
+π/8
+
 Figure 5: Cumulative match characteristics of the head-pose
-estimation module on test recordings.                                                    Figure 6 illustrates several examples for which the pro-
-                                                                                      posed approach detects the target object. The visible image
-   The first row in Table 1 shows the average deviation from                          indicates the tolerance band around estimated gaze direction.
-target in radians for the whole system, denoted by Q1 . It                               Figure 7 illustrates several example frames where the target
-can be seen that the gaze direction is correctly estimated in                         was not detected. There are various reasons for misdetection.
-the majority of cases, and there are no significant differences                       It may be the case that the pose vector is not estimated with
-between object groups. Furthermore, it is observed that the                           high accuracy, so that the cone does not include the object of
-difference presents an acceptable deviation, close to the tol-                        interest. The other possibility is that the pose vector is esti-
-erance value derived from the CMC curve.                                              mated correctly, but the objects falls into an image segment
-   In order to provide comparative results indicating the con-                        with more salient objects, which draw the focus of attention.
-                                                                                   3143
+estimation module on test recordings.
+The first row in Table 1 shows the average deviation from
+target in radians for the whole system, denoted by Q1 . It
+can be seen that the gaze direction is correctly estimated in
+the majority of cases, and there are no significant differences
+between object groups. Furthermore, it is observed that the
+difference presents an acceptable deviation, close to the tolerance value derived from the CMC curve.
+In order to provide comparative results indicating the con-
 
-                                                                    Hoffman, M., Grimes, D., Shon, A., & Rao, R. (2006). A
-                                                                       probabilistic model of gaze imitation and shared attention.
-                                                                       Neural Networks, 19(3), 299–310.
-                                                                    Hongeng, S., Nevatia, R., & Bremond, F.(2004). Video-based
-                                                                       event recognition: activity representation and probabilistic
-                                                                       recognition methods. Computer Vision and Image Under-
-                  (a)                         (b)                      standing, 96(2), 129–162.
-                                                                    Itti, L., Koch, C., & Niebur, E. (1998). A Model of
-Figure 7: Example frames where the object of interest is not           Saliency-Based Visual Attention for Rapid Scene Analy-
-detected.                                                              sis. IEEE Transactions on Pattern Analysis and Machine
-                                                                       Intelligence, 1254–1259.
-                                                                    Kaplan, F., & Hafner, V. (2006). The challenges of joint at-
-                          Conclusions                                  tention. Interaction Studies, 7(2), 135–169.
-We have proposed a method for establishing joint attention          Lucas, B., & Kanade, T. (1981). An iterative image registra-
-between a human and an embodied agent. Our model uses                  tion technique with an application to stereo vision. In Int.
-estimation of head pose, correction for gaze direction, and            Joint Conf. on Artificial Intelligence (Vol. 3).
-attention based selection for finding objects attended by an        Meltzoff, A., & Moore, M. (1997). Explaining facial imita-
-experimenter. We point out to a shortcoming in the literature,         tion: A theoretical model. Early Development and Parent-
-in which the head pose is taken for specifying the focus of            ing, 6, 179–192.
-attention. We seek to remedy this by employing a neural net-        Moratz, R., & Tenbrink, T.(2008). Affordance-based human-
-work regressor that interpolates the gaze direction from the           robot interaction. Lecture Notes in Computer Science,
-head pose.                                                             4760, 63–76.
-   The proposed method is meant to provide a first approxi-         Nagai, Y., Hosoda, K., Morita, A., & Asada, M.(2003). Emer-
-mation to an otherwise complex cognitive phenomenon. Pos-              gence of joint attention based on visual attention and self
-sible future directions include direct gaze estimation by using        learning. In Proc. 2nd Int. Symposium on Adaptive Motion
-a higher-resolution camera to inspect the eyes of the experi-          of Animals and Machines (Vol. SaA-II-3).
-menter, as additional physical cues to determine the focus of       Shon, A., Storz, J., Meltzoff, A., & Rao, R. (2007). A Cogni-
-attention. Yet one should not forget the contribution of con-          tive Model of Imitative Development in Humans and Ma-
-text in the interaction. As Kaplan and Hafner (2006) rightly           chines. International Journal of Humanoid Robotics, 4(2),
-point out, the existence of top-down influences and the con-           387.
-siderations imposed by higher-level cognitive functions make        Stiefelhagen, R., Yang, J., & Waibel, A. (1999). Modeling
-joint attention a very difficult egg to crack.                         focus of attention for meeting indexing. In Proc. seventh
-                                                                       acm int. conf. on multimedia (Vol. 1, pp. 3–10).
-                    Acknowledgements                                Treisman, A., & Gelade, G. (1980). A feature-integration
-                                                                       theory of attention. Cognitive Psychology, 12(1), 97–136.
+Figure 6 illustrates several examples for which the proposed approach detects the target object. The visible image
+indicates the tolerance band around estimated gaze direction.
+Figure 7 illustrates several example frames where the target
+was not detected. There are various reasons for misdetection.
+It may be the case that the pose vector is not estimated with
+high accuracy, so that the cone does not include the object of
+interest. The other possibility is that the pose vector is estimated correctly, but the objects falls into an image segment
+with more salient objects, which draw the focus of attention.
+
+3143
+
+(a)
+
+(b)
+
+Figure 7: Example frames where the object of interest is not
+detected.
+
+Conclusions
+We have proposed a method for establishing joint attention
+between a human and an embodied agent. Our model uses
+estimation of head pose, correction for gaze direction, and
+attention based selection for finding objects attended by an
+experimenter. We point out to a shortcoming in the literature,
+in which the head pose is taken for specifying the focus of
+attention. We seek to remedy this by employing a neural network regressor that interpolates the gaze direction from the
+head pose.
+The proposed method is meant to provide a first approximation to an otherwise complex cognitive phenomenon. Possible future directions include direct gaze estimation by using
+a higher-resolution camera to inspect the eyes of the experimenter, as additional physical cues to determine the focus of
+attention. Yet one should not forget the contribution of context in the interaction. As Kaplan and Hafner (2006) rightly
+point out, the existence of top-down influences and the considerations imposed by higher-level cognitive functions make
+joint attention a very difficult egg to crack.
+
+Acknowledgements
 This research is supported by the Dutch BRICKS/BSIK
-                                                                    Triesch, J., Jasso, H., & Deák, G. (2007). Emergence of Mir-
-program and TUBITAK project with grant number BTT-
-                                                                       ror Neurons in a Model of Gaze Following. Adaptive Be-
-105E065.
-                                                                       havior, 15(2), 149.
-                                                                    Valenti, R., Yücel, Z., & Gevers, T. (2009). Robustifying eye
-                          Références
-                                                                       center localization by head pose cues. In Proc. IEEE Com-
-Bishop, C. (1995). Neural Networks for Pattern Recognition.            puter Society Conference on Computer Vision and Pattern
-   Oxford University Press, USA.                                       Recognition.
-Corkum, V., & Moore, C.(1995). Development of joint visual          Viola, P., & Jones, M. (2001). Rapid Object Detection Using
-   attention in infants. In C. Moore & P. Dunham (Eds.), Joint         a Boosted Cascade of Simple Features. In IEEE Computer
-   attention: Its origins and role in development (pp. 61–83).         Society Conf. on Computer Vision and Pattern Recognition
-   Erlbaum.                                                            (Vol. 1).
-Flom, R., Deák, G., Phill, C., & Pick, A.(2004). Nine-month-       Wu, Y., & Toyama, K. (2000). Wide-range, person-and
-   olds shared visual attention as a function of gesture and           illumination-insensitive head orientation estimation. In
-   object location. Infant Behavior and Development, 27(2),            Proc. Fourth IEEE Int. Conf. on Automatic Face and Ges-
-   181–194.                                                            ture Recognition (pp. 183–188).
-Hansen, D., & Ji, Q. (to appear). In the eye of the beholder:
-   A survey of models for eyes and gaze. IEEE Transactions
-   on Pattern Analysis and Machine Intelligence.
-Hayhoe, M., Land, M., & Shrivastava, A. (1999). Coordina-
-   tion of eye and hand movements in a normal environment.
-   Investigative Ophthalmology & Vision Science, 40.
-                                                                3144
+program and TUBITAK project with grant number BTT105E065.
 
+Références
+Bishop, C. (1995). Neural Networks for Pattern Recognition.
+Oxford University Press, USA.
+Corkum, V., & Moore, C.(1995). Development of joint visual
+attention in infants. In C. Moore & P. Dunham (Eds.), Joint
+attention: Its origins and role in development (pp. 61–83).
+Erlbaum.
+Flom, R., Deák, G., Phill, C., & Pick, A.(2004). Nine-montholds shared visual attention as a function of gesture and
+object location. Infant Behavior and Development, 27(2),
+181–194.
+Hansen, D., & Ji, Q. (to appear). In the eye of the beholder:
+A survey of models for eyes and gaze. IEEE Transactions
+on Pattern Analysis and Machine Intelligence.
+Hayhoe, M., Land, M., & Shrivastava, A. (1999). Coordination of eye and hand movements in a normal environment.
+Investigative Ophthalmology & Vision Science, 40.
+
+Hoffman, M., Grimes, D., Shon, A., & Rao, R. (2006). A
+probabilistic model of gaze imitation and shared attention.
+Neural Networks, 19(3), 299–310.
+Hongeng, S., Nevatia, R., & Bremond, F.(2004). Video-based
+event recognition: activity representation and probabilistic
+recognition methods. Computer Vision and Image Understanding, 96(2), 129–162.
+Itti, L., Koch, C., & Niebur, E. (1998). A Model of
+Saliency-Based Visual Attention for Rapid Scene Analysis. IEEE Transactions on Pattern Analysis and Machine
+Intelligence, 1254–1259.
+Kaplan, F., & Hafner, V. (2006). The challenges of joint attention. Interaction Studies, 7(2), 135–169.
+Lucas, B., & Kanade, T. (1981). An iterative image registration technique with an application to stereo vision. In Int.
+Joint Conf. on Artificial Intelligence (Vol. 3).
+Meltzoff, A., & Moore, M. (1997). Explaining facial imitation: A theoretical model. Early Development and Parenting, 6, 179–192.
+Moratz, R., & Tenbrink, T.(2008). Affordance-based humanrobot interaction. Lecture Notes in Computer Science,
+4760, 63–76.
+Nagai, Y., Hosoda, K., Morita, A., & Asada, M.(2003). Emergence of joint attention based on visual attention and self
+learning. In Proc. 2nd Int. Symposium on Adaptive Motion
+of Animals and Machines (Vol. SaA-II-3).
+Shon, A., Storz, J., Meltzoff, A., & Rao, R. (2007). A Cognitive Model of Imitative Development in Humans and Machines. International Journal of Humanoid Robotics, 4(2),
+387.
+Stiefelhagen, R., Yang, J., & Waibel, A. (1999). Modeling
+focus of attention for meeting indexing. In Proc. seventh
+acm int. conf. on multimedia (Vol. 1, pp. 3–10).
+Treisman, A., & Gelade, G. (1980). A feature-integration
+theory of attention. Cognitive Psychology, 12(1), 97–136.
+Triesch, J., Jasso, H., & Deák, G. (2007). Emergence of Mirror Neurons in a Model of Gaze Following. Adaptive Behavior, 15(2), 149.
+Valenti, R., Yücel, Z., & Gevers, T. (2009). Robustifying eye
+center localization by head pose cues. In Proc. IEEE Computer Society Conference on Computer Vision and Pattern
+Recognition.
+Viola, P., & Jones, M. (2001). Rapid Object Detection Using
+a Boosted Cascade of Simple Features. In IEEE Computer
+Society Conf. on Computer Vision and Pattern Recognition
+(Vol. 1).
+Wu, Y., & Toyama, K. (2000). Wide-range, person-and
+illumination-insensitive head orientation estimation. In
+Proc. Fourth IEEE Int. Conf. on Automatic Face and Gesture Recognition (pp. 183–188).
+
+3144
+
+

@@ -3,389 +3,682 @@ Proceedings of the Annual Meeting of the Cognitive Science
 Society
 Title
 Inferring Multitasking Breakpoints from Single-Task Data
+
 Permalink
 https://escholarship.org/uc/item/720422kn
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 32(32)
+
 Authors
 Bogunovich, Peter
 Salvucci, Dario
+
 Publication Date
 2010-01-01
 Peer reviewed
-  eScholarship.org                                 Powered by the California Digital Library
-                                                                    University of California
 
-                     Inferring Multitasking Breakpoints from Single-Task Data
-                                               Peter Bogunovich (pjb38@drexel.edu)
-                                           Drexel University, Department of Computer Science
-                                                           Philadelphia, PA, USA
-                                            Dario D. Salvucci (salvucci@cs.drexel.edu)
-                                           Drexel University, Department of Computer Science
-                                                           Philadelphia, PA, USA
-                              Abstract                                   2010) that in this situation users tend to defer switching tasks
-                                                                         until a point where there is a drop in mental workload. As ex-
-   Recent research has shown that computer users placed in a de-
-   ferrable multitasking situation generally postpone secondary-         emplified by these studies, a detailed analysis of when users
-   task interruptions until points of low mental workload in the         switch tasks is critical to a deeper understanding of human
-   primary task. Studies examining this phenomenon have re-              multitasking behavior. A particular goal in this line of re-
-   lied on empirical data that explicitly show user switch points
-   in the course of multitask performance. This paper addresses          search involves the prediction of breakpoints, the points in a
-   a related question: Can these same switch points, found em-           task sequence where the user can most conveniently switch
-   pirically in a multitasking context, be inferred solely from          tasks.
-   single-task data? We investigate this question and propose
-   an approach that analyzes a particular behavioral signature in           One approach to breakpoint prediction combines expert
-   single-task data—outliers in the distributions of time between        coding, feature detection and model prediction (Iqbal & Bai-
-   task actions—to infer multitasking breakpoints. We evaluate           ley, 2007). This approach begins by observing users in some
-   this approach using behavioral data from a user-interface task,
-   showing how the proposed method’s inferences from single-             natural multitasking environment. An expert manually exam-
-   task data match well to the real switch points observed during        ines user actions and identifies specific features which appear
-   multitask performance.                                                to signal breakpoints. A statistical model is then developed
-   Keywords: Multitasking; task analysis; data analysis.                 based on these features. Promising results have been ob-
-                                                                         tained with his method, however it requires the human coders
-                          Introduction                                   to identify the perceived breakpoints and features, and does
-Multitasking is a concept that is familar to most computer               not necessarily make use of the relationship between cogni-
-users. It is not uncommon for a user to switch computing                 tive load and interruptibilty. A successful related approach
-tasks every few minutes. In many cases switching is ini-                 that makes use of mental workload is to examine the typi-
-tiated by an interruption of the current task. For example,              cal execution structure of an action in advance and use this
-a notification of a newly received email may appear on the               structure to estimate opportune breakpoints (Bailey, Adam-
-screen prompting a user to stop what he is doing and look at             czyk, Chang, & Chilson, 2006). This method still requires
-his email before continuing his previous task. Research has              expert analysis and it may fail when variation in strategy is
-shown that interruptions can increase the overall time spent             introduced.
-on a single task. One important source of this increase is the              There exists a well-known relationship between cognitive
-resumption lag, or time required to switch back to the task              load and pupil dilation (Beatty, 1982). Researchers have
-and resume after the interruption has been addressed (Trafton,           made use of this link in another approach to breakpoint detec-
-Altmann, Brock, & Mintz, 2003; Monk, Boehm-Davis, Ma-                    tion (Bailey & Iqbal, 2008). In this approach, pupil dilation
-son, & Trafton, 2004). Recently it has been shown that it                data is recorded as users perform a task, and subtask bound-
-is more beneficial to interrupt at certain points than at others         aries, where there is an assumed drop in cognitive load, are
-(Adamczyk & Bailey, 2004; Bailey & Konstan, 2006; Cutrell,               estimated by changes in dilation. The result is a more general
-Czerwinski, & Horvitz, 2000). One particularly strong result             and more automatic estimation of good potential breakpoints
-states that the performance loss associated with interruption            that relies less on pre-computed models or experts. Despite
-is reduced when interruptions occur at points of low mental              these findings, it may not be possible to obtain pupil-dilation
-workload (Iqbal & Bailey, 2005). This result has obvious im-             in practice for many tasks.
-portance when considering forced interruptions in which the                 In this paper we attempt to infer multitasking breakpoints
-user is required to address the interruption immediately be-             in a automatic, data-driven manner. In this respect our ap-
-fore moving on with the primary task.                                    proach is most similar to (Bailey & Iqbal, 2008), but in-
-   The relationship between mental workload and interrupt-               stead of relying on typically inaccessible equipment like eye-
-ibility has been strengthened in further studies of deferrable           trackers, our goal is to come up with the good estimates us-
-interruptions (Salvucci & Taatgen, 2010) in which a user is              ing only data logs of system events generated by users per-
-notified of a secondary task but the user can defer processing           forming a single primary task. Our analysis focuses on the
-of this task until a later (presumably more comfortable) time.           distributions of elapsed time between recorded event pairs,
-For example, it has been shown (Salvucci & Bogunovich,                   using single-task data collected for a customer-support task
-                                                                    1732
+eScholarship.org
 
-(Salvucci & Bogunovich, 2010). From our analysis of the                    mail-select:   Select (click on) an email from a list.
-recorded data, and particularly the estimation of observed                  mail-move:    Move (drag) an email to the “Replied”
-outliers in distribution tails, we were able to infer breakpoints                         bin.
-that closely mirror actual deferred user breakpoints as they           browser-focus:     Change focus to browser window.
-arose in a multitasking context.                                       browser-home:      Press “browser home” button.
-                                                                               mfr-link:  Click on “product manufacturer” link.
-                       Task and Data                                        model-link:   Click on “product model” link.
-                                                                          reply-button:   Press “Reply” button to open a new win-
-The task that we analyzed is taken from a recent experiment                               dow to compose response.
-in which users performed a mail-based customer-support                       reply-type:  Type characters in a response email.
-primary task while occasionally being interrupted by chat                   reply-send:   Press the “Send” button to send re-
-(instant-message) questions. The primary task simulated a                                 sponse email.
-typical customer-service scenario where a user receives email              reply-focus:   Change focus to an opened response
-inquiries for the prices of a variety of products. The sim-                               window.
-ulation was comprised of a simulated email program and a
-browser window used for looking up product prices, shown                 Table 1: User events in the mail customer-support task.
+Powered by the California Digital Library
+University of California
+
+Inferring Multitasking Breakpoints from Single-Task Data
+Peter Bogunovich (pjb38@drexel.edu)
+Drexel University, Department of Computer Science
+Philadelphia, PA, USA
+
+Dario D. Salvucci (salvucci@cs.drexel.edu)
+Drexel University, Department of Computer Science
+Philadelphia, PA, USA
+Abstract
+Recent research has shown that computer users placed in a deferrable multitasking situation generally postpone secondarytask interruptions until points of low mental workload in the
+primary task. Studies examining this phenomenon have relied on empirical data that explicitly show user switch points
+in the course of multitask performance. This paper addresses
+a related question: Can these same switch points, found empirically in a multitasking context, be inferred solely from
+single-task data? We investigate this question and propose
+an approach that analyzes a particular behavioral signature in
+single-task data—outliers in the distributions of time between
+task actions—to infer multitasking breakpoints. We evaluate
+this approach using behavioral data from a user-interface task,
+showing how the proposed method’s inferences from singletask data match well to the real switch points observed during
+multitask performance.
+Keywords: Multitasking; task analysis; data analysis.
+
+Introduction
+Multitasking is a concept that is familar to most computer
+users. It is not uncommon for a user to switch computing
+tasks every few minutes. In many cases switching is initiated by an interruption of the current task. For example,
+a notification of a newly received email may appear on the
+screen prompting a user to stop what he is doing and look at
+his email before continuing his previous task. Research has
+shown that interruptions can increase the overall time spent
+on a single task. One important source of this increase is the
+resumption lag, or time required to switch back to the task
+and resume after the interruption has been addressed (Trafton,
+Altmann, Brock, & Mintz, 2003; Monk, Boehm-Davis, Mason, & Trafton, 2004). Recently it has been shown that it
+is more beneficial to interrupt at certain points than at others
+(Adamczyk & Bailey, 2004; Bailey & Konstan, 2006; Cutrell,
+Czerwinski, & Horvitz, 2000). One particularly strong result
+states that the performance loss associated with interruption
+is reduced when interruptions occur at points of low mental
+workload (Iqbal & Bailey, 2005). This result has obvious importance when considering forced interruptions in which the
+user is required to address the interruption immediately before moving on with the primary task.
+The relationship between mental workload and interruptibility has been strengthened in further studies of deferrable
+interruptions (Salvucci & Taatgen, 2010) in which a user is
+notified of a secondary task but the user can defer processing
+of this task until a later (presumably more comfortable) time.
+For example, it has been shown (Salvucci & Bogunovich,
+
+2010) that in this situation users tend to defer switching tasks
+until a point where there is a drop in mental workload. As exemplified by these studies, a detailed analysis of when users
+switch tasks is critical to a deeper understanding of human
+multitasking behavior. A particular goal in this line of research involves the prediction of breakpoints, the points in a
+task sequence where the user can most conveniently switch
+tasks.
+One approach to breakpoint prediction combines expert
+coding, feature detection and model prediction (Iqbal & Bailey, 2007). This approach begins by observing users in some
+natural multitasking environment. An expert manually examines user actions and identifies specific features which appear
+to signal breakpoints. A statistical model is then developed
+based on these features. Promising results have been obtained with his method, however it requires the human coders
+to identify the perceived breakpoints and features, and does
+not necessarily make use of the relationship between cognitive load and interruptibilty. A successful related approach
+that makes use of mental workload is to examine the typical execution structure of an action in advance and use this
+structure to estimate opportune breakpoints (Bailey, Adamczyk, Chang, & Chilson, 2006). This method still requires
+expert analysis and it may fail when variation in strategy is
+introduced.
+There exists a well-known relationship between cognitive
+load and pupil dilation (Beatty, 1982). Researchers have
+made use of this link in another approach to breakpoint detection (Bailey & Iqbal, 2008). In this approach, pupil dilation
+data is recorded as users perform a task, and subtask boundaries, where there is an assumed drop in cognitive load, are
+estimated by changes in dilation. The result is a more general
+and more automatic estimation of good potential breakpoints
+that relies less on pre-computed models or experts. Despite
+these findings, it may not be possible to obtain pupil-dilation
+in practice for many tasks.
+In this paper we attempt to infer multitasking breakpoints
+in a automatic, data-driven manner. In this respect our approach is most similar to (Bailey & Iqbal, 2008), but instead of relying on typically inaccessible equipment like eyetrackers, our goal is to come up with the good estimates using only data logs of system events generated by users performing a single primary task. Our analysis focuses on the
+distributions of elapsed time between recorded event pairs,
+using single-task data collected for a customer-support task
+
+1732
+
+mail-select:
+mail-move:
+
+(Salvucci & Bogunovich, 2010). From our analysis of the
+recorded data, and particularly the estimation of observed
+outliers in distribution tails, we were able to infer breakpoints
+that closely mirror actual deferred user breakpoints as they
+arose in a multitasking context.
+
+browser-focus:
+browser-home:
+mfr-link:
+model-link:
+reply-button:
+
+Task and Data
+The task that we analyzed is taken from a recent experiment
+in which users performed a mail-based customer-support
+primary task while occasionally being interrupted by chat
+(instant-message) questions. The primary task simulated a
+typical customer-service scenario where a user receives email
+inquiries for the prices of a variety of products. The simulation was comprised of a simulated email program and a
+browser window used for looking up product prices, shown
 in Figure 1. Each email in the inbox contained a request for
 the price of a single product. Once the user read the email
-and became aware of the request, he or she had to look up            for a single event includes the event type, as given in Table
-the product in the browser to obtain the correct price. Each         1, the time of the event, and any auxilary information about
-product consisted of a real manufacturer name and a fictitious       the event (for example, which character was typed, or which
-model identifier (for example, “Canon H-44”, or “Sony M-             product link was clicked); we use only the event type and time
-76”). To find the price of a product, the user had to first click    information here.
+and became aware of the request, he or she had to look up
+the product in the browser to obtain the correct price. Each
+product consisted of a real manufacturer name and a fictitious
+model identifier (for example, “Canon H-44”, or “Sony M76”). To find the price of a product, the user had to first click
 on the proper manufacturer name from the top-level of the
-browser, and then click on the proper model identifier from                     Analysis of Recorded Event Data
-a secondary browser level. The user could have at any time           Starting with the recorded single-task data, we tried several
-returned to the top level of the browser by clicking “home”          theoretically-motivated approaches for analyzing the data and
-button. Once the price of the product in question had been           inferring multitasking breakpoints. In the following sections
-located, the user sent a reply email containing the requested        we discuss several of the approaches that we took. Motiva-
-information. The users were also asked to manually move the          tions and limitations associated with each approach are given.
+browser, and then click on the proper model identifier from
+a secondary browser level. The user could have at any time
+returned to the top level of the browser by clicking “home”
+button. Once the price of the product in question had been
+located, the user sent a reply email containing the requested
+information. The users were also asked to manually move the
 replied to emails to a “replied” bin by clicking and dragging.
-   In the multitasking setting a secondary chat task was intro-      Frequency of Sequences
-duced which simulated a typical instant messenger conversa-          When relying solely on the frequencies of occurrence of given
-tion. A chat window was included in which the users were             event sequences, perhaps the most naive hypothesis is that
-occassionally asked questions about recent films by a simu-          good locations for breakpoints are found between pairs of
-lated interlocutor. The users were notified of a new question        consecutive events that were observed infrequently. The mo-
-by having the chat window flash, but it was up to the users to       tivation is that sequences which appear frequently consist of
-decide when to break from the primary mail task to address           events that are strongly linked together, and thus switching
-the questions once the notification was received.                    tasks between the events is less desirable or at least less likely.
-   It is important to note that in both the single mail task and        Problems with this hypothesis arise immediately, how-
-dual mail and chat task situations, the simulation windows           ever, in noting that it is extremely unlikely or impossible for
-were arranged so that only the window that was currently be-         many pairs of events to occur consecutively. For instance,
-ing focused on could be seen. For example, while looking up          in the mail task, it is not possible for to observe the event
-a product price in the browser window, the name of the prod-         “model-link” followed immediately by the event “mfr-link”
-uct given in the email window was obscured. This required            due to the design of the task interface. Other pairs of consec-
-the users to commit sub-task relevant information to memory.         utive events are unlikely due not to the design of the sim-
-   For our analysis, we look specifically at single mail task        ulation, but simply because they make little sense for any
-data collected from six participants in this experiment. This        user attempting to complete the mail goal. For example, the
-data was collected in a sesssion where the chat simulation           sequence “mfr-link → browser-home” is not useful in look-
-was not present. In particular, our goal is to analyze the           ing up a product price, since the price is not obtained un-
-single-task data, infer and estimate breakpoints from these          til the “model-link” event. Any occurrences of “mfr-link →
-data, and then evaluate our estimates by comparing the results       browser-home” are likely due to an error by the user and there
-to the also collected multitask data. The data recorded for the      is little reason to believe that this is a good place to switch
-mail task (both single- and dual-task contexts) comprises a          tasks.
-sequence of time-stamped events occurring in the task. Ta-              While it is clear that pairs of events with no or few occur-
-ble 1 lists and describes these events. The full data recorded       rences do not necessarily represent good breakpoints, it still
-                                                                 1733
+In the multitasking setting a secondary chat task was introduced which simulated a typical instant messenger conversation. A chat window was included in which the users were
+occassionally asked questions about recent films by a simulated interlocutor. The users were notified of a new question
+by having the chat window flash, but it was up to the users to
+decide when to break from the primary mail task to address
+the questions once the notification was received.
+It is important to note that in both the single mail task and
+dual mail and chat task situations, the simulation windows
+were arranged so that only the window that was currently being focused on could be seen. For example, while looking up
+a product price in the browser window, the name of the product given in the email window was obscured. This required
+the users to commit sub-task relevant information to memory.
+For our analysis, we look specifically at single mail task
+data collected from six participants in this experiment. This
+data was collected in a sesssion where the chat simulation
+was not present. In particular, our goal is to analyze the
+single-task data, infer and estimate breakpoints from these
+data, and then evaluate our estimates by comparing the results
+to the also collected multitask data. The data recorded for the
+mail task (both single- and dual-task contexts) comprises a
+sequence of time-stamped events occurring in the task. Table 1 lists and describes these events. The full data recorded
 
-                                         Figure 1: The customer service mail simulation.
-seems possible that pairs of consecutive events with high fre-      mediately clear how to construct the frequency distribution.
-quency represent strongly linked events and that task switch-       We could look at all occurrences of “A” followed by a “B”
-ing should not occur between them. This argument is sup-            any time thereafter, with the possibility of some events in be-
-ported when we compile a list of the most frequent consecu-         tween. This approach is appealing since it introduces some
-tive event pairs and observe that one of the highest frequency      robustness to “noisy” user errors in the recorded events. We
-consecutive event pairs is “mfr-link → model-link”. It makes        see some positive evidence supporting this choice in the dis-
-sense that we should link together these actions as they are        tributions shown in Figure 2(a) and Figure 2(b). In both of
-the ordered steps required to look up a product’s price. There      these distributions, the mean of the histogram is indicated by
-should not be a drop in cognitive load after the “mfr-link”         a red (lighter) bar. The distribution shown in Figure 2(a) cor-
-event since the model number is still required for the follow-      responds to the event pair “mfr-link → model-link”, which as
-ing “model-link” event and we should not expect task switch-        a sequence makes sense in a goal strategy and does not repre-
-ing here. On the other hand, another high frequency consec-         sent an expected boundary of cognitive subtasks. The mean
-utive event pair is “reply-send → mail-select”. While these         of this distribution is about 1.56 seconds elapsed between
-events appear to be strongly linked together, this pair actu-       the occurrence of the two events. The distribution shown
-ally does present a reasonable breakpoint. The “reply-send”         in Figure 2(b) corresponds to the event pair “model-link →
-event signals that a response email has been sent and a cus-        reply-button”, which occurs when the user has completed the
-tomer inquiry is completed. Handling a new customer inquiry         task of looking up the price of a product and is about to begin
-is always marked by selecting a new mail from the list, or a        the process of responding to the inquiry. The mean of this
-“mail-select” event. It follows that the pair “reply-send →         distribution is 4.29 seconds of elapsed time between events.
-mail-select” is a task boundary and a drop in cognitive load        The larger mean found here supports the hypothesis, since
-should accompany it, making this a good breakpoint.                 this pair of events should straddle a subtask boundary and a
-                                                                    drop in cognitive load should accompany it.
+reply-type:
+reply-send:
+reply-focus:
+
+Select (click on) an email from a list.
+Move (drag) an email to the “Replied”
+bin.
+Change focus to browser window.
+Press “browser home” button.
+Click on “product manufacturer” link.
+Click on “product model” link.
+Press “Reply” button to open a new window to compose response.
+Type characters in a response email.
+Press the “Send” button to send response email.
+Change focus to an opened response
+window.
+
+Table 1: User events in the mail customer-support task.
+for a single event includes the event type, as given in Table
+1, the time of the event, and any auxilary information about
+the event (for example, which character was typed, or which
+product link was clicked); we use only the event type and time
+information here.
+
+Analysis of Recorded Event Data
+Starting with the recorded single-task data, we tried several
+theoretically-motivated approaches for analyzing the data and
+inferring multitasking breakpoints. In the following sections
+we discuss several of the approaches that we took. Motivations and limitations associated with each approach are given.
+
+Frequency of Sequences
+When relying solely on the frequencies of occurrence of given
+event sequences, perhaps the most naive hypothesis is that
+good locations for breakpoints are found between pairs of
+consecutive events that were observed infrequently. The motivation is that sequences which appear frequently consist of
+events that are strongly linked together, and thus switching
+tasks between the events is less desirable or at least less likely.
+Problems with this hypothesis arise immediately, however, in noting that it is extremely unlikely or impossible for
+many pairs of events to occur consecutively. For instance,
+in the mail task, it is not possible for to observe the event
+“model-link” followed immediately by the event “mfr-link”
+due to the design of the task interface. Other pairs of consecutive events are unlikely due not to the design of the simulation, but simply because they make little sense for any
+user attempting to complete the mail goal. For example, the
+sequence “mfr-link → browser-home” is not useful in looking up a product price, since the price is not obtained until the “model-link” event. Any occurrences of “mfr-link →
+browser-home” are likely due to an error by the user and there
+is little reason to believe that this is a good place to switch
+tasks.
+While it is clear that pairs of events with no or few occurrences do not necessarily represent good breakpoints, it still
+
+1733
+
+Figure 1: The customer service mail simulation.
+seems possible that pairs of consecutive events with high frequency represent strongly linked events and that task switching should not occur between them. This argument is supported when we compile a list of the most frequent consecutive event pairs and observe that one of the highest frequency
+consecutive event pairs is “mfr-link → model-link”. It makes
+sense that we should link together these actions as they are
+the ordered steps required to look up a product’s price. There
+should not be a drop in cognitive load after the “mfr-link”
+event since the model number is still required for the following “model-link” event and we should not expect task switching here. On the other hand, another high frequency consecutive event pair is “reply-send → mail-select”. While these
+events appear to be strongly linked together, this pair actually does present a reasonable breakpoint. The “reply-send”
+event signals that a response email has been sent and a customer inquiry is completed. Handling a new customer inquiry
+is always marked by selecting a new mail from the list, or a
+“mail-select” event. It follows that the pair “reply-send →
+mail-select” is a task boundary and a drop in cognitive load
+should accompany it, making this a good breakpoint.
+
 Mean Elapsed Time
-                                                                       The idea of considering all occurrences of “A” followed
-A second attempt at identifying breakpoints involves consid-        some time later by “B” begins to break down, however, when
-ering the mean elapsed time between events. The hypothesis          we consider the distribution shown in Figure 2(c). This dis-
-is similar to the frequency hypothesis: A low mean elapsed          tribution corresponds to the elapsed time between the events
-time between two events signals a strong link between them          “mail-select” and “reply-button”. The mean elapsed time is
-that should not be broken, while a large mean elapsed time be-      5.66 seconds, which seems to indicate that the events are
-tween events indicates a weak link that may be broken when          not strongly linked. The problem with this assessment be-
-an interruption occurs.                                             comes clear when we take into consideration the variations
-   For a given pair of events such as “A” and “B”, it is not im-    in task strategies taken by different users. The consequence
-                                                                1734
+A second attempt at identifying breakpoints involves considering the mean elapsed time between events. The hypothesis
+is similar to the frequency hypothesis: A low mean elapsed
+time between two events signals a strong link between them
+that should not be broken, while a large mean elapsed time between events indicates a weak link that may be broken when
+an interruption occurs.
+For a given pair of events such as “A” and “B”, it is not im-
 
-                 200                                                                               80
-                 150                                                                               60
-     Frequency                                                                         Frequency
-                 100                                                                               40
-                  50                                                                               20
-                  0                                                                                0
-                  −2     0     2     4      6       8      10   12   14    16                      −2   0   2   4      6       8      10   12   14   16
-                                         Elapsed Seconds                                                            Elapsed Seconds
-                   (a) “mfr-link → model-link” elapsed time distribution                   (c) “mail-select → reply-button” elapsed time distribution
-                 100                                                                               80
-                  80
-                                                                                                   60
-     Frequency                                                                         Frequency
-                  60
-                                                                                                   40
-                  40
-                                                                                                   20
-                  20
-                  0                                                                                0
-                  −2     0     2     4      6       8      10   12   14    16                      −2   0   2   4      6       8      10   12   14   16
-                                         Elapsed Seconds                                                            Elapsed Seconds
-                 (b) “model-link → reply-button” elapsed time distribution             (d) “mail-select → reply-button” distribution for one strategy
+mediately clear how to construct the frequency distribution.
+We could look at all occurrences of “A” followed by a “B”
+any time thereafter, with the possibility of some events in between. This approach is appealing since it introduces some
+robustness to “noisy” user errors in the recorded events. We
+see some positive evidence supporting this choice in the distributions shown in Figure 2(a) and Figure 2(b). In both of
+these distributions, the mean of the histogram is indicated by
+a red (lighter) bar. The distribution shown in Figure 2(a) corresponds to the event pair “mfr-link → model-link”, which as
+a sequence makes sense in a goal strategy and does not represent an expected boundary of cognitive subtasks. The mean
+of this distribution is about 1.56 seconds elapsed between
+the occurrence of the two events. The distribution shown
+in Figure 2(b) corresponds to the event pair “model-link →
+reply-button”, which occurs when the user has completed the
+task of looking up the price of a product and is about to begin
+the process of responding to the inquiry. The mean of this
+distribution is 4.29 seconds of elapsed time between events.
+The larger mean found here supports the hypothesis, since
+this pair of events should straddle a subtask boundary and a
+drop in cognitive load should accompany it.
+The idea of considering all occurrences of “A” followed
+some time later by “B” begins to break down, however, when
+we consider the distribution shown in Figure 2(c). This distribution corresponds to the elapsed time between the events
+“mail-select” and “reply-button”. The mean elapsed time is
+5.66 seconds, which seems to indicate that the events are
+not strongly linked. The problem with this assessment becomes clear when we take into consideration the variations
+in task strategies taken by different users. The consequence
+
+1734
+
+80
+
+150
+
+60
+Frequency
+
+Frequency
+
+200
+
+100
+
+50
+
+0
+−2
+
+20
+
+0
+
+2
+
+4
+
+6
+8
+Elapsed Seconds
+
+10
+
+12
+
+14
+
+0
+−2
+
+16
+
+(a) “mfr-link → model-link” elapsed time distribution
+
+2
+
+4
+
+6
+8
+Elapsed Seconds
+
+10
+
+12
+
+14
+
+16
+
+80
+
+80
+
+60
+Frequency
+
+Frequency
+
+0
+
+(c) “mail-select → reply-button” elapsed time distribution
+
+100
+
+60
+40
+
+40
+
+20
+
+20
+0
+−2
+
+40
+
+0
+
+2
+
+4
+
+6
+8
+Elapsed Seconds
+
+10
+
+12
+
+14
+
+0
+−2
+
+16
+
+(b) “model-link → reply-button” elapsed time distribution
+
+0
+
+2
+
+4
+
+6
+8
+Elapsed Seconds
+
+10
+
+12
+
+14
+
+16
+
+(d) “mail-select → reply-button” distribution for one strategy
+
 Figure 2: Distributions of elapsed time between pairs of events. The locations of the means are indicated by a red (lighter) bar.
-of this is that the sequence “mail-select → reply-button” is                       email has been completely addressed. Following these as-
-strongly linked together in several task strategies, but it is not                 sumptions, we can segment our raw event data stream into in-
-found in all of them. This explains the two peaks seen in the                      dividual mail task instances by using each “mail-select” event
-histogram. The first peak (and the surrounding bins) corre-                        as a boundary and consider unique sequences separately. This
-spond to the instances of the strategies which make use of                         method is supported by Figure 2(d), where only the instances
-the “mail-select → reply-button” sequence, while the second                        of the sequence “mail-select → reply-button” which are part
-peak corresponds to the remaining strategies. Analyzing this                       of a strategy using those consecutive events are considered in
-sequence simply based on the mean of all of the possible oc-                       the distribution. When compared to Figure 2(c) we now see a
-currences does not provide a clear understanding of the data.                      single a peak with a mean of 1.30 seconds versus two peaks
-                                                                                   and a mean of 5.66 seconds.
-Addressing Multiple Strategies                                                        By considering instances of consecutive event pairs which
-Regardless of the usefulness of the mean elapsed time in in-                       are part of a particular observed task strategy, a lot of unex-
-dicating the breakpoints, the observation concerning the mul-                      pected behavior in the elapsed time distributions is removed,
-tiple strategies needs to be addressed in any analysis of dis-                     but not enough to make the mean elapsed time a completely
-tributions. It seems that our distributions represent a classic                    useful indicator of cognitive load or interruptibility. One rea-
-example of a mixture distribution, which should lead us to                         son for this lies in the simple nature of the data that was
-consider a method such as expectation maximization (EM)                            recorded. By comparing just the elapsed time between events
-(Moon, 1996) to fit a mixture model to the histogram. Once                         “A” and “B”, the analysis does not have at its disposal vital
-we’ve found a mixture model, we could then perform clus-                           information about possible subtasks being performed. Con-
-tering to obtain only the instances of event sequences which                       sider once again the “mfr-link → model-link” sequence. Gen-
-should correspond to a single strategy. Another approach                           erally this sequence is observed when the user is looking up
-would be to use the T-Patterns method for identifying the                          the price of a product for a customer inquiry. For one strat-
-critical interval (Magnusson, 2000) of elapsed time that we                        egy which uses this sequence (actually all strategies must use
-should consider acceptable for a given event pair. Both of                         this), we get a mean of 1.49 and a relatively large st. dev. of
-these approaches present advantages and disadvantages for                          0.59. Based on our hypothesis we should expect both a small
-our data, and are likely to prove both useful and necessary in                     mean and variance for such a strongly linked pair of events,
-analyzing tasks containing variation in general.                                   but in fact we see a relatively large variance. This contra-
-   We decided to use a much simpler approach to identifying                        diction is explained when we consider that after a “mfr-link”
-the valid instances of a sequence. Based on the task that was                      event, a user completing this action is required to perform
-assigned, we note that each task trial—the processing of a sin-                    the relatively time-consuming task of reading through the list
-gle email—must begin with a “mail-select” event to view the                        of model numbers to find the link for the model in question,
-email. Furthermore, that once a new email has been selected,                       before the “model-link” event can occur. A similar state-
-another “mail-select” event is very unlikely before this first                     ment could be made about any event preceding the “mfr-link”
-                                                                                1735
+of this is that the sequence “mail-select → reply-button” is
+strongly linked together in several task strategies, but it is not
+found in all of them. This explains the two peaks seen in the
+histogram. The first peak (and the surrounding bins) correspond to the instances of the strategies which make use of
+the “mail-select → reply-button” sequence, while the second
+peak corresponds to the remaining strategies. Analyzing this
+sequence simply based on the mean of all of the possible occurrences does not provide a clear understanding of the data.
 
-                 0.2                                                   ure 3(b). Another way to put it is that the “model-link →
-                                                                       reply-button” distribution contains significantly more outliers
-                0.15
-                                                                       than the “reply-button → reply-type” distribution.
-    Frequency                                                             The hypothesis resulting from this analysis is that the
-                 0.1
-                0.05
-                                                                       amount of observed mass in the far end of the tails (outliers)
-                                                                       of distributions of elapsed time between event pairs is a good
-                  0
-                  −1   0   1          2          3   4       5
-                                                                       indicator of the interruptibility between the events. We sus-
-                               Elapsed Seconds
-                                                                       pect that the underlying reason relates to people taking short
-   (a) “model-link → reply-button” distribution for one strategy       mental breaks between these task steps: by resting for a short
-                 0.2                                                   time (up to a few seconds) between actions, a person can men-
-                                                                       tally regroup for the next component of the task. It seems rea-
-                0.15
-                                                                       sonable that such a mental regrouping would occur at higher-
-    Frequency
-                 0.1
-                                                                       level task boundaries, or equivalently at places of low mental
-                                                                       workload. Whatever the underlying reason, the tails of the
-                0.05                                                   distributions seem to serve as a good signature for multitask-
-                  0
-                                                                       ing breakpoints, as we detail in the next section.
-                  −1   0   1          2          3   4       5
-                               Elapsed Seconds                            To identify the outlier observations, we can simply fit the
-    (b) “reply-button → reply-type” distribution for one strategy      model to our observations and see how many observations fall
-                                                                       n standard deviations to the right of the mean. Since we are
-Figure 3: Distributions for instances of pairs found in one            specifically interested in outliers in the far right end of the tail,
-strategy. The histograms are shown with a fitted log-normal            we should set n to be large, possibly n = 3 or 4. This simple
-distribution curve. Note that in 3(a) more of the mass falls in        method will certainly identify some outliers, but we can im-
-the far right end of its tail than in 3(b).                            prove the method by performing it iteratively. In the iterative
-                                                                       approach, we first fit the model, find the estimated std. dev.,
-                                                                       remove outliers n standard deviations from the mean from the
-event. (More detailed data, such as eye-movement record-               distribution, and repeat. At each iteration the estimated mean
-ings, would further inform such an analysis—but again, such            will shift slightly to the left and we will consider more obser-
-detailed data are not available in the general case.)                  vations to be outliers. For large fixed n the estimates converge
-                                                                       after a few iterations (i.e., no new outliers are found). At that
-Tail Mass of Elapsed Time Distributions                                point we have a good estimate of the percentage of the total
-                                                                       observations which can be considered outliers.
-Since basic statistics of our elapsed time distributions do pro-
-vide an adequate signature with respect to multitasking break-
-points, we decided to take a closer look at the form of the                                         Results
+Addressing Multiple Strategies
+Regardless of the usefulness of the mean elapsed time in indicating the breakpoints, the observation concerning the multiple strategies needs to be addressed in any analysis of distributions. It seems that our distributions represent a classic
+example of a mixture distribution, which should lead us to
+consider a method such as expectation maximization (EM)
+(Moon, 1996) to fit a mixture model to the histogram. Once
+we’ve found a mixture model, we could then perform clustering to obtain only the instances of event sequences which
+should correspond to a single strategy. Another approach
+would be to use the T-Patterns method for identifying the
+critical interval (Magnusson, 2000) of elapsed time that we
+should consider acceptable for a given event pair. Both of
+these approaches present advantages and disadvantages for
+our data, and are likely to prove both useful and necessary in
+analyzing tasks containing variation in general.
+We decided to use a much simpler approach to identifying
+the valid instances of a sequence. Based on the task that was
+assigned, we note that each task trial—the processing of a single email—must begin with a “mail-select” event to view the
+email. Furthermore, that once a new email has been selected,
+another “mail-select” event is very unlikely before this first
+
+email has been completely addressed. Following these assumptions, we can segment our raw event data stream into individual mail task instances by using each “mail-select” event
+as a boundary and consider unique sequences separately. This
+method is supported by Figure 2(d), where only the instances
+of the sequence “mail-select → reply-button” which are part
+of a strategy using those consecutive events are considered in
+the distribution. When compared to Figure 2(c) we now see a
+single a peak with a mean of 1.30 seconds versus two peaks
+and a mean of 5.66 seconds.
+By considering instances of consecutive event pairs which
+are part of a particular observed task strategy, a lot of unexpected behavior in the elapsed time distributions is removed,
+but not enough to make the mean elapsed time a completely
+useful indicator of cognitive load or interruptibility. One reason for this lies in the simple nature of the data that was
+recorded. By comparing just the elapsed time between events
+“A” and “B”, the analysis does not have at its disposal vital
+information about possible subtasks being performed. Consider once again the “mfr-link → model-link” sequence. Generally this sequence is observed when the user is looking up
+the price of a product for a customer inquiry. For one strategy which uses this sequence (actually all strategies must use
+this), we get a mean of 1.49 and a relatively large st. dev. of
+0.59. Based on our hypothesis we should expect both a small
+mean and variance for such a strongly linked pair of events,
+but in fact we see a relatively large variance. This contradiction is explained when we consider that after a “mfr-link”
+event, a user completing this action is required to perform
+the relatively time-consuming task of reading through the list
+of model numbers to find the link for the model in question,
+before the “model-link” event can occur. A similar statement could be made about any event preceding the “mfr-link”
+
+1735
+
+0.2
+
+Frequency
+
+0.15
+
+0.1
+
+0.05
+
+0
+−1
+
+0
+
+1
+
+2
+Elapsed Seconds
+
+3
+
+4
+
+5
+
+(a) “model-link → reply-button” distribution for one strategy
+0.2
+
+Frequency
+
+0.15
+
+0.1
+
+0.05
+
+0
+−1
+
+0
+
+1
+
+2
+Elapsed Seconds
+
+3
+
+4
+
+5
+
+(b) “reply-button → reply-type” distribution for one strategy
+
+Figure 3: Distributions for instances of pairs found in one
+strategy. The histograms are shown with a fitted log-normal
+distribution curve. Note that in 3(a) more of the mass falls in
+the far right end of its tail than in 3(b).
+
+event. (More detailed data, such as eye-movement recordings, would further inform such an analysis—but again, such
+detailed data are not available in the general case.)
+
+Tail Mass of Elapsed Time Distributions
+Since basic statistics of our elapsed time distributions do provide an adequate signature with respect to multitasking breakpoints, we decided to take a closer look at the form of the
 distributions. When we compare the histogram distributions
-for different pairs of events, it becomes clear that certain his-      To evaluate the outlier-based inference of multitasking break-
-tograms appear to have longer tails than others. To obtain             points, we selected the events corresponding to the most fre-
-a better picture of this, we could look at the amount of the           quently observed mail task strategy that we obtained from our
-histogram mass that falls several standard deviations to the           data segmentation procedure. The complete sequence has the
-right of the mean. We can also observe modeling the his-               form: mail-select, browser-focus, browser-home, mfr-link,
-togram with a normal distribution may not be the best choice,          model-link, reply-button, reply-type, reply-send, mail-select.
-since there can be no negative elapsed times and typically the         We calculated the outliers for each pair of consecutive events,
-distributions exhibit an early peak followed by a right end            and formed a normalized histogram of breakpoint likelihoods
-tail. The log-normal distribution has these properties and we          where the frequency of each bin is based on the number of
-can easily find a maximum likelihood log-normal distribu-              outliers that were found. Our results were obtained using a
-tion to fit to our observations. Figure 3 shows two pair his-          log-normal distribution to fit our elapsed time distributions
-tograms that have been fitted with log-normal distributions.           and a value of n = 3.75 standard deviations for the identify-
-Figure 3(a) shows the distribution for the pair “model-link →          ing outliers. Using the accompanying multitasking (mail and
-reply-button”, which corresponds to the boundary between               chat task) data, we also constructed a similar histogram of
-the price lookup task and the email reply task and is a rea-           the actual deferred breakpoints that we taken by users while
-sonable breakpoint. Figure 3(b) shows the distribution for             employing this strategy.
-the pair “reply-button → reply-type”, which form consec-                  Both of the resulting histograms are shown in Figure 4.
-utive events in the mail reply task and probably is not a              The inferred results match reasonably well to the observed
-good breakpoint. Notice that a significantly larger portion            breakpoints, R = 0.83. We obtained similar but not as good
-of the total observed mass in Figure 3(a) appears in the far           results using the normal distribution, and for several observed
-right tail of the fitted distribution than does the mass in Fig-       secondary strategy sequences.
-                                                                    1736
+for different pairs of events, it becomes clear that certain histograms appear to have longer tails than others. To obtain
+a better picture of this, we could look at the amount of the
+histogram mass that falls several standard deviations to the
+right of the mean. We can also observe modeling the histogram with a normal distribution may not be the best choice,
+since there can be no negative elapsed times and typically the
+distributions exhibit an early peak followed by a right end
+tail. The log-normal distribution has these properties and we
+can easily find a maximum likelihood log-normal distribution to fit to our observations. Figure 3 shows two pair histograms that have been fitted with log-normal distributions.
+Figure 3(a) shows the distribution for the pair “model-link →
+reply-button”, which corresponds to the boundary between
+the price lookup task and the email reply task and is a reasonable breakpoint. Figure 3(b) shows the distribution for
+the pair “reply-button → reply-type”, which form consecutive events in the mail reply task and probably is not a
+good breakpoint. Notice that a significantly larger portion
+of the total observed mass in Figure 3(a) appears in the far
+right tail of the fitted distribution than does the mass in Fig-
 
-                                                                                                                                      ence on human factors in computing systems (pp. 271–
-     Frequency of Actual Breakpoints
-                                         0.5                                                                                          278). New York, NY, USA: ACM.
-                                         0.4                                                                                        Bailey, B. P., Adamczyk, P. D., Chang, T. Y., & Chilson,
-                                         0.3                                                                                          N. A. (2006). A framework for specifying and monitoring
-                                         0.2                                                                                          user tasks. Computers in Human Behavior, 22(4), 709–
-                                         0.1
-                                                                                                                                      732.
-                                          0
-                                                                                                                                    Bailey, B. P., & Iqbal, S. T. (2008). Understanding changes
-                                               (1) → (2) (2) → (3) (3) → (4) (4) → (5) (5) → (6) (6) → (7) (7) → (8) (8) → (9)
-                                                                                                                                      in mental workload during execution of goal-directed tasks
-    (a) Observed Proportions of Breakpoints while Multitasking                                                                        and its application for interruption management. ACM
-                                                                                                                                      Trans. Comput.-Hum. Interact., 14(4), 1–28.
-     Normalized Proportion of Outliers
-                                                                                                                                    Bailey, B. P., & Konstan, J. A. (2006). On the need for
-                                         0.5
-                                                                                                                                      attention-aware systems: Measuring effects of interruption
-                                         0.4
-                                                                                                                                      on task performance, error rate, and affective state. Com-
-                                         0.3
-                                                                                                                                      puters in Human Behavior, 22(4), 685–708.
-                                         0.2
-                                                                                                                                    Beatty, J. (1982). Task-evoked pupillary responses, process-
-                                         0.1
-                                                                                                                                      ing load, and the sturcture of processing resources. Psy-
-                                          0
-                                               (1) → (2) (2) → (3) (3) → (4) (4) → (5) (5) → (6) (6) → (7) (7) → (8) (8) → (9)        chological Bulletin, 91(2), 276–292.
-                                                                                                                                    Cutrell, E. B., Czerwinski, M., & Horvitz, E. (2000). Effects
-  (b) Proportions of Breakpoints Inferred from Single-Task Data
-                                                                                                                                      of instant messaging interruptions on computing tasks. In
-                                                                                                                                      Chi ’00: Chi ’00 extended abstracts on human factors in
+ure 3(b). Another way to put it is that the “model-link →
+reply-button” distribution contains significantly more outliers
+than the “reply-button → reply-type” distribution.
+The hypothesis resulting from this analysis is that the
+amount of observed mass in the far end of the tails (outliers)
+of distributions of elapsed time between event pairs is a good
+indicator of the interruptibility between the events. We suspect that the underlying reason relates to people taking short
+mental breaks between these task steps: by resting for a short
+time (up to a few seconds) between actions, a person can mentally regroup for the next component of the task. It seems reasonable that such a mental regrouping would occur at higherlevel task boundaries, or equivalently at places of low mental
+workload. Whatever the underlying reason, the tails of the
+distributions seem to serve as a good signature for multitasking breakpoints, as we detail in the next section.
+To identify the outlier observations, we can simply fit the
+model to our observations and see how many observations fall
+n standard deviations to the right of the mean. Since we are
+specifically interested in outliers in the far right end of the tail,
+we should set n to be large, possibly n = 3 or 4. This simple
+method will certainly identify some outliers, but we can improve the method by performing it iteratively. In the iterative
+approach, we first fit the model, find the estimated std. dev.,
+remove outliers n standard deviations from the mean from the
+distribution, and repeat. At each iteration the estimated mean
+will shift slightly to the left and we will consider more observations to be outliers. For large fixed n the estimates converge
+after a few iterations (i.e., no new outliers are found). At that
+point we have a good estimate of the percentage of the total
+observations which can be considered outliers.
+
+Results
+To evaluate the outlier-based inference of multitasking breakpoints, we selected the events corresponding to the most frequently observed mail task strategy that we obtained from our
+data segmentation procedure. The complete sequence has the
+form: mail-select, browser-focus, browser-home, mfr-link,
+model-link, reply-button, reply-type, reply-send, mail-select.
+We calculated the outliers for each pair of consecutive events,
+and formed a normalized histogram of breakpoint likelihoods
+where the frequency of each bin is based on the number of
+outliers that were found. Our results were obtained using a
+log-normal distribution to fit our elapsed time distributions
+and a value of n = 3.75 standard deviations for the identifying outliers. Using the accompanying multitasking (mail and
+chat task) data, we also constructed a similar histogram of
+the actual deferred breakpoints that we taken by users while
+employing this strategy.
+Both of the resulting histograms are shown in Figure 4.
+The inferred results match reasonably well to the observed
+breakpoints, R = 0.83. We obtained similar but not as good
+results using the normal distribution, and for several observed
+secondary strategy sequences.
+
+1736
+
+Frequency of Actual Breakpoints
+
+0.5
+0.4
+0.3
+0.2
+0.1
+0
+
+(1) → (2) (2) → (3) (3) → (4) (4) → (5) (5) → (6) (6) → (7) (7) → (8) (8) → (9)
+
+Normalized Proportion of Outliers
+
+(a) Observed Proportions of Breakpoints while Multitasking
+
+0.5
+0.4
+0.3
+0.2
+0.1
+0
+
+(1) → (2) (2) → (3) (3) → (4) (4) → (5) (5) → (6) (6) → (7) (7) → (8) (8) → (9)
+
+(b) Proportions of Breakpoints Inferred from Single-Task Data
+
 Figure 4: Comparison of actual breakpoints taken in
-                                                                                                                                      computing systems (pp. 99–100). New York, NY, USA:
 (Salvucci & Bogunovich, 2010) with the outlier inferred
-                                                                                                                                      ACM.
 breakpoints for the most frequent strategy: (1) mail-select,
-                                                                                                                                    Iqbal, S. T., & Bailey, B. P. (2005). Investigating the ef-
 (2) browser-focus, (3) browser-home, (4) mfr-link, (5)
-                                                                                                                                      fectiveness of mental workload as a predictor of opportune
 model-link, (6) reply-button, (7) reply-type, (8) reply-send,
-                                                                                                                                      moments for interruption. In Chi ’05: Chi ’05 extended ab-
 (9) mail-select.
-                                                                                                                                      stracts on human factors in computing systems (pp. 1489–
-                                                                                                                                      1492). New York, NY, USA: ACM.
-                                                                      Discussion                                                    Iqbal, S. T., & Bailey, B. P. (2007). Understanding and devel-
-                                                                                                                                      oping models for detecting and differentiating breakpoints
-To summarize, we found that the outliers (tails) of the dis-
-                                                                                                                                      during interactive tasks. In Chi ’07: Proceedings of the
-tributions of time between task actions in a single task set-
-                                                                                                                                      sigchi conference on human factors in computing systems
-ting served as a good indicator of multitask breakpoints, were
-                                                                                                                                      (pp. 697–706). New York, NY, USA: ACM.
-a secondary task to be introduced: The presence (or lack)
-                                                                                                                                    Magnusson, M. (2000). Discovering hidden time patterns
-of outliers in the tails of the distributions correlated well
-                                                                                                                                      in behavior: T-patterns and their detection. Behavior Re-
-with people’s tendency to switch away from a task between
-                                                                                                                                      search Methods, Instruments and Computers, 32, 93–110.
-two given actions. These conclusions build on the results of
-                                                                                                                                    Monk, C. A., Boehm-Davis, D. A., Mason, G., & Trafton,
-(Bailey & Iqbal, 2008) which showed that users produce evi-
-                                                                                                                                      J. G. (2004). Recovering From Interruptions: Implications
-dence of potential interruptibility in a single-task setting, but
-                                                                                                                                      for Driver Distraction Research. Human Factors: The Jour-
-the proposed method was able to identify similar evidence
-                                                                                                                                      nal of the Human Factors and Ergonomics Society, 46(4),
-using solely time and event data (rather than pupil-dilation or
-                                                                                                                                      650–663.
-other data that may be more difficult to obtain). Our results
-                                                                                                                                    Moon, T. (1996, Nov). The expectation-maximization algo-
-suggest that when performing a task, users may occasionally
-                                                                                                                                      rithm. Signal Processing Magazine, IEEE, 13(6), 47–60.
-take a short breaks (up to a few seconds) when a cognitive
-                                                                                                                                    Salvucci, D. D., & Bogunovich, P. (2010). Monotasking and
-subtask is completed and before beginning a new subtask.
-                                                                                                                                      multitasking: the effects of mental workload on deferred
-Analysis based on this idea agrees well with multitask data
-                                                                                                                                      task interruptions. In Proc. CHI 2010. ACM.
-from (Salvucci & Bogunovich, 2010) and hints at a strong
-                                                                                                                                    Salvucci, D. D., & Taatgen, N. A. (2010). The multitasking
-relationship between distribution outliers and boundaries of
-                                                                                                                                      mind. New York: Oxford University Press.
-cognitive subtasks.
-                                                                                                                                    Trafton, J. G., Altmann, E. M., Brock, D. P., & Mintz, F. E.
-                                                             Acknowledgments                                                          (2003). Preparing to resume an interrupted task: effects
-                                                                                                                                      of prospective goal encoding and retrospective rehearsal.
-This work was funded by ONR grant #N00014-09-1-0096.                                                                                  International Journal of Human-Computer Studies, 58(5),
-                                                                                                                                      583–603.
-                                                                      References
-Adamczyk, P. D., & Bailey, B. P. (2004). If not now, when?:
- the effects of interruption at different moments within task
- execution. In Chi ’04: Proceedings of the sigchi confer-
-                                                                                                                                 1737
 
+Discussion
+To summarize, we found that the outliers (tails) of the distributions of time between task actions in a single task setting served as a good indicator of multitask breakpoints, were
+a secondary task to be introduced: The presence (or lack)
+of outliers in the tails of the distributions correlated well
+with people’s tendency to switch away from a task between
+two given actions. These conclusions build on the results of
+(Bailey & Iqbal, 2008) which showed that users produce evidence of potential interruptibility in a single-task setting, but
+the proposed method was able to identify similar evidence
+using solely time and event data (rather than pupil-dilation or
+other data that may be more difficult to obtain). Our results
+suggest that when performing a task, users may occasionally
+take a short breaks (up to a few seconds) when a cognitive
+subtask is completed and before beginning a new subtask.
+Analysis based on this idea agrees well with multitask data
+from (Salvucci & Bogunovich, 2010) and hints at a strong
+relationship between distribution outliers and boundaries of
+cognitive subtasks.
+
+Acknowledgments
+This work was funded by ONR grant #N00014-09-1-0096.
+
+References
+
+ence on human factors in computing systems (pp. 271–
+278). New York, NY, USA: ACM.
+Bailey, B. P., Adamczyk, P. D., Chang, T. Y., & Chilson,
+N. A. (2006). A framework for specifying and monitoring
+user tasks. Computers in Human Behavior, 22(4), 709–
+732.
+Bailey, B. P., & Iqbal, S. T. (2008). Understanding changes
+in mental workload during execution of goal-directed tasks
+and its application for interruption management. ACM
+Trans. Comput.-Hum. Interact., 14(4), 1–28.
+Bailey, B. P., & Konstan, J. A. (2006). On the need for
+attention-aware systems: Measuring effects of interruption
+on task performance, error rate, and affective state. Computers in Human Behavior, 22(4), 685–708.
+Beatty, J. (1982). Task-evoked pupillary responses, processing load, and the sturcture of processing resources. Psychological Bulletin, 91(2), 276–292.
+Cutrell, E. B., Czerwinski, M., & Horvitz, E. (2000). Effects
+of instant messaging interruptions on computing tasks. In
+Chi ’00: Chi ’00 extended abstracts on human factors in
+computing systems (pp. 99–100). New York, NY, USA:
+ACM.
+Iqbal, S. T., & Bailey, B. P. (2005). Investigating the effectiveness of mental workload as a predictor of opportune
+moments for interruption. In Chi ’05: Chi ’05 extended abstracts on human factors in computing systems (pp. 1489–
+1492). New York, NY, USA: ACM.
+Iqbal, S. T., & Bailey, B. P. (2007). Understanding and developing models for detecting and differentiating breakpoints
+during interactive tasks. In Chi ’07: Proceedings of the
+sigchi conference on human factors in computing systems
+(pp. 697–706). New York, NY, USA: ACM.
+Magnusson, M. (2000). Discovering hidden time patterns
+in behavior: T-patterns and their detection. Behavior Research Methods, Instruments and Computers, 32, 93–110.
+Monk, C. A., Boehm-Davis, D. A., Mason, G., & Trafton,
+J. G. (2004). Recovering From Interruptions: Implications
+for Driver Distraction Research. Human Factors: The Journal of the Human Factors and Ergonomics Society, 46(4),
+650–663.
+Moon, T. (1996, Nov). The expectation-maximization algorithm. Signal Processing Magazine, IEEE, 13(6), 47–60.
+Salvucci, D. D., & Bogunovich, P. (2010). Monotasking and
+multitasking: the effects of mental workload on deferred
+task interruptions. In Proc. CHI 2010. ACM.
+Salvucci, D. D., & Taatgen, N. A. (2010). The multitasking
+mind. New York: Oxford University Press.
+Trafton, J. G., Altmann, E. M., Brock, D. P., & Mintz, F. E.
+(2003). Preparing to resume an interrupted task: effects
+of prospective goal encoding and retrospective rehearsal.
+International Journal of Human-Computer Studies, 58(5),
+583–603.
+
+Adamczyk, P. D., & Bailey, B. P. (2004). If not now, when?:
+the effects of interruption at different moments within task
+execution. In Chi ’04: Proceedings of the sigchi confer-
+
+1737
+
+

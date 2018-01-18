@@ -1,402 +1,621 @@
-                                                   Deciding to Remember:
-                            Memory Maintenance as a Markov Decision Process
-                                            Jordan W. Suchow (suchow@berkeley.edu)
-                                       Thomas L. Griffiths (tom griffiths@berkeley.edu)
-                             Department of Psychology, University of California, Berkeley, Berkeley, USA
-                              Abstract                                   Given the flexibility available to the working memory sys-
-                                                                      tem, a question naturally arises: What is the optimal way to
-   Working memory is a limited-capacity form of human mem-            maintain memories? What is the space of possible mainte-
-   ory that actively holds information in mind. Which memories
-   ought to be maintained? We approach this question by showing       nance strategies, and how successful is each of them in re-
-   an equivalence between active maintenance in working mem-          taining information over short durations?
-   ory and a Markov decision process in which, at each moment,
-   a cognitive control mechanism selects a memory as the target          We approach this question by likening working memory
-   of maintenance. The challenge of remembering is then finding       maintenance to a sequential decision process in which, at
-   a maintenance policy well-suited to the task at hand. We com-      each moment, a cognitive control mechanism decides which
-   pute the optimal policy under various conditions and define
-   plausible cognitive mechanisms that can approximate these op-      memories to prioritize. We focus on a particular kind of
-   timal policies. Framing the problem of maintenance in this         sequential decision process known as the Markov decision
-   way makes it possible to capture in a single model many of the     process (MDP) (Puterman, 1994), which provides an abstract
-   essential behavioral phenomena of memory maintenance, in-
-   cluding directed forgetting and self-directed remembering. Fi-     mathematical framework for describing decision-making in
-   nally, we consider the case of imperfect metamemory — where        a setting that is partly under control of the decision-maker
-   the current state of memory is only partially observable — and     (here, the maintenance process) and partly under control of
-   show that the fidelity of metamemory determines the effective-
-   ness of maintenance.                                               the environment (here, the degradation process). Besides be-
-                                                                      ing well suited to describing the problem of memory main-
-   Keywords: memory maintenance, Markov Decision Process,
-   cognitive control, working memory                                  tenance, the MDP has the added benefit of being one of the
-                                                                      most well-understood models in the mathematics and psy-
-                           Introduction                               chology of reinforcement learning. Thus, having established
-                                                                      the connection, existing concepts and tools from reinforce-
-Working memory is a storage system that actively holds infor-         ment learning can be brought to bear on the dynamics of
-mation in mind and allows for its manipulation, providing a           memory maintenance.
-workspace for thought (Baddeley, 1992). Its capacity is strik-           The plan of the paper is as follows. First we describe the
-ingly limited, perhaps to only a few sights or sounds. Using          essential behavioral phenomena of memory maintenance and
-working memory is effortful: pupils dilate, skin conductance          control. Then we formulate the problem of memory mainte-
-rises, and secondary tasks become harder to perform well              nance as an MDP. The next section describes the form of so-
-(Kahneman, 1973). Much of the research on working mem-                lutions to the maintenance problem — a maintenance policy
-ory has focused on characterizing its limits and determining          — and proceeds by computing the optimal policy under var-
-what gives rise to them. For example, working memory ca-              ious reward functions. Next, we show how the optimal pol-
-pacity is known to be lower in young children and the elderly         icy, and cognitively plausible approximations thereof, can re-
-(Dobbs & Rule, 1989), correlates strongly with a person’s             produce the behavioral phenomena described earlier. Before
-fluid intelligence (Conway et al., 2003), is affected by sleep        concluding, we extend our framework to the case of imperfect
-schedule (Steenari et al., 2003), and can be impaired in peo-         metamemory, describing memory maintenance in a partially
-ple with mental disorders such as schizophrenia (Goldman-             observable mind — i.e., in situations where the maintenance
-Rakic, 1994). From this work, we have learned a consider-             system has incomplete or uncertain information about the cur-
-able amount about how much can be remembered and who is               rent status of actively-held memories.
+Deciding to Remember:
+Memory Maintenance as a Markov Decision Process
+Jordan W. Suchow (suchow@berkeley.edu)
+Thomas L. Griffiths (tom griffiths@berkeley.edu)
+Department of Psychology, University of California, Berkeley, Berkeley, USA
+Abstract
+Working memory is a limited-capacity form of human memory that actively holds information in mind. Which memories
+ought to be maintained? We approach this question by showing
+an equivalence between active maintenance in working memory and a Markov decision process in which, at each moment,
+a cognitive control mechanism selects a memory as the target
+of maintenance. The challenge of remembering is then finding
+a maintenance policy well-suited to the task at hand. We compute the optimal policy under various conditions and define
+plausible cognitive mechanisms that can approximate these optimal policies. Framing the problem of maintenance in this
+way makes it possible to capture in a single model many of the
+essential behavioral phenomena of memory maintenance, including directed forgetting and self-directed remembering. Finally, we consider the case of imperfect metamemory — where
+the current state of memory is only partially observable — and
+show that the fidelity of metamemory determines the effectiveness of maintenance.
+Keywords: memory maintenance, Markov Decision Process,
+cognitive control, working memory
+
+Introduction
+Working memory is a storage system that actively holds information in mind and allows for its manipulation, providing a
+workspace for thought (Baddeley, 1992). Its capacity is strikingly limited, perhaps to only a few sights or sounds. Using
+working memory is effortful: pupils dilate, skin conductance
+rises, and secondary tasks become harder to perform well
+(Kahneman, 1973). Much of the research on working memory has focused on characterizing its limits and determining
+what gives rise to them. For example, working memory capacity is known to be lower in young children and the elderly
+(Dobbs & Rule, 1989), correlates strongly with a person’s
+fluid intelligence (Conway et al., 2003), is affected by sleep
+schedule (Steenari et al., 2003), and can be impaired in people with mental disorders such as schizophrenia (GoldmanRakic, 1994). From this work, we have learned a considerable amount about how much can be remembered and who is
 best at remembering it.
-   Information held in working memory is malleable (Jonides                     Memory maintenance and control
-et al., 2008). It can, for example, be remembered and for-
-gotten intentionally through the processes of directed forget-        The essential behavioral phenomena of active memory main-
-ting and directed remembering, which prioritize some experi-          tenance and control involve monitoring, prioritizing, and con-
-ences over others for later access (Muther, 1965; Bjork et al.,       trolling memories.
+Information held in working memory is malleable (Jonides
+et al., 2008). It can, for example, be remembered and forgotten intentionally through the processes of directed forgetting and directed remembering, which prioritize some experiences over others for later access (Muther, 1965; Bjork et al.,
 1968). These directed maintenance mechanisms are closely
-                                                                      Directed remembering
 related to cognitive control and to the top-down processes that
-determine our conscious thoughts from moment to moment                Memories can be forgotten intentionally. In experiments
-(Macrae et al., 1997). At times, these control processes can          on this process of “directed forgetting”, participants study
-backfire, causing unwanted thoughts and memories to linger            some information and are then directed to remember or for-
-despite our best intentions (Wegner, 2009).                           get specific elements of what was studied (Muther, 1965;
-                                                                  2063
+determine our conscious thoughts from moment to moment
+(Macrae et al., 1997). At times, these control processes can
+backfire, causing unwanted thoughts and memories to linger
+despite our best intentions (Wegner, 2009).
 
-Bjork et al., 1968). Memory tends to be better for the to-                       The Markov Decision Process
-be-remembered information than for the to-be-forgotten in-          A Markov decision process is defined by a state space, a set
-formation.                                                          of possible actions, a transition model, and a reward function.
-   For example, in Woodward & Bjork (1971), participants            Each is defined in turn below:
+Given the flexibility available to the working memory system, a question naturally arises: What is the optimal way to
+maintain memories? What is the space of possible maintenance strategies, and how successful is each of them in retaining information over short durations?
+We approach this question by likening working memory
+maintenance to a sequential decision process in which, at
+each moment, a cognitive control mechanism decides which
+memories to prioritize. We focus on a particular kind of
+sequential decision process known as the Markov decision
+process (MDP) (Puterman, 1994), which provides an abstract
+mathematical framework for describing decision-making in
+a setting that is partly under control of the decision-maker
+(here, the maintenance process) and partly under control of
+the environment (here, the degradation process). Besides being well suited to describing the problem of memory maintenance, the MDP has the added benefit of being one of the
+most well-understood models in the mathematics and psychology of reinforcement learning. Thus, having established
+the connection, existing concepts and tools from reinforcement learning can be brought to bear on the dynamics of
+memory maintenance.
+The plan of the paper is as follows. First we describe the
+essential behavioral phenomena of memory maintenance and
+control. Then we formulate the problem of memory maintenance as an MDP. The next section describes the form of solutions to the maintenance problem — a maintenance policy
+— and proceeds by computing the optimal policy under various reward functions. Next, we show how the optimal policy, and cognitively plausible approximations thereof, can reproduce the behavioral phenomena described earlier. Before
+concluding, we extend our framework to the case of imperfect
+metamemory, describing memory maintenance in a partially
+observable mind — i.e., in situations where the maintenance
+system has incomplete or uncertain information about the current status of actively-held memories.
+
+Memory maintenance and control
+The essential behavioral phenomena of active memory maintenance and control involve monitoring, prioritizing, and controlling memories.
+
+Directed remembering
+Memories can be forgotten intentionally. In experiments
+on this process of “directed forgetting”, participants study
+some information and are then directed to remember or forget specific elements of what was studied (Muther, 1965;
+
+2063
+
+Bjork et al., 1968). Memory tends to be better for the tobe-remembered information than for the to-be-forgotten information.
+For example, in Woodward & Bjork (1971), participants
 studied a list of words and were later asked to recall as many
-of them as possible. This is the popular free recall paradigm       State space We suppose that there is a memory-supporting
-used extensively in studies of long-term memory. Follow-            commodity, akin to attention, that can be divided into quanta,
-ing each word’s presentation, a cue appeared instructing the        each of which is assigned to a particular memory. The quanta
-participants to remember or to forget the word. Later, par-         might, for example, represent cycles of a time-based refresh-
-ticipants were asked to recall all the words from the studied       ing process (Vergauwe et al., 2009) or neural populations in
-list, regardless of how those words initially had been marked.      prefrontal cortex that represent “token” encodings of visual
-The recall task was challenging. Critically, its difficulty de-     events (Bowman & Wyble, 2007). The more of the com-
-pended on how the word had been marked: words marked as             modity assigned to a memory, the stronger and more robust it
-to-be-remembered were recalled 23.3% of the time, whereas           is. The state of working memory is then an allotment of the
-those marked as to-be-forgotten were recalled only 4.7% of          quanta to each memory, which may receive the entire com-
-the time. This is the hallmark of directed forgetting, which        modity, only a portion of it, or perhaps none at all. The
-has been demonstrated in both long- and short-term memory           state space thus forms a (K − 1) regular discrete simplex,
-(Woodward & Bjork, 1971; Bjork et al., 1968).                       where K is the number of memories held in working mem-
-   Williams et al. (2012) demonstrated directed remembering         ory and where the discretization is determined by the number
-in visual working memory. In the experiment, participants           of quanta N.
-held in mind the colors of one or two colorful squares. On tri-
-                                                                    Actions At each time step, the maintenance process selects
-als when two objects were presented, a cue would sometimes
-                                                                    a quantum as the recipient of maintenance. Thus the set of
-appear 1 s into the retention interval, informing the partici-
-                                                                    possible actions A is of size N, one action per quantum, and
-pant of which object would be tested a few seconds later. This
-                                                                    does not depend on the state.
-hint afforded participants the opportunity to alter their main-
-tenance behavior accordingly. The probability of remember-          Transition model The transition model specifies the prob-
-ing the tested object was highest when there was only one           ability of moving from one state of memory to another and is
-object, lower when there were two but one of them was cued,         thus a formal model of memory degradation. We will make
-and even lower when there were two but none was cued. In a          use of the transition model proposed in Suchow (2014) —
-second experiment, Williams et al. showed that the benefit af-      i.e., a Moran process, a model of evolution in finite popula-
-forded to the cued object comes at a cost: the non-cued object      tions that originated in population genetics (Moran, 1958) and
-is almost entirely forgotten. This is a strong demonstration of     which has been used to describe dynamic processes in diverse
-flexible redirection of memory maintenance and its effects.         settings. Under the Moran process, at each time step a quan-
-                                                                    tum degrades because another quantum interferes with it or
+of them as possible. This is the popular free recall paradigm
+used extensively in studies of long-term memory. Following each word’s presentation, a cue appeared instructing the
+participants to remember or to forget the word. Later, participants were asked to recall all the words from the studied
+list, regardless of how those words initially had been marked.
+The recall task was challenging. Critically, its difficulty depended on how the word had been marked: words marked as
+to-be-remembered were recalled 23.3% of the time, whereas
+those marked as to-be-forgotten were recalled only 4.7% of
+the time. This is the hallmark of directed forgetting, which
+has been demonstrated in both long- and short-term memory
+(Woodward & Bjork, 1971; Bjork et al., 1968).
+Williams et al. (2012) demonstrated directed remembering
+in visual working memory. In the experiment, participants
+held in mind the colors of one or two colorful squares. On trials when two objects were presented, a cue would sometimes
+appear 1 s into the retention interval, informing the participant of which object would be tested a few seconds later. This
+hint afforded participants the opportunity to alter their maintenance behavior accordingly. The probability of remembering the tested object was highest when there was only one
+object, lower when there were two but one of them was cued,
+and even lower when there were two but none was cued. In a
+second experiment, Williams et al. showed that the benefit afforded to the cued object comes at a cost: the non-cued object
+is almost entirely forgotten. This is a strong demonstration of
+flexible redirection of memory maintenance and its effects.
+
+The Markov Decision Process
+A Markov decision process is defined by a state space, a set
+of possible actions, a transition model, and a reward function.
+Each is defined in turn below:
+State space We suppose that there is a memory-supporting
+commodity, akin to attention, that can be divided into quanta,
+each of which is assigned to a particular memory. The quanta
+might, for example, represent cycles of a time-based refreshing process (Vergauwe et al., 2009) or neural populations in
+prefrontal cortex that represent “token” encodings of visual
+events (Bowman & Wyble, 2007). The more of the commodity assigned to a memory, the stronger and more robust it
+is. The state of working memory is then an allotment of the
+quanta to each memory, which may receive the entire commodity, only a portion of it, or perhaps none at all. The
+state space thus forms a (K − 1) regular discrete simplex,
+where K is the number of memories held in working memory and where the discretization is determined by the number
+of quanta N.
+Actions At each time step, the maintenance process selects
+a quantum as the recipient of maintenance. Thus the set of
+possible actions A is of size N, one action per quantum, and
+does not depend on the state.
+
+Self-directed remembering
+
+Transition model The transition model specifies the probability of moving from one state of memory to another and is
+thus a formal model of memory degradation. We will make
+use of the transition model proposed in Suchow (2014) —
+i.e., a Moran process, a model of evolution in finite populations that originated in population genetics (Moran, 1958) and
+which has been used to describe dynamic processes in diverse
+settings. Under the Moran process, at each time step a quantum degrades because another quantum interferes with it or
+replaces it. The degraded quantum is chosen randomly, uniformly across all the quanta. The interfering (or replacing)
+quantum is determined by the action chosen by the maintenance process. We can write the state as an allotment of
+quanta to memories, s = [n1 , n2 , ..., nK ], summing to N, the
+number of quanta. At each time step, one of the n’s is incremented and one is decremented. The incremented n is determined by the chosen action — if the chosen action maintains
+a quantum belonging to that memory, it is deterministically
+incremented. The decremented n is chosen with probability
+proportional to n because the quanta are all equally likely to
+degrade. This defines a transition model P(s0 | s, a), which
+gives the probability of landing in state s0 given that the agent
+took action a while in state s.
+
+Maintenance can also be directed by internally generated signals — “self-directed remembering” Suchow (2014). In one
+experiment, instead of redirecting maintenance to an externally cued objects, participants were given a cue to redirect
+maintenance to the best- or worst-remembered object. The fidelity of memory was better after maintenance had been redirecting than in a baseline where it was not (Suchow, 2014).
+
+Reward function By definition, the agent’s goal is to maximize the total reward that is received. The reward function
+is a mapping from states to an amount of reward that is received for landing in that state. In the case of most working
+memory tasks, which are episodic (in the sense that information arrives all at once and is then discarded at the end of
+the trial), and which have a retention interval that is known
+
 Monitoring
-                                                                    replaces it. The degraded quantum is chosen randomly, uni-
-Monitoring comes in the form of metamemory, an aware-               formly across all the quanta. The interfering (or replacing)
-ness of one’s memories and the systems that store them.             quantum is determined by the action chosen by the main-
-Metamemory is often studied in the context of long-term             tenance process. We can write the state as an allotment of
-memory, where it is invoked to explain phenomena such as            quanta to memories, s = [n1 , n2 , ..., nK ], summing to N, the
-tip-of-the-tongue states and the feeling of knowing (Well-          number of quanta. At each time step, one of the n’s is incre-
-man, 1977). Healthy individuals have a rich set of metamem-         mented and one is decremented. The incremented n is deter-
-ory skills that guide learning, decision making, and action         mined by the chosen action — if the chosen action maintains
-(Metcalfe & Shimamura, 1994). Neurological diseases, such           a quantum belonging to that memory, it is deterministically
-as Alzheimer’s and Korsakoff’s syndrome, adversely affect           incremented. The decremented n is chosen with probability
-metamemory judgments, causing a mismatch between what               proportional to n because the quanta are all equally likely to
-is remembered and what is believed to be remembered (Pannu          degrade. This defines a transition model P(s0 | s, a), which
-& Kaszniak, 2005).                                                  gives the probability of landing in state s0 given that the agent
-Self-directed remembering                                           took action a while in state s.
-Maintenance can also be directed by internally generated sig-       Reward function By definition, the agent’s goal is to max-
-nals — “self-directed remembering” Suchow (2014). In one            imize the total reward that is received. The reward function
-experiment, instead of redirecting maintenance to an exter-         is a mapping from states to an amount of reward that is re-
-nally cued objects, participants were given a cue to redirect       ceived for landing in that state. In the case of most working
-maintenance to the best- or worst-remembered object. The fi-        memory tasks, which are episodic (in the sense that informa-
-delity of memory was better after maintenance had been redi-        tion arrives all at once and is then discarded at the end of
-recting than in a baseline where it was not (Suchow, 2014).         the trial), and which have a retention interval that is known
-                                                                2064
+Monitoring comes in the form of metamemory, an awareness of one’s memories and the systems that store them.
+Metamemory is often studied in the context of long-term
+memory, where it is invoked to explain phenomena such as
+tip-of-the-tongue states and the feeling of knowing (Wellman, 1977). Healthy individuals have a rich set of metamemory skills that guide learning, decision making, and action
+(Metcalfe & Shimamura, 1994). Neurological diseases, such
+as Alzheimer’s and Korsakoff’s syndrome, adversely affect
+metamemory judgments, causing a mismatch between what
+is remembered and what is believed to be remembered (Pannu
+& Kaszniak, 2005).
 
-to the participant, the reward function is time-varying, tak-        gramming, we computed the optimal policy for a time-
-ing on a value of zero everywhere until the moment of the            discounted variant of the above MDP under each of the re-
-test, at which point it becomes positive for some states and         ward functions described above, setting N = 10, K = 3, and
-(possibly) zero for others. For simplicity, we assume that the       the discount factor to 0.99. The optimal policy is different un-
-retention interval is chosen in such a way (e.g., from an ex-        der each reward function, reflecting the differing demands of
-ponential distribution) that the reward function is stationary.      the task. When the reward function encourages having at least
-The specifics of the reward function inevitably depend on the        one highly-stable memory, the optimal policy tends to main-
-demands of the task and are usually implicit in the experi-          tain memories that are already stable, preferring to select a
-ment’s design and feedback mechanism. For example, tasks             quantum assigned to a memory with an above-median alloca-
-using the “continuous partial report paradigm” require partic-       tion of quanta 64% of the time. In contrast, when the reward
-ipants to hold information in mind for a fixed duration, e.g.,       function encourages good performance on the task, which re-
-2000 ms, with reward provided in proportion to the similarity        quires storing more than just one memory, the optimal policy
-between the participant’s response and the true value. Other         tends to maintain memories that are least stable, preferring
-tasks provide all-or-none feedback.                                  to select a quantum assigned to a memory with an above-
-   We will consider three reward functions relevant to the           median allocation of quanta only 29% of the time. When
-goals of a memory maintenance system. The first applies              the reward function encourages prioritization of a particular
-to tasks with an all-or-none design in which the memorizer           memory, the optimal policy deterministically maintains that
-receives full credit for having remembered enough about the          memory so long as it has not fully degraded, in which case
-cued memory to access it (i.e., having at least k quanta as-         it chooses randomly among the others — this is the all-j
-signed to it at the time of the test, where k is the strength        maintenance policy described above. At a minimum, then,
-of the weakest accessible memory) and otherwise receives no          any cognitive implementation of memory maintenance must
-reward. This reward function is appropriate when scoring per-        be able to selectively maintain memories according to their
-formance using a high-threshold model, considering only the          strength and according to their identity.
-probability of remembering while ignoring accuracy. In the              The optimal policy can be approximated by a simple strat-
-second, the memorizer is rewarded for having at least one            egy that rests on plausible cognitive mechanisms, inspired
-sufficiently strong memory (i.e., one with greater than some         by a psychological principle known as Luce’s choice axiom
-threshold number of quanta), but where remembering some-             (Luce, 1959; Herrnstein, 1961). According to the axiom,
-thing about everything is unnecessary. In the third, there is an     when faced with a choice among alternatives, a decision-
-imbalance across memories in the reward given for remem-             maker will exhibit ‘matching behavior’, selecting options
-bering them: some are more valuable than others.                     with probability proportional to their value. Matching behav-
-                                                                     ior was originally studied in the context of learning theory,
-                  Maintenance policies                               where value is defined as the expected reward (Estes, 1957;
-                                                                     Sutton & Barto, 1998). Thus if two levers offer rewards in
-The Markov decision process is a general framework for de-           a ratio of 2:1, an individual that displays matching behav-
-scribing the problem of sequential decision making, but it           ior will press the more rewarding lever twice as often. Here,
-does not specify the particular strategy used by the agent to        value is akin to memory strength and is defined by the number
-make a decision. That strategy is defined by a policy, a func-       of quanta dedicated to a memory.
-tion that specifies an action (or probability distribution over
-                                                                        In practice, it is common to consider a generalization of
+2064
+
+to the participant, the reward function is time-varying, taking on a value of zero everywhere until the moment of the
+test, at which point it becomes positive for some states and
+(possibly) zero for others. For simplicity, we assume that the
+retention interval is chosen in such a way (e.g., from an exponential distribution) that the reward function is stationary.
+The specifics of the reward function inevitably depend on the
+demands of the task and are usually implicit in the experiment’s design and feedback mechanism. For example, tasks
+using the “continuous partial report paradigm” require participants to hold information in mind for a fixed duration, e.g.,
+2000 ms, with reward provided in proportion to the similarity
+between the participant’s response and the true value. Other
+tasks provide all-or-none feedback.
+We will consider three reward functions relevant to the
+goals of a memory maintenance system. The first applies
+to tasks with an all-or-none design in which the memorizer
+receives full credit for having remembered enough about the
+cued memory to access it (i.e., having at least k quanta assigned to it at the time of the test, where k is the strength
+of the weakest accessible memory) and otherwise receives no
+reward. This reward function is appropriate when scoring performance using a high-threshold model, considering only the
+probability of remembering while ignoring accuracy. In the
+second, the memorizer is rewarded for having at least one
+sufficiently strong memory (i.e., one with greater than some
+threshold number of quanta), but where remembering something about everything is unnecessary. In the third, there is an
+imbalance across memories in the reward given for remembering them: some are more valuable than others.
+
+Maintenance policies
+The Markov decision process is a general framework for describing the problem of sequential decision making, but it
+does not specify the particular strategy used by the agent to
+make a decision. That strategy is defined by a policy, a function that specifies an action (or probability distribution over
 actions) for each possible state. Much of modern research on
-                                                                     matching behavior in which a real-valued parameter L deter-
-MDP s focuses on finding the optimal policy, one that maxi-
-                                                                     mines the decision-maker’s sensitivity to the signal. In this
-mizes the (possibly time-discounted) reward.
-                                                                     so-called “softmax” generalization of matching behavior, the
-   The simplest maintenance policies do not depend on the            probability of selecting option a from the set of alternatives A
-current state of memory. Rather, they produce the same be-           is given by
-havior in every state. Borrowing terminology from game the-                                           v(a)L
-                                                                                            P(a) =           ,                    (1)
-ory, we call these maintenance policies unconditional. An                                            ∑ v(b)L
-example of an unconditional maintenance policy is all-i,                                            b∈A
-which always selects the ith quantum as the target of main-          where v(x) is the strength of the signal generated by x and
-tenance. A second unconditional strategy is random, which            where L determines the decision maker’s sensitivity to the
-selects a target at random, uniformly over all quanta — this         signal (Sutton & Barto, 1998).
-maintenance policy is equivalent to a neutral Moran process.            Five values of L are particularly significant. When L = 0,
-   Conditional policies, in contrast, depend on the state. In        the process is unconditional (i.e., insensitive to the signal).
-the context of memory maintenance, consider for example              This corresponds to a neutral process. When L = 1, the pro-
-the strategy all-j, which selects a quantum uniformly from           cess gives preference to objects in proportion to how strongly
-among those assigned to memory j if one exists, otherwise            they are currently represented. When L → ∞, the winner takes
-choosing randomly among all the quanta.                              all. In contrast, when L = −1, the process gives preference to
-   The optimal policy is conditional. Using dynamic pro-             objects in proportion to how weakly they are currently repre-
-                                                                 2065
+MDP s focuses on finding the optimal policy, one that maximizes the (possibly time-discounted) reward.
+The simplest maintenance policies do not depend on the
+current state of memory. Rather, they produce the same behavior in every state. Borrowing terminology from game theory, we call these maintenance policies unconditional. An
+example of an unconditional maintenance policy is all-i,
+which always selects the ith quantum as the target of maintenance. A second unconditional strategy is random, which
+selects a target at random, uniformly over all quanta — this
+maintenance policy is equivalent to a neutral Moran process.
+Conditional policies, in contrast, depend on the state. In
+the context of memory maintenance, consider for example
+the strategy all-j, which selects a quantum uniformly from
+among those assigned to memory j if one exists, otherwise
+choosing randomly among all the quanta.
+The optimal policy is conditional. Using dynamic pro-
 
-sented, and in the limit L → −∞, the loser takes all.                                                                              Self-directed remembering
-   Equation 1 defines the Luce family of maintenance policies                                                                      Lastly, we simulated performance of a memorizer who uses
-that will be examined empirically in the following sections.                                                                       the Luce family of maintenance policies in the self-directed
-                                                                                                                                   remembering task of Suchow et al. (2014). The random
-                            Reproducing the behavioral phenomena                                                                   policy cannot direct maintenance. In constrast, policies in
-The benefit of directed remembering                                                                                                the Luce family can redirect maintenance to to best- or
-                                                                                                                                   worst-remembered object through an appropriate choice of
-We simulated performance of a memorizer who uses the Luce
-                                                                                                                                   L (Fig. 3).
-family of maintenance policies in the directed-remembering
-task from Exp. 1 of Williams et al. (2012). Unlike the random                                                                                                1
-policy, which is unable to direct maintenance to the cued ob-
-                                                                                                                                                            0.8
-                                                                                                                                       Proportion correct
-ject, policies in the Luce family can (Fig. 1).
-                                                                                                                                                            0.6
-                                                          1
-                                                                                                                                                            0.4
-                             Probability of remebering
-                                                         0.9
-                                                                                                                                                            0.2
-                                                         0.8
-                                                                                                                                                            0.0
-                                                                                                                                                                  Best Rand. Worst Best Rand. Worst         Best Rand. Worst
-                                                         0.7
-                                                                                                                                                                      Human             Luce                    random
-                                                         0.6
-                                                         0.5                                                                       Figure 3: Reproducing self-directed remembering from Su-
-                                                                  1     2′ 2          1    2′ 2           1 2′ 2                   chow et al. (2014), with the Luce policy. Maintenance can be
-                                                                      Human               Luce             random                  redirected based on a metamemory signal.
+gramming, we computed the optimal policy for a timediscounted variant of the above MDP under each of the reward functions described above, setting N = 10, K = 3, and
+the discount factor to 0.99. The optimal policy is different under each reward function, reflecting the differing demands of
+the task. When the reward function encourages having at least
+one highly-stable memory, the optimal policy tends to maintain memories that are already stable, preferring to select a
+quantum assigned to a memory with an above-median allocation of quanta 64% of the time. In contrast, when the reward
+function encourages good performance on the task, which requires storing more than just one memory, the optimal policy
+tends to maintain memories that are least stable, preferring
+to select a quantum assigned to a memory with an abovemedian allocation of quanta only 29% of the time. When
+the reward function encourages prioritization of a particular
+memory, the optimal policy deterministically maintains that
+memory so long as it has not fully degraded, in which case
+it chooses randomly among the others — this is the all-j
+maintenance policy described above. At a minimum, then,
+any cognitive implementation of memory maintenance must
+be able to selectively maintain memories according to their
+strength and according to their identity.
+The optimal policy can be approximated by a simple strategy that rests on plausible cognitive mechanisms, inspired
+by a psychological principle known as Luce’s choice axiom
+(Luce, 1959; Herrnstein, 1961). According to the axiom,
+when faced with a choice among alternatives, a decisionmaker will exhibit ‘matching behavior’, selecting options
+with probability proportional to their value. Matching behavior was originally studied in the context of learning theory,
+where value is defined as the expected reward (Estes, 1957;
+Sutton & Barto, 1998). Thus if two levers offer rewards in
+a ratio of 2:1, an individual that displays matching behavior will press the more rewarding lever twice as often. Here,
+value is akin to memory strength and is defined by the number
+of quanta dedicated to a memory.
+In practice, it is common to consider a generalization of
+matching behavior in which a real-valued parameter L determines the decision-maker’s sensitivity to the signal. In this
+so-called “softmax” generalization of matching behavior, the
+probability of selecting option a from the set of alternatives A
+is given by
+v(a)L
+,
+(1)
+P(a) =
+∑ v(b)L
+b∈A
+
+where v(x) is the strength of the signal generated by x and
+where L determines the decision maker’s sensitivity to the
+signal (Sutton & Barto, 1998).
+Five values of L are particularly significant. When L = 0,
+the process is unconditional (i.e., insensitive to the signal).
+This corresponds to a neutral process. When L = 1, the process gives preference to objects in proportion to how strongly
+they are currently represented. When L → ∞, the winner takes
+all. In contrast, when L = −1, the process gives preference to
+objects in proportion to how weakly they are currently repre-
+
+2065
+
+sented, and in the limit L → −∞, the loser takes all.
+Equation 1 defines the Luce family of maintenance policies
+that will be examined empirically in the following sections.
+
+Reproducing the behavioral phenomena
+The benefit of directed remembering
+
+1
+
+1
+0.9
+0.8
+
+0.6
+0.5
+
+0.8
+0.6
+0.4
+0.2
+0.0
+
+0.7
+
+1
+
+2′ 2
+Human
+
+1
+
+Best Rand. Worst Best Rand. Worst
+Luce
+Human
+
+Best Rand. Worst
+random
+
+Figure 3: Reproducing self-directed remembering from Suchow et al. (2014), with the Luce policy. Maintenance can be
+redirected based on a metamemory signal.
+
+1 2′ 2
+random
+
+2′ 2
+Luce
+
 Figure 1: Reproducing Experiment 1 from Williams et al.
-(2012), with the Luce policy. In condition 1, participants re-                                                                                                     Predicting new phenomena
-member 1 object. In condition 2, they remember 2. In condi-                                                                        Graded directed remembering
-tion 20 , they intially remember 2 and then direct maintenance                                                                     Given the apparent flexibility of directed remembering, it may
-to the one that is cued.                                                                                                           be possible to give graded preference to some objects over
-                                                                                                                                   others. There is strong evidence that such graded preferences
-The cost of directed remembering                                                                                                   are possible during encoding. The Luce family of policies
-                                                                                                                                   can be extended to give graded preference to certain memo-
-Next, we simulated performance of a memorizer who uses                                                                             ries over others. To do this, we first define a priority function
-the Luce family of maintenance policies in the directed-                                                                           f that assigns a score to each memory. For example, memo-
-remembering task from Exp. 2 of Williams et al. (2012). The                                                                        ries A, B, and C may receive scores of 4, 3, and 1, meaning
-random policy remains unable to direct maintenance to the                                                                          that A has 4× the priority of C and B has 3× the priority of C.
-cued object — thus, in comparison to human performance,                                                                            Quanta are selected with probability proportional to the prior-
-the cued object is remembered too poorly, and the non-cued                                                                         ity score of the memory to which it is assigned. For a system
-object is remembered too well. In constrast, policies in the                                                                       with N quanta, of which nA are assigned to memory A, nB to
-Luce family demonstrate both effects (Fig. 2), directed main-                                                                      B, and nC to C, the probability of selecting a quantum q that
-tenance to the cued object and drawing it away from the non-                                                                       is of type j is given by
-cued object.
-                                                                                                                                                                                         f ( j)
-                              1
-                                                                                                                                                                        P(q) =                          .                  (2)
-                                                                                                                                                                                     ∑        f ( j)n j
+(2012), with the Luce policy. In condition 1, participants remember 1 object. In condition 2, they remember 2. In condition 20 , they intially remember 2 and then direct maintenance
+to the one that is cued.
+
+The cost of directed remembering
+Next, we simulated performance of a memorizer who uses
+the Luce family of maintenance policies in the directedremembering task from Exp. 2 of Williams et al. (2012). The
+random policy remains unable to direct maintenance to the
+cued object — thus, in comparison to human performance,
+the cued object is remembered too poorly, and the non-cued
+object is remembered too well. In constrast, policies in the
+Luce family demonstrate both effects (Fig. 2), directed maintenance to the cued object and drawing it away from the noncued object.
 Probability of remebering
-                                                                                                                                                                                 j∈{A,B,C}
-                            0.8
-                            0.6                                                                                                    This is equivalent to adding selective pressures to the neu-
-                                                                                                                                   tral process and allows for prioritization and graded directed-
-                            0.4
-                                                                                                                                   remembering.
-                            0.2
-                                                                                                                                   Partially observable minds
-                            0.0
-                                                          1     2  2  +
-                                                                          2   –
-                                                                                  1   2   2 +
-                                                                                                  2   –
-                                                                                                           1    2   2
-                                                                                                                    +
-                                                                                                                        2   –
-                                                                                                                                   The framework of a Markov decision process makes a strong
-                                                               Human                  Luce                     random              commitment to the accessibility of the memory state to the
-                                                                                                                                   memory maintenance system: it assumes perfect, real-time,
-Figure 2: Reproducing Williams et al. (2012), Exp. 2, with                                                                         no-cost metamemory. However, metamemory is imperfect
-the Luce policy. Objects that do not receive the benefit of                                                                        (Flavell & Wellman, 1977).
-preferential maintenance are rapidly lost.                                                                                           By generalizing the MDP to a partially-observable world,
-                                                                                                                                   we can accommodate situations of imperfect or costly
-                                                                                                                                2066
 
-                                                                                                    1
+Lastly, we simulated performance of a memorizer who uses
+the Luce family of maintenance policies in the self-directed
+remembering task of Suchow et al. (2014). The random
+policy cannot direct maintenance. In constrast, policies in
+the Luce family can redirect maintenance to to best- or
+worst-remembered object through an appropriate choice of
+L (Fig. 3).
+
+Proportion correct
+
+Probability of remebering
+
+We simulated performance of a memorizer who uses the Luce
+family of maintenance policies in the directed-remembering
+task from Exp. 1 of Williams et al. (2012). Unlike the random
+policy, which is unable to direct maintenance to the cued object, policies in the Luce family can (Fig. 1).
+
+Self-directed remembering
+
+Predicting new phenomena
+Graded directed remembering
+Given the apparent flexibility of directed remembering, it may
+be possible to give graded preference to some objects over
+others. There is strong evidence that such graded preferences
+are possible during encoding. The Luce family of policies
+can be extended to give graded preference to certain memories over others. To do this, we first define a priority function
+f that assigns a score to each memory. For example, memories A, B, and C may receive scores of 4, 3, and 1, meaning
+that A has 4× the priority of C and B has 3× the priority of C.
+Quanta are selected with probability proportional to the priority score of the memory to which it is assigned. For a system
+with N quanta, of which nA are assigned to memory A, nB to
+B, and nC to C, the probability of selecting a quantum q that
+is of type j is given by
+P(q) =
+
+1
+
+∑
+
+f ( j)
+.
+f ( j)n j
+
+(2)
+
+0.8
+
+j∈{A,B,C}
+
+0.6
+
+This is equivalent to adding selective pressures to the neutral process and allows for prioritization and graded directedremembering.
+
+0.4
+0.2
+0.0
+
+Partially observable minds
+1
+
+2
+2
+Human
+
++
+
+2
+
+–
+
+1
+
+2
+2
+Luce
+
++
+
+2
+
+–
+
+1
+
+2
+2
+random
+
++
+
+2
+
+–
+
+Figure 2: Reproducing Williams et al. (2012), Exp. 2, with
+the Luce policy. Objects that do not receive the benefit of
+preferential maintenance are rapidly lost.
+
+The framework of a Markov decision process makes a strong
+commitment to the accessibility of the memory state to the
+memory maintenance system: it assumes perfect, real-time,
+no-cost metamemory. However, metamemory is imperfect
+(Flavell & Wellman, 1977).
+By generalizing the MDP to a partially-observable world,
+we can accommodate situations of imperfect or costly
+
+2066
+
+Discussion
+In this paper, we approached the problem of memory maintenance by demonstrating an equivalence to a Markov decision process in which, at each moment, a cognitive control
+mechanism selects a memory as the target of maintenance.
+The challenge of remembering is then finding a maintenance
+policy well-suited to the task at hand. We computed the optimal policy under various conditions and defined plausible
+
+Probability of remembering
+
 metamemory. A partially observable world is one in which
-                                                                      Probability of remembering
-the agent does not know exactly what state it is in, making it                                     0.8
-impossible to directly carry out conditional policies that de-                                     0.6
-pend on the state. Often the agent has available some in-                                          0.4
-strument (a “sensor”) for measuring or sensing the state. In                                       0.2
-the case of memory maintenance, the sensor is metamem-                                              0
-                                                                                                         0   2000   4000    6000   8000   10000   1   2    4   8 16 32 64 128
-ory. The agent uses the sensor to update its beliefs about the                                                        Time step                           Number of samples
+the agent does not know exactly what state it is in, making it
+impossible to directly carry out conditional policies that depend on the state. Often the agent has available some instrument (a “sensor”) for measuring or sensing the state. In
+the case of memory maintenance, the sensor is metamemory. The agent uses the sensor to update its beliefs about the
 state. Thus the partially observable Markov decision process
-(POMDP) extends the MDP through the introduction of a sen-         Figure 4: Inefficiencies of metamemory limit the efficiency
-sor model, which describes the information about the state         of memory maintenance. On the left are forgetting functions
-that is provided by each observation, and a belief state, which    for a simulated agent whose memory is only partially observ-
-is a probability distribution over the state space that embodies   able. At each time step the agent draws m quanta (with re-
-the agent’s beliefs about the current state (Monahan, 1982).       placement) and observes their assignment. Selection happens
-The Dirichlet distribution is a convenient representation of       according to the procedure in the main text. On the right, per-
-uncertainty about the state of memory resource allocation be-      formance increases with the number of samples taken. Simu-
-cause it is the conjugate prior for multinomial data.              lations were run with settings N = 128, K = 12, and L = –1.
-   In a partially observable mind, inefficiencies of metamem-
-ory limit the efficacy of flexible maintenance behaviors. This
-is because in a world where the future depends on the past,        cognitive mechanisms, embodied by the Luce policy, that
-one who does not even know the present cannot suitably plan        can approximate these optimal policies. Framing the prob-
-for what is to come. We demonstrate this dependence by             lem of maintenance in this way makes it possible to capture
-defining a simple metamemory agent and then simulating its         in a single model many of the essential behavioral phenom-
-behavior with different levels of efficiency. Metamemory ob-       ena of memory maintenance, including directed remember-
-servations made by the agent come in the form of object la-        ing, priority-based directed remembering, and self-directed
-bels sampled with probability proportional to their strength       remembering. Finally, we considered the case of imper-
-(that is, the number of quanta assigned to them). This defines     fect metamemory — where the current state of memory is
-the sensor model. The agent is initially unaware of the alloca-    only partially observable — and show that the fidelity of
-tion of the commodity, represented by a belief state initially     metamemory determines the effectiveness of maintenance.
-set to a Dirichlet distribution with concentration parameters         Perhaps the biggest payoff that comes from framing the
-1, 1, and 1, which is equivalent to a uniform distribution over    problem of memory maintenance in this way is the set of new
-all possible allocations. At each time step, the agent makes m     questions that it makes possible to ask.
+(POMDP) extends the MDP through the introduction of a sensor model, which describes the information about the state
+that is provided by each observation, and a belief state, which
+is a probability distribution over the state space that embodies
+the agent’s beliefs about the current state (Monahan, 1982).
+The Dirichlet distribution is a convenient representation of
+uncertainty about the state of memory resource allocation because it is the conjugate prior for multinomial data.
+In a partially observable mind, inefficiencies of metamemory limit the efficacy of flexible maintenance behaviors. This
+is because in a world where the future depends on the past,
+one who does not even know the present cannot suitably plan
+for what is to come. We demonstrate this dependence by
+defining a simple metamemory agent and then simulating its
+behavior with different levels of efficiency. Metamemory observations made by the agent come in the form of object labels sampled with probability proportional to their strength
+(that is, the number of quanta assigned to them). This defines
+the sensor model. The agent is initially unaware of the allocation of the commodity, represented by a belief state initially
+set to a Dirichlet distribution with concentration parameters
+1, 1, and 1, which is equivalent to a uniform distribution over
+all possible allocations. At each time step, the agent makes m
 observations. We assume that the metamemory system has no
-                                                                      For example, one might ask where maintenance policies
 memory of its own and thus considers only the observations
-                                                                   come from. Specifically, how are they learned? Methods such
 made at the current time step (see below for a brief discussion
-                                                                   as temporal difference learning have emerged as candidate
 of optimal filtering, in which the metamemory system also
-                                                                   learning mechanisms used in the brain to learn policies that
 considers past observations). To avoid the problems caused
-                                                                   guide behavior, and it has become popular to relate this par-
 by sampling zero quanta of a certain type, we use additive
-                                                                   ticular class of learning algorithms to known reward circuitry
 smoothing by adding one to all the counts. These counts are
-                                                                   in the brain (O’Doherty et al., 2003). Particularly relevant
 used by the Luce policy, with exponent 1. The efficiency of
-                                                                   is Todd et al. (2008), which discusses learning to use work-
-metamemory can be varied by altering the number of obser-
-                                                                   ing memory by temporal difference methods. Specifically,
-vations made at each time step. This formulation makes it
-                                                                   temporal difference learning can be used to shape representa-
-possible to vary efficiency between two extremes. At one ex-
-                                                                   tions in the prefrontal cortex so that they are useful for work-
-treme, m = 0 and the agent gains no information about the
-                                                                   ing memory (Todd et al., 2008). Also relevant is O’Reilly &
+metamemory can be varied by altering the number of observations made at each time step. This formulation makes it
+possible to vary efficiency between two extremes. At one extreme, m = 0 and the agent gains no information about the
 state. At the other extreme, in the limit m → ∞, the agent has
-                                                                   Frank (2006), which develops an “actor/critic” model of the
 perfect information about the state. Intermediate efficiencies
-                                                                   neural substrates of working memory and cognitive control,
 lead to intermediate performance (Fig. 4).
-                                                                   showing that an active gating mechanism that controls the
-                                                                   contents of working memory can be learned through learning
-                        Discussion                                 mechanisms from reinforcement learning (O’Reilly & Frank,
-In this paper, we approached the problem of memory main-           2006).
-tenance by demonstrating an equivalence to a Markov deci-             Finally, it may be useful to consider other resource alloca-
-sion process in which, at each moment, a cognitive control         tion tasks that are similar in structure to that of memory main-
-mechanism selects a memory as the target of maintenance.           tenance — e.g., scheduling and queuing. Much of the origi-
-The challenge of remembering is then finding a maintenance         nal work on these problems came from the field of operations
-policy well-suited to the task at hand. We computed the op-        research, which originated from military planners in WWII
-timal policy under various conditions and defined plausible        and which today considers the optimal solutions to decision
-                                                               2067
 
-making and resource allocation tasks in a variety of settings,             Luce, R. D. (1959). Individual choice behavior: A theoretical anal-
-often in the context of organizational behavior (Taha, 2007)                  ysis. Wiley.
-or electronic systems (Åström & Wittenmark, 2011). Having                Macrae, C. N., Bodenhausen, G. V., Milne, A. B., & Ford, R. L.
-                                                                              (1997). On regulation of recollection: The intentional forgetting
-made the link to these related problems, it may be fruitful to                of stereotypical memories. Journal of Personality and Social Psy-
-consider known solutions as candidate psychological mecha-                    chology, 72(4), 709-719.
-nisms. For example, queuing theory is a set of tools for con-              Matthey, L., Bays, P., & Dayan, P. (2012). Probabilistic palimpsest
-                                                                              memory: Multiplicity, binding and coverage in visual short-term
-sidering resource allocation tasks that feature the continuous                memory. In COSYNE (p. III-48).
-arrival of entities that require the resource (e.g., callers to a          Metcalfe, J. E., & Shimamura, A. P. (1994). Metacognition: Know-
-company’s customer support center) (Kleinrock, 1975). Most                    ing about knowing. The MIT Press.
-of the popular working memory tasks are episodic, with infor-              Monahan, G. E. (1982). State of the art—a survey of partially ob-
-                                                                              servable Markov decision processes: Theory, models, and algo-
-mation arriving all at once and then being discarded at the end               rithms. Management Science, 28(1), 1–16.
-of the trial. Our visual experience is not always so episodic;             Moran, P. A. P. (1958). Random processes in genetics. Mathemat-
-rather, it is sometimes necessary to update the contents of                   ical Proceedings of the Cambridge Philosophical Society, 54(1),
-working memory with new information or redirecting main-                      60-71.
-                                                                           Muther, W. S. (1965). Erasure or partitioning in short-term memory.
-tenance when the goals change (Matthey et al., 2012). Look-                   Psychonomic Science, 3, 429-430.
-ing towards queuing theory, for example, may provide insight               O’Doherty, J. P., Dayan, P., Friston, K., Critchley, H., & Dolan, R. J.
-into this problem of maintenance in the face of continuously-                 (2003). Temporal difference models and reward-related learning
-arriving information.                                                         in the human brain. Neuron, 38(2), 329–337.
-                                                                           O’Reilly, R. C., & Frank, M. J. (2006). Making working memory
-                                                                              work: A computational model of learning in the prefrontal cortex
-                      Acknowledgments                                         and basal ganglia. Neural Computation, 18(2), 283–328.
-This work was partially supported by the National Science                  Pannu, J. K., & Kaszniak, A. W. (2005). Metamemory experiments
-Foundation (grant SPRF-IBSS-1408652 to T.L.G and J.W.S).                      in neurological populations: A review. Neuropsychology Review,
-                                                                              15(3), 105–130.
-                            References                                     Puterman, M. L. (1994). Markov decision processes: Discrete
-                                                                              stochastic dynamic programming. John Wiley & Sons, Inc.
-Åström, K. J., & Wittenmark, B. (2011). Computer-controlled sys-         Steenari, M.-R., Vuontela, V., Paavonen, E. J., Carlson, S., Fjällberg,
-   tems: Theory and design. Courier Dover Publications.                       M., & Aronen, E. T. (2003). Working memory and sleep in 6-to
-Baddeley, A. (1992). Working memory. Science, 255, 556-559.                   13-year-old schoolchildren. Journal of the American Academy of
-Bjork, R. A., Laberge, D., & Legrand, R. (1968). The modifica-                Child & Adolescent Psychiatry, 42(1), 85–92.
-   tion of short-term memory through instructions to forget. Psy-          Suchow, J. W. (2014). Measuring, monitoring, and maintaining
-   chonomic Science, 10, 55-56.                                               memories in a partially observable mind. Doctoral dissertation,
-Bowman, H., & Wyble, B. (2007). The simultaneous type, serial                 Harvard University.
-   token model of temporal attention and working memory. Psycho-           Sutton, R. S., & Barto, A. G. (1998). Reinforcement Learning: An
-   logical Review, 114(1), 38–70.                                             Introduction). The MIT Press. Hardcover.
-Conway, A. R. A., Kane, M. J., & Engle, R. W. (2003). Working              Taha, H. A. (2007). Operations research: An introduction. Pear-
-   memory capacity and its relation to general intelligence. Trends           son/Prentice Hall.
-   in Cognitive Sciences, 7(12), 547–552.                                  Todd, M. T., Niv, Y., & Cohen, J. D. (2008). Learning to use working
-Dobbs, A. R., & Rule, B. G. (1989). Adult age differences in work-            memory in partially observable environments through dopamin-
-   ing memory. Psychology and Aging, 4(4), 500-503.                           ergic reinforcement. In Advances in neural information process-
-Estes, W. K. (1957). Of models and men. American Psychologist,                ing systems (pp. 1689–1696).
-   12(10), 609-617.                                                        Vergauwe, E., Barrouillet, P., & Camos, V. (2009). Visual and spatial
-Flavell, J. H., & Wellman, H. M. (1977). Metamemory. In R. V. Kail            working memory are not that dissociated after all: A time-based
-   & J. W. Hagen (Eds.), Perspectives on the development of memory            resource-sharing account. Journal of Experimental Psychology:
-   and cognition (p. 3-33). Erlbaum.                                          Learning, Memory, and Cognition, 35(4), 1012-1028.
-Goldman-Rakic, P. S. (1994). Working memory dysfunction in                 Wegner, D. M. (2009). How to think, say, or do precisely the worst
-   schizophrenia. The Journal of Neuropsychiatry and Clinical Neu-            thing for any occasion. Science, 325, 48–50.
-   rosciences, 6, 348-357.                                                 Wellman, H. M. (1977). Tip of the tongue and feeling of know-
-Herrnstein, R. J. (1961). Relative and absolute strength of response          ing experiences: A developmental study of memory monitoring.
-   as a function of frequency of reinforcement. Journal of the Ex-            Child Development, 48, 13–21.
-   perimental Analysis of Behavior, 4(3), 267272.                          Williams, M., Hong, S. W., Kang, M. S., Carlisle, N. B., & Wood-
-Jonides, J., Lewis, R. L., Nee, D. E., Lustig, C. A., Berman, M. G., &        man, G. F. (2012). The benefit of forgetting. Psychonomic Bul-
-   Moore, K. S. (2008). The mind and brain of short-term memory.              letin & Review, 20(2), 348-355.
-   Annual Review of Psychology, 59, 193–224.                               Woodward, A. E., & Bjork, R. A. (1971). Forgetting and remem-
-Kahneman, D. (1973). Attention and effort. Prentice Hall.                     bering in free recall: Intentional and unintentional. Journal of
-Kleinrock, L. (1975). Queueing systems. Volume 1: Theory. Wiley.              Experimental Psychology, 89(1), 109-116.
-                                                                       2068
+1
+0.8
+0.6
+0.4
+0.2
+0
 
+0
+
+2000
+
+4000
+
+6000
+
+Time step
+
+8000
+
+10000
+
+1
+
+2
+
+4
+
+8 16 32 64 128
+
+Number of samples
+
+Figure 4: Inefficiencies of metamemory limit the efficiency
+of memory maintenance. On the left are forgetting functions
+for a simulated agent whose memory is only partially observable. At each time step the agent draws m quanta (with replacement) and observes their assignment. Selection happens
+according to the procedure in the main text. On the right, performance increases with the number of samples taken. Simulations were run with settings N = 128, K = 12, and L = –1.
+
+cognitive mechanisms, embodied by the Luce policy, that
+can approximate these optimal policies. Framing the problem of maintenance in this way makes it possible to capture
+in a single model many of the essential behavioral phenomena of memory maintenance, including directed remembering, priority-based directed remembering, and self-directed
+remembering. Finally, we considered the case of imperfect metamemory — where the current state of memory is
+only partially observable — and show that the fidelity of
+metamemory determines the effectiveness of maintenance.
+Perhaps the biggest payoff that comes from framing the
+problem of memory maintenance in this way is the set of new
+questions that it makes possible to ask.
+For example, one might ask where maintenance policies
+come from. Specifically, how are they learned? Methods such
+as temporal difference learning have emerged as candidate
+learning mechanisms used in the brain to learn policies that
+guide behavior, and it has become popular to relate this particular class of learning algorithms to known reward circuitry
+in the brain (O’Doherty et al., 2003). Particularly relevant
+is Todd et al. (2008), which discusses learning to use working memory by temporal difference methods. Specifically,
+temporal difference learning can be used to shape representations in the prefrontal cortex so that they are useful for working memory (Todd et al., 2008). Also relevant is O’Reilly &
+Frank (2006), which develops an “actor/critic” model of the
+neural substrates of working memory and cognitive control,
+showing that an active gating mechanism that controls the
+contents of working memory can be learned through learning
+mechanisms from reinforcement learning (O’Reilly & Frank,
+2006).
+Finally, it may be useful to consider other resource allocation tasks that are similar in structure to that of memory maintenance — e.g., scheduling and queuing. Much of the original work on these problems came from the field of operations
+research, which originated from military planners in WWII
+and which today considers the optimal solutions to decision
+
+2067
+
+making and resource allocation tasks in a variety of settings,
+often in the context of organizational behavior (Taha, 2007)
+or electronic systems (Åström & Wittenmark, 2011). Having
+made the link to these related problems, it may be fruitful to
+consider known solutions as candidate psychological mechanisms. For example, queuing theory is a set of tools for considering resource allocation tasks that feature the continuous
+arrival of entities that require the resource (e.g., callers to a
+company’s customer support center) (Kleinrock, 1975). Most
+of the popular working memory tasks are episodic, with information arriving all at once and then being discarded at the end
+of the trial. Our visual experience is not always so episodic;
+rather, it is sometimes necessary to update the contents of
+working memory with new information or redirecting maintenance when the goals change (Matthey et al., 2012). Looking towards queuing theory, for example, may provide insight
+into this problem of maintenance in the face of continuouslyarriving information.
+
+Acknowledgments
+This work was partially supported by the National Science
+Foundation (grant SPRF-IBSS-1408652 to T.L.G and J.W.S).
+
+References
+Åström, K. J., & Wittenmark, B. (2011). Computer-controlled systems: Theory and design. Courier Dover Publications.
+Baddeley, A. (1992). Working memory. Science, 255, 556-559.
+Bjork, R. A., Laberge, D., & Legrand, R. (1968). The modification of short-term memory through instructions to forget. Psychonomic Science, 10, 55-56.
+Bowman, H., & Wyble, B. (2007). The simultaneous type, serial
+token model of temporal attention and working memory. Psychological Review, 114(1), 38–70.
+Conway, A. R. A., Kane, M. J., & Engle, R. W. (2003). Working
+memory capacity and its relation to general intelligence. Trends
+in Cognitive Sciences, 7(12), 547–552.
+Dobbs, A. R., & Rule, B. G. (1989). Adult age differences in working memory. Psychology and Aging, 4(4), 500-503.
+Estes, W. K. (1957). Of models and men. American Psychologist,
+12(10), 609-617.
+Flavell, J. H., & Wellman, H. M. (1977). Metamemory. In R. V. Kail
+& J. W. Hagen (Eds.), Perspectives on the development of memory
+and cognition (p. 3-33). Erlbaum.
+Goldman-Rakic, P. S. (1994). Working memory dysfunction in
+schizophrenia. The Journal of Neuropsychiatry and Clinical Neurosciences, 6, 348-357.
+Herrnstein, R. J. (1961). Relative and absolute strength of response
+as a function of frequency of reinforcement. Journal of the Experimental Analysis of Behavior, 4(3), 267272.
+Jonides, J., Lewis, R. L., Nee, D. E., Lustig, C. A., Berman, M. G., &
+Moore, K. S. (2008). The mind and brain of short-term memory.
+Annual Review of Psychology, 59, 193–224.
+Kahneman, D. (1973). Attention and effort. Prentice Hall.
+Kleinrock, L. (1975). Queueing systems. Volume 1: Theory. Wiley.
+
+Luce, R. D. (1959). Individual choice behavior: A theoretical analysis. Wiley.
+Macrae, C. N., Bodenhausen, G. V., Milne, A. B., & Ford, R. L.
+(1997). On regulation of recollection: The intentional forgetting
+of stereotypical memories. Journal of Personality and Social Psychology, 72(4), 709-719.
+Matthey, L., Bays, P., & Dayan, P. (2012). Probabilistic palimpsest
+memory: Multiplicity, binding and coverage in visual short-term
+memory. In COSYNE (p. III-48).
+Metcalfe, J. E., & Shimamura, A. P. (1994). Metacognition: Knowing about knowing. The MIT Press.
+Monahan, G. E. (1982). State of the art—a survey of partially observable Markov decision processes: Theory, models, and algorithms. Management Science, 28(1), 1–16.
+Moran, P. A. P. (1958). Random processes in genetics. Mathematical Proceedings of the Cambridge Philosophical Society, 54(1),
+60-71.
+Muther, W. S. (1965). Erasure or partitioning in short-term memory.
+Psychonomic Science, 3, 429-430.
+O’Doherty, J. P., Dayan, P., Friston, K., Critchley, H., & Dolan, R. J.
+(2003). Temporal difference models and reward-related learning
+in the human brain. Neuron, 38(2), 329–337.
+O’Reilly, R. C., & Frank, M. J. (2006). Making working memory
+work: A computational model of learning in the prefrontal cortex
+and basal ganglia. Neural Computation, 18(2), 283–328.
+Pannu, J. K., & Kaszniak, A. W. (2005). Metamemory experiments
+in neurological populations: A review. Neuropsychology Review,
+15(3), 105–130.
+Puterman, M. L. (1994). Markov decision processes: Discrete
+stochastic dynamic programming. John Wiley & Sons, Inc.
+Steenari, M.-R., Vuontela, V., Paavonen, E. J., Carlson, S., Fjällberg,
+M., & Aronen, E. T. (2003). Working memory and sleep in 6-to
+13-year-old schoolchildren. Journal of the American Academy of
+Child & Adolescent Psychiatry, 42(1), 85–92.
+Suchow, J. W. (2014). Measuring, monitoring, and maintaining
+memories in a partially observable mind. Doctoral dissertation,
+Harvard University.
+Sutton, R. S., & Barto, A. G. (1998). Reinforcement Learning: An
+Introduction). The MIT Press. Hardcover.
+Taha, H. A. (2007). Operations research: An introduction. Pearson/Prentice Hall.
+Todd, M. T., Niv, Y., & Cohen, J. D. (2008). Learning to use working
+memory in partially observable environments through dopaminergic reinforcement. In Advances in neural information processing systems (pp. 1689–1696).
+Vergauwe, E., Barrouillet, P., & Camos, V. (2009). Visual and spatial
+working memory are not that dissociated after all: A time-based
+resource-sharing account. Journal of Experimental Psychology:
+Learning, Memory, and Cognition, 35(4), 1012-1028.
+Wegner, D. M. (2009). How to think, say, or do precisely the worst
+thing for any occasion. Science, 325, 48–50.
+Wellman, H. M. (1977). Tip of the tongue and feeling of knowing experiences: A developmental study of memory monitoring.
+Child Development, 48, 13–21.
+Williams, M., Hong, S. W., Kang, M. S., Carlisle, N. B., & Woodman, G. F. (2012). The benefit of forgetting. Psychonomic Bulletin & Review, 20(2), 348-355.
+Woodward, A. E., & Bjork, R. A. (1971). Forgetting and remembering in free recall: Intentional and unintentional. Journal of
+Experimental Psychology, 89(1), 109-116.
+
+2068
+
+

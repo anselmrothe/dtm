@@ -1,393 +1,614 @@
-        A Computational Model for the Dynamical Learning of Event Taxonomies
-                                              Christian Gumbsch (christian@gumbsch.de)
-                                           Sebastian Otte (sebastian.otte@uni-tuebingen.de)
-                                            Martin V. Butz (martin.butz@uni-tuebingen.de)
-       Chair of Cognitive Modeling, Department of Computer Science and Department of Psychology, Faculty of Science,
-                                         Eberhard Karls University of Tübingen, Tübingen, Germany
-                                Abstract                                  boundaries, and the consequent possible transition to another
-                                                                          event model, was biased towards the detection of transient
-   We present a computational model that can learn event tax-
-   onomies online from the continuous sensorimotor information            free energy signals. This is closely related to the transient er-
-   flow perceived by an agent while interacting with its environ-         ror principle of Zacks et al. (2007), according to which event
-   ment. Our model implements two fundamental learning bi-                boundaries are characterized by transient increases in the per-
-   ases. First, it learns probabilistic event models as temporal sen-
-   sorimotor forward models and event transition models, which            ceptual prediction error. The result is an algorithm that learns
-   predict event model transitions given particular perceptual cir-       event boundaries from “surprising” perceptions. We have
-   cumstances. Second, learning is based on the principle of min-         shown that the algorithm learns a compositional conceptual
-   imizing free energy, which is further biased towards the detec-
-   tion of free energy transients. As a result, the algorithm forms       structure of the experienced environment. Algorithmically,
-   conceptual structures that encode events and event boundaries.         the system monitors the current prediction error of the active
-   We show that event taxonomies can emerge when the algo-                forward models and registers surprise when the encountered
-   rithm is run on multiple levels of precision. Moreover, we
-   show that generally any type of forward model can be used,             prediction error surpasses an adaptive confidence threshold.
-   as long as it learns sufficiently fast. Finally, we show that the      As a result, the set of active models is changed, the relevant
-   developed structures can be used to hierarchically plan goal-          features that characterize the encountered event boundary are
-   directed behavior by means of active inference.
-                                                                          identified, the event model transitions are memorized, and
-   Keywords: event models; object interaction; predictive encod-          new event models may be learned. We have shown that the
-   ing; event segmentation; free energy; active inference; event
-   taxonomy; concept learning                                             developing model can be used to both predict sensorimotor
-                                                                          changes and plan in a goal-directed manner.
-                            Introduction                                     In this paper, we generalize the established mechanism,
-                                                                          making it more noise robust and more generally applicable
+A Computational Model for the Dynamical Learning of Event Taxonomies
+Christian Gumbsch (christian@gumbsch.de)
+Sebastian Otte (sebastian.otte@uni-tuebingen.de)
+Martin V. Butz (martin.butz@uni-tuebingen.de)
+Chair of Cognitive Modeling, Department of Computer Science and Department of Psychology, Faculty of Science,
+Eberhard Karls University of Tübingen, Tübingen, Germany
+Abstract
+
+boundaries, and the consequent possible transition to another
+event model, was biased towards the detection of transient
+free energy signals. This is closely related to the transient error principle of Zacks et al. (2007), according to which event
+boundaries are characterized by transient increases in the perceptual prediction error. The result is an algorithm that learns
+event boundaries from “surprising” perceptions. We have
+shown that the algorithm learns a compositional conceptual
+structure of the experienced environment. Algorithmically,
+the system monitors the current prediction error of the active
+forward models and registers surprise when the encountered
+prediction error surpasses an adaptive confidence threshold.
+As a result, the set of active models is changed, the relevant
+features that characterize the encountered event boundary are
+identified, the event model transitions are memorized, and
+new event models may be learned. We have shown that the
+developing model can be used to both predict sensorimotor
+changes and plan in a goal-directed manner.
+In this paper, we generalize the established mechanism,
+making it more noise robust and more generally applicable
+beyond linear models and recursive least squares updating.
+Moreover, we show that the surprise signal and the noise level
+determine the granularity of the event segmentation. As a
+result, an event hierarchy can emerge naturally during this
+process. Finally, we explicitly derive the goal-directed planning process from formalizations of active inference (Friston,
+2009; Friston et al., 2015), showing that the developing event
+and event boundary models are very well-suited for the invocation of inverse, hierarchical, goal-directed behavior.
+
+We present a computational model that can learn event taxonomies online from the continuous sensorimotor information
+flow perceived by an agent while interacting with its environment. Our model implements two fundamental learning biases. First, it learns probabilistic event models as temporal sensorimotor forward models and event transition models, which
+predict event model transitions given particular perceptual circumstances. Second, learning is based on the principle of minimizing free energy, which is further biased towards the detection of free energy transients. As a result, the algorithm forms
+conceptual structures that encode events and event boundaries.
+We show that event taxonomies can emerge when the algorithm is run on multiple levels of precision. Moreover, we
+show that generally any type of forward model can be used,
+as long as it learns sufficiently fast. Finally, we show that the
+developed structures can be used to hierarchically plan goaldirected behavior by means of active inference.
+Keywords: event models; object interaction; predictive encoding; event segmentation; free energy; active inference; event
+taxonomy; concept learning
+
+Introduction
 Event segmentation theory (EST) (Zacks & Tversky, 2001;
-                                                                          beyond linear models and recursive least squares updating.
 Zacks, Speer, Swallow, Braver, & Reynolds, 2007) postulates
-                                                                          Moreover, we show that the surprise signal and the noise level
 that humans automatically structure the stream of sensory and
-                                                                          determine the granularity of the event segmentation. As a
 sensorimotor information into meaningful events. Events are
-                                                                          result, an event hierarchy can emerge naturally during this
-defined as “a segment of time at a given location that is con-
-                                                                          process. Finally, we explicitly derive the goal-directed plan-
-ceived by an observer to have a beginning and an end” (Zacks
-                                                                          ning process from formalizations of active inference (Friston,
+defined as “a segment of time at a given location that is conceived by an observer to have a beginning and an end” (Zacks
 & Tversky, 2001, p. 3). This definition is formulated rather
-                                                                          2009; Friston et al., 2015), showing that the developing event
 broadly, containing long, abstract events (e.g. ‘going on a
-                                                                          and event boundary models are very well-suited for the invo-
 vacation’), more concrete events (e.g. ‘taking a taxi to the
-                                                                          cation of inverse, hierarchical, goal-directed behavior.
 airport’), and very short events (e.g. ‘grasping something’).
-Zacks and Tversky (2001) suggest that events can be orga-
-                                                                                                  Architecture
-nized in event taxonomies, where abstract events consist of
-multiple, more concrete events.                                           The system architecture S consists of three continuously in-
-   In Gumbsch, Kneissler, and Butz (2016) we proposed a                   teracting main components S = {M , B , P }. The set of event
-system that learns events and event boundaries from the sen-              models M comprises all so-far learned temporal forward
-sorimotor stream an agent experiences while interacting with              models. At every point in time, a subset of forward models is
-its environment. Following EST, we defined predictive events              active, simulating and predicting the spatiotemporal changes
-(Zacks et al., 2007) as sets of forward models, i.e. inter-               in the environment. These spatiotemporal simulations are de-
-nal models that predict the sensorimotor consequence of an                termined in the predicted perceptual space P . Event transi-
-agent’s actions. Moreover, event boundaries were defined as               tions are detected based on statistical evaluations of the pre-
-the determining features of a situation that typically lead to            diction error, detecting free energy transients. They are stored
-a transition between events, that is, between active forward              in the event boundary models B , where each model attempts
-models (Butz, 2016). Events and event boundaries are en-                  to identify the critical sensory features that allow the proba-
-coded in a Bayesian fashion, whereby learning and updating                bilistic prediction of an event transition.
-can be closely related to the free energy minimization princi-               Figure 1 and Figure 2 show the three components in in-
-ple (Friston, 2009). In addition, though, the detection of event          teraction with the outside environment and the internal moti-
-                                                                      452
+Zacks and Tversky (2001) suggest that events can be organized in event taxonomies, where abstract events consist of
+multiple, more concrete events.
+In Gumbsch, Kneissler, and Butz (2016) we proposed a
+system that learns events and event boundaries from the sensorimotor stream an agent experiences while interacting with
+its environment. Following EST, we defined predictive events
+(Zacks et al., 2007) as sets of forward models, i.e. internal models that predict the sensorimotor consequence of an
+agent’s actions. Moreover, event boundaries were defined as
+the determining features of a situation that typically lead to
+a transition between events, that is, between active forward
+models (Butz, 2016). Events and event boundaries are encoded in a Bayesian fashion, whereby learning and updating
+can be closely related to the free energy minimization principle (Friston, 2009). In addition, though, the detection of event
 
-                                                 Motor System
-                                                                          perceptual features of the environment that are relevant for
-           Motivations
-                                                                          enabling or causing the transition from one particular event ν
-                                                                                                                    µ
-                  reward                                 action           to another one µ, i.e. P(o|mνi → mi ). Thus, the models cur-
-                                  transition                              rently assume that all relevant information for the occurrence
-        Event Boundary
-                                                Event Models M            of an event boundary is observable when an event model tran-
-           Models B
-                                                                          sition occurs. In our current implementation, we model these
-                                             update                       event transitions by means of multivariate Gaussians.
-                                                      prediction             As a result, at any point in time t the generative
-          surprise                 Predicted
-                                                                          model of the system is in a particular state s(t) =
-                             Perceptual Space P
-                                                                          {m(t), P(B ), o(t), o0 (t)}, where m(t) denotes the current vec-
-                                         comparison                       tor of active forward models (winners take all), P(B ) denotes
-                                                                          the probability mass over possible event boundaries, and o(t)
-                                 Observations                             and o0 (t) denote observation densities.
-Figure 1: Illustration of the system during forward model-
-                                                                          Simulation and inference-based learning
-ing. An active event model predicts the perception based on               While interacting with the environment, the system develops
-the next action. The predictions are compared with the real               its predictive models M and B , which are updated and im-
-observations and the event model is updated based on the de-              proved based on the comparisons between predicted and ac-
-viation. If this deviation exceeds a threshold, a surprise is             tually encountered observations in P (illustrated in Figure 1).
-detected, the event boundary models are updated, and a tran-              Event models are updated by standard gradient descent tech-
-sition in the event models may be triggered. Rewards ex-                  niques, seeing that we face a self-supervised learning prob-
-perienced during transitions are registered in the motivational           lem. We evaluate recursive least squares as well as delta-rule
-system and are associated with the respective event boundary.             based gradient descent-based event models.
-                                                                             Event boundaries are detected by a sudden, significant rise
-vational system during prediction and during planning mode,               of the prediction error above the tolerated uncertainty. The
-respectively. While interacting with the environment, the ar-             prediction error ei (t) of sensory dimension i at time step t is
-chitecture generates temporal forward predictions and learns              considered “surprising” when
-from the registered errors (Figure 1). Inversely, the architec-                                ei (t) > ē(mνi ) + θσ̄(mνi ),           (1)
-ture can generate active inference-driven probabilistic plan-
-ning by activating event boundaries as goals and inversely                with mνi  denoting the active forward model of dimension i and
-propagating these goals into P and M , leading to the gen-                θ the confidence-dependent surprise threshold. This thresh-
-eration of goal-directed actions based on the believed knowl-             old essentially determines when an error is considered sig-
-edge about the environment (Figure 2). Due to the devel-                  nificant depending on the currently estimated standard devia-
-oping event-based predictive environmental model, hierarchi-              tion, i.e. the inverse confidence or precision, of the respective
-cal, conceptual planning becomes possible.                                forward model. It modulates the granularity of the event seg-
-                                                                          mentation performed by our system, which in turn strongly
-Model components and functionality                                        influences how accurately each ongoing event is predicted.
-Event models m ∈ M are encoded as sets of N forward mod-                     If a surprise-signal is detected, the system is allowed to
-els, given an N-dimensional observational space. At a cer-                switch the active forward models m(t). The system enters a
-tain point in time t one event model m(t) is active, with                 searching period during which the next active models are de-
-m(t) = (mν1 , mν2 , . . . , mνN ), where mνi references the currently     termined. To do so, all existing forward models mi of dimen-
-active forward model component with respect to a particu-                 sion i are taken into consideration. For a fixed number of time
-lar dimension i. Each active forward model mνi predicts the               steps (10 time steps in our simulations) each model predicts
-changes in one dimension of the sensory observation ∆o0i (t),             the change in observation and is updated. After this search
-given a particular action a(t). After executing a(t), the real            period, if the prediction error is still considered “surprising”
-observation o(t + 1) is compared with the predicted observa-              by all existing forward models (determined by Eq. 1), a new
-tion o0 (t + 1) = o(t) + ∆o0 (t). As a result, the active forward         forward model is generated and added to the possible forward
-models in m(t) are updated based on the error signal to im-               models mi . On the other hand, if the prediction error is not
-prove the respective forward models. To maintain minimal                  surprising for at least one existing model, the forward model
-                                                                            µ
-additional statistics, each forward model mνi stores the mov-             mi with the smallest mean error is chosen as the new forward
-ing average (currently fixed over the last 100 steps) of its pre-         model for dimension i.
-diction error ē(mνi ), and the moving average of the variance               To summarize, our generative model space essentially con-
-of that prediction error σ̄2 (mνi ), thus estimating the first three      sists of a set of temporal forward models M and a set of prob-
-moments of the model’s predictions.                                       abilistic transition models B , that is, event boundary models.
-   Event boundaries b ∈ B are represented as top-down gen-                To minimize free energy, the validity of each temporal for-
-erative predictive models, which probabilistically predict the            ward model is optimized by gradient descent – maximizing
-                                                                      453
+Architecture
+The system architecture S consists of three continuously interacting main components S = {M , B , P }. The set of event
+models M comprises all so-far learned temporal forward
+models. At every point in time, a subset of forward models is
+active, simulating and predicting the spatiotemporal changes
+in the environment. These spatiotemporal simulations are determined in the predicted perceptual space P . Event transitions are detected based on statistical evaluations of the prediction error, detecting free energy transients. They are stored
+in the event boundary models B , where each model attempts
+to identify the critical sensory features that allow the probabilistic prediction of an event transition.
+Figure 1 and Figure 2 show the three components in interaction with the outside environment and the internal moti-
 
-                                             Motor System
-                                                                        system state st , will result in the minimization of free energy
-          Motivations
-                                                                        by minimizing (i) predicted uncertainty over the expected un-
-                   goal                               action            folding successive states up to a certain temporal horizon T
-                            target model                                into the future τ = {t,t + 1, ..., T } measured by the entropy
-        Event Boundary
-                                            Event Models M              H(P(oτ |sτ )) over expected states sτ when pursuing policy π
-           Models B
-                                                                        and (ii) the divergence, formulated as the Kullback-Leibler
-                                                                        divergence DKL , between expected future observations and
-         target                                   perceptual            desired future observations given a goal state distribution sG ,
-       perception             Predicted             change              i.e. P(oτ |sG ).
-                        Perceptual Space P
-                                                                           When we fully focus behavior on maximizing reward out-
-                                    comparison                          comes, ignoring uncertainties in our expected progression
-                                                                        through the environment, it is possible to cancel out the term
-                            Observations                                Eπ [H(P(oτ |sτ ))] in DKL , yielding:
-Figure 2: Illustration of the system during planning. Based                               Q0τ (π, st ) = P(oτ |sτ ) ln P(oτ |sG ).    (3)
-on the system’s goal, an event boundary is chosen. The re-              As a result, the goal is to maximize the overlap between these
-quired perception to reach this boundary is compared with the           two probability densities.
-currently predicted perception and the necessary perceptual                In our model’s case, P(oτ |sG ) will correspond to a particu-
-change is computed. If this change can be achieved by the                                                  µ
-                                                                        lar model transition mνg → mg and all other model transitions
-active event model, a suitable motor command is determined.             will be set to zero for all future points in time τ. As a conse-
-Otherwise, a new model to fulfill this change is chosen and             quence, the model essentially “wants” to maximize
+452
+
+reward
+Event Boundary
+Models B
+
+perceptual features of the environment that are relevant for
+enabling or causing the transition from one particular event ν
+µ
+to another one µ, i.e. P(o|mνi → mi ). Thus, the models currently assume that all relevant information for the occurrence
+of an event boundary is observable when an event model transition occurs. In our current implementation, we model these
+event transitions by means of multivariate Gaussians.
+As a result, at any point in time t the generative
+model of the system is in a particular state s(t) =
+{m(t), P(B ), o(t), o0 (t)}, where m(t) denotes the current vector of active forward models (winners take all), P(B ) denotes
+the probability mass over possible event boundaries, and o(t)
+and o0 (t) denote observation densities.
+
+Motor System
+
+Motivations
+
+action
+transition
+Event Models M
+update
+
+surprise
+
+prediction
+Predicted
+Perceptual Space P
+comparison
+Observations
+
+Simulation and inference-based learning
+
+Figure 1: Illustration of the system during forward modeling. An active event model predicts the perception based on
+the next action. The predictions are compared with the real
+observations and the event model is updated based on the deviation. If this deviation exceeds a threshold, a surprise is
+detected, the event boundary models are updated, and a transition in the event models may be triggered. Rewards experienced during transitions are registered in the motivational
+system and are associated with the respective event boundary.
+
+While interacting with the environment, the system develops
+its predictive models M and B , which are updated and improved based on the comparisons between predicted and actually encountered observations in P (illustrated in Figure 1).
+Event models are updated by standard gradient descent techniques, seeing that we face a self-supervised learning problem. We evaluate recursive least squares as well as delta-rule
+based gradient descent-based event models.
+Event boundaries are detected by a sudden, significant rise
+of the prediction error above the tolerated uncertainty. The
+prediction error ei (t) of sensory dimension i at time step t is
+considered “surprising” when
+
+vational system during prediction and during planning mode,
+respectively. While interacting with the environment, the architecture generates temporal forward predictions and learns
+from the registered errors (Figure 1). Inversely, the architecture can generate active inference-driven probabilistic planning by activating event boundaries as goals and inversely
+propagating these goals into P and M , leading to the generation of goal-directed actions based on the believed knowledge about the environment (Figure 2). Due to the developing event-based predictive environmental model, hierarchical, conceptual planning becomes possible.
+
+ei (t) > ē(mνi ) + θσ̄(mνi ),
+with mνi
+
+(1)
+
+denoting the active forward model of dimension i and
+θ the confidence-dependent surprise threshold. This threshold essentially determines when an error is considered significant depending on the currently estimated standard deviation, i.e. the inverse confidence or precision, of the respective
+forward model. It modulates the granularity of the event segmentation performed by our system, which in turn strongly
+influences how accurately each ongoing event is predicted.
+If a surprise-signal is detected, the system is allowed to
+switch the active forward models m(t). The system enters a
+searching period during which the next active models are determined. To do so, all existing forward models mi of dimension i are taken into consideration. For a fixed number of time
+steps (10 time steps in our simulations) each model predicts
+the change in observation and is updated. After this search
+period, if the prediction error is still considered “surprising”
+by all existing forward models (determined by Eq. 1), a new
+forward model is generated and added to the possible forward
+models mi . On the other hand, if the prediction error is not
+surprising for at least one existing model, the forward model
+µ
+mi with the smallest mean error is chosen as the new forward
+model for dimension i.
+To summarize, our generative model space essentially consists of a set of temporal forward models M and a set of probabilistic transition models B , that is, event boundary models.
+To minimize free energy, the validity of each temporal forward model is optimized by gradient descent – maximizing
+
+Model components and functionality
+Event models m ∈ M are encoded as sets of N forward models, given an N-dimensional observational space. At a certain point in time t one event model m(t) is active, with
+m(t) = (mν1 , mν2 , . . . , mνN ), where mνi references the currently
+active forward model component with respect to a particular dimension i. Each active forward model mνi predicts the
+changes in one dimension of the sensory observation ∆o0i (t),
+given a particular action a(t). After executing a(t), the real
+observation o(t + 1) is compared with the predicted observation o0 (t + 1) = o(t) + ∆o0 (t). As a result, the active forward
+models in m(t) are updated based on the error signal to improve the respective forward models. To maintain minimal
+additional statistics, each forward model mνi stores the moving average (currently fixed over the last 100 steps) of its prediction error ē(mνi ), and the moving average of the variance
+of that prediction error σ̄2 (mνi ), thus estimating the first three
+moments of the model’s predictions.
+Event boundaries b ∈ B are represented as top-down generative predictive models, which probabilistically predict the
+
+453
+
+goal
+Event Boundary
+Models B
+target
+perception
+
+system state st , will result in the minimization of free energy
+by minimizing (i) predicted uncertainty over the expected unfolding successive states up to a certain temporal horizon T
+into the future τ = {t,t + 1, ..., T } measured by the entropy
+H(P(oτ |sτ )) over expected states sτ when pursuing policy π
+and (ii) the divergence, formulated as the Kullback-Leibler
+divergence DKL , between expected future observations and
+desired future observations given a goal state distribution sG ,
+i.e. P(oτ |sG ).
+When we fully focus behavior on maximizing reward outcomes, ignoring uncertainties in our expected progression
+through the environment, it is possible to cancel out the term
+Eπ [H(P(oτ |sτ ))] in DKL , yielding:
+
+Motor System
+
+Motivations
+
+action
+target model
+Event Models M
+
+Predicted
+Perceptual Space P
+
+perceptual
+change
+
+comparison
+Observations
+
+Q0τ (π, st ) = P(oτ |sτ ) ln P(oτ |sG ).
+
+Figure 2: Illustration of the system during planning. Based
+on the system’s goal, an event boundary is chosen. The required perception to reach this boundary is compared with the
+currently predicted perception and the necessary perceptual
+change is computed. If this change can be achieved by the
+active event model, a suitable motor command is determined.
+Otherwise, a new model to fulfill this change is chosen and
 the event boundary to reach this new model is determined,
-proceeding recursively.                                                                                          µ
-                                                                                                     P(mνi → mi |sτ ),                (4)
-                                                                                                                                   µ
-its predictive accuracy in its applicable subspace. Combined            i.e. the probability of the model transition mνi → mi . This
-with its current minimal statistics (first three moments), the          corresponds to first maximizing P(mνi |sτ ), that is, being in
-temporal forward models can be viewed as Gaussian den-                  model mνi and then maximizing the likelihood of the transi-
-sities, which are optimized approximately optimally based               tion, which, in turn, corresponds to maximizing the probabil-
-on the incoming sensory feedback (Kneissler, Drugowitsch,               ity of the observation that characterizes the transition, that is,
-                                                                                         µ
-Friston, & Butz, 2015). Additionally, the approach has – as a           P(oτ |mνi → mi ). Thus, given the current state of the model
-structural prior – the assumption that temporal forward mod-            s(t), the inference process may directly yield motor actions
-                                                                                                                          µ
-els will be typically applicable during an extended period of           that attempt to maximize P(oτ |mνi → mi ) if this seems pos-
-time and that transitions between forward models can be char-           sible given the current event model state. However, when
-acterized by event boundaries (Butz, 2016). As a result, event          the event model mνi is currently not active, then a recur-
-boundaries are optimized such that free energy can be mini-             sive process must start that selects another model transition
-                                                                              0
-mized equally well in all subspaces of the environment.                 P(mνi → mνi ) in order to reach the goal transition by first in-
-                                                                        voking an intermediate transition (illustrated in Figure 2).
-Goal-directed behavior                                                     As a result, hierarchical, conceptual goal-directed proba-
-To invoke goal-directed behavior, we add a simple “motiva-              bilistic inference-based planning is implemented, which in-
-tional” system to the architecture, which associates model              vokes event boundaries as subgoals, given the final goal can-
-states with changes in its internal motivational state (Butz,           not be reached by the currently available control options. For
-Shirinov, & Reif, 2010). In the current implementation, we              example, the model can infer that if it wants to drink out of
-simplify this part by associating particular motivations with           a mug but the mug is not in the hands, the mug first needs
-particular event boundaries, such as the disappearance of food          to be approached and grasped before it can be transported to
-due to its consumption. Thus, when goal-directed planning is            the mouth. Note that the recursive planning procedure, in
-invoked, a desired event boundary is activated and inversely            principle, can find any sequence of events and event bound-
-propagated through the system’s generative model.                       aries, which are believed to lead to the goal. However, time
-   Formally, we can infer the optimal behavioral policy π by            and space as well as precision limitations may generally ap-
-assigning a value to all imaginable policies given the current          ply when propagating the active inference signals through the
-beliefs of the model and choosing the best one:                         system architecture S .
-        Qτ (π, st ) = − Eπ [H(P(oτ |sτ ))] −                                                           Evaluation
-                                 DKL [P(oτ |sτ )||P(oτ |sG )] , (2)     To investigate the event segmentation and hierarchical plan-
-                                                                        ning capabilities of our system, we have chosen a testing sce-
-which is based on (Friston et al., 2015). This formulation es-          nario, in which a simulated agent, operating in continuous
-sentially states that a policy π, starting at believed situational      space, can interact with different objects in multiple ways
-                                                                    454
+proceeding recursively.
 
-                                                                       we learn the forward models, currently linear prediction mod-
-                                                                       els, both by means of delta rule based gradient descent (learn-
-                                                                       ing rate η = 0.1, momentum term α = 0.9, linear activation
-                                                                       function) as well as by means of recursive least squares (RLS)
-                                                                       (forgetting factor λ = 0.99). RLS essentially implements an
-                                                                       adaptive filter that minimizes the sum of squared residuals re-
-                                                                       cursively in an optimal online fashion. Furthermore, we show
-                                                                       that both the threshold θ and sensory noise influence the gran-
-                                                                       ularity of the determined event segmentations – allowing the
-                                                                       formation of event taxonomies. We performed every simula-
-                                                                       tion 10 times with a different random initialization.
-Figure 3: The evaluation scenario: Objects (here a sticky ob-                                      Results
-ject) are generated in the white area and vanish when they             In a first test we analyzed how the underlying learning rule
-enter the black, rectangular mouth area. The blue hand is              of the forward models influences the event segmentation and
-able to grasp or attach objects. They are detached from the            learning accuracy of the system, comparing stochastic gradi-
-hand once they are inside the red “release-area” cube.                 ent descent with RLS. During learning, the motoric action
-                                                                       a(t) was determined by an external algorithm, which per-
-(Figure 3). The agent consists of a hand with three shovel-            formed a mixture of random movements and behaviors lead-
-like fingers and a stationary “mouth”. The hand is able to             ing to a new event. Every simulation consisted of 10 training
-move freely through a limited 3-dimensional workspace with             and 10 test epochs, during which no forward model updates
-a “release-area”. Three types of differently colored objects           took place. In every epoch all three objects were generated
-appear in our simulation (two types of “sticky objects” and            once and manipulated by the agent until they were consumed.
-one type of “marble”). Sticky objects are big and spiky.                  The system was able to identify all existing events in
-They automatically attach to the hand upon contact. Once               the simulation (hand moving normally/slowly, object lying,
-attached they are dragged alongside the hand until they en-            light/heavy sticky object dragged, marble carried, object
-ter the release-area, wherein they detach and drop into the            dropped) for both types of forward models used. The average
-mouth. We use two types of sticky objects in our simulation:           prediction error of all active forward models for three dif-
-light objects do not alter the hand movement when attached             ferent events is shown in Figure 4a. For both learning rules
-to it; heavy ones slow down the hand movement by a factor              the system improves the prediction accuracy over the train-
-of 14 . Marbles are small spheres that need to be grasped to be        ing epochs, but RLS-based learning quickly reaches a much
-transported by the hand. To grasp a marble the hand has to             better prediction. While this result shows that both forward
-be positioned directly over a marble for a grasping reflex to          model learning approaches can be applied, further tests were
-activate. The fingers open again when the marble is inside the         conducted using RLS-based learning to speed-up the process.
-release-area. Carrying a marble is usually far more difficult to          In a second test we analyzed how the surprise threshold θ
-predict than dragging a sticky object, since marbles sit loosely       influences the granularity of the event segmentation. Thus
-between the fingers and shake while being transported. If an           we performed this test with three different surprise thresh-
-object is dropped into the mouth, it is consumed and a new             olds (θ ∈ {10, 50, 100}). Since we hypothesized that sen-
-object is generated. In our scenario the system is rewarded            sory noise also alters the granularity of segmentation, we
-once an object is consumed. Thus, to receive rewards, the              additionally varied the amount of Gaussian distributed noise
-agent has to attach or grasp the present object, transport it to       (σ ∈ {0.001, 0.01, 0.05, 0.1}) that was added to each obser-
-the release-area, and drop it into the mouth.                          vation o(t). Additionally, a small amount of Gaussian dis-
-   In every time step t, a motoric action a(t) is performed            tributed noise (σ = 0.01) was added to each action a(t).
-and a sensory observation o(t) is perceived. In particular o(t)           The average prediction error for different events at the low-
-consists of the position of the hand xh , yh , zh ∈ [−100, 100],       est level of noise tested (σ = 0.001) is shown in Figure 4b.
-the position of the object xo , yo , zo ∈ [−100, 100], and the po-     The prediction error of the system greatly varies for the dif-
-sition of the object in a hand-centered frame of reference             ferent surprise thresholds. After only a few training epochs,
-xo,h , yo,h , zo,h ∈ [−200, 200]. Additionally o(t) contains the       the prediction accuracy of the active forward models for the
-color of the object and boolean information whether the ob-            smallest tested surprise threshold is close to the level of sen-
-ject has spikes or not. The motor command a(t) determines              sory noise. In contrast, the mean prediction error of the sys-
-the change in hand position ∆xh , ∆yh , ∆zh ∈ [−1, 1]. Further-        tem for the largest threshold is only slightly below 1. For
-more, a(t) contains the velocity of the object to enable com-          θ = 50 the prediction error varies among the different events.
-putation of the object’s next position even while it is falling.          To further analyze this difference in prediction accuracy we
-   To evaluate the system, we investigate how the learning ca-         examined the number of forward models generated for the
-pabilities depend on the underlying learning rule. Therefore,          different surprise thresholds and determined which forward
-                                                                   455
+As a result, the goal is to maximize the overlap between these
+two probability densities.
+In our model’s case, P(oτ |sG ) will correspond to a particuµ
+lar model transition mνg → mg and all other model transitions
+will be set to zero for all future points in time τ. As a consequence, the model essentially “wants” to maximize
+µ
 
-                       delta rule     101                   θ = 100         θ ≥ 50
-    −1                                                                                                      object exists
-  10                   RLS                                  θ = 50          θ ≥ 50
-                                                            θ = 10
-  10−2                                100                                   θ = 10                               object moves
-                                                                            θ = 100
-  10−3
-                                     10−1                                                                   object moves
-    −4
-                                                                            θ = 10                         alongside hand
-  10                                                                                    object is
-                                                                                          lying    object moves with                 object is
-  10−5                               10−2                                   θ = 50                   hand normally        object is   falling
-                                                                                                                          dragged
-           2    4    6    8      10           2    4     6    8    10                             object is   object is    slowly
-                                                                            θ = 10                dragged
-          # training epochs                  # training epochs                                                 carried
- (a) Mean prediction error for (b) Mean prediction error for                  Real
- different forward models           different surprise thresholds            Events
+P(mνi → mi |sτ ),
+
+(4)
+µ
+
+i.e. the probability of the model transition mνi → mi . This
+corresponds to first maximizing P(mνi |sτ ), that is, being in
+model mνi and then maximizing the likelihood of the transition, which, in turn, corresponds to maximizing the probability of the observation that characterizes the transition, that is,
+µ
+P(oτ |mνi → mi ). Thus, given the current state of the model
+s(t), the inference process may directly yield motor actions
+µ
+that attempt to maximize P(oτ |mνi → mi ) if this seems possible given the current event model state. However, when
+the event model mνi is currently not active, then a recursive process must start that selects another model transition
+0
+P(mνi → mνi ) in order to reach the goal transition by first invoking an intermediate transition (illustrated in Figure 2).
+As a result, hierarchical, conceptual goal-directed probabilistic inference-based planning is implemented, which invokes event boundaries as subgoals, given the final goal cannot be reached by the currently available control options. For
+example, the model can infer that if it wants to drink out of
+a mug but the mug is not in the hands, the mug first needs
+to be approached and grasped before it can be transported to
+the mouth. Note that the recursive planning procedure, in
+principle, can find any sequence of events and event boundaries, which are believed to lead to the goal. However, time
+and space as well as precision limitations may generally apply when propagating the active inference signals through the
+system architecture S .
+
+its predictive accuracy in its applicable subspace. Combined
+with its current minimal statistics (first three moments), the
+temporal forward models can be viewed as Gaussian densities, which are optimized approximately optimally based
+on the incoming sensory feedback (Kneissler, Drugowitsch,
+Friston, & Butz, 2015). Additionally, the approach has – as a
+structural prior – the assumption that temporal forward models will be typically applicable during an extended period of
+time and that transitions between forward models can be characterized by event boundaries (Butz, 2016). As a result, event
+boundaries are optimized such that free energy can be minimized equally well in all subspaces of the environment.
+
+Goal-directed behavior
+To invoke goal-directed behavior, we add a simple “motivational” system to the architecture, which associates model
+states with changes in its internal motivational state (Butz,
+Shirinov, & Reif, 2010). In the current implementation, we
+simplify this part by associating particular motivations with
+particular event boundaries, such as the disappearance of food
+due to its consumption. Thus, when goal-directed planning is
+invoked, a desired event boundary is activated and inversely
+propagated through the system’s generative model.
+Formally, we can infer the optimal behavioral policy π by
+assigning a value to all imaginable policies given the current
+beliefs of the model and choosing the best one:
+
+Evaluation
+
+Qτ (π, st ) = − Eπ [H(P(oτ |sτ ))] −
+DKL [P(oτ |sτ )||P(oτ |sG )] ,
+
+(3)
+
+To investigate the event segmentation and hierarchical planning capabilities of our system, we have chosen a testing scenario, in which a simulated agent, operating in continuous
+space, can interact with different objects in multiple ways
+
+(2)
+
+which is based on (Friston et al., 2015). This formulation essentially states that a policy π, starting at believed situational
+
+454
+
+we learn the forward models, currently linear prediction models, both by means of delta rule based gradient descent (learning rate η = 0.1, momentum term α = 0.9, linear activation
+function) as well as by means of recursive least squares (RLS)
+(forgetting factor λ = 0.99). RLS essentially implements an
+adaptive filter that minimizes the sum of squared residuals recursively in an optimal online fashion. Furthermore, we show
+that both the threshold θ and sensory noise influence the granularity of the determined event segmentations – allowing the
+formation of event taxonomies. We performed every simulation 10 times with a different random initialization.
+
+Results
+
+Figure 3: The evaluation scenario: Objects (here a sticky object) are generated in the white area and vanish when they
+enter the black, rectangular mouth area. The blue hand is
+able to grasp or attach objects. They are detached from the
+hand once they are inside the red “release-area” cube.
+
+In a first test we analyzed how the underlying learning rule
+of the forward models influences the event segmentation and
+learning accuracy of the system, comparing stochastic gradient descent with RLS. During learning, the motoric action
+a(t) was determined by an external algorithm, which performed a mixture of random movements and behaviors leading to a new event. Every simulation consisted of 10 training
+and 10 test epochs, during which no forward model updates
+took place. In every epoch all three objects were generated
+once and manipulated by the agent until they were consumed.
+The system was able to identify all existing events in
+the simulation (hand moving normally/slowly, object lying,
+light/heavy sticky object dragged, marble carried, object
+dropped) for both types of forward models used. The average
+prediction error of all active forward models for three different events is shown in Figure 4a. For both learning rules
+the system improves the prediction accuracy over the training epochs, but RLS-based learning quickly reaches a much
+better prediction. While this result shows that both forward
+model learning approaches can be applied, further tests were
+conducted using RLS-based learning to speed-up the process.
+In a second test we analyzed how the surprise threshold θ
+influences the granularity of the event segmentation. Thus
+we performed this test with three different surprise thresholds (θ ∈ {10, 50, 100}). Since we hypothesized that sensory noise also alters the granularity of segmentation, we
+additionally varied the amount of Gaussian distributed noise
+(σ ∈ {0.001, 0.01, 0.05, 0.1}) that was added to each observation o(t). Additionally, a small amount of Gaussian distributed noise (σ = 0.01) was added to each action a(t).
+The average prediction error for different events at the lowest level of noise tested (σ = 0.001) is shown in Figure 4b.
+The prediction error of the system greatly varies for the different surprise thresholds. After only a few training epochs,
+the prediction accuracy of the active forward models for the
+smallest tested surprise threshold is close to the level of sensory noise. In contrast, the mean prediction error of the system for the largest threshold is only slightly below 1. For
+θ = 50 the prediction error varies among the different events.
+To further analyze this difference in prediction accuracy we
+examined the number of forward models generated for the
+different surprise thresholds and determined which forward
+
+(Figure 3). The agent consists of a hand with three shovellike fingers and a stationary “mouth”. The hand is able to
+move freely through a limited 3-dimensional workspace with
+a “release-area”. Three types of differently colored objects
+appear in our simulation (two types of “sticky objects” and
+one type of “marble”). Sticky objects are big and spiky.
+They automatically attach to the hand upon contact. Once
+attached they are dragged alongside the hand until they enter the release-area, wherein they detach and drop into the
+mouth. We use two types of sticky objects in our simulation:
+light objects do not alter the hand movement when attached
+to it; heavy ones slow down the hand movement by a factor
+of 14 . Marbles are small spheres that need to be grasped to be
+transported by the hand. To grasp a marble the hand has to
+be positioned directly over a marble for a grasping reflex to
+activate. The fingers open again when the marble is inside the
+release-area. Carrying a marble is usually far more difficult to
+predict than dragging a sticky object, since marbles sit loosely
+between the fingers and shake while being transported. If an
+object is dropped into the mouth, it is consumed and a new
+object is generated. In our scenario the system is rewarded
+once an object is consumed. Thus, to receive rewards, the
+agent has to attach or grasp the present object, transport it to
+the release-area, and drop it into the mouth.
+In every time step t, a motoric action a(t) is performed
+and a sensory observation o(t) is perceived. In particular o(t)
+consists of the position of the hand xh , yh , zh ∈ [−100, 100],
+the position of the object xo , yo , zo ∈ [−100, 100], and the position of the object in a hand-centered frame of reference
+xo,h , yo,h , zo,h ∈ [−200, 200]. Additionally o(t) contains the
+color of the object and boolean information whether the object has spikes or not. The motor command a(t) determines
+the change in hand position ∆xh , ∆yh , ∆zh ∈ [−1, 1]. Furthermore, a(t) contains the velocity of the object to enable computation of the object’s next position even while it is falling.
+To evaluate the system, we investigate how the learning capabilities depend on the underlying learning rule. Therefore,
+
+455
+
+delta rule
+RLS
+
+−1
+
+10
+
+10−2
+
+101
+
+θ ≥ 50
+θ ≥ 50
+
+θ = 100
+θ = 50
+θ = 10
+
+100
+
+θ = 10
+θ = 100
+
+10−1
+
+θ = 10
+
+object exists
+object moves
+
+10−3
+−4
+
+10
+
+10−5
+
+10−2
+2
+
+4
+
+6
+
+8
+
+# training epochs
+
+10
+
+2
+
+4
+
+6
+
+8
+
+10
+
+object is
+lying
+
+object moves
+alongside hand
+
+θ = 50
+
+object moves with
+hand normally
+
+θ = 10
+
+object is
+dragged
+
+# training epochs
+
+object is
+carried
+
+object is
+dragged
+slowly
+
+object is
+falling
+
+Real
+Events
+
+(a) Mean prediction error for (b) Mean prediction error for
+different forward models
+different surprise thresholds
+
 Figure 4: Mean prediction error of all active forward models
-                                                                           Sensory noise levels:        σ = 0.1,     σ = 0.05,      σ ≤ 0.01
 for different events for (a) different forward models without
-sensory noise; (b) different surprise thresholds θ using RLS-             Figure 5: The event models regarding object position identi-
-based forward models and Gaussian distributed sensory noise               fied by the system for different surprise thresholds and sen-
-(σ = 0.001). Three events are shown: object lying (♦), light              sory noise levels. The column on the left states the surprise
-object dragging (), and heavy object dragging (◦).                       threshold θ. The associated sensory noise ∈ [−σ, σ] is illus-
-                                                                          trated by color, as explained by the color legend below the
-models were most active for which event. In the following,                table. Each row shows the identified event model for this sur-
-we first refer to the case with the lowest level of sensory noise         prise threshold and noise level. The bottom row illustrates the
-(σ = 0.001). Later, we analyze how a variation in sensory                 real, underlying interactions found in our scenario.
+sensory noise; (b) different surprise thresholds θ using RLSbased forward models and Gaussian distributed sensory noise
+(σ = 0.001). Three events are shown: object lying (♦), light
+object dragging (), and heavy object dragging (◦).
+
+Sensory noise levels:
+
+σ = 0.1,
+
+σ = 0.05,
+
+σ ≤ 0.01
+
+Figure 5: The event models regarding object position identified by the system for different surprise thresholds and sensory noise levels. The column on the left states the surprise
+threshold θ. The associated sensory noise ∈ [−σ, σ] is illustrated by color, as explained by the color legend below the
+table. Each row shows the identified event model for this surprise threshold and noise level. The bottom row illustrates the
+real, underlying interactions found in our scenario.
+
+models were most active for which event. In the following,
+we first refer to the case with the lowest level of sensory noise
+(σ = 0.001). Later, we analyze how a variation in sensory
 noise influences the number of event models. All identified
-event models are shown taxonomically structured in Figure 5.                  In a third test we evaluated the planning capabilities of our
-   For θ = 100 two forward models developed for predicting                system, using its representation of events and event bound-
-object positions. One of these models was active when the                 aries to generate goal-directed behavior. Furthermore we ana-
-object was lying, the other one was active for the rest of the            lyzed how the granularity of the underlying event representa-
-time. Thus the system differentiated between a moving and                 tions influences planning. Thus, we varied granularity by us-
-a still object in terms of object position. For θ = 50 three              ing three values of the surprise threshold (θ ∈ {10, 50, 100})
-models were predicting xo and zo −position. Here the sys-                 under the low noise condition σ = .001. Every simulation
-tem further differentiated between slowly carrying a heavy                consisted of 30 training and 30 testing epochs. During each
-object or transporting a light object at normal speed. For                training epoch one sticky object and one marble were gen-
-the yo −position one additional model was generated, which                erated. The goal of the system was to consume the objects.
-was active when an object was falling. For θ = 10 every                   The system was given a fixed time interval (500 simulation
-type of transportation was represented by a different forward             steps) to interact with each object. If the system failed to re-
-model. Hence, for the smallest surprise threshold, the sys-               move an object in the given time period, an external algorithm
-tem even differentiated between slow and normal hand move-                performed the required movements. During testing, we intro-
-ments, while for larger values of θ this was not the case.                duced a new object that closely resembled the marble in its
-   Sensory noise additionally influences the granularity of the           visual characteristics (small, similar color, no spikes). Once
-performed event segmentation. While for low noise levels                  grasped, however, the new object behaved like a sticky object
-(σ = 0.01 and σ = 0.001) the identified events did not dif-               and attached to the hand. The challenge of successfully in-
-fer, an increase in noise results in a coarser event segmenta-            teracting with the new object is thus to grasp the object like a
-tion. For σ = 0.05 and θ = 10 the system used one forward                 marble (by means of the appropriate event boundary models)
-model for every sensory dimension describing hand position                but to then transport the object like a sticky object (with the
-and three forward models to predict changes in object posi-               help of the appropriate event models).
-tion: one for a lying object, one for a transported object, and               Already after the first training epoch, the system consumed
-one for a falling object. The segmentation further coarsened              50% of the novel objects correctly when a fine-grained event
-for σ = 0.1, where the system only distinguished between                  segmentation was used (θ = 10). From 25 training epochs
-lying and moving objects. If both noise level and surprise                onward, the system managed to successfully interact with ev-
-threshold were too large (σ ≥ 0.05, θ ≥ 50) the system did                ery new object. For θ = 50, the system on average only in-
-not detect event transitions at all, such that only one forward           teracted with 70% of the new objects correctly after all 30
-model was generated per sensory dimension.                                training epochs. For θ = 100, the system did not manage
-                                                                      456
+event models are shown taxonomically structured in Figure 5.
+For θ = 100 two forward models developed for predicting
+object positions. One of these models was active when the
+object was lying, the other one was active for the rest of the
+time. Thus the system differentiated between a moving and
+a still object in terms of object position. For θ = 50 three
+models were predicting xo and zo −position. Here the system further differentiated between slowly carrying a heavy
+object or transporting a light object at normal speed. For
+the yo −position one additional model was generated, which
+was active when an object was falling. For θ = 10 every
+type of transportation was represented by a different forward
+model. Hence, for the smallest surprise threshold, the system even differentiated between slow and normal hand movements, while for larger values of θ this was not the case.
+Sensory noise additionally influences the granularity of the
+performed event segmentation. While for low noise levels
+(σ = 0.01 and σ = 0.001) the identified events did not differ, an increase in noise results in a coarser event segmentation. For σ = 0.05 and θ = 10 the system used one forward
+model for every sensory dimension describing hand position
+and three forward models to predict changes in object position: one for a lying object, one for a transported object, and
+one for a falling object. The segmentation further coarsened
+for σ = 0.1, where the system only distinguished between
+lying and moving objects. If both noise level and surprise
+threshold were too large (σ ≥ 0.05, θ ≥ 50) the system did
+not detect event transitions at all, such that only one forward
+model was generated per sensory dimension.
 
-to interact with any test object successfully. The difference         veloping generative model into probabilistic models of events
-in performance can be explained by examining the identified           and transitions between events; second, the focused learning
-events (see Figure 5). For θ = 100 the system does not distin-        of event transitions based on transient free energy signals. Be-
-guish between transporting and dropping an object, such that          sides the emergence of event taxonomies, we also showed that
-the ‘detachment’ event boundary was not learned and thus              the developing conceptual structures can be learned to invoke
-could not be used as a subgoal. Similarly, for θ = 50 the sys-        hierarchical, goal-directed planning and behavioral control.
-tem does not distinguish between transporting a marble or a              Our current research aims at integrating boundedly com-
-sticky object, such that the ‘grasp’ and ‘attach’ event bound-        plex, non-linear forwards models and recurrent context in-
-aries were mixed – often leading to unsuccessful grasps.              formation. Such enhancements will be necessary to handle
-                                                                      non-uniform motion patterns and partially only indirectly ob-
-                          Conclusion                                  servable causes of event transitions robustly. As a result, we
-                                                                      hope to be able to show the more general and more scalable
+In a third test we evaluated the planning capabilities of our
+system, using its representation of events and event boundaries to generate goal-directed behavior. Furthermore we analyzed how the granularity of the underlying event representations influences planning. Thus, we varied granularity by using three values of the surprise threshold (θ ∈ {10, 50, 100})
+under the low noise condition σ = .001. Every simulation
+consisted of 30 training and 30 testing epochs. During each
+training epoch one sticky object and one marble were generated. The goal of the system was to consume the objects.
+The system was given a fixed time interval (500 simulation
+steps) to interact with each object. If the system failed to remove an object in the given time period, an external algorithm
+performed the required movements. During testing, we introduced a new object that closely resembled the marble in its
+visual characteristics (small, similar color, no spikes). Once
+grasped, however, the new object behaved like a sticky object
+and attached to the hand. The challenge of successfully interacting with the new object is thus to grasp the object like a
+marble (by means of the appropriate event boundary models)
+but to then transport the object like a sticky object (with the
+help of the appropriate event models).
+Already after the first training epoch, the system consumed
+50% of the novel objects correctly when a fine-grained event
+segmentation was used (θ = 10). From 25 training epochs
+onward, the system managed to successfully interact with every new object. For θ = 50, the system on average only interacted with 70% of the new objects correctly after all 30
+training epochs. For θ = 100, the system did not manage
+
+456
+
+to interact with any test object successfully. The difference
+in performance can be explained by examining the identified
+events (see Figure 5). For θ = 100 the system does not distinguish between transporting and dropping an object, such that
+the ‘detachment’ event boundary was not learned and thus
+could not be used as a subgoal. Similarly, for θ = 50 the system does not distinguish between transporting a marble or a
+sticky object, such that the ‘grasp’ and ‘attach’ event boundaries were mixed – often leading to unsuccessful grasps.
+
+veloping generative model into probabilistic models of events
+and transitions between events; second, the focused learning
+of event transitions based on transient free energy signals. Besides the emergence of event taxonomies, we also showed that
+the developing conceptual structures can be learned to invoke
+hierarchical, goal-directed planning and behavioral control.
+Our current research aims at integrating boundedly complex, non-linear forwards models and recurrent context information. Such enhancements will be necessary to handle
+non-uniform motion patterns and partially only indirectly observable causes of event transitions robustly. As a result, we
+hope to be able to show the more general and more scalable
+applicability of the principles we have introduced herein.
+
+Conclusion
 Based on event segmentation theory (Zacks et al., 2007) and
-                                                                      applicability of the principles we have introduced herein.
 the principle of free energy minimization (Friston, 2009),
-we have developed a computational model of hierarchical,                                       References
+we have developed a computational model of hierarchical,
 behavior-grounded event segmentation. Our system uses a
-                                                                      Botvinick, M., & Weinstein, A. (2014). Model-based hier-
-strictly statistical measure of “surprise” to segment the sen-
-                                                                        archical reinforcement learning and human action control.
-sorimotor stream, which an agent experiences while interact-
-                                                                        Philosophical Transactions of the Royal Society of London
-ing with its environment, into events encoded by temporal
-                                                                        B: Biological Sciences, 369(1655).
-forward models. In a continuous, noisy simulation, our sys-
-                                                                      Butz, M. V. (2016). Towards a unified sub-symbolic com-
-tem was able to identify event models characterizing particu-
-                                                                        putational theory of cognition. Frontiers in Psychology,
-lar object interactions, e.g. ‘carrying an object’ or ‘dropping
-                                                                        7(925).
+strictly statistical measure of “surprise” to segment the sensorimotor stream, which an agent experiences while interacting with its environment, into events encoded by temporal
+forward models. In a continuous, noisy simulation, our system was able to identify event models characterizing particular object interactions, e.g. ‘carrying an object’ or ‘dropping
 an object’. Furthermore, the environment was structured into
-                                                                      Butz, M. V., Shirinov, E., & Reif, K. L. (2010). Self-
-conceptual event and event boundary encodings, which dis-
-                                                                        organizing sensorimotor maps plus internal motivations
-criminate the critical features that are crucial for the occur-
-                                                                        yield animal-like behavior. Adaptive Behavior, 18(3-4),
-rence of an event, e.g., ’hand contact’ is required to manipu-
-                                                                        315–337.
-late an object. Due to the event-based architecture, the sys-
-                                                                      Friston, K. (2009). The free-energy principle: a rough guide
-tem accomplished to plan hierarchical behavior consisting of
-                                                                        to the brain? Trends in Cognitive Sciences, 13, 293 - 301.
+conceptual event and event boundary encodings, which discriminate the critical features that are crucial for the occurrence of an event, e.g., ’hand contact’ is required to manipulate an object. Due to the event-based architecture, the system accomplished to plan hierarchical behavior consisting of
 multiple subroutines to reach desired goal states.
-                                                                      Friston, K., Rigoli, F., Ognibene, D., Mathys, C., FitzGerald,
-   We showed that a change in the confidence-threshold,                 T., & Pezzulo, G. (2015). Active inference and epistemic
-which determines when a transient free energy signal is con-            value. Cognitive Neuroscience, 6, 187-214.
-sidered “surprising”, affects the granularity of the event seg-       Gumbsch, C., Kneissler, J., & Butz, M. V. (2016). Learning
-mentation. Depending on this threshold, the system accom-               behavior-grounded event segmentations. In Proceedings of
-plished to identify events for concrete object interactions,            the 38th annual conference of the cognitive science society
-e.g. ‘carrying a marble’, or abstract representations of in-            (pp. 1787–1792).
-teractions, which subsume several more concrete events, e.g.          Kneissler, J., Drugowitsch, J., Friston, K., & Butz, M. V.
-‘moving an object’. Similarly, an increase in sensory noise             (2015). Simultaneous learning and filtering without delu-
-entailed a coarser segmentation. Thus, based on these simple            sions: a bayes-optimal combination of predictive inference
-statistical principles, a hierarchy can emerge, similar to the          and adaptive filtering. Frontiers in computational neuro-
-event taxonomy proposed by Zacks and Tversky (2001), in                 science, 9.
-which abstract events comprise several more concrete events.          Kulkarni, T. D., Narasimhan, K., Saeedi, A., & Tenenbaum,
-   The developing hierarchical organization of event models             J. (2016). Hierarchical deep reinforcement learning: Inte-
-and consequent event-oriented behavior is closely related to            grating temporal abstraction and intrinsic motivation. In
-hierarchical reinforcement learning (Botvinick & Weinstein,             Advances in neural information processing systems (pp.
-2014; Sutton, Precup, & Singh, 1999). Similar to our event              3675–3683).
-models, options predict changes in the system’s state when            Sutton, R. S., Precup, D., & Singh, S. (1999). Between MDPs
-performing a sequence of behavior without considering low-              and semi-MDPs: A framework for temporal abstraction in
-level steps. While the composition of options has been shown            reinforcement learning. Artificial Intelligence, 112, 181-
-to enable the learning of complex behavior when using a pre-            211.
-defined set of goals (Kulkarni, Narasimhan, Saeedi, & Tenen-          Zacks, J. M., Speer, N. K., Swallow, K. M., Braver, T. S., &
-baum, 2016), our system determines subgoals by itself by the            Reynolds, J. R. (2007). Event perception: A mind-brain
-principle of surprise-detection.                                        perspective. Psychological Bulletin, 133, 273–293.
-   In sum the proposed model offers a general algorithm for           Zacks, J. M., & Tversky, B. (2001). Event structure in percep-
-online, hierarchical event segmentation learning given con-             tion and conception. Psychological Bulletin, 127, 3–21.
-tinuous sensorimotor experiences. Two main learning biases
+We showed that a change in the confidence-threshold,
+which determines when a transient free energy signal is considered “surprising”, affects the granularity of the event segmentation. Depending on this threshold, the system accomplished to identify events for concrete object interactions,
+e.g. ‘carrying a marble’, or abstract representations of interactions, which subsume several more concrete events, e.g.
+‘moving an object’. Similarly, an increase in sensory noise
+entailed a coarser segmentation. Thus, based on these simple
+statistical principles, a hierarchy can emerge, similar to the
+event taxonomy proposed by Zacks and Tversky (2001), in
+which abstract events comprise several more concrete events.
+The developing hierarchical organization of event models
+and consequent event-oriented behavior is closely related to
+hierarchical reinforcement learning (Botvinick & Weinstein,
+2014; Sutton, Precup, & Singh, 1999). Similar to our event
+models, options predict changes in the system’s state when
+performing a sequence of behavior without considering lowlevel steps. While the composition of options has been shown
+to enable the learning of complex behavior when using a predefined set of goals (Kulkarni, Narasimhan, Saeedi, & Tenenbaum, 2016), our system determines subgoals by itself by the
+principle of surprise-detection.
+In sum the proposed model offers a general algorithm for
+online, hierarchical event segmentation learning given continuous sensorimotor experiences. Two main learning biases
 lead to successful segmentations: first, the partition of the de-
-                                                                  457
 
+References
+Botvinick, M., & Weinstein, A. (2014). Model-based hierarchical reinforcement learning and human action control.
+Philosophical Transactions of the Royal Society of London
+B: Biological Sciences, 369(1655).
+Butz, M. V. (2016). Towards a unified sub-symbolic computational theory of cognition. Frontiers in Psychology,
+7(925).
+Butz, M. V., Shirinov, E., & Reif, K. L. (2010). Selforganizing sensorimotor maps plus internal motivations
+yield animal-like behavior. Adaptive Behavior, 18(3-4),
+315–337.
+Friston, K. (2009). The free-energy principle: a rough guide
+to the brain? Trends in Cognitive Sciences, 13, 293 - 301.
+Friston, K., Rigoli, F., Ognibene, D., Mathys, C., FitzGerald,
+T., & Pezzulo, G. (2015). Active inference and epistemic
+value. Cognitive Neuroscience, 6, 187-214.
+Gumbsch, C., Kneissler, J., & Butz, M. V. (2016). Learning
+behavior-grounded event segmentations. In Proceedings of
+the 38th annual conference of the cognitive science society
+(pp. 1787–1792).
+Kneissler, J., Drugowitsch, J., Friston, K., & Butz, M. V.
+(2015). Simultaneous learning and filtering without delusions: a bayes-optimal combination of predictive inference
+and adaptive filtering. Frontiers in computational neuroscience, 9.
+Kulkarni, T. D., Narasimhan, K., Saeedi, A., & Tenenbaum,
+J. (2016). Hierarchical deep reinforcement learning: Integrating temporal abstraction and intrinsic motivation. In
+Advances in neural information processing systems (pp.
+3675–3683).
+Sutton, R. S., Precup, D., & Singh, S. (1999). Between MDPs
+and semi-MDPs: A framework for temporal abstraction in
+reinforcement learning. Artificial Intelligence, 112, 181211.
+Zacks, J. M., Speer, N. K., Swallow, K. M., Braver, T. S., &
+Reynolds, J. R. (2007). Event perception: A mind-brain
+perspective. Psychological Bulletin, 133, 273–293.
+Zacks, J. M., & Tversky, B. (2001). Event structure in perception and conception. Psychological Bulletin, 127, 3–21.
+
+457
+
+

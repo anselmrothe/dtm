@@ -1,362 +1,686 @@
-             A Domain-Independent Model of Open-World Reference Resolution
-                                                Tom Williams and Matthias Scheutz
-                                                     {williams,mscheutz}@cs.tufts.edu
-                                       Human-Robot Interaction Laboratory, 200 Boston Avenue
-                                                             Medford, MA 02155
-                             Abstract                                      One way to empirically study such human capabilities is
-                                                                        through computational cognitive modeling of those capabil-
-   The ability to ground conversational referents is a key require-     ities, i.e., the development of detailed mathematical or algo-
-   ment for human dialogue. This process, known as reference
-   resolution, has received much attention from both psycholin-         rithmic models which can be implemented to simulate those
-   guists seeking to understand how humans process language             capabilities(Sun, 2008). The development of such models al-
-   and computer scientists seeking to improve the performance           lows one to make predictions as to the processes underlying
-   of language-capable agents. However, the majority of previ-
-   ous research has focused on what we term closed-world ref-           human cognition, and what is more, actually allows one to
-   erence resolution, in which the set of possible referents is as-     test those predictions by comparing their model’s behavior to
-   sumed to be known a priori. In this paper we present a domain-       human behavior. Thus one way to study human mechanisms
-   independent model of open-world reference resolution which
-   appropriately handles uncertain knowledge, and the results of        for open-world reference resolution is to develop a compu-
-   an empirical human-subject experiment conducted to verify            tational model that provides such resolution capabilities to a
-   the model’s predictions.                                             machine.
-   Keywords: computational modeling, natural language un-                  A model of open-world reference resolution should be able
-   derstanding, reference resolution                                    to handle at least three types of imperfect knowledge. First, it
-                                                                        should handle incomplete knowledge as previously discussed,
-                         Introduction                                   in which all candidate referents are not known a priori. Sec-
-The ability to ground conversational referents is a key re-             ond, it should handle ambiguous knowledge, in which multi-
-quirement for human dialogue. This process, known as refer-             ple candidate referents are known (e.g., if in Example 1 the
-ence resolution, has received much attention from both psy-             listener knows of two kitchens in the current hallway). This
-cholinguists seeking to understand how humans process lan-              is a general capability of all models of reference resolution,
-guage and computer scientists seeking to improve the perfor-            and thus will receive limited attention in this paper. Third, a
-mance of language-capable agents. However, the majority of              model of open-world reference resolution should handle un-
-previous research has focused on what we term closed-world              certain knowledge, in which relations and properties are not
-reference resolution, in which the set of possible referents is         known with absolute confidence (e.g, if in Example 1 the lis-
-assumed to be known a priori, and there has been little con-            tener knows of a room which it thinks to be a kitchen, but
-sideration of what we term open-world reference resolution,             is not entirely sure). As we will discuss, no previous model
-in which entities not known a priori may be referenced, lead-           satisfactorily models every type of imperfect knowledge.
-ing to modification of existing knowledge and/or the creation              In addition, a model of open-world reference resolution
-of new representations. For example, consider an agent who,             should be domain-independent. The majority of computa-
-after entering a building for the first time, is told:                  tional models of reference resolution target a specific domain,
-                                                                        such as descriptions of objects or locations. However, while
-   (1)   I’ll be in the office across the hall from the kitchen.        different thought processes may be employed in understand-
-                                                                        ing Examples 1 and, say, "Jim’s uncle is a paleontologist", a
-   The agent will need to identify which portions of the ut-            single mechanism should be used for the tasks of acquiring
-terance refer to entities he already may know about (i.e., "the         and arbitrating between candidate referents in both examples.
-hall"), and which portions refer to entities he does not yet               In this work, we present a domain-independent compu-
-know of (i.e., "the office" and "the kitchen"). The agent               tational model of open-world reference resolutions which
-will then need to modify his internal representation of the             meets all the aforementioned criteria. As a first step, we se-
-building’s structure using the information provided about the           lect a challenging but tractable set of natural language utter-
-newly mentioned entities. New information may be commu-                 ances to model: complex, first-mention definite noun phrases.
-nicated either intentionally (i.e., if an agent says "There is a        Definite descriptions in general are one of the most com-
-kitchen across from the breakroom"), or unintentionally due             mon forms in natural language (Brown-Schmidt, Campana,
-to erroneous assumptions about common ground (i.e., If an               & Tanenhaus, 2002), especially in domains with a limited
-agent says "I was in the kitchen across from the breakroom"             (i.e., tractable) number of possible candidate referents (Hanna
-without realizing that their interlocutor is not familiar with          & Tanenhaus, 2004). First-mention definite noun phrases
-the kitchen and/or the breakroom). In short, the agent must             (which introduce new entities into the discourse) are attrac-
-be able to handle incomplete knowledge, one of three forms              tive as they exhibit the open-world aspects we seek to capture,
-of imperfect knowledge we identify.                                     and are known to be particularly difficult to process (Fraurud,
-                                                                    2667
+A Domain-Independent Model of Open-World Reference Resolution
+Tom Williams and Matthias Scheutz
+{williams,mscheutz}@cs.tufts.edu
+Human-Robot Interaction Laboratory, 200 Boston Avenue
+Medford, MA 02155
+Abstract
+The ability to ground conversational referents is a key requirement for human dialogue. This process, known as reference
+resolution, has received much attention from both psycholinguists seeking to understand how humans process language
+and computer scientists seeking to improve the performance
+of language-capable agents. However, the majority of previous research has focused on what we term closed-world reference resolution, in which the set of possible referents is assumed to be known a priori. In this paper we present a domainindependent model of open-world reference resolution which
+appropriately handles uncertain knowledge, and the results of
+an empirical human-subject experiment conducted to verify
+the model’s predictions.
+Keywords: computational modeling, natural language understanding, reference resolution
 
- 1990). Finally, we seek to tackle both simple and complex            Θ and atomic entities in M. This hypothesis space is denoted
- first-mention definite noun phrases, in which referents are de-      as H Θ . The model must evaluate the probability of each map-
- scribed in relation to one or more "anchors", thus providing         ping in H Θ on the basis of P(s|h) for each s in the subset of
- additional decision boundaries between known and unknown             formulae from S that use variables found in suffix Θ, denoted
- knowledge.                                                           as SΘ . For example, if no probable mapping is found when
-    The remainder of the paper will proceed as follows: first,        V = {X,Y } and S = {room(X), hall(Y ), across_ f rom(X,Y )},
- we will define our model at a computational level of analysis        the next step would be to check for a probable mapping when
- (Marr, 1982). We will then discuss the model with respect            Θ = {Y } and SΘ = {hall(Y )}.
- to our explicit modeling goals (i.e., handling of imperfect             We are thus able to define our model using a set of four
- knowledge, and domain independence), as well as its rela-            equations:
- tion to previous work. Next, we will present an empirical
-                                                                                       Φ(H Θ , SΘ , M) = argmax P(SΘ |H)            (1)
- human-subject experiment conducted to verify our model’s                                                   h∈H Θ
- predictions. Finally, we will conclude with discussion of pos-
- sible directions for future work.                                                           P(SΘ |h) =    ∏ P(s|h)                 (2)
-                                                                                                          s∈SΘ
-                       Model Definition                                                       Θ j = {V j ◦ · · · ◦V|V | }           (3)
- In this section, we first define our model’s parameters, and
-                                                                                   resolve(V, S, M) = Φ(H Θi , SΘi , M) |
- then define the model itself at a computational level.                                                                             (4)
-                                                                                   i = min{ j | P(SΘ j | Φ(H Θ j , SΘ j , M)) > τ}
- Parameters
-1. S: A set of formulae describing the semantic con-                     Here, Equations 1 and 2 indicate that the process Φ of se-
-    straints imposed by a referential expression. For the             lecting the best hypothesis h is equivalent to finding the hy-
-    resolution of Example 1, S might take a form such as              pothesis with the highest probability, which in turn is calcu-
-    {room(X)∧room(Y )∧hall(Z)∧o f f ice(X)∧kitchen(Y )∧               lated by finding the sum of the probabilities of each formula
-    across_ f rom(X,Y, Z)}.                                           in S being true under hypothesis h. The process of assessing
-                                                                      these formula-level probabilities will differ depending on the
-2. M: A world model containing some number of atomic en-              domain of M and type of formula. For example, very differ-
-    tities whose relationships can be described using formu-          ent processes might be used for evaluating the probabilities
-    lae such as those contained in S. It is important to note,        of two locations being across a hall from each other and for
-    however, that we make no claims over the actual informa-          evaluating the probabilities of two people being brothers.
-    tion storage or retrieval methods for M. For the resolution          Equation 3 simply serves as shorthand indicating that suffix
-    of Example 1, M might consist of a cognitive map whose            Θ j consists of the elements of V starting at element j. Finally,
-    atomic entities are various locations, and for which formu-       Equation 4, states that the best hypothesis overall is the best
-    lae such as across_ f rom(X,Y, Z) can be assessed.                hypothesis for suffix Θi , where i is the smallest number such
-3. V : A sequence of variables used in S, for which each vari-        that the probability of that suffix’s best hypothesis is greater
-    able Vi (from i = 0 to |V | − 1) is defined in reference to       than some threshold τ.
-    variable Vi+1 , For the resolution of Example 1, this might
-    be {X,Y, Z} if it is determined that the office (X) is defined                 Discussion and Related Work
-    in reference to the kitchen (Y ), and that the kitchen is in      As stated in the Introduction, we are interested in creating
-    turn defined in reference to the hallway (Z).                     a model of reference resolution which handles incomplete,
-                                                                      uncertain and ambiguous knowledge, and which is domain-
- Computational Model                                                  independent. We will first discuss the degree to which we
- We model the problem of open-world reference resolution as,          have achieved each of these goals, and then discuss models
- given S, M and V , the problem of finding (1) the longest suffix     which have sought to handle other aspects of reference reso-
- Θ of sequence V for which there exists a probable mapping            lution which we do not account for.
- between variables in Θ and entities in M, and (2) the most
- probable mapping for Θ. A mapping is deemed probable if              Incomplete Knowledge
- its probability (as assessed in M) is above some threshold τ.        Because we model open-world reference resolution as the
- Intuitively, we wish to find the longest suffix because new in-      problem of finding (1)the longest suffix of a variable sequence
- formation is typically defined relative to old information, and      and (2) the most probable variable-to-entity mapping for that
- thus we would expect to be able to make a cut at some point          sequence, our model produces, as a side effect, a prefix se-
- in V that partitions it into two sub-sequences which contain         quence of variables which are not mapped to any entities. If
- new and old entities, respectively.                                  an agent creates abstract representations for the unknown or
-    When seeking a probable mapping for sequence Θ, the               hypothetical entities corresponding to these unmapped vari-
- model must consider the hypothesis space of possible bind-           ables (using the formulae in S containing those variables),
- ings between the subset of variables from V that exist in suffix     she will be able to discuss and reason about those entities
-                                                                  2668
+Introduction
+The ability to ground conversational referents is a key requirement for human dialogue. This process, known as reference resolution, has received much attention from both psycholinguists seeking to understand how humans process language and computer scientists seeking to improve the performance of language-capable agents. However, the majority of
+previous research has focused on what we term closed-world
+reference resolution, in which the set of possible referents is
+assumed to be known a priori, and there has been little consideration of what we term open-world reference resolution,
+in which entities not known a priori may be referenced, leading to modification of existing knowledge and/or the creation
+of new representations. For example, consider an agent who,
+after entering a building for the first time, is told:
+(1)
 
-without having physically experienced them. This is a signif-          may exist at each step. When resolving a reference to some
-icant advancement from previous approaches, which either               "room", for example, it would be imprudent to discard places
-operate under an entirely closed-world assumption (i.e., that          that did not fall in the top ten most likely to be considered
-all possible candidates are known a priori) or which trans-            "rooms" since there may be hundreds of places that satisfy
-late utterances directly to actions which must immediately             this constraint to a high degree.
-be carried out before an agent is able to discuss or reason               Both our model and the G3 model have the shortcoming of
-about the described entities (Matuszek, Herbst, Zettlemoyer,           only handling a single domain at a time, however: G3 must
-& Fox, 2012; Duvallet et al., 2014). To the best of our                be trained on a target domain, and our model currently as-
-knowledge, this capability has only been previously achieved           sumes that all entities referenced in an utterance are mem-
-by (Williams, Cantrell, Briggs, Schermerhorn, & Scheutz,               bers of the same domain, as indicated by the use of a single
-2013). However, that approach makes a number of strong                 world model M. The ideal model of reference resolution, on
-domain-dependent assumptions, and assumes full certainty of            the other hand, would be able to interpret expressions such
-its knowledge.                                                         as "the man we had lunch with in that little cafe last week",
-                                                                       which refers to entities from multiple domains. This capabil-
+I’ll be in the office across the hall from the kitchen.
+
+The agent will need to identify which portions of the utterance refer to entities he already may know about (i.e., "the
+hall"), and which portions refer to entities he does not yet
+know of (i.e., "the office" and "the kitchen"). The agent
+will then need to modify his internal representation of the
+building’s structure using the information provided about the
+newly mentioned entities. New information may be communicated either intentionally (i.e., if an agent says "There is a
+kitchen across from the breakroom"), or unintentionally due
+to erroneous assumptions about common ground (i.e., If an
+agent says "I was in the kitchen across from the breakroom"
+without realizing that their interlocutor is not familiar with
+the kitchen and/or the breakroom). In short, the agent must
+be able to handle incomplete knowledge, one of three forms
+of imperfect knowledge we identify.
+
+One way to empirically study such human capabilities is
+through computational cognitive modeling of those capabilities, i.e., the development of detailed mathematical or algorithmic models which can be implemented to simulate those
+capabilities(Sun, 2008). The development of such models allows one to make predictions as to the processes underlying
+human cognition, and what is more, actually allows one to
+test those predictions by comparing their model’s behavior to
+human behavior. Thus one way to study human mechanisms
+for open-world reference resolution is to develop a computational model that provides such resolution capabilities to a
+machine.
+A model of open-world reference resolution should be able
+to handle at least three types of imperfect knowledge. First, it
+should handle incomplete knowledge as previously discussed,
+in which all candidate referents are not known a priori. Second, it should handle ambiguous knowledge, in which multiple candidate referents are known (e.g., if in Example 1 the
+listener knows of two kitchens in the current hallway). This
+is a general capability of all models of reference resolution,
+and thus will receive limited attention in this paper. Third, a
+model of open-world reference resolution should handle uncertain knowledge, in which relations and properties are not
+known with absolute confidence (e.g, if in Example 1 the listener knows of a room which it thinks to be a kitchen, but
+is not entirely sure). As we will discuss, no previous model
+satisfactorily models every type of imperfect knowledge.
+In addition, a model of open-world reference resolution
+should be domain-independent. The majority of computational models of reference resolution target a specific domain,
+such as descriptions of objects or locations. However, while
+different thought processes may be employed in understanding Examples 1 and, say, "Jim’s uncle is a paleontologist", a
+single mechanism should be used for the tasks of acquiring
+and arbitrating between candidate referents in both examples.
+In this work, we present a domain-independent computational model of open-world reference resolutions which
+meets all the aforementioned criteria. As a first step, we select a challenging but tractable set of natural language utterances to model: complex, first-mention definite noun phrases.
+Definite descriptions in general are one of the most common forms in natural language (Brown-Schmidt, Campana,
+& Tanenhaus, 2002), especially in domains with a limited
+(i.e., tractable) number of possible candidate referents (Hanna
+& Tanenhaus, 2004). First-mention definite noun phrases
+(which introduce new entities into the discourse) are attractive as they exhibit the open-world aspects we seek to capture,
+and are known to be particularly difficult to process (Fraurud,
+
+2667
+
+1990). Finally, we seek to tackle both simple and complex
+first-mention definite noun phrases, in which referents are described in relation to one or more "anchors", thus providing
+additional decision boundaries between known and unknown
+knowledge.
+The remainder of the paper will proceed as follows: first,
+we will define our model at a computational level of analysis
+(Marr, 1982). We will then discuss the model with respect
+to our explicit modeling goals (i.e., handling of imperfect
+knowledge, and domain independence), as well as its relation to previous work. Next, we will present an empirical
+human-subject experiment conducted to verify our model’s
+predictions. Finally, we will conclude with discussion of possible directions for future work.
+
+Θ and atomic entities in M. This hypothesis space is denoted
+as H Θ . The model must evaluate the probability of each mapping in H Θ on the basis of P(s|h) for each s in the subset of
+formulae from S that use variables found in suffix Θ, denoted
+as SΘ . For example, if no probable mapping is found when
+V = {X,Y } and S = {room(X), hall(Y ), across_ f rom(X,Y )},
+the next step would be to check for a probable mapping when
+Θ = {Y } and SΘ = {hall(Y )}.
+We are thus able to define our model using a set of four
+equations:
+Φ(H Θ , SΘ , M) = argmax P(SΘ |H)
+
+(1)
+
+h∈H Θ
+
+P(SΘ |h) =
+
+∏ P(s|h)
+
+(2)
+
+s∈SΘ
+
+Model Definition
+
+Θ j = {V j ◦ · · · ◦V|V | }
+
+In this section, we first define our model’s parameters, and
+then define the model itself at a computational level.
+
+resolve(V, S, M) = Φ(H Θi , SΘi , M) |
+i = min{ j | P(SΘ j | Φ(H Θ j , SΘ j , M)) > τ}
+
+Parameters
+1. S: A set of formulae describing the semantic constraints imposed by a referential expression. For the
+resolution of Example 1, S might take a form such as
+{room(X)∧room(Y )∧hall(Z)∧o f f ice(X)∧kitchen(Y )∧
+across_ f rom(X,Y, Z)}.
+2. M: A world model containing some number of atomic entities whose relationships can be described using formulae such as those contained in S. It is important to note,
+however, that we make no claims over the actual information storage or retrieval methods for M. For the resolution
+of Example 1, M might consist of a cognitive map whose
+atomic entities are various locations, and for which formulae such as across_ f rom(X,Y, Z) can be assessed.
+3. V : A sequence of variables used in S, for which each variable Vi (from i = 0 to |V | − 1) is defined in reference to
+variable Vi+1 , For the resolution of Example 1, this might
+be {X,Y, Z} if it is determined that the office (X) is defined
+in reference to the kitchen (Y ), and that the kitchen is in
+turn defined in reference to the hallway (Z).
+
+Computational Model
+We model the problem of open-world reference resolution as,
+given S, M and V , the problem of finding (1) the longest suffix
+Θ of sequence V for which there exists a probable mapping
+between variables in Θ and entities in M, and (2) the most
+probable mapping for Θ. A mapping is deemed probable if
+its probability (as assessed in M) is above some threshold τ.
+Intuitively, we wish to find the longest suffix because new information is typically defined relative to old information, and
+thus we would expect to be able to make a cut at some point
+in V that partitions it into two sub-sequences which contain
+new and old entities, respectively.
+When seeking a probable mapping for sequence Θ, the
+model must consider the hypothesis space of possible bindings between the subset of variables from V that exist in suffix
+
+(3)
+(4)
+
+Here, Equations 1 and 2 indicate that the process Φ of selecting the best hypothesis h is equivalent to finding the hypothesis with the highest probability, which in turn is calculated by finding the sum of the probabilities of each formula
+in S being true under hypothesis h. The process of assessing
+these formula-level probabilities will differ depending on the
+domain of M and type of formula. For example, very different processes might be used for evaluating the probabilities
+of two locations being across a hall from each other and for
+evaluating the probabilities of two people being brothers.
+Equation 3 simply serves as shorthand indicating that suffix
+Θ j consists of the elements of V starting at element j. Finally,
+Equation 4, states that the best hypothesis overall is the best
+hypothesis for suffix Θi , where i is the smallest number such
+that the probability of that suffix’s best hypothesis is greater
+than some threshold τ.
+
+Discussion and Related Work
+As stated in the Introduction, we are interested in creating
+a model of reference resolution which handles incomplete,
+uncertain and ambiguous knowledge, and which is domainindependent. We will first discuss the degree to which we
+have achieved each of these goals, and then discuss models
+which have sought to handle other aspects of reference resolution which we do not account for.
+
+Incomplete Knowledge
+Because we model open-world reference resolution as the
+problem of finding (1)the longest suffix of a variable sequence
+and (2) the most probable variable-to-entity mapping for that
+sequence, our model produces, as a side effect, a prefix sequence of variables which are not mapped to any entities. If
+an agent creates abstract representations for the unknown or
+hypothetical entities corresponding to these unmapped variables (using the formulae in S containing those variables),
+she will be able to discuss and reason about those entities
+
+2668
+
+without having physically experienced them. This is a significant advancement from previous approaches, which either
+operate under an entirely closed-world assumption (i.e., that
+all possible candidates are known a priori) or which translate utterances directly to actions which must immediately
+be carried out before an agent is able to discuss or reason
+about the described entities (Matuszek, Herbst, Zettlemoyer,
+& Fox, 2012; Duvallet et al., 2014). To the best of our
+knowledge, this capability has only been previously achieved
+by (Williams, Cantrell, Briggs, Schermerhorn, & Scheutz,
+2013). However, that approach makes a number of strong
+domain-dependent assumptions, and assumes full certainty of
+its knowledge.
+
 Uncertain and Ambiguous Knowledge
-                                                                       ity is the focus of our ongoing work.
-Like most previous computational models (excepting, e.g.,                 Of course, domain-independence and handling of imper-
-(Matuszek et al., 2012) and (Williams et al., 2013)), ours             fect knowledge are not the only important aspects of refer-
-uses a probabilistic approach, and is thus able to resolve ref-        ence resolution which must be modeled: we will next exam-
-erences in the face of uncertain knowledge. This allows a              ine models of reference resolution from the psycholinguistics
-model to better arbitrate between multiple ambiguous candi-            literature, which have mainly focused on concerns such as
-dates on the basis of certainty. However, as no existing ap-           incrementality.
-proach to our knowledge explicitly represents an agent’s ig-
-norance, we believe that all current approaches fall short of          Related Psycholinguistic Work
+Like most previous computational models (excepting, e.g.,
+(Matuszek et al., 2012) and (Williams et al., 2013)), ours
+uses a probabilistic approach, and is thus able to resolve references in the face of uncertain knowledge. This allows a
+model to better arbitrate between multiple ambiguous candidates on the basis of certainty. However, as no existing approach to our knowledge explicitly represents an agent’s ignorance, we believe that all current approaches fall short of
 the ideal. We believe that modeling of an agent’s ignorance is
-critical, as it facilitates arbitration between exploration (e.g.,     Among relevant psycholinguistic models of reference reso-
-through dialogue, focused attention, or physical exploration)          lution, our work is most similar to that of (Schlangen, Bau-
-and exploitation (i.e., choosing and acting on the most likely         mann, & Atterer, 2009), which presents a Bayesian model of
-candidate referent). In future work, we hope to come closer            reference resolution. Under this model, a default a decision
-to this ideal through the use of a Dempster-Shafer theoretic           of "undecided" is maintained until a candidate with posterior
-knowledge representation scheme. A Dempster-Shafer theo-               probability above some adaptive threshold is found. In con-
-retic approach is attractive as it offers an elegant representa-       trast, when the best hypothesis our model can find is below
-tion of uncertainty which differentiates between uncertainty           the threshold τ, it is treated not as "undecided", but rather
-from ambiguity and uncertainty from ignorance, in a way                as an indication that the referent of the utterance should be
-which does not require commitment to a particular probabil-            considered to be "new", and that the supposedly "given" por-
-ity distribution. This will also enable better integration with        tion of the noun-phrase (i.e., the referent’s anchor) should be
-our Dempster-Shafer theoretic models of pragmatic analy-               examined to determine if it too should be considered to be
-sis and generation (Williams et al., 2014; Williams, Briggs,           "new". (Here we use the "given/new" dichotomy tradition-
-Oosterveld, & Scheutz, 2015).                                          ally employed at the sentence level (e.g., (Haviland & Clark,
-                                                                       1974; Clark, 1975))). However, (Schlangen et al., 2009), ex-
-Domain Independence                                                    ploit the benefits provided by an incremental approach, while
-Our model is not defined with respect to any particular do-            we do not. Much research has demonstrated the incremental
-main. This is in contrast to most previous computational               nature of human language understanding(Eberhard, Spivey-
-models of embodied reference resolution, which choose a                Knowlton, Sedivy, & Tanenhaus, 1995), and shown how
-particular domain to target, such as descriptions of routes            incremental language understanding facilitates fast process-
-(Matuszek et al., 2012; Fasola & Matarić, 2013; Kruijff,              ing and disambiguation of statements in, e.g., visual search
-Janícěk, & Zender, 2012; Duvallet et al., 2014), locations            tasks (Spivey, Tyler, Eberhard, & Tanenhaus, 2001; Krause,
-(Williams et al., 2013), interface elements (Chai, Prasov,             Cantrell, Potapova, Zillich, & Scheutz, 2013). While the in-
-Blaim, & Jin, 2005), or tabletop-objects (Scheutz, Krause,             cremental aspects of language processing were not the focus
-& Sadeghi, 2014; Kruijff, Kelleher, & Hawes, 2006).                    of our model, we aim to adapt an incremental, parallel ap-
-   An exception to this is the G3 model used by (Kollar,               proach like that seen in (Scheutz et al., 2014) in the future.
-Tellex, Roy, & Roy, 2014). This model is in principle do-              In that work, Scheutz et al. used an incremental, parallel
-main independent, but must be trained on a particular chosen           model of language-guided visual search. By effecting a sim-
-domain, and only models closed-world reference resolution.             ilar approach, we could extend our model to handle the in-
-While Kollar et al. use beam-search for the most probable sat-         cremental aspects of natural language, increase performance
-isfaction of the variables contained in the model, we instead          through parallelization, and overall better model the cognitive
-use best-first search, as a large number of viable candidates          processes in which we are interested.
-                                                                   2669
+critical, as it facilitates arbitration between exploration (e.g.,
+through dialogue, focused attention, or physical exploration)
+and exploitation (i.e., choosing and acting on the most likely
+candidate referent). In future work, we hope to come closer
+to this ideal through the use of a Dempster-Shafer theoretic
+knowledge representation scheme. A Dempster-Shafer theoretic approach is attractive as it offers an elegant representation of uncertainty which differentiates between uncertainty
+from ambiguity and uncertainty from ignorance, in a way
+which does not require commitment to a particular probability distribution. This will also enable better integration with
+our Dempster-Shafer theoretic models of pragmatic analysis and generation (Williams et al., 2014; Williams, Briggs,
+Oosterveld, & Scheutz, 2015).
 
-                         Experiment                                   peared on their sister’s list and if so who that person was.
-In the previous sections, we presented a model for domain-               The sixteen referential expressions used in this evaluation
-independent, probabilistic, open-world reference resolution           specifically probed 16 conditions we will now describe.
-of complex, first-mention definite noun-phrases, and dis-                We delineate four categories of uncertainty that can apply
-cussed our model with respect to our modeling goals, and our          to the resolution of a given entity: 0: No valid referent can
-model’s relation to previous work. In this section, we present        be found (requiring modeling of incomplete knowledge), 0.5:
-an empirical human-subject experiment to verify our model’s           One valid but tenuous referent can be determined, and it is
-predictions.                                                          thus unclear whether the correct referent has been found or
-   For this experiment, participants were recruited using             whether the correct referent is yet unknown (requiring mod-
-Amazon Mechanical Turk. The pool of subjects who finished             eling of uncertain knowledge), 1: Exactly one valid referent
-the task consisted of 40 participants (18 Male, 22 Female)            can be found, and 2: Multiple valid referents can be found
-with mean age 34.75. Participants were paid $2.00 to per-             (requiring modeling of ambiguous knowledge).
-form the task. Each participant was asked to consider three              In the resolution of a referential description, these cate-
-sets of referential statements. For each of the three sets of         gories can apply either to the target (i.e., the intended ref-
-statements, they were provided with the corresponding third           erent) of a referential description or to one or more of its an-
-of the following knowledge base shown in Table 1.                     chors. For example, in the referential description "The uncle
-                                                                      of the doctor’s brother", the uncle is the target, and the doc-
-  ID    Name                Description                               tor and the doctor’s brother are the anchors. Similarly, when
-  1     Jim Nelson          Doctor (pretty sure). Friends with
-                            Sam Greene.                               considering the subclause the doctor’s brother, the brother is
-  2     Sam Greene          friends with Jim Nelson. Probably         the target, and the doctor is the anchor.
-                            male.                                        Sixteen classes of uncertainty are created by classifying
-  3     Jim Cruz            ?
-  4     Mary Greene         Sister of Sam Greene.                     referential descriptions into four classes T0, T0.5, T1, T2
-  5     Frank Roberts       Jon says he’s a painter, but Craig        based on the uncertainty status of the referential description’s
-                            says he’s an                              target, crossed by four classes A0, A0.5, A1, A2 based on the
-                            author . . . ? Lives next door to
-                            Nicolas.                                  uncertainty status of the referential description’s anchors.
-  6     Martin Francis      Painter, lives next door to Heidi.           The sixteen referential expressions we used to probe these
-  7     Kristy Roberts      Might be the daughter of Frank            sixteen classes of uncertainty are listed, along with their un-
-                            Roberts. Unsure.
-  8     Heidi Wilkerson     Chemist, lives next door to Martin.       certainty class, in columns 1 and 2 of Table 2. For each
-  9     Nicolas Morris      Chemist, lives next door to Frank.        expression, our model was provided the same knowledge
-  10    Craig Horton        Chemist, might work with Heidi?           encoded in logical form, with confidences attached to each
-                            Probably doesn’t work with Nico-
-                            las, but who knows.                       statement indicative of any uncertainty associated with that
-  11    Ted Wells           Baker.      Possibly brothers with        statement. For example, the agent was told that Kristy was
-                            Phillip and/or Troy.                      the daughter of Frank with probability 0.5. All terms used to
-  12    Phillip Wells       Brewer. Possibly brothers with Ted
-                            and/or Troy.                              effect these probability values are highlighted in Table 1. Our
-  13    Troy Wells          Byron’s friend. Possibly brothers         model was then provided with the same referential descrip-
-                            with Phillip and/or Ted.                  tions as were given to participants, encoded into logical form,
-  14    Laurie Rodgers      Byron’s friend. Girlfriend of one of
-                            the Wells brothers.                       with hand-annotated variable orderings.
-  15    Sally Owens         Teacher. Sibling of Willie Owens.
-                            Laurie’s neighbor.                                                    Results
-  16    Willie Owens        Customs officer. Possibly female.
-                            Sibling of Sally Owens.                   The results of this experiment are summarized in Columns
-  17    Byron Todd          Could be a podiatrist . . . or maybe      3-5 of Table 2. Here, Column 3 shows the most frequent hu-
-                            a pediatrician.
-                                                                      man response given for each referential expression, and the
-Table 1: Knowledge Base provided to participants. In bold             result or set of equally-likely results returned by the model
-are words indicating uncertain information.                           are shown in Column 4. In both cases, referents deemed not
-                                                                      already on the guest-list are denoted "?". For those referents,
-   Participants were told that their siblings were planning a         the model added new entries to the knowledge base and up-
-party, and that the aforementioned list was a list of people          dated existing entries appropriately.
-their sister had invited. Each participant was then given a              Column 5 of Table 2 shows the percentage of participants
-second list corresponding to each third of the second column          whose response aligned with each model responses, with con-
-of Table 2, and were told that each description in this list rep-     ditions in which the most frequent human response matched
-resented a description given by their brother of someone he           a model responses displayed in bold in Column 1.
-wanted invited to the party, that anyone mentioned in a de-              The results show that in 13 of the 16 conditions (81%), the
-scription needed to be invited as well, and that it was their         model gave the response that was most frequent among the
-job to determine, for each person mentioned in one of their           human participants. In these cases, human responses aligned
-brother’s descriptions, whether or not that person already ap-        with a model-given response 71% of the time. It is important
-                                                                  2670
+Domain Independence
+Our model is not defined with respect to any particular domain. This is in contrast to most previous computational
+models of embodied reference resolution, which choose a
+particular domain to target, such as descriptions of routes
+(Matuszek et al., 2012; Fasola & Matarić, 2013; Kruijff,
+Janícěk, & Zender, 2012; Duvallet et al., 2014), locations
+(Williams et al., 2013), interface elements (Chai, Prasov,
+Blaim, & Jin, 2005), or tabletop-objects (Scheutz, Krause,
+& Sadeghi, 2014; Kruijff, Kelleher, & Hawes, 2006).
+An exception to this is the G3 model used by (Kollar,
+Tellex, Roy, & Roy, 2014). This model is in principle domain independent, but must be trained on a particular chosen
+domain, and only models closed-world reference resolution.
+While Kollar et al. use beam-search for the most probable satisfaction of the variables contained in the model, we instead
+use best-first search, as a large number of viable candidates
 
-     Condition     Description given to participant       Most Frequent Human Response        Model Responses                    %
-     A1:T1         The doctor’s friend’s sister           (Sister:4, Friend:2, Doctor:1)      (Sister:4, Friend:2, Doctor:1)   80.0
-     A2:T1         Jim’s friend                           (Friend:2, Jim:1)                   (Friend:2, Jim:1)                60.0
-     A2:T0         Jim’s daughter                         (Daughter:?, Jim:1)                 (Daughter:?, Jim:1)              47.5
-                                                                                              (Daughter:?, Jim:3)              37.5
-     A0:T0         Tabitha’s mother                       (Mother:?, Tabitha:?)               (Mother:?, Tabitha:?)            90.0
-     A2:T2         The chemist’s neighbor                 (Neighbor:6, Chemist:8)             (Neighbor:6, Chemist:8)          22.5
-                                                                                              (Neighbor:5, Chemist:9)          15.0
-     A0.5:T0       Craig’s coworker’s neighbor’s son      (Son:?,Nei.:6,Co.:8,Craig:10)       (Son:?,Nei.:6,Cow.:8,Craig:10)   65.0
-     A0:T1         Marion’s daughter Kristy               (Kristy:7,Marion:?)                 (Kristy:?,Marion:?)              18.5
-     A0.5:T0.5     Craig’s coworker’s neighbor’s daughter (Daug.:?,Nei.:6,Co..:8,Craig:10)    (Daug.:?,Nei.:6,Co.:8,Craig:10)  50.0
-     A1:T0.5       Troy’s girlfriend                      (Girlfriend:14,Troy:13)             (Girlfriend:14,Troy:13)          55.0
-     A1:T2         The baker’s brother                    (Brother:12,Baker:11)               (Brother:12,Baker:11)            70.0
-                                                                                              (Brother:13,Baker:11)             5.0
-     A0:T2         The chemist, Billie’s father           (Father:?,Billie:?)                 (Father:?,Billie:?)              97.5
-     A0:T0.5       Michelle’s daughter, Willie            (Willie:16,Michelle:?)              (Willie:?,Michelle:?)             5.0
-     A1:T0         Sally’s wife                           (Wife:?,Sally:15)                   (Wife:?,Sally:15)                95.0
-     A2:T0.5       The Wells boy’s girlfriend             (Girlfriend:14,Wells boy:13)        (Girlfriend:?,Wells boy:11)       5.0
-                                                                                              (Girlfriend:?,Wells boy:12)       2.5
-                                                                                              (Girlfriend:?,Wells boy:13)       2.5
-     A0.5:T1       Troy Wells, the podiatrist’s friend    (Troy Wells:13,Podiatrist:17)       (Troy Wells:13,Podiatrist:17)    85.0
-     A0.5:T2       The podiatrist’s friend                (Friend:13,Podiatrist:17)           (Friend:13,Podiatrist:17)        27.5
-                                                                                              (Friend:14,Podiatrist:17)        20.0
+may exist at each step. When resolving a reference to some
+"room", for example, it would be imprudent to discard places
+that did not fall in the top ten most likely to be considered
+"rooms" since there may be hundreds of places that satisfy
+this constraint to a high degree.
+Both our model and the G3 model have the shortcoming of
+only handling a single domain at a time, however: G3 must
+be trained on a target domain, and our model currently assumes that all entities referenced in an utterance are members of the same domain, as indicated by the use of a single
+world model M. The ideal model of reference resolution, on
+the other hand, would be able to interpret expressions such
+as "the man we had lunch with in that little cafe last week",
+which refers to entities from multiple domains. This capability is the focus of our ongoing work.
+Of course, domain-independence and handling of imperfect knowledge are not the only important aspects of reference resolution which must be modeled: we will next examine models of reference resolution from the psycholinguistics
+literature, which have mainly focused on concerns such as
+incrementality.
+
+Related Psycholinguistic Work
+Among relevant psycholinguistic models of reference resolution, our work is most similar to that of (Schlangen, Baumann, & Atterer, 2009), which presents a Bayesian model of
+reference resolution. Under this model, a default a decision
+of "undecided" is maintained until a candidate with posterior
+probability above some adaptive threshold is found. In contrast, when the best hypothesis our model can find is below
+the threshold τ, it is treated not as "undecided", but rather
+as an indication that the referent of the utterance should be
+considered to be "new", and that the supposedly "given" portion of the noun-phrase (i.e., the referent’s anchor) should be
+examined to determine if it too should be considered to be
+"new". (Here we use the "given/new" dichotomy traditionally employed at the sentence level (e.g., (Haviland & Clark,
+1974; Clark, 1975))). However, (Schlangen et al., 2009), exploit the benefits provided by an incremental approach, while
+we do not. Much research has demonstrated the incremental
+nature of human language understanding(Eberhard, SpiveyKnowlton, Sedivy, & Tanenhaus, 1995), and shown how
+incremental language understanding facilitates fast processing and disambiguation of statements in, e.g., visual search
+tasks (Spivey, Tyler, Eberhard, & Tanenhaus, 2001; Krause,
+Cantrell, Potapova, Zillich, & Scheutz, 2013). While the incremental aspects of language processing were not the focus
+of our model, we aim to adapt an incremental, parallel approach like that seen in (Scheutz et al., 2014) in the future.
+In that work, Scheutz et al. used an incremental, parallel
+model of language-guided visual search. By effecting a similar approach, we could extend our model to handle the incremental aspects of natural language, increase performance
+through parallelization, and overall better model the cognitive
+processes in which we are interested.
+
+2669
+
+Experiment
+In the previous sections, we presented a model for domainindependent, probabilistic, open-world reference resolution
+of complex, first-mention definite noun-phrases, and discussed our model with respect to our modeling goals, and our
+model’s relation to previous work. In this section, we present
+an empirical human-subject experiment to verify our model’s
+predictions.
+For this experiment, participants were recruited using
+Amazon Mechanical Turk. The pool of subjects who finished
+the task consisted of 40 participants (18 Male, 22 Female)
+with mean age 34.75. Participants were paid $2.00 to perform the task. Each participant was asked to consider three
+sets of referential statements. For each of the three sets of
+statements, they were provided with the corresponding third
+of the following knowledge base shown in Table 1.
+ID
+1
+
+Name
+Jim Nelson
+
+2
+
+Sam Greene
+
+3
+4
+5
+
+Jim Cruz
+Mary Greene
+Frank Roberts
+
+6
+7
+
+Martin Francis
+Kristy Roberts
+
+8
+9
+10
+
+Heidi Wilkerson
+Nicolas Morris
+Craig Horton
+
+11
+
+Ted Wells
+
+12
+
+Phillip Wells
+
+13
+
+Troy Wells
+
+14
+
+Laurie Rodgers
+
+15
+
+Sally Owens
+
+16
+
+Willie Owens
+
+17
+
+Byron Todd
+
+Description
+Doctor (pretty sure). Friends with
+Sam Greene.
+friends with Jim Nelson. Probably
+male.
+?
+Sister of Sam Greene.
+Jon says he’s a painter, but Craig
+says he’s an
+author . . . ? Lives next door to
+Nicolas.
+Painter, lives next door to Heidi.
+Might be the daughter of Frank
+Roberts. Unsure.
+Chemist, lives next door to Martin.
+Chemist, lives next door to Frank.
+Chemist, might work with Heidi?
+Probably doesn’t work with Nicolas, but who knows.
+Baker.
+Possibly brothers with
+Phillip and/or Troy.
+Brewer. Possibly brothers with Ted
+and/or Troy.
+Byron’s friend. Possibly brothers
+with Phillip and/or Ted.
+Byron’s friend. Girlfriend of one of
+the Wells brothers.
+Teacher. Sibling of Willie Owens.
+Laurie’s neighbor.
+Customs officer. Possibly female.
+Sibling of Sally Owens.
+Could be a podiatrist . . . or maybe
+a pediatrician.
+
+Table 1: Knowledge Base provided to participants. In bold
+are words indicating uncertain information.
+Participants were told that their siblings were planning a
+party, and that the aforementioned list was a list of people
+their sister had invited. Each participant was then given a
+second list corresponding to each third of the second column
+of Table 2, and were told that each description in this list represented a description given by their brother of someone he
+wanted invited to the party, that anyone mentioned in a description needed to be invited as well, and that it was their
+job to determine, for each person mentioned in one of their
+brother’s descriptions, whether or not that person already ap-
+
+peared on their sister’s list and if so who that person was.
+The sixteen referential expressions used in this evaluation
+specifically probed 16 conditions we will now describe.
+We delineate four categories of uncertainty that can apply
+to the resolution of a given entity: 0: No valid referent can
+be found (requiring modeling of incomplete knowledge), 0.5:
+One valid but tenuous referent can be determined, and it is
+thus unclear whether the correct referent has been found or
+whether the correct referent is yet unknown (requiring modeling of uncertain knowledge), 1: Exactly one valid referent
+can be found, and 2: Multiple valid referents can be found
+(requiring modeling of ambiguous knowledge).
+In the resolution of a referential description, these categories can apply either to the target (i.e., the intended referent) of a referential description or to one or more of its anchors. For example, in the referential description "The uncle
+of the doctor’s brother", the uncle is the target, and the doctor and the doctor’s brother are the anchors. Similarly, when
+considering the subclause the doctor’s brother, the brother is
+the target, and the doctor is the anchor.
+Sixteen classes of uncertainty are created by classifying
+referential descriptions into four classes T0, T0.5, T1, T2
+based on the uncertainty status of the referential description’s
+target, crossed by four classes A0, A0.5, A1, A2 based on the
+uncertainty status of the referential description’s anchors.
+The sixteen referential expressions we used to probe these
+sixteen classes of uncertainty are listed, along with their uncertainty class, in columns 1 and 2 of Table 2. For each
+expression, our model was provided the same knowledge
+encoded in logical form, with confidences attached to each
+statement indicative of any uncertainty associated with that
+statement. For example, the agent was told that Kristy was
+the daughter of Frank with probability 0.5. All terms used to
+effect these probability values are highlighted in Table 1. Our
+model was then provided with the same referential descriptions as were given to participants, encoded into logical form,
+with hand-annotated variable orderings.
+
+Results
+The results of this experiment are summarized in Columns
+3-5 of Table 2. Here, Column 3 shows the most frequent human response given for each referential expression, and the
+result or set of equally-likely results returned by the model
+are shown in Column 4. In both cases, referents deemed not
+already on the guest-list are denoted "?". For those referents,
+the model added new entries to the knowledge base and updated existing entries appropriately.
+Column 5 of Table 2 shows the percentage of participants
+whose response aligned with each model responses, with conditions in which the most frequent human response matched
+a model responses displayed in bold in Column 1.
+The results show that in 13 of the 16 conditions (81%), the
+model gave the response that was most frequent among the
+human participants. In these cases, human responses aligned
+with a model-given response 71% of the time. It is important
+
+2670
+
+Condition
+A1:T1
+A2:T1
+A2:T0
+
+Description given to participant
+The doctor’s friend’s sister
+Jim’s friend
+Jim’s daughter
+
+Most Frequent Human Response
+(Sister:4, Friend:2, Doctor:1)
+(Friend:2, Jim:1)
+(Daughter:?, Jim:1)
+
+A0:T0
+A2:T2
+
+Tabitha’s mother
+The chemist’s neighbor
+
+(Mother:?, Tabitha:?)
+(Neighbor:6, Chemist:8)
+
+A0.5:T0
+A0:T1
+A0.5:T0.5
+A1:T0.5
+A1:T2
+
+Craig’s coworker’s neighbor’s son
+Marion’s daughter Kristy
+Craig’s coworker’s neighbor’s daughter
+Troy’s girlfriend
+The baker’s brother
+
+(Son:?,Nei.:6,Co.:8,Craig:10)
+(Kristy:7,Marion:?)
+(Daug.:?,Nei.:6,Co..:8,Craig:10)
+(Girlfriend:14,Troy:13)
+(Brother:12,Baker:11)
+
+A0:T2
+A0:T0.5
+A1:T0
+A2:T0.5
+
+The chemist, Billie’s father
+Michelle’s daughter, Willie
+Sally’s wife
+The Wells boy’s girlfriend
+
+(Father:?,Billie:?)
+(Willie:16,Michelle:?)
+(Wife:?,Sally:15)
+(Girlfriend:14,Wells boy:13)
+
+A0.5:T1
+A0.5:T2
+
+Troy Wells, the podiatrist’s friend
+The podiatrist’s friend
+
+(Troy Wells:13,Podiatrist:17)
+(Friend:13,Podiatrist:17)
+
+Model Responses
+(Sister:4, Friend:2, Doctor:1)
+(Friend:2, Jim:1)
+(Daughter:?, Jim:1)
+(Daughter:?, Jim:3)
+(Mother:?, Tabitha:?)
+(Neighbor:6, Chemist:8)
+(Neighbor:5, Chemist:9)
+(Son:?,Nei.:6,Cow.:8,Craig:10)
+(Kristy:?,Marion:?)
+(Daug.:?,Nei.:6,Co.:8,Craig:10)
+(Girlfriend:14,Troy:13)
+(Brother:12,Baker:11)
+(Brother:13,Baker:11)
+(Father:?,Billie:?)
+(Willie:?,Michelle:?)
+(Wife:?,Sally:15)
+(Girlfriend:?,Wells boy:11)
+(Girlfriend:?,Wells boy:12)
+(Girlfriend:?,Wells boy:13)
+(Troy Wells:13,Podiatrist:17)
+(Friend:13,Podiatrist:17)
+(Friend:14,Podiatrist:17)
+
+%
+80.0
+60.0
+47.5
+37.5
+90.0
+22.5
+15.0
+65.0
+18.5
+50.0
+55.0
+70.0
+5.0
+97.5
+5.0
+95.0
+5.0
+2.5
+2.5
+85.0
+27.5
+20.0
+
 Table 2: Evaluation Results. (1) Each condition, (2) the expression used to probe that condition, (3) the most frequent human
 response for that description, (4) the model responses for that description (with multiple rows used when multiple responses
 were returned), and (5) the percentage of human participants who provided the same answer as the model for each model
 response. Cases in which the most frequent human response matched a model response are bolded in Column 1.
-to note that any low percentages of agreement in these cat-            was also the referent of question 14 given the similarity be-
-egories are not indicative of model shortcomings, but rather           tween the two questions. Our model, on the other hand, per-
-of diversity of human response. In addition, in four of the            forms each resolution in isolation, and thus found Laurie to
-five cases in which the model produced multiple responses              be too unlikely a candidate in question 14. A similar expla-
-deemed equally likely, the percentages of human responses              nation can be given for the wide difference in percentage of
-aligning with each of those responses differed by at most              humans aligning with the two responses provided for condi-
-10%. We discuss the fifth case below.                                  tion A1:T2, which the model deemed equally likely; since
-    Overall, these results suggest that our model was success-         Troy Wells (entry 13) was already chosen by the majority of
-ful at modeling reference resolution. We will now turn our             participants as the referent for the previous question, he may
-attention, towards those few cases where human and model               have seemed to be a less likely choice. If this explanation is
-responses did not align: A0:T1, A0:T0.5, and A2:T0.5. All              correct, our model’s performance might improve if integrated
-three are examples of false negatives, in which the model              into an embodied model able to account for environment-
-failed to find a match it thought sufficiently probable. These         and dialogue-related contextual factors, as also suggested by
-are strictly better than false positives in which the model is         previous psycholinguistic work (e.g., (Brown-Schmidt et al.,
-overconfident in an incorrect match.                                   2002; Hanna & Tanenhaus, 2004)).
-    In the first two cases, participants’ answers suggested that
-they were willing to overlook the fact that their "sibling’s"                                   Conclusion
-directions erroneously referenced an anchor they were not fa-          We have presented a domain-independent model for open-
-miliar with because the reference’s target was uniquely iden-          world reference resolution of complex, first-mention definite
-tifiable by a fairly unique label. Future investigation will be        noun-phrases. We discussed our model’s ability to handle
-needed to determine if this response was due to the use of             uncertain, incomplete and ambiguous knowledge, and how
-proper nouns or due to a reliance on prior probabilities.              this relates to previous models. We then demonstrated our
-    Finally, we discuss condition A2:T0.5, in which the most           model’s ability to model the majority of a comprehensive set
-frequent human response was that "the girlfriend" referred to          of resolution test cases, yielding behavior comparable to hu-
-entry 14 (Laurie Rodgers) and that the "Wells boy" referred            man participants.
-to entry 13 (Troy Wells), while the model instead produced                There are several ways we hope to improve our model
-three hypotheses it considered equally likely; one for each            in the immediate future. First, we must investigate the test
-known male with the surname Wells, with "the girlfriend"               cases in which our model’s behavior did not align with hu-
-considered unknown in each hypothesis. We believe that this            man behavior. Second, we plan to examine the performance
-discrepancy is due to an unintentional connection between              of our model when a Dempster-Shafer-theoretic approach to
-survey questions: our guess is that readers assumed that since         knowledge representation is used, as it has proven to be an
-Laurie Rodgers was likely referenced in question 9, that she           effective way to represent an agent’s own ignorance. Third,
-                                                                  2671
+to note that any low percentages of agreement in these categories are not indicative of model shortcomings, but rather
+of diversity of human response. In addition, in four of the
+five cases in which the model produced multiple responses
+deemed equally likely, the percentages of human responses
+aligning with each of those responses differed by at most
+10%. We discuss the fifth case below.
+Overall, these results suggest that our model was successful at modeling reference resolution. We will now turn our
+attention, towards those few cases where human and model
+responses did not align: A0:T1, A0:T0.5, and A2:T0.5. All
+three are examples of false negatives, in which the model
+failed to find a match it thought sufficiently probable. These
+are strictly better than false positives in which the model is
+overconfident in an incorrect match.
+In the first two cases, participants’ answers suggested that
+they were willing to overlook the fact that their "sibling’s"
+directions erroneously referenced an anchor they were not familiar with because the reference’s target was uniquely identifiable by a fairly unique label. Future investigation will be
+needed to determine if this response was due to the use of
+proper nouns or due to a reliance on prior probabilities.
+Finally, we discuss condition A2:T0.5, in which the most
+frequent human response was that "the girlfriend" referred to
+entry 14 (Laurie Rodgers) and that the "Wells boy" referred
+to entry 13 (Troy Wells), while the model instead produced
+three hypotheses it considered equally likely; one for each
+known male with the surname Wells, with "the girlfriend"
+considered unknown in each hypothesis. We believe that this
+discrepancy is due to an unintentional connection between
+survey questions: our guess is that readers assumed that since
+Laurie Rodgers was likely referenced in question 9, that she
 
-the model should be modified to simultaneously use multiple           Krause, E., Cantrell, R., Potapova, E., Zillich, M., & Scheutz,
-world models. This is a modification that is underway but is                M. (2013). Incrementally biasing visual search us-
-not has yet been fully evaluated. Finally, as previously men-               ing natural language input. In Proceedings of the 2013
-tioned there are a variety of suggestions from the psycholin-               international conference on autonomous agents and
-guistic literature which would improve the performance of                   multi-agent systems (pp. 31–38).
-our model, such as a parallel, incremental examination of the         Kruijff, G.-J. M., Janícěk, M., & Zender, H. (2012). Situated
-semantic constraints imposed by referential expressions, and                communication for joint activity in human-robot teams.
-the ability to use environment- and dialogue-related context                IEEE Intelligent Systems, 27(2), 0027–35.
-to arbitrate between candidates produced by the model.                Kruijff, G.-J. M., Kelleher, J. D., & Hawes, N. (2006). In-
-                                                                            formation fusion for visual reference resolution in dy-
-                     Acknowledgments                                        namic situated dialogue. In Perception and interactive
-This work was in part funded by grants N00014-11-1-0493                     technologies. Springer.
-and N00014-14-1-0149 from the US Office of Naval Re-                  Marr, D. (1982). Vision: a computational investigation.
-search.                                                               Matuszek, C., Herbst, E., Zettlemoyer, L., & Fox, D. (2012).
-                                                                            Learning to parse natural language commands to a
-                           References                                       robot control system. In Proc. of the 13th int’l sym-
-                                                                            posium on experimental robotics (ISER).
-Brown-Schmidt, S., Campana, E., & Tanenhaus, M. K.                    Scheutz, M., Krause, E., & Sadeghi, S. (2014). An embodied
-       (2002). Reference resolution in the wild: Online cir-                real-time model of language-guided incremental visual
-       cumscription of referential domains in a natural inter-              search. In Proceedings of the 36th annual meeting of
-       active problem-solving task. In Proceedings of the 24th              the cognitive science society.
-       annual meeting of the cognitive science society.               Schlangen, D., Baumann, T., & Atterer, M. (2009). Incre-
-Chai, J. Y., Prasov, Z., Blaim, J., & Jin, R. (2005). Lin-                  mental reference resolution: The task, metrics for eval-
-       guistic theories in efficient multimodal reference reso-             uation, and a bayesian filtering model that is sensitive
-       lution: An empirical investigation. In Proceedings of                to disfluencies. In Proceedings of the 10th annual meet-
-       the 10th international conference on intelligent user in-            ing of the special interest group on discourse and dia-
-       terfaces.                                                            logue.
-Clark, H. H. (1975). Bridging. In Proceedings of the                  Spivey, M. J., Tyler, M. J., Eberhard, K. M., & Tanenhaus,
-       1975 workshop on theoretical issues in natural lan-                  M. K. (2001). Linguistically mediated visual search.
-       guage processing.                                                    Psychological Science, 12(4), 282–286.
-Duvallet, F., Walter, M. R., Howard, T., Hemachandra, S.,             Sun, R. (2008). Introduction to computational cognitive mod-
-       Oh, J., Teller, S., . . . Stentz, A. (2014). Inferring maps          eling. Cambridge handbook of computational psychol-
-       and behaviors from natural language instructions. In                 ogy, 3–19.
-       ISER.                                                          Williams, T., Briggs, G., Oosterveld, B., & Scheutz, M.
-Eberhard, K. M., Spivey-Knowlton, M. J., Sedivy, J. C., &                   (2015). Going beyond command-based instructions:
-       Tanenhaus, M. K. (1995). Eye movements as a win-                     Extending robotic natural language interaction capabil-
-       dow into real-time spoken language comprehension in                  ities. In Proceedings of twenty-ninth aaai conference
-       natural contexts. Journal of psycholinguistic research,              on artificial intelligence.
-       24(6).                                                         Williams, T., Cantrell, R., Briggs, G., Schermerhorn, P., &
-Fasola, J., & Matarić, M. J. (2013). Using semantic fields                 Scheutz, M. (2013). Grounding natural language refer-
-       to model dynamic spatial relations in a robot architec-              ences to unvisited and hypothetical locations. In Pro-
-       ture for natural language instruction of service robots.             ceedings of the 27th AAAI conference on artificial in-
-       In IEEE/RSJ international conference on intelligent                  telligence.
-       robots and systems (IROS).                                     Williams, T., Núñez, R. C., Briggs, G., Scheutz, M., Pre-
-Fraurud, K. (1990). Definiteness and the processing of noun                 maratne, K., & Murthi, M. N. (2014). A dempster-
-       phrases in natural discourse. Journal of Semantics,                  shafer theoretic approach to understanding indirect
-       7(4).                                                                speech acts. Advances in Artificial Intelligence.
+was also the referent of question 14 given the similarity between the two questions. Our model, on the other hand, performs each resolution in isolation, and thus found Laurie to
+be too unlikely a candidate in question 14. A similar explanation can be given for the wide difference in percentage of
+humans aligning with the two responses provided for condition A1:T2, which the model deemed equally likely; since
+Troy Wells (entry 13) was already chosen by the majority of
+participants as the referent for the previous question, he may
+have seemed to be a less likely choice. If this explanation is
+correct, our model’s performance might improve if integrated
+into an embodied model able to account for environmentand dialogue-related contextual factors, as also suggested by
+previous psycholinguistic work (e.g., (Brown-Schmidt et al.,
+2002; Hanna & Tanenhaus, 2004)).
+
+Conclusion
+We have presented a domain-independent model for openworld reference resolution of complex, first-mention definite
+noun-phrases. We discussed our model’s ability to handle
+uncertain, incomplete and ambiguous knowledge, and how
+this relates to previous models. We then demonstrated our
+model’s ability to model the majority of a comprehensive set
+of resolution test cases, yielding behavior comparable to human participants.
+There are several ways we hope to improve our model
+in the immediate future. First, we must investigate the test
+cases in which our model’s behavior did not align with human behavior. Second, we plan to examine the performance
+of our model when a Dempster-Shafer-theoretic approach to
+knowledge representation is used, as it has proven to be an
+effective way to represent an agent’s own ignorance. Third,
+
+2671
+
+the model should be modified to simultaneously use multiple
+world models. This is a modification that is underway but is
+not has yet been fully evaluated. Finally, as previously mentioned there are a variety of suggestions from the psycholinguistic literature which would improve the performance of
+our model, such as a parallel, incremental examination of the
+semantic constraints imposed by referential expressions, and
+the ability to use environment- and dialogue-related context
+to arbitrate between candidates produced by the model.
+
+Acknowledgments
+This work was in part funded by grants N00014-11-1-0493
+and N00014-14-1-0149 from the US Office of Naval Research.
+
+References
+Brown-Schmidt, S., Campana, E., & Tanenhaus, M. K.
+(2002). Reference resolution in the wild: Online circumscription of referential domains in a natural interactive problem-solving task. In Proceedings of the 24th
+annual meeting of the cognitive science society.
+Chai, J. Y., Prasov, Z., Blaim, J., & Jin, R. (2005). Linguistic theories in efficient multimodal reference resolution: An empirical investigation. In Proceedings of
+the 10th international conference on intelligent user interfaces.
+Clark, H. H. (1975). Bridging. In Proceedings of the
+1975 workshop on theoretical issues in natural language processing.
+Duvallet, F., Walter, M. R., Howard, T., Hemachandra, S.,
+Oh, J., Teller, S., . . . Stentz, A. (2014). Inferring maps
+and behaviors from natural language instructions. In
+ISER.
+Eberhard, K. M., Spivey-Knowlton, M. J., Sedivy, J. C., &
+Tanenhaus, M. K. (1995). Eye movements as a window into real-time spoken language comprehension in
+natural contexts. Journal of psycholinguistic research,
+24(6).
+Fasola, J., & Matarić, M. J. (2013). Using semantic fields
+to model dynamic spatial relations in a robot architecture for natural language instruction of service robots.
+In IEEE/RSJ international conference on intelligent
+robots and systems (IROS).
+Fraurud, K. (1990). Definiteness and the processing of noun
+phrases in natural discourse. Journal of Semantics,
+7(4).
 Hanna, J. E., & Tanenhaus, M. K. (2004). Pragmatic effects
-       on reference resolution in a collaborative task: Evi-
-       dence from eye movements. Cognitive Science, 28(1).
-Haviland, S. E., & Clark, H. H. (1974). What’s new? acquir-
-       ing new information as a process in comprehension.
-       Journal of verbal learning and verbal behavior, 13(5).
-Kollar, T., Tellex, S., Roy, D., & Roy, N. (2014). Ground-
-       ing verbs of motion in natural language commands to
-       robots. In Experimental robotics. Springer.
-                                                                  2672
+on reference resolution in a collaborative task: Evidence from eye movements. Cognitive Science, 28(1).
+Haviland, S. E., & Clark, H. H. (1974). What’s new? acquiring new information as a process in comprehension.
+Journal of verbal learning and verbal behavior, 13(5).
+Kollar, T., Tellex, S., Roy, D., & Roy, N. (2014). Grounding verbs of motion in natural language commands to
+robots. In Experimental robotics. Springer.
 
+Krause, E., Cantrell, R., Potapova, E., Zillich, M., & Scheutz,
+M. (2013). Incrementally biasing visual search using natural language input. In Proceedings of the 2013
+international conference on autonomous agents and
+multi-agent systems (pp. 31–38).
+Kruijff, G.-J. M., Janícěk, M., & Zender, H. (2012). Situated
+communication for joint activity in human-robot teams.
+IEEE Intelligent Systems, 27(2), 0027–35.
+Kruijff, G.-J. M., Kelleher, J. D., & Hawes, N. (2006). Information fusion for visual reference resolution in dynamic situated dialogue. In Perception and interactive
+technologies. Springer.
+Marr, D. (1982). Vision: a computational investigation.
+Matuszek, C., Herbst, E., Zettlemoyer, L., & Fox, D. (2012).
+Learning to parse natural language commands to a
+robot control system. In Proc. of the 13th int’l symposium on experimental robotics (ISER).
+Scheutz, M., Krause, E., & Sadeghi, S. (2014). An embodied
+real-time model of language-guided incremental visual
+search. In Proceedings of the 36th annual meeting of
+the cognitive science society.
+Schlangen, D., Baumann, T., & Atterer, M. (2009). Incremental reference resolution: The task, metrics for evaluation, and a bayesian filtering model that is sensitive
+to disfluencies. In Proceedings of the 10th annual meeting of the special interest group on discourse and dialogue.
+Spivey, M. J., Tyler, M. J., Eberhard, K. M., & Tanenhaus,
+M. K. (2001). Linguistically mediated visual search.
+Psychological Science, 12(4), 282–286.
+Sun, R. (2008). Introduction to computational cognitive modeling. Cambridge handbook of computational psychology, 3–19.
+Williams, T., Briggs, G., Oosterveld, B., & Scheutz, M.
+(2015). Going beyond command-based instructions:
+Extending robotic natural language interaction capabilities. In Proceedings of twenty-ninth aaai conference
+on artificial intelligence.
+Williams, T., Cantrell, R., Briggs, G., Schermerhorn, P., &
+Scheutz, M. (2013). Grounding natural language references to unvisited and hypothetical locations. In Proceedings of the 27th AAAI conference on artificial intelligence.
+Williams, T., Núñez, R. C., Briggs, G., Scheutz, M., Premaratne, K., & Murthi, M. N. (2014). A dempstershafer theoretic approach to understanding indirect
+speech acts. Advances in Artificial Intelligence.
+
+2672
+
+

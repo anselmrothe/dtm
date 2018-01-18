@@ -1,364 +1,594 @@
- Mental Representations and Computational Modeling of Context-Specific Human
-                                                            Norm Systems
-       Vasanth Sarathy (vasanth.sarathy@tufts.edu) and Matthias Scheutz (matthias.scheutz@tufts.edu)
-                               Department of Computer Science, Tufts University, Medford, MA, USA
-                                               Yoed Kenett (yoedkenett@gmail.com)
-                           Department of Psychology, University of Pennsylvania, Philadelphia, PA, USA
-                                             Mowafak M. Allaham (mallah5@uic.edu)
-                           Department of Psychology, University of Illinois at Chicago, Chicago, IL, USA
-                                            Joseph L. Austerweil (austerweil@wisc.edu)
-                               Department of Psychology, University of Wisconson, Madison, WI, USA
-                                              Bertram F. Malle (bfmalle@brown.edu)
-            Department of Cognitive, Linguistic, and Psychological Sciences, Brown University, Providence, RI, USA
-                              Abstract                                     But how does the human mind represent norms, and how
-                                                                        are they activated and learned? Surprisingly, there are few
-   Human behavior is frequently guided by social and moral
-   norms; in fact, no societies, no social groups could exist with-     cognitive science approaches to the central phenomenon of
-   out norms. However, there are few cognitive science ap-              norms. Logical and specifically deontological approaches
-   proaches to this central phenomenon of norms. While there            have been proposed to formally represent a system of norms
-   has been some progress in developing formal representations
-   of norm systems (e.g., deontological approaches), we do not          (Bringsjord, Arkoudas, & Bello, 2006; Scheutz & Malle,
-   yet know basic properties of human norms: how they are               2014; Pereira & Saptawijaya, 2009; Beller, 2010). These are
-   represented, activated, and learned. Further, what computa-          important starting points, but their formalizations do not nec-
-   tional models can capture these properties, and what algo-
-   rithms could learn them? In this paper we describe initial ex-       essarily correspond to how norms are represented in the hu-
-   periments on human norm representations in which the context         man mind. By contrast, a cognitive science approach would
-   specificity of norms features prominently. We then provide a         aim at an account of how norms are cognitively represented,
-   formal representation of norms using Dempster-Shafer Theory
-   that allows a machine learning algorithm to learn norms un-          how they are activated in relevant situations, and how they
-   der uncertainty from these human data, while preserving their        are learned in the first place. Here we take a first step to-
-   context specificity.                                                 ward such an account, following a recent theoretical pro-
-   Keywords: social cognition, moral psychology, computa-               posal (Malle et al., 2017). We introduce a basic formal rep-
-   tional modeling, machine learning                                    resentation of norms that allows us to examine the mentioned
-                                                                        cognitive properties of norms (representation, activation, and
-               Introduction and Motivation                              learning), and we ask what computational models can capture
-Someone’s cell phone begins to ring in the library. The person          these properties, and what algorithms could learn norms.
-quickly answers it by whispering “hold on,” then leaves the                Our paper has three main parts. In the first, we present
-library and takes the call in a normal voice outside. The per-          a novel belief-theoretic norm representation format that ex-
-son understands that taking a phone call in the library is not          plicitly captures the context-specificity of norms and incorpo-
-socially acceptable, though briefly whispering is. Somehow,             rates uncertainty associated with norm representations, using
-the situation activated a set of norms in this person’s mind,           Dempster-Shafer Theory (Shafer, 1976). In the second part,
-including: “when someone calls you, you should answer the               we introduce experimental data on human norm representa-
-phone”; “when in a library, you must not talk on the phone”;            tion and activation that underscore the context-specificity of
-“when in a library, you may briefly whisper.”                           norms and community members’ strong but imperfect agree-
-   Humans living in social communities function more ef-                ment (uncertainty) over norm applications. In the third part
-fectively and peacefully when their actions are guided by               we use our formal norm representation to ask how such im-
-a shared set of norms (Bicchieri, 2006; Ullmann-Margalit,               perfect norms systems can be learned by a computational al-
-1977). The ability to represent and follow norms has many               gorithm that honors several of the critical features of norms,
-advantages: Norm-consistent actions increase multi-party co-            including their context specificity and uncertainty.
-ordination and cooperation and thus benefit the community
-as a whole. Norms also simplify people’s action selection                  Part 1: A Representation Format for Norms
-and standardize behaviors across time and generations. And              We begin by briefly outlining our norm representation for-
-norm-consistent actions are more predictable and understand-            mat in first-order logic and provide some intuitions as to how
-able (Malle, Scheutz, & Austerweil, 2017).                              context and uncertainty are accounted for in the format. The
-                                                                    1035
+Mental Representations and Computational Modeling of Context-Specific Human
+Norm Systems
+Vasanth Sarathy (vasanth.sarathy@tufts.edu) and Matthias Scheutz (matthias.scheutz@tufts.edu)
+Department of Computer Science, Tufts University, Medford, MA, USA
 
-purpose is to introduce some terminology and a minimal de-              of the norm. Finally, in rule N5 the question of whether talk-
-gree of formalism in the proposed approach, which will later            ing is forbidden in a library may be more uncertain, generat-
-be useful in developing an algorithm that can learn norms.              ing a wider interval centered close to 0.5, indicating support
-   Consider a first-order alphabet L , in which we have all the         for both truth and falsity, but a general lack of confidence in
-standard symbols (variables, predicates, functors) and logical          the evidence.1
-connectives. In a deontic alphabet, we further include O, F, P             A belief-theoretic norm system of this form allows the sep-
-that denote modal operators (generally, D) for obligatory, for-         aration of evidence from the norms themselves. The evidence
-bidden and permissible, respectively. In this alphabet, we de-          may come in different forms across different modalities and
-fine a norm, as follows:                                                from different sources. The norm system, however, displays
-                                                                        the agent’s current level of belief about a set of norms that are
-Definition 1 (Norm). A norm is an expression of the form:               influenced by the evidence.
-                                                                           In any given situation, the agent may not be reasoning with
-            N := C1 , . . . ,Cn =⇒ (¬)D(A1 , . . . , Am ),
-                                                                        every norm in a norm system. Instead, the agent may consider
-                                                                        a subset of the system, perhaps including only norms that are
-   where C represents context conditions and A represents ac-
-                                                                        applicable to the current situation. We capture this intuition
-tions or states. The norm expression states that when the con-
-                                                                        in a norm frame, defined below.
-textual atoms Ci are true then the Actions or States A j are
-either obligatory, forbidden or permissible, or their negation.         Definition 3 (Norm Frame). A norm frame NkΘ is a set of k
-                                                                        norms, k > 0, in which every norm has the same set of con-
-   This type of norm definition follows an approach to nor-             text predicates and corresponds to the same deontic operator.
-mative reasoning and norm formalism that some of us have                Thus, in Example 1, norms N3 and N5 would constitute a
-taken previously (Malle et al., 2017; Bringsjord et al., 2006;          norm frame.
+Yoed Kenett (yoedkenett@gmail.com)
+Department of Psychology, University of Pennsylvania, Philadelphia, PA, USA
+
+Mowafak M. Allaham (mallah5@uic.edu)
+Department of Psychology, University of Illinois at Chicago, Chicago, IL, USA
+
+Joseph L. Austerweil (austerweil@wisc.edu)
+Department of Psychology, University of Wisconson, Madison, WI, USA
+
+Bertram F. Malle (bfmalle@brown.edu)
+Department of Cognitive, Linguistic, and Psychological Sciences, Brown University, Providence, RI, USA
+Abstract
+Human behavior is frequently guided by social and moral
+norms; in fact, no societies, no social groups could exist without norms. However, there are few cognitive science approaches to this central phenomenon of norms. While there
+has been some progress in developing formal representations
+of norm systems (e.g., deontological approaches), we do not
+yet know basic properties of human norms: how they are
+represented, activated, and learned. Further, what computational models can capture these properties, and what algorithms could learn them? In this paper we describe initial experiments on human norm representations in which the context
+specificity of norms features prominently. We then provide a
+formal representation of norms using Dempster-Shafer Theory
+that allows a machine learning algorithm to learn norms under uncertainty from these human data, while preserving their
+context specificity.
+Keywords: social cognition, moral psychology, computational modeling, machine learning
+
+Introduction and Motivation
+Someone’s cell phone begins to ring in the library. The person
+quickly answers it by whispering “hold on,” then leaves the
+library and takes the call in a normal voice outside. The person understands that taking a phone call in the library is not
+socially acceptable, though briefly whispering is. Somehow,
+the situation activated a set of norms in this person’s mind,
+including: “when someone calls you, you should answer the
+phone”; “when in a library, you must not talk on the phone”;
+“when in a library, you may briefly whisper.”
+Humans living in social communities function more effectively and peacefully when their actions are guided by
+a shared set of norms (Bicchieri, 2006; Ullmann-Margalit,
+1977). The ability to represent and follow norms has many
+advantages: Norm-consistent actions increase multi-party coordination and cooperation and thus benefit the community
+as a whole. Norms also simplify people’s action selection
+and standardize behaviors across time and generations. And
+norm-consistent actions are more predictable and understandable (Malle, Scheutz, & Austerweil, 2017).
+
+But how does the human mind represent norms, and how
+are they activated and learned? Surprisingly, there are few
+cognitive science approaches to the central phenomenon of
+norms. Logical and specifically deontological approaches
+have been proposed to formally represent a system of norms
+(Bringsjord, Arkoudas, & Bello, 2006; Scheutz & Malle,
+2014; Pereira & Saptawijaya, 2009; Beller, 2010). These are
+important starting points, but their formalizations do not necessarily correspond to how norms are represented in the human mind. By contrast, a cognitive science approach would
+aim at an account of how norms are cognitively represented,
+how they are activated in relevant situations, and how they
+are learned in the first place. Here we take a first step toward such an account, following a recent theoretical proposal (Malle et al., 2017). We introduce a basic formal representation of norms that allows us to examine the mentioned
+cognitive properties of norms (representation, activation, and
+learning), and we ask what computational models can capture
+these properties, and what algorithms could learn norms.
+Our paper has three main parts. In the first, we present
+a novel belief-theoretic norm representation format that explicitly captures the context-specificity of norms and incorporates uncertainty associated with norm representations, using
+Dempster-Shafer Theory (Shafer, 1976). In the second part,
+we introduce experimental data on human norm representation and activation that underscore the context-specificity of
+norms and community members’ strong but imperfect agreement (uncertainty) over norm applications. In the third part
+we use our formal norm representation to ask how such imperfect norms systems can be learned by a computational algorithm that honors several of the critical features of norms,
+including their context specificity and uncertainty.
+
+Part 1: A Representation Format for Norms
+We begin by briefly outlining our norm representation format in first-order logic and provide some intuitions as to how
+context and uncertainty are accounted for in the format. The
+
+1035
+
+purpose is to introduce some terminology and a minimal degree of formalism in the proposed approach, which will later
+be useful in developing an algorithm that can learn norms.
+Consider a first-order alphabet L , in which we have all the
+standard symbols (variables, predicates, functors) and logical
+connectives. In a deontic alphabet, we further include O, F, P
+that denote modal operators (generally, D) for obligatory, forbidden and permissible, respectively. In this alphabet, we define a norm, as follows:
+Definition 1 (Norm). A norm is an expression of the form:
+
+N := C1 , . . . ,Cn =⇒ (¬)D(A1 , . . . , Am ),
+where C represents context conditions and A represents actions or states. The norm expression states that when the contextual atoms Ci are true then the Actions or States A j are
+either obligatory, forbidden or permissible, or their negation.
+This type of norm definition follows an approach to normative reasoning and norm formalism that some of us have
+taken previously (Malle et al., 2017; Bringsjord et al., 2006;
 Scheutz & Malle, 2014).
-   In this paper, we expand the above representation format                We define a norm frame in this way because it allows for
-by explicitly accounting for uncertainty of a norm as follows:          cognitive modeling in a situated manner—that is, reasoning
-                                                                        about behavior relevant to a specific situation. This context-
-Definition 2 (Belief-Theoretic Norm).          A belief-theoretic       specificity provides a convenient constraint that can help sim-
-norm is an expression of the form:                                      plify computation and better capture human norm representa-
-                                                                        tions, as introduced next.
-        N := [α, β] :: C1 , . . . ,Cn =⇒ (¬)D(A1 , . . . , Am ),
-                                                                        Part 2: Norm Representation and Activation in
-   where [α, β] represents a Dempster-Shafer uncertainty in-                                       Human Data
-terval, with 0 ≤ α ≤ β ≤ 1.
-                                                                        We are currently engaged in an empirical research program
-Example 1 Consider an example of an agent reasoning                     that tests a number of novel hypotheses about the cognitive
-about actions it can perform or states it can enter in a li-            properties of norms (Malle et al., 2017). Here we summa-
-brary. We can represent this scenario as a Belief-Theoretic             rize two experiments that illustrate some of these properties
-Norm System, T , as follows:                                            and provide the learning data for the norm learning algorithm
-N1 := [0.9, 1] :: in(library, X) =⇒ O state(X, quiet)                   we introduce in Part 3. In the first experiment, participants
-N2 := [0.8, 0.95] :: in(library, X) =⇒ P action(X, reading)             generated norms relevant to a variety of contexts; in the sec-
-N3 := [0.9, 1] :: in(library, X) =⇒ F action(X, yelling)                ond experiment, participants detected norms relevant to those
-N4 := [0, 0.3] :: in(library, X) =⇒ O action(X,talking)                 contexts.
-N5 := [0.3, 0.6] :: in(library, X) =⇒ F action(X,talking)               Methodology
-   The norms in this example have intuitive semantics.                  In the generation experiment (Kenett, Allaham, Austerweil,
-They generally state that when agent X is in the li-                    & Malle, 2016), participants (n = 100 recruited from Ama-
-brary (i.e., in(library, X)), then the norm is activated                zon Mechanical Turk, AMT) inspected four pictures, one at
-and the agent is obligated to enter a certain state (e.g.,              a time, that depicted an everyday scene (e.g., library, jog-
-state(X, quiet)) or prohibited from performing a certain ac-            ging path; see Figure 1 for examples). While inspecting
-tion (e.g., action(X,talking). The location of the center of            each picture, they had 60 seconds to type as many actions as
-the uncertainty interval generally suggests the degree of truth         came to mind that one is “allowed” to perform in this scene
-of the norm applying and the width of the interval generally                1 The use of deontic logic for normative reasoning is the subject
-suggests the level of support or evidence for that norm. So             of active debate. Although further discussion of this debate is out-
-norms N1 , N2 , and N3 have tight uncertainty intervals close           side the scope of this paper, we note that our proposed approach does
-to 1 indicating a confident support for their truth. Norm N4            not require using deontic operators. We can still reason about norms
-                                                                        and learn them using the schema described in Definitions 2 and 3.
-states that the action of “talking” is obligatory in libraries. Al-     We would simply need to replace the deontic operators and modify
-though the uncertainty interval for this norm is tight, the cen-        the predicates slightly. Norm N5 in example 1 would become:
-ter is closer to zero indicating confident support for the falsity      N5 := [0.3, 0.6] :: in(library, X) =⇒ forbidden(X,talking)
-                                                                    1036
+In this paper, we expand the above representation format
+by explicitly accounting for uncertainty of a norm as follows:
+Definition 2 (Belief-Theoretic Norm).
+norm is an expression of the form:
 
-(Permissions), or is “not allowed” to perform (Prohibitions),
-                                                                               Table 1: Eliciting Probes for Three Norm Types
-or is ”supposed” to perform (Prescriptions). This between-
-subjects manipulation of norm type was constant across pic-                  Norm Type         Probe formulations
-tures so that each participant answered the same question                    Permission        Are you allowed to do this here?
-(e.g., “What are you permitted to do here?”) for all four pic-                                 Are you permitted to do this here?
-tures they encountered.
-                                                                             Prohibition       Are you not allowed to do this here?
-                                                                                               Are you forbidden to do this here?
-                                                                             Prescription      Are you supposed to do this here?
-                                                                                               Should you do this here?
-                                                                       seven most frequently generated actions for the given scene
-                                                                       and norm type in the above generation experiment—for ex-
-                                                                       ample, the seven actions most frequently mentioned to be per-
-                                                                       mitted in the library. Imported actions were comprised of
-                                                                       top-seven actions generated for other scenes (but under the
-                                                                       same norm type). Thus, imported actions were still frequent
-                                                                       responses to the same norm probe, but in different contexts.2
-                                                                       Table 2 provides an illustration of this selection process.
-                                                                            Table 2: Origin of Selected Actions for Library Scene
-  Figure 1: Four sample scene pictures used to elicit norms               Action                       Origin
-   To increase generalizability at the stimulus level, the total          Local, permitted
-number of scenes used in the experiment was in fact eight,                reading                      from top 7 of Library
-four that previous participants had tended to describe as lo-             studying                     from top 7 of Library
-cations (e.g., library, cave), and four that they had tended              sitting                      from top 7 of Library
-to describe as activities (e.g., jogging outdoors, serving in a           checking out a book          from top 7 of Library
-restaurant). Each participant was randomly assigned to re-                learning                     from top 7 of Library
-ceive either the “location” set or the “activity” set. Item set           being quiet                  from top 7 of Library
-made no difference in the results.                                        using computers              from top 7 of Library
-   The resulting verbal responses were lightly cleaned for                Imported, permitted
-spelling and grammatical errors and responses identical in                eating                       from top 7 of Beach
-meaning were assigned the same response code, using a con-                walking                      from top 7 of Cave
-servative criterion so that variants such as “listening” and “lis-        listening                    from top 7 of Boardroom
-tening to music” were counted as distinct. The resulting data             filling boxes                from top 7 of Harvesting
-structures were then analyzed for consensus (i.e., how many               washing hands                from top 7 of Public Bathroom
-people generated a given response for a given scene) and con-             running                      from top 7 of Jogging
-text distinctiveness (i.e., whether a response generated for one          talking                      from top 7 of Restaurant
+N := [α, β] :: C1 , . . . ,Cn =⇒ (¬)D(A1 , . . . , Am ),
+where [α, β] represents a Dempster-Shafer uncertainty interval, with 0 ≤ α ≤ β ≤ 1.
+
+N1 := [0.9, 1] :: in(library, X) =⇒ O state(X, quiet)
+N2 := [0.8, 0.95] :: in(library, X) =⇒ P action(X, reading)
+N3 := [0.9, 1] :: in(library, X) =⇒ F action(X, yelling)
+N4 := [0, 0.3] :: in(library, X) =⇒ O action(X,talking)
+N5 := [0.3, 0.6] :: in(library, X) =⇒ F action(X,talking)
+The norms in this example have intuitive semantics.
+They generally state that when agent X is in the library (i.e., in(library, X)), then the norm is activated
+and the agent is obligated to enter a certain state (e.g.,
+state(X, quiet)) or prohibited from performing a certain action (e.g., action(X,talking). The location of the center of
+the uncertainty interval generally suggests the degree of truth
+of the norm applying and the width of the interval generally
+suggests the level of support or evidence for that norm. So
+norms N1 , N2 , and N3 have tight uncertainty intervals close
+to 1 indicating a confident support for their truth. Norm N4
+states that the action of “talking” is obligatory in libraries. Although the uncertainty interval for this norm is tight, the center is closer to zero indicating confident support for the falsity
+
+Definition 3 (Norm Frame). A norm frame NkΘ is a set of k
+norms, k > 0, in which every norm has the same set of context predicates and corresponds to the same deontic operator.
+Thus, in Example 1, norms N3 and N5 would constitute a
+norm frame.
+We define a norm frame in this way because it allows for
+cognitive modeling in a situated manner—that is, reasoning
+about behavior relevant to a specific situation. This contextspecificity provides a convenient constraint that can help simplify computation and better capture human norm representations, as introduced next.
+
+A belief-theoretic
+
+Example 1 Consider an example of an agent reasoning
+about actions it can perform or states it can enter in a library. We can represent this scenario as a Belief-Theoretic
+Norm System, T , as follows:
+
+of the norm. Finally, in rule N5 the question of whether talking is forbidden in a library may be more uncertain, generating a wider interval centered close to 0.5, indicating support
+for both truth and falsity, but a general lack of confidence in
+the evidence.1
+A belief-theoretic norm system of this form allows the separation of evidence from the norms themselves. The evidence
+may come in different forms across different modalities and
+from different sources. The norm system, however, displays
+the agent’s current level of belief about a set of norms that are
+influenced by the evidence.
+In any given situation, the agent may not be reasoning with
+every norm in a norm system. Instead, the agent may consider
+a subset of the system, perhaps including only norms that are
+applicable to the current situation. We capture this intuition
+in a norm frame, defined below.
+
+Part 2: Norm Representation and Activation in
+Human Data
+We are currently engaged in an empirical research program
+that tests a number of novel hypotheses about the cognitive
+properties of norms (Malle et al., 2017). Here we summarize two experiments that illustrate some of these properties
+and provide the learning data for the norm learning algorithm
+we introduce in Part 3. In the first experiment, participants
+generated norms relevant to a variety of contexts; in the second experiment, participants detected norms relevant to those
+contexts.
+
+Methodology
+In the generation experiment (Kenett, Allaham, Austerweil,
+& Malle, 2016), participants (n = 100 recruited from Amazon Mechanical Turk, AMT) inspected four pictures, one at
+a time, that depicted an everyday scene (e.g., library, jogging path; see Figure 1 for examples). While inspecting
+each picture, they had 60 seconds to type as many actions as
+came to mind that one is “allowed” to perform in this scene
+1 The use of deontic logic for normative reasoning is the subject
+of active debate. Although further discussion of this debate is outside the scope of this paper, we note that our proposed approach does
+not require using deontic operators. We can still reason about norms
+and learn them using the schema described in Definitions 2 and 3.
+We would simply need to replace the deontic operators and modify
+the predicates slightly. Norm N5 in example 1 would become:
+N5 := [0.3, 0.6] :: in(library, X) =⇒ forbidden(X,talking)
+
+1036
+
+(Permissions), or is “not allowed” to perform (Prohibitions),
+or is ”supposed” to perform (Prescriptions). This betweensubjects manipulation of norm type was constant across pictures so that each participant answered the same question
+(e.g., “What are you permitted to do here?”) for all four pictures they encountered.
+
+Table 1: Eliciting Probes for Three Norm Types
+Norm Type
+Permission
+Prohibition
+Prescription
+
+Probe formulations
+Are you allowed to do this here?
+Are you permitted to do this here?
+Are you not allowed to do this here?
+Are you forbidden to do this here?
+Are you supposed to do this here?
+Should you do this here?
+
+seven most frequently generated actions for the given scene
+and norm type in the above generation experiment—for example, the seven actions most frequently mentioned to be permitted in the library. Imported actions were comprised of
+top-seven actions generated for other scenes (but under the
+same norm type). Thus, imported actions were still frequent
+responses to the same norm probe, but in different contexts.2
+Table 2 provides an illustration of this selection process.
+Table 2: Origin of Selected Actions for Library Scene
+Figure 1: Four sample scene pictures used to elicit norms
+To increase generalizability at the stimulus level, the total
+number of scenes used in the experiment was in fact eight,
+four that previous participants had tended to describe as locations (e.g., library, cave), and four that they had tended
+to describe as activities (e.g., jogging outdoors, serving in a
+restaurant). Each participant was randomly assigned to receive either the “location” set or the “activity” set. Item set
+made no difference in the results.
+The resulting verbal responses were lightly cleaned for
+spelling and grammatical errors and responses identical in
+meaning were assigned the same response code, using a conservative criterion so that variants such as “listening” and “listening to music” were counted as distinct. The resulting data
+structures were then analyzed for consensus (i.e., how many
+people generated a given response for a given scene) and context distinctiveness (i.e., whether a response generated for one
 scene was also generated in a different scene).
-   In the detection experiment, we presented participants (n           Experimental Results
+In the detection experiment, we presented participants (n
 = 360 recruited from AMT) with the same pictures, four per
-                                                                       We begin by highlighting three findings from the generation
 participant. Along with each picture, we presented 14 actions
-                                                                       experiment.3 First, even though people were entirely uncon-
 (randomly ordered, one at a time) that a person might perform
-                                                                       strained in their norm-guided actions, they showed a great
 in this context. Any given participant’s task was the same for
-                                                                       deal of consensus on the most central norms for each sce-
 each of their four pictures: to consider the particular scene
-                                                                       nario. Table 3 displays (in column Consensus) the seven most
 and judge whether each of the 14 actions is either permitted,
-                                                                       frequently mentioned permission norms in two representative
 or prescribed, or prohibited. This norm type factor was again
-                                                                       scenarios, Library and Jogging, with consensus computed as
 a between-subjects manipulation and hence constant across
-                                                                       the percentage of participants who mentioned the particular
 pictures. In addition, to increase generalizability, we used
-two different formulations for each norm type, summarized                  2 We ensured that the imported actions were physically plausible
-in Table 1. Formulation made no difference in the results.             in the given scene/context.
-                                                                           3 We focus here on permissions. Prescriptions and prohibitions
-   The 14 actions assigned to a given scene under a given
-                                                                       show very similar patterns overall, but prohibitions differ from the
-norm type (e.g., Library/permitted) consisted of seven “lo-            other two norm types in interesting ways (e.g., less consensus,
-cal” and seven “imported” actions. Local actions were the              slower activation) that will be treated in a separate investigation.
-                                                                   1037
+two different formulations for each norm type, summarized
+in Table 1. Formulation made no difference in the results.
+The 14 actions assigned to a given scene under a given
+norm type (e.g., Library/permitted) consisted of seven “local” and seven “imported” actions. Local actions were the
 
-action as permitted in the scenario. (The patterns are con-         photographs, and people show high agreement in explicitly
-sistent across other scenarios.) Second, the most consensual        recounting these norms (generation experiment). In a more
-norms are mentioned early on; in other words, what comes to         implicit setup (detection experiment), people are fast and al-
-mind first is likely to be a consensual norm. Table 3 shows (in     most unanimous in affirming the most important norms of a
-column Position) the average rank position (1 = first, 2 = sec-     given context and differentiate them well from norms origi-
-ond, etc.) at which each action was generated, whereby the          nating from a different context. Thus, both explicit and im-
-expected position under a random distribution would be 4.2          plicit judgments show substantial context sensitivity. If these
-for Library and 4.6 for Jogging. Third, the norms generated         are some of the properties of human social and moral norms,
-for the eight scenarios showed remarkable context specificity.      how can they possibly be learned, by humans and machines?
-Not only do the two illustrated scenes have no norm in com-
-mon among their top seven, but of the 56 permitted actions                           Part 3: Learning Norms
-that were mentioned in the top-7 in each of the 8 scenes, only      How Do People Learn Norms?
+Action
+Local, permitted
+reading
+studying
+sitting
+checking out a book
+learning
+being quiet
+using computers
+Imported, permitted
+eating
+walking
+listening
+filling boxes
+washing hands
+running
+talking
+
+Origin
+from top 7 of Library
+from top 7 of Library
+from top 7 of Library
+from top 7 of Library
+from top 7 of Library
+from top 7 of Library
+from top 7 of Library
+from top 7 of Beach
+from top 7 of Cave
+from top 7 of Boardroom
+from top 7 of Harvesting
+from top 7 of Public Bathroom
+from top 7 of Jogging
+from top 7 of Restaurant
+
+Experimental Results
+We begin by highlighting three findings from the generation
+experiment.3 First, even though people were entirely unconstrained in their norm-guided actions, they showed a great
+deal of consensus on the most central norms for each scenario. Table 3 displays (in column Consensus) the seven most
+frequently mentioned permission norms in two representative
+scenarios, Library and Jogging, with consensus computed as
+the percentage of participants who mentioned the particular
+2 We ensured that the imported actions were physically plausible
+in the given scene/context.
+3 We focus here on permissions. Prescriptions and prohibitions
+show very similar patterns overall, but prohibitions differ from the
+other two norm types in interesting ways (e.g., less consensus,
+slower activation) that will be treated in a separate investigation.
+
+1037
+
+action as permitted in the scenario. (The patterns are consistent across other scenarios.) Second, the most consensual
+norms are mentioned early on; in other words, what comes to
+mind first is likely to be a consensual norm. Table 3 shows (in
+column Position) the average rank position (1 = first, 2 = second, etc.) at which each action was generated, whereby the
+expected position under a random distribution would be 4.2
+for Library and 4.6 for Jogging. Third, the norms generated
+for the eight scenarios showed remarkable context specificity.
+Not only do the two illustrated scenes have no norm in common among their top seven, but of the 56 permitted actions
+that were mentioned in the top-7 in each of the 8 scenes, only
 5 appeared in more than one scene.
-                                                                    In learning social and moral norms, people deal with multi-
-Table 3: Permission Norms for Library and Jogging Scenes            ple different norm types (permissions, prescriptions, prohibi-
-in the Norm Generation Experiment                                   tions), using many different learning mechanisms, and taking
-                                                                    input from many different sources. Here we focus on the pro-
-         Library                                                    cess of learning permission norms from simple observation,
-         Permitted Action         Consensus    Position             using responses from a sample of community members de-
-         reading                    84%          2.1                scribed earlier in the detection experiment. Our main goal is
-         studying                   68%          1.8                to put our proposed computational framework to a test. In the
-         sitting                    47%          3.1                future we will develop further applications (e.g., learning of
-         checking out books         47%          4.4                obligations or learning from instruction)
-         using computers            32%          5.3                   Consider a person who has never spent time in a library.
-         learning                   32%          6.0                Upon entering one for the first time, he observes several peo-
-         being quiet                32%          7.5                ple reading, studying, and a few whispering. Some sit at
-         Jogging                                                    computers, one is eating while sitting in an armchair, al-
-         walking                    87%          1.4                though there is a sign that says ”No food or drink in the li-
-         running                    87%          1.9                brary.” Our observer also sees several people at the check-out
-         jogging                    53%          4.8                counter, subsequently exiting the library, where another sign
-         talking                    53%          5.1                says ”Don’t forget to check out.” Briefly, a younger person
-         listening to music         33%          4.3                runs alongside the stacks but then sits down next to an adult.
-         biking                     27%          4.7                   The number of people performing each behavior, their age,
-         looking at birds           27%          6.2                expertise, appearance, perhaps responses from others, and the
-                                                                    meaning and force of various physical symbols will all con-
-   Two main results stand out from the detection experiment.        tribute to the speed and confidence with which our protago-
-First, people showed very high consensus in affirming the           nist learns the norms of a library. Below we offer a data rep-
-permissibility of the seven local actions for their respective      resentational format that incorporates these and other prop-
-scenes. For both Library and Jogging, this rate was 99%;            erties of the norm learning process, a format that can also
-and across all scenes, the number was 97.2%. That is, even          accommodate partial information and unknown prior proba-
-though some of these local actions were actively generated          bility distributions and that can be extended to other learning
-as “permissible” by only a third or half of previous partici-       mechanisms, such as verbal instruction or trial and error.
-pants (see Table 3), when directly confronted with these ac-
-tions, people almost uniformly recognized their permissibil-        Data Representation Format of Norm Learning
-ity. (Moreover, this recognition was fast, taking only about        Consider a set S = {s1 , . . . , sn } of n evidence sources. For ex-
-1100 ms on average.)                                                ample, an evidence source si could be a student in the library,
-   Second, participants clearly distinguished between the lo-       the librarian, or a sign at the entrance. To simplify, we are
-cal and the imported actions, accepting the latter as permis-       interested in learning about a norm frame NkΘ comprising k
-sible at a significantly lower rate. For Library, this rate was     norms (out of a larger possible set) that all share the same de-
-43%; for Jogging, it was 75%; and across all scenes, it was         ontic type (here, permissions) and the same general context
-66.1% (all statistical comparisons to local actions p < .001,       precondition (here, library).
-signal detection discrimination parameter d’ = 1.49). That is,         Let an endorsement ei, j be the ith data source’s endorse-
-for a given context on average, 34% of presented actions were       ment of the jth norm, where e ∈ {0, 1, ε}. The value ei, j is a
-judged to be not permitted even though they were explicitly         form of truth assignment, indicating whether the source en-
-deemed permissible in other contexts.                               dorses the norm to be true (1), false (0) or unknown (ε). For
-   These results suggest that norms can be activated by static      example, an observation that a student is reading can be in-
-                                                                1038
 
-terpreted as showing that this student endorses the norm N2                As noted earlier, each data instance d represents a po-
-to be true in this context, hence ei,N2 = 1. The set Φsi rep-           tential arrangement of true and false values for each of the
-resents a given source’s finite set of endorsements within a            norms in a frame. Setting aside the possibility that ei, j = ε,
-given norm frame, such that |Φsi | = k.                                 each data instance thus provides a k-length string of 1s and
-   Informally, for a set of norms in a given context and for            0s (a given participant’s response string in the detection ex-
-a particular source, we can learn about that source’s endorse-          periment). This string is a sample of the normative endorse-
-ment of each norm; if we also assign a weight (e.g., reliability,       ments in the given community. The norm learning algorithm
-expertise) to the source, we form a data instance. Multiple             represents each string as a hypothesis in a set of hypotheses
-data instances (i.e., evidence from multiple sources) form a            (termed Frame of Discernment in Dempster-Shafer theory)
-data set. More formally:                                                and assigns uncertainty parameters to each norm, updating
-                                                                        those values as it considers each new data instance. Algo-
-Definition 4 (Data Instance).                    A data instance d =
-                                                                        rithm 1, displayed below, achieves this form of norm learn-
+photographs, and people show high agreement in explicitly
+recounting these norms (generation experiment). In a more
+implicit setup (detection experiment), people are fast and almost unanimous in affirming the most important norms of a
+given context and differentiate them well from norms originating from a different context. Thus, both explicit and implicit judgments show substantial context sensitivity. If these
+are some of the properties of human social and moral norms,
+how can they possibly be learned, by humans and machines?
+
+Part 3: Learning Norms
+How Do People Learn Norms?
+
+Table 3: Permission Norms for Library and Jogging Scenes
+in the Norm Generation Experiment
+Library
+Permitted Action
+reading
+studying
+sitting
+checking out books
+using computers
+learning
+being quiet
+Jogging
+walking
+running
+jogging
+talking
+listening to music
+biking
+looking at birds
+
+Consensus
+84%
+68%
+47%
+47%
+32%
+32%
+32%
+
+Position
+2.1
+1.8
+3.1
+4.4
+5.3
+6.0
+7.5
+
+87%
+87%
+53%
+53%
+33%
+27%
+27%
+
+1.4
+1.9
+4.8
+5.1
+4.3
+4.7
+6.2
+
+Two main results stand out from the detection experiment.
+First, people showed very high consensus in affirming the
+permissibility of the seven local actions for their respective
+scenes. For both Library and Jogging, this rate was 99%;
+and across all scenes, the number was 97.2%. That is, even
+though some of these local actions were actively generated
+as “permissible” by only a third or half of previous participants (see Table 3), when directly confronted with these actions, people almost uniformly recognized their permissibility. (Moreover, this recognition was fast, taking only about
+1100 ms on average.)
+Second, participants clearly distinguished between the local and the imported actions, accepting the latter as permissible at a significantly lower rate. For Library, this rate was
+43%; for Jogging, it was 75%; and across all scenes, it was
+66.1% (all statistical comparisons to local actions p < .001,
+signal detection discrimination parameter d’ = 1.49). That is,
+for a given context on average, 34% of presented actions were
+judged to be not permitted even though they were explicitly
+deemed permissible in other contexts.
+These results suggest that norms can be activated by static
+
+In learning social and moral norms, people deal with multiple different norm types (permissions, prescriptions, prohibitions), using many different learning mechanisms, and taking
+input from many different sources. Here we focus on the process of learning permission norms from simple observation,
+using responses from a sample of community members described earlier in the detection experiment. Our main goal is
+to put our proposed computational framework to a test. In the
+future we will develop further applications (e.g., learning of
+obligations or learning from instruction)
+Consider a person who has never spent time in a library.
+Upon entering one for the first time, he observes several people reading, studying, and a few whispering. Some sit at
+computers, one is eating while sitting in an armchair, although there is a sign that says ”No food or drink in the library.” Our observer also sees several people at the check-out
+counter, subsequently exiting the library, where another sign
+says ”Don’t forget to check out.” Briefly, a younger person
+runs alongside the stacks but then sits down next to an adult.
+The number of people performing each behavior, their age,
+expertise, appearance, perhaps responses from others, and the
+meaning and force of various physical symbols will all contribute to the speed and confidence with which our protagonist learns the norms of a library. Below we offer a data representational format that incorporates these and other properties of the norm learning process, a format that can also
+accommodate partial information and unknown prior probability distributions and that can be extended to other learning
+mechanisms, such as verbal instruction or trial and error.
+
+Data Representation Format of Norm Learning
+Consider a set S = {s1 , . . . , sn } of n evidence sources. For example, an evidence source si could be a student in the library,
+the librarian, or a sign at the entrance. To simplify, we are
+interested in learning about a norm frame NkΘ comprising k
+norms (out of a larger possible set) that all share the same deontic type (here, permissions) and the same general context
+precondition (here, library).
+Let an endorsement ei, j be the ith data source’s endorsement of the jth norm, where e ∈ {0, 1, ε}. The value ei, j is a
+form of truth assignment, indicating whether the source endorses the norm to be true (1), false (0) or unknown (ε). For
+example, an observation that a student is reading can be in-
+
+1038
+
+terpreted as showing that this student endorses the norm N2
+to be true in this context, hence ei,N2 = 1. The set Φsi represents a given source’s finite set of endorsements within a
+given norm frame, such that |Φsi | = k.
+Informally, for a set of norms in a given context and for
+a particular source, we can learn about that source’s endorsement of each norm; if we also assign a weight (e.g., reliability,
+expertise) to the source, we form a data instance. Multiple
+data instances (i.e., evidence from multiple sources) form a
+data set. More formally:
+Definition 4 (Data Instance).
+A data instance d =
 (NkΘ , si , Φsi , msi ) is a tuple comprising a norm frame NkΘ ,
-                                                                        ing from a human dataset.
 a specific source si , a set of endorsements Φsi provided by
 that source, and a mass assignment msi corresponding to the
-amount of consideration or reliability placed on source si .            Algorithm 1 getParameters(D , NkΘ )
-                                                                         1: D = {d1 , . . . , dn }: Dataset containing n data instances for a
-Definition 5 (Dataset). A dataset D is a finite set of n data               norm frame
-instances {d1 , . . . , dn }.                                            2: NkΘ : An unspecified norm frame containing k norms N
-                                                                         3: Initialize DS Frame Θ = {θ1 , . . . , θ2k }
-   Some of the desirable properties of the proposed data                 4: m(Θ) = 1
-representation format are that we can accommodate various                5: for all d ∈ D do
-types of sources (e.g., behavior, verbal responses, signs and            6:     for all N ∈ NkΘ do
-symbols), differential source reliability (mass), order effects          7:        Set learning parameters p1 and p2
-                                                                                                            Bel(N ∩d)
-(updates can be tuned, if necessary, to the order of received            8:        Bel(N |d) = Bel(N ∩d)+Pl(d\N )
-data), missing and imprecise information (we use ε to repre-                                               Pl(N ∩d)
-                                                                         9:        Pl(N |d) =      Pl(N ∩d)+Bel(d\N )
-sent ignorance), lacking prior probability distributions (we do         10:        Bel(N )new = p1 · Bel(N ) prev + p2 · Bel(N |d)
-not require any priors), and varying norm dependencies (e.g.,           11:        Pl(N )new = p1 · Pl(N ) prev + p2 · Pl(N |d)
-we can capture a correlation between the prohibition to yell            12:     end for
-and the prohibition to talk).                                           13:     Set frame Θ with Bel(N )new and Pl(N )new
-                                                                        14:  end for
-                                                                        15:  for all N ∈ NkΘ do
+amount of consideration or reliability placed on source si .
+Definition 5 (Dataset). A dataset D is a finite set of n data
+instances {d1 , . . . , dn }.
+Some of the desirable properties of the proposed data
+representation format are that we can accommodate various
+types of sources (e.g., behavior, verbal responses, signs and
+symbols), differential source reliability (mass), order effects
+(updates can be tuned, if necessary, to the order of received
+data), missing and imprecise information (we use ε to represent ignorance), lacking prior probability distributions (we do
+not require any priors), and varying norm dependencies (e.g.,
+we can capture a correlation between the prohibition to yell
+and the prohibition to talk).
+
+As noted earlier, each data instance d represents a potential arrangement of true and false values for each of the
+norms in a frame. Setting aside the possibility that ei, j = ε,
+each data instance thus provides a k-length string of 1s and
+0s (a given participant’s response string in the detection experiment). This string is a sample of the normative endorsements in the given community. The norm learning algorithm
+represents each string as a hypothesis in a set of hypotheses
+(termed Frame of Discernment in Dempster-Shafer theory)
+and assigns uncertainty parameters to each norm, updating
+those values as it considers each new data instance. Algorithm 1, displayed below, achieves this form of norm learning from a human dataset.
+Algorithm 1 getParameters(D , NkΘ )
+1: D = {d1 , . . . , dn }: Dataset containing n data instances for a
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+
 Algorithmic Learning of Experimental Data
-                                                                        16:     αN ← Bel(N )
-We can now apply this representation format to the detec-               17:     βN ← Pl(N )
-tion data we introduced earlier. The detection experiment               18:  end for
-featured, for each scene, a norm frame NkΘ with k = 14 poten-           19:  return α1 , . . . , αk , β1 , . . . , βk
-tially permissible actions, where half of the potential actions
-had been specifically identified as permitted in this scene and            The algorithm iterates though each data instance in the data
-the other half as permitted in other scenes (see Table 2). Each         set (line 6) and, per instance, through each norm in the norm
-participant, si , indicated whether each of 14 actions was in           frame (line 7). For each iteration, we first set the hyper-
-fact allowed in this scene, providing responses of yes (1) or           parameters p1 and p2 (line 8) that specify how much weight
-no (0) or no response (ε), thus forming a set of endorsements           the algorithm will place on previous learned knowledge (p1 )
-Φsi , with |Φ| = 14. In this particular case we treat all sources       and on each new data instance (p2 ). These hyper-parameters
-as equally reliable, hence carrying identical msi weights.              are then used to compute a conditional belief and plausibil-
-   With these representations in hand we can formally define            ity for a norm given that particular instance of data (lines
-the norm learning problem within our framework and set the              9,10). The conditional beliefs and probabilities then yield
-stage for an algorithm to analyze evidence and derive a norm            an updated belief and plausibility for each norm (lines 11,
-structure for a given context in a given community. We re-              12). Finally, the algorithm updates the uncertainty interval
-mind the reader that, according to Definition 2, any norm               for each norm with the new belief and plausibility values.
-(e.g., with respect to reading in a library) has an uncertainty            The result is a set of belief-theoretic norms (norms accom-
-interval [α1 , β1 ] associated with it, which reflects the quality      panied with uncertainty intervals), where the width of the un-
-and consistency of the evidence for a given norm to hold. The           certainty interval indicates the amount of support for the norm
-learning problem thus becomes a parameter learning problem              (which may vary, for example, as a function of number of re-
-for discovering the values of the uncertainty interval for each         spondents in the human data sample) and the center position
-norm in a norm frame:                                                   of the interval should correspond to the level of agreement in
-Definition 6 (Norm Learning Problem).                    For a norm     the human respondents’ endorsement of the norm.
-frame NkΘ and dataset D , compute the parameters                           To put this algorithm to the test, we selected, from our de-
-α1 , . . . , αk , β1 , . . . , βk of that norm frame.                   tection experiment, a norm frame of 6 (out of 14) actions for
-                                                                    1039
+We can now apply this representation format to the detection data we introduced earlier. The detection experiment
+featured, for each scene, a norm frame NkΘ with k = 14 potentially permissible actions, where half of the potential actions
+had been specifically identified as permitted in this scene and
+the other half as permitted in other scenes (see Table 2). Each
+participant, si , indicated whether each of 14 actions was in
+fact allowed in this scene, providing responses of yes (1) or
+no (0) or no response (ε), thus forming a set of endorsements
+Φsi , with |Φ| = 14. In this particular case we treat all sources
+as equally reliable, hence carrying identical msi weights.
+With these representations in hand we can formally define
+the norm learning problem within our framework and set the
+stage for an algorithm to analyze evidence and derive a norm
+structure for a given context in a given community. We remind the reader that, according to Definition 2, any norm
+(e.g., with respect to reading in a library) has an uncertainty
+interval [α1 , β1 ] associated with it, which reflects the quality
+and consistency of the evidence for a given norm to hold. The
+learning problem thus becomes a parameter learning problem
+for discovering the values of the uncertainty interval for each
+norm in a norm frame:
+Definition 6 (Norm Learning Problem).
+For a norm
+frame NkΘ and dataset D , compute the parameters
+α1 , . . . , αk , β1 , . . . , βk of that norm frame.
 
-the context of Library and a frame of 6 (out of 14) actions for                              Conclusion
-the context of Jogging Path. However, we wanted to capture          In this paper we presented a formal representation of norms
-the context specificity of norms and constructed the frames         using first-order logic and Dempster-Shafer theory. The rep-
-such that 4 actions (running, sitting, walking, and washing         resentation captures the context specificity of norms that our
-hands) were the same in each frame, albeit differentially en-       experimental data suggest are strongly present in humans.
-dorsed in the two contexts (e.g., running was clearly not per-      Using a data representation format that incorporates several
-missible in Library but very much permissible in Jogging).          properties of human norm representation and learning, we
-Thus, the algorithm had to track the norm value of a given          then developed a novel algorithm for automatically learning
-action not in general, but conditional on the specific context.     context-sensitive norms from the human data. Because the
-If the algorithm succeeds it should recognize which actions         data format is highly generalizable, norms could be learned
-people consider permissible and which ones they consider im-        from different types of evidence sources in different con-
-permissible, for each of the two contexts, and even for those       texts, and explicitly captures uncertainty due to variations in
-actions that occur in both contexts.                                the source’s reliability and the quality of the evidence. The
-   Figure 2 illustrates this success. We display single runs of     proposed representation and learning techniques provide a
-the algorithm across the dataset. In the single runs, the algo-     promising platform for studying, computationally, a wide ar-
-rithm considers each data instance (each of 30 participants’        ray of cognitive properties of norms.
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+
+norm frame
+NkΘ : An unspecified norm frame containing k norms N
+Initialize DS Frame Θ = {θ1 , . . . , θ2k }
+m(Θ) = 1
+for all d ∈ D do
+for all N ∈ NkΘ do
+Set learning parameters p1 and p2
+Bel(N ∩d)
+Bel(N |d) = Bel(N ∩d)+Pl(d\N )
+Pl(N |d) =
+
+Pl(N ∩d)
+Pl(N ∩d)+Bel(d\N )
+
+Bel(N )new = p1 · Bel(N ) prev + p2 · Bel(N |d)
+Pl(N )new = p1 · Pl(N ) prev + p2 · Pl(N |d)
+end for
+Set frame Θ with Bel(N )new and Pl(N )new
+end for
+for all N ∈ NkΘ do
+αN ← Bel(N )
+βN ← Pl(N )
+end for
+return α1 , . . . , αk , β1 , . . . , βk
+
+The algorithm iterates though each data instance in the data
+set (line 6) and, per instance, through each norm in the norm
+frame (line 7). For each iteration, we first set the hyperparameters p1 and p2 (line 8) that specify how much weight
+the algorithm will place on previous learned knowledge (p1 )
+and on each new data instance (p2 ). These hyper-parameters
+are then used to compute a conditional belief and plausibility for a norm given that particular instance of data (lines
+9,10). The conditional beliefs and probabilities then yield
+an updated belief and plausibility for each norm (lines 11,
+12). Finally, the algorithm updates the uncertainty interval
+for each norm with the new belief and plausibility values.
+The result is a set of belief-theoretic norms (norms accompanied with uncertainty intervals), where the width of the uncertainty interval indicates the amount of support for the norm
+(which may vary, for example, as a function of number of respondents in the human data sample) and the center position
+of the interval should correspond to the level of agreement in
+the human respondents’ endorsement of the norm.
+To put this algorithm to the test, we selected, from our detection experiment, a norm frame of 6 (out of 14) actions for
+
+1039
+
+the context of Library and a frame of 6 (out of 14) actions for
+the context of Jogging Path. However, we wanted to capture
+the context specificity of norms and constructed the frames
+such that 4 actions (running, sitting, walking, and washing
+hands) were the same in each frame, albeit differentially endorsed in the two contexts (e.g., running was clearly not permissible in Library but very much permissible in Jogging).
+Thus, the algorithm had to track the norm value of a given
+action not in general, but conditional on the specific context.
+If the algorithm succeeds it should recognize which actions
+people consider permissible and which ones they consider impermissible, for each of the two contexts, and even for those
+actions that occur in both contexts.
+Figure 2 illustrates this success. We display single runs of
+the algorithm across the dataset. In the single runs, the algorithm considers each data instance (each of 30 participants’
 judgments) in each context once (in a fixed order), leading to
-wide uncertainty intervals at first, but narrower ones as the                            Acknowledgment
-number of data instances increases (up to the maximum of            This research was funded in part by grants from the Of-
-30) . We also performed iterative runs (not shown), in which        fice of Naval Research (ONR), N00014-14-1-0144, and from
-the algorithm considers the dataset multiple times, each time       the Defense Advanced Research Projects Agency (DARPA),
-randomly selecting a possible order of instances, and con-          SIMPLEX 14-46-FP-097. The opinions expressed here are
-verging on an optimal estimate of the norm endorsements in          our own and do not necessarily reflect the views of ONR or
-the given community. These estimates are highly comparable          DARPA.
+wide uncertainty intervals at first, but narrower ones as the
+number of data instances increases (up to the maximum of
+30) . We also performed iterative runs (not shown), in which
+the algorithm considers the dataset multiple times, each time
+randomly selecting a possible order of instances, and converging on an optimal estimate of the norm endorsements in
+the given community. These estimates are highly comparable
 to the end points of single runs after 30 data instances.
-                                                                                             References
-                                                                    Beller, S. (2010). Deontic reasoning reviewed: psychological
-                                                                       questions, empirical findings, and current theories. Cogni-
-                                                                       tive Processing, 11(2), 123–132.
-                                                                    Bicchieri, C. (2006). The grammar of society: The nature
-                                                                       and dynamics of social norms. New York, NY: Cambridge
-                                                                       University Press.
-                                                                    Bringsjord, S., Arkoudas, K., & Bello, P. (2006). Toward a
-                                                                       general logicist methodology for engineering ethically cor-
-                                                                       rect robots. IEEE Intelligent Systems, 21(4), 38–44.
-                                                                    Kenett, Y. N., Allaham, M. M., Austerweil, J. L., & Malle,
-                                                                       B. F. (2016, November). The norm fluency task: Unveiling
-                                                                       the properties of norm representation. (Poster.). In Poster
-                                                                       presented at the 57th Annual Meeting of the Psychonomic
-                                                                       Society, Boston, MA, November 2016.
-                                                                    Malle, B., Scheutz, M., & Austerweil, J. (2017). Networks
-                                                                       of social and moral norms in human and robot agents. In A
-                                                                       world with robots (pp. 3–17). Springer.
-                                                                    Pereira, L. M., & Saptawijaya, A. (2009). Modelling morality
-                                                                       with prospective logic. International Journal of Reasoning-
-                                                                       based Intelligent Systems, 1(3-4), 209–221.
-Figure 2: Single run of learning across two contexts. The           Scheutz, M., & Malle, B. F. (2014). “Think and do the
-narrowing shaded regions indicate converging uncertainty               right thing”—A plea for morally competent autonomous
-intervals as new data instances are processed. Filled cir-             robots. In Ethics in science, technology and engineering,
-cles represent the descriptive statistics from the experimen-          2014 IEEE international symposium on (pp. 1–4).
-tal data, indicating actual norm endorsement averages among         Shafer, G. (1976). A Mathematical Theory of Evidence.
-participants—the proportion of participants who answered               Princeton University Press.
-yes to the question: “Is this action allowed here?” The algo-       Ullmann-Margalit, E. (1977). The emergence of norms. Ox-
-rithm displays convergence towards the descriptive statistics          ford: Clarendon Press.
-(which it was not given), while maintaining a level of uncer-
-tainty reflecting the imperfect agreement within the data.
-                                                                1040
 
+Conclusion
+In this paper we presented a formal representation of norms
+using first-order logic and Dempster-Shafer theory. The representation captures the context specificity of norms that our
+experimental data suggest are strongly present in humans.
+Using a data representation format that incorporates several
+properties of human norm representation and learning, we
+then developed a novel algorithm for automatically learning
+context-sensitive norms from the human data. Because the
+data format is highly generalizable, norms could be learned
+from different types of evidence sources in different contexts, and explicitly captures uncertainty due to variations in
+the source’s reliability and the quality of the evidence. The
+proposed representation and learning techniques provide a
+promising platform for studying, computationally, a wide array of cognitive properties of norms.
+
+Acknowledgment
+This research was funded in part by grants from the Office of Naval Research (ONR), N00014-14-1-0144, and from
+the Defense Advanced Research Projects Agency (DARPA),
+SIMPLEX 14-46-FP-097. The opinions expressed here are
+our own and do not necessarily reflect the views of ONR or
+DARPA.
+
+References
+
+Figure 2: Single run of learning across two contexts. The
+narrowing shaded regions indicate converging uncertainty
+intervals as new data instances are processed. Filled circles represent the descriptive statistics from the experimental data, indicating actual norm endorsement averages among
+participants—the proportion of participants who answered
+yes to the question: “Is this action allowed here?” The algorithm displays convergence towards the descriptive statistics
+(which it was not given), while maintaining a level of uncertainty reflecting the imperfect agreement within the data.
+
+Beller, S. (2010). Deontic reasoning reviewed: psychological
+questions, empirical findings, and current theories. Cognitive Processing, 11(2), 123–132.
+Bicchieri, C. (2006). The grammar of society: The nature
+and dynamics of social norms. New York, NY: Cambridge
+University Press.
+Bringsjord, S., Arkoudas, K., & Bello, P. (2006). Toward a
+general logicist methodology for engineering ethically correct robots. IEEE Intelligent Systems, 21(4), 38–44.
+Kenett, Y. N., Allaham, M. M., Austerweil, J. L., & Malle,
+B. F. (2016, November). The norm fluency task: Unveiling
+the properties of norm representation. (Poster.). In Poster
+presented at the 57th Annual Meeting of the Psychonomic
+Society, Boston, MA, November 2016.
+Malle, B., Scheutz, M., & Austerweil, J. (2017). Networks
+of social and moral norms in human and robot agents. In A
+world with robots (pp. 3–17). Springer.
+Pereira, L. M., & Saptawijaya, A. (2009). Modelling morality
+with prospective logic. International Journal of Reasoningbased Intelligent Systems, 1(3-4), 209–221.
+Scheutz, M., & Malle, B. F. (2014). “Think and do the
+right thing”—A plea for morally competent autonomous
+robots. In Ethics in science, technology and engineering,
+2014 IEEE international symposium on (pp. 1–4).
+Shafer, G. (1976). A Mathematical Theory of Evidence.
+Princeton University Press.
+Ullmann-Margalit, E. (1977). The emergence of norms. Oxford: Clarendon Press.
+
+1040
+
+

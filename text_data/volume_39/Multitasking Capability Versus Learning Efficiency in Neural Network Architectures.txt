@@ -1,452 +1,792 @@
-                             Multitasking Capability Versus Learning Efficiency
-                                            in Neural Network Architectures
-                                     Sebastian Musslick1,∗ , Andrew M. Saxe2 , Kayhan Özcimder1,3 ,
-                                       Biswadip Dey3 , Greg Henselman4 , and Jonathan D. Cohen1
-                          1 Princeton  Neuroscience Institute, Princeton University, Princeton, NJ 08544, USA.
-                              2 Center for Brain Science, Harvard University, Cambridge, MA 02138, USA.
-             3 Department of Mechanical and Aerospace Engineering, Princeton University, Princeton, NJ 08544, USA.
-         4 Department of Electrical and Systems Engineering, University of Pennsylvania, Philadelphia, PA 19104, USA.
-                                             ∗ Corresponding Author: musslick@princeton.edu
-                                Abstract                                   a time. In this view, the constraints on the number of control-
-                                                                           dependent tasks that can be executed at one time reflect an
-   One of the most salient and well-recognized features of human
-   goal-directed behavior is our limited ability to conduct mul-           intrinsic property of the control system itself. However, alter-
-   tiple demanding tasks at once. Previous work has identified             native (“multiple-resource“) accounts (Allport, 1980; Meyer
-   overlap between task processing pathways as a limiting fac-             & Kieras, 1997; Navon & Gopher, 1979; Salvucci & Taat-
-   tor for multitasking performance in neural architectures. This
-   raises an important question: insofar as shared representation          gen, 2008) have suggested that multitasking limitations arise
-   between tasks introduces the risk of cross-talk and thereby lim-        from local processing bottlenecks. That is, if two tasks share
-   itations in multitasking, why would the brain prefer shared task        the same local resources (i.e. representations required to per-
-   representations over separate representations across tasks? We
-   seek to answer this question by introducing formal considera-           form the tasks), then executing them simultaneously can lead
-   tions and neural network simulations in which we contrast the           to cross-talk and degraded performance. It has been argued
-   multitasking limitations that shared task representations incur         that the very purpose of cognitive control is to prevent such
-   with their benefits for task learning. Our results suggest that
-   neural network architectures face a fundamental tradeoff be-            cross-talk by limiting the number of active task processes
-   tween learning efficiency and multitasking performance in en-           engaged (Cohen, Dunbar, & McClelland, 1990; Botvinick,
-   vironments with shared structure between tasks.                         Braver, Barch, Carter, & Cohen, 2001). In this view, con-
-                                                                           straints in multitasking reflect the consequences of control
-Keywords: multitasking; cognitive control; capacity con-                   doing its job, rather than limitations intrinsic to the mecha-
-straint; learning; neural networks                                         nisms of control itself. This line of argument suggests that,
-                                                                           to better understand the conditions under which multitasking
-                            Introduction                                   is and is not possible, it is necessary to understand the extent
-Our limited capability to execute multiple tasks at the same               to which the task processes involved share representations,
-time highlights one of the most fundamental puzzles con-                   and are thus subject to potential interference and the inter-
-cerning human processing, which must be addressed by any                   vention of control to limit processing. This, in turn, raises
-general theory of cognition (Shenhav, Botvinick, & Cohen,                  the question of whether there are general principles of neural
-2013; Kurzban, Duckworth, Kable, & Myers, 2013; Ander-                     architectures that determine the use of shared representation,
-son, 2013): Why, for some tasks, is the human mind capa-                   and how these interact with learning and processing.
-ble of a remarkable degree of parallelism (e.g., navigating a                 One may argue that the constraints that shared represen-
-crowded sidewalk while talking to a friend), while for others              tations impose on multitasking are negligibly small in a pro-
-its capacity for parallelism is radically limited (e.g., conduct           cessing system as large as the human brain. However, simula-
-mental arithmetic while constructing a grocery list)?                      tion studies (Feng, Schwemmer, Gershman, & Cohen, 2014),
-   Early theories of cognition, that have continued to be                  followed by analytic work (Musslick et al., 2016) have found
-highly influential, assert that the ability to multitask – that is,        that the multitasking capability of a network can drop precip-
-to carry out a set of tasks concurrently1 – can be understood              itously as a function of overlap between task processes (i.e.
-in terms of a fundamental distinction between automatic and                number of shared representations), and that this effect is rel-
-controlled processing, with the former relying on parallel pro-            atively insensitive to the size of the network.
-cessing mechanisms (that can support multitasking) and the
-                                                                              The findings above suggest that maximal parallel process-
+Multitasking Capability Versus Learning Efficiency
+in Neural Network Architectures
+Sebastian Musslick1,∗ , Andrew M. Saxe2 , Kayhan Özcimder1,3 ,
+Biswadip Dey3 , Greg Henselman4 , and Jonathan D. Cohen1
+1 Princeton
+
+Neuroscience Institute, Princeton University, Princeton, NJ 08544, USA.
+for Brain Science, Harvard University, Cambridge, MA 02138, USA.
+3 Department of Mechanical and Aerospace Engineering, Princeton University, Princeton, NJ 08544, USA.
+4 Department of Electrical and Systems Engineering, University of Pennsylvania, Philadelphia, PA 19104, USA.
+∗ Corresponding Author: musslick@princeton.edu
+2 Center
+
+Abstract
+
+a time. In this view, the constraints on the number of controldependent tasks that can be executed at one time reflect an
+intrinsic property of the control system itself. However, alternative (“multiple-resource“) accounts (Allport, 1980; Meyer
+& Kieras, 1997; Navon & Gopher, 1979; Salvucci & Taatgen, 2008) have suggested that multitasking limitations arise
+from local processing bottlenecks. That is, if two tasks share
+the same local resources (i.e. representations required to perform the tasks), then executing them simultaneously can lead
+to cross-talk and degraded performance. It has been argued
+that the very purpose of cognitive control is to prevent such
+cross-talk by limiting the number of active task processes
+engaged (Cohen, Dunbar, & McClelland, 1990; Botvinick,
+Braver, Barch, Carter, & Cohen, 2001). In this view, constraints in multitasking reflect the consequences of control
+doing its job, rather than limitations intrinsic to the mechanisms of control itself. This line of argument suggests that,
+to better understand the conditions under which multitasking
+is and is not possible, it is necessary to understand the extent
+to which the task processes involved share representations,
+and are thus subject to potential interference and the intervention of control to limit processing. This, in turn, raises
+the question of whether there are general principles of neural
+architectures that determine the use of shared representation,
+and how these interact with learning and processing.
+
+One of the most salient and well-recognized features of human
+goal-directed behavior is our limited ability to conduct multiple demanding tasks at once. Previous work has identified
+overlap between task processing pathways as a limiting factor for multitasking performance in neural architectures. This
+raises an important question: insofar as shared representation
+between tasks introduces the risk of cross-talk and thereby limitations in multitasking, why would the brain prefer shared task
+representations over separate representations across tasks? We
+seek to answer this question by introducing formal considerations and neural network simulations in which we contrast the
+multitasking limitations that shared task representations incur
+with their benefits for task learning. Our results suggest that
+neural network architectures face a fundamental tradeoff between learning efficiency and multitasking performance in environments with shared structure between tasks.
+
+Keywords: multitasking; cognitive control; capacity constraint; learning; neural networks
+
+Introduction
+Our limited capability to execute multiple tasks at the same
+time highlights one of the most fundamental puzzles concerning human processing, which must be addressed by any
+general theory of cognition (Shenhav, Botvinick, & Cohen,
+2013; Kurzban, Duckworth, Kable, & Myers, 2013; Anderson, 2013): Why, for some tasks, is the human mind capable of a remarkable degree of parallelism (e.g., navigating a
+crowded sidewalk while talking to a friend), while for others
+its capacity for parallelism is radically limited (e.g., conduct
+mental arithmetic while constructing a grocery list)?
+Early theories of cognition, that have continued to be
+highly influential, assert that the ability to multitask – that is,
+to carry out a set of tasks concurrently1 – can be understood
+in terms of a fundamental distinction between automatic and
+controlled processing, with the former relying on parallel processing mechanisms (that can support multitasking) and the
 latter assumed to rely on a serial processing mechanism with
-                                                                           ing performance is achieved through the segregation of task
-limited capacity (Posner & Snyder, 1975; Shiffrin & Schnei-
-                                                                           pathways, by separating the representations on which they
-der, 1977) that can only support processing of a single task at
-                                                                           rely. This raises an important question: insofar as shared rep-
-    1 Multitasking can, in some situations, be achieved by rapid se-       resentation introduces the risk of cross-talk and thereby lim-
-quential processing (e.g., switching between asynchronous serial           itations in parallel processing performance, why would the
-processes, as is common in computers), rather than through true            brain prefer shared task representations over separate ones?
-synchronous processing. Here, our focus is on forms of multitask-
-ing that reflect truly concurrent processing, sometimes referred to as     Insights gained from the study of learning and representation
-perfect timesharing or pure parallelism.                                   in neural networks provide a direct answer to this question:
-                                                                       829
+limited capacity (Posner & Snyder, 1975; Shiffrin & Schneider, 1977) that can only support processing of a single task at
 
-Shared representations across tasks can support inference and         weight projections from each task unit can act as control sig-
-generalization (Caruana, 1997). These benefits are strongly           nals that bias processing towards task-relevant stimulus infor-
-linked to the ability of neural networks to carry out “inter-         mation represented at the associative and output layer.
-active parallelism“, that is, the ability to learn and to pro-            In order to represent the task environment described below,
-cess complex representations by simultaneously taking into            the stimulus layer is compromised of 45 input units (features)
-account a large number of interrelated and interacting con-           and the task layer of nine task units. The output layer con-
-                                                                                                                                         Network
-straints (McClelland, Rumelhart, & Hinton, 1986).                     sists of 15 units and is organized into three response dimen-
-   In this study, we examine the tension between interactive          sions (with five units per response dimension.). The number
-parallelism that promotes learning efficiency through use of          of units in the associative layer is set to 100.
-shared representations, on the one hand, and “independent                            Output
-parallelism“ (i.e. the ability to carry out multiple processes          
-                                                                        yo
-independently), on the other hand. That is, we are interested                                                          1
-in studying biases that promote shared representations over               neto = ∑ woh yh +∑ wot xt + θ o yo =
-                                                                                   h            t
-                                                                                                                   1+ e−neto
-multitasking performance. We first demonstrate that the well-
-                                                                                                                                  who
-recognized (and valued) emergence of shared representations                         Associative (Hidden)
-                                                                                                              woh
-(Hinton, 1986) in response to extrinsic biases (i.e. shared             
-                                                                        yh                                           …
-structure in the task environment) leads to constraints in mul-
-                                                                                                                       1
-titasking performance. In the second part, we introduce a                  neth = ∑ whs xs +∑ wht xt + θ h     yh =
-formal characterization of a tradeoff between learning effi-                       s            t                   1+ e−neth wht
-ciency and multitasking performance and examine how in-                             Stimulus
-                                                                                                              whs                Task
-                                                                                                                                       …
-trinsic biases of the network toward the use of shared rep-             xs                                           …        xt
-resentations can expose this tradeoff in neural network sim-
-ulations. The source code for all simulations is available at         Figure 1: Feedforward neural network used in simulations.
-github.com/musslick/CogSci-2017.                                      The input layer is composed of stimulus vector →              −
-                                                                                                                                    xs and task
-                                                                                →
-                                                                                −
-                                                                      vector xt . The activity of each element in the associative
-                 Neural Network Model                                 layer yh ∈ →   −
-                                                                                     yh is determined by all elements xs and xt and their
-                                                                      respective weights whs and wht to yh . Similarly, the activity
-For the simulations described in the paper we focus on a net-
-                                                                      of each output unit yo ∈ →        −
-                                                                                                        yo is determined by all elements yh
-work architecture that has been used to simulate a wide array
-                                                                      and xt and their respective weights woh and wot to yo . A bias
+One may argue that the constraints that shared representations impose on multitasking are negligibly small in a processing system as large as the human brain. However, simulation studies (Feng, Schwemmer, Gershman, & Cohen, 2014),
+followed by analytic work (Musslick et al., 2016) have found
+that the multitasking capability of a network can drop precipitously as a function of overlap between task processes (i.e.
+number of shared representations), and that this effect is relatively insensitive to the size of the network.
+The findings above suggest that maximal parallel processing performance is achieved through the segregation of task
+pathways, by separating the representations on which they
+rely. This raises an important question: insofar as shared representation introduces the risk of cross-talk and thereby limitations in parallel processing performance, why would the
+brain prefer shared task representations over separate ones?
+Insights gained from the study of learning and representation
+in neural networks provide a direct answer to this question:
+
+1 Multitasking can, in some situations, be achieved by rapid sequential processing (e.g., switching between asynchronous serial
+processes, as is common in computers), rather than through true
+synchronous processing. Here, our focus is on forms of multitasking that reflect truly concurrent processing, sometimes referred to as
+perfect timesharing or pure parallelism.
+
+829
+
+Shared representations across tasks can support inference and
+generalization (Caruana, 1997). These benefits are strongly
+linked to the ability of neural networks to carry out “interactive parallelism“, that is, the ability to learn and to process complex representations by simultaneously taking into
+account a large number of interrelated and interacting constraints (McClelland, Rumelhart, & Hinton, 1986).
+In this study, we examine the tension between interactive
+parallelism that promotes learning efficiency through use of
+shared representations, on the one hand, and “independent
+parallelism“ (i.e. the ability to carry out multiple processes
+independently), on the other hand. That is, we are interested
+in studying biases that promote shared representations over
+multitasking performance. We first demonstrate that the wellrecognized (and valued) emergence of shared representations
+(Hinton, 1986) in response to extrinsic biases (i.e. shared
+structure in the task environment) leads to constraints in multitasking performance. In the second part, we introduce a
+formal characterization of a tradeoff between learning efficiency and multitasking performance and examine how intrinsic biases of the network toward the use of shared representations can expose this tradeoff in neural network simulations. The source code for all simulations is available at
+github.com/musslick/CogSci-2017.
+
+weight projections from each task unit can act as control signals that bias processing towards task-relevant stimulus information represented at the associative and output layer.
+In order to represent the task environment described below,
+the stimulus layer is compromised of 45 input units (features)
+and the task layer of nine task units. The output layer conNetwork
+sists of 15 units and is organized into three response dimensions (with five units per response dimension.). The number
+of units in the associative layer is set to 100.
+Output
+
+
+yo
+
+neto = ∑ woh yh +∑ wot xt + θ o yo =
+h
+
+
+yh
+
+t
+
+Associative (Hidden)
+
+who
+
+woh
+…
+
+neth = ∑ whs xs +∑ wht xt + θ h
+s
+
+
+xs
+
+1
+1+ e−neto
+
+yh =
+
+t
+
+Stimulus
+
+1
+1+ e−neth wht
+
+whs
+…
+
+
+xt
+
+Task
+…
+
+Figure 1: Feedforward neural network used in simulations.
+−
+The input layer is composed of stimulus vector →
+xs and task
+→
+−
+vector xt . The activity of each element in the associative
+−
+layer yh ∈ →
+yh is determined by all elements xs and xt and their
+respective weights whs and wht to yh . Similarly, the activity
+−
+of each output unit yo ∈ →
+yo is determined by all elements yh
+and xt and their respective weights woh and wot to yo . A bias
+of θ = −2 is added to the net input of all units yh and yo .
+Blue shades in the input and output units (circles) correspond
+to unit values of > 0 and illustrate an example input pattern
+with its respective output pattern: The second task requires
+the network to map the vector of values in the first five stimulus input units to one out of five output units (yellow shade).
+
+Neural Network Model
+For the simulations described in the paper we focus on a network architecture that has been used to simulate a wide array
 of empirical findings concerning human performance (e.g.
-                                                                      of θ = −2 is added to the net input of all units yh and yo .
 Cohen et al., 1990; Botvinick et al., 2001), including recent
-                                                                      Blue shades in the input and output units (circles) correspond
 work on limitations in multitasking (Musslick et al., 2016).
-                                                                      to unit values of > 0 and illustrate an example input pattern
 In this section we lay out the architecture of this network, its
-                                                                      with its respective output pattern: The second task requires
 processing, as well as the task environments used to train it.
-                                                                      the network to map the vector of values in the first five stim-
-Network Architecture and Processing                                   ulus input units to one out of five output units (yellow shade).
-The network consists of two input layers, one of which repre-         Task Environment
-sents the stimulus presented to the network and another that          Each task is defined as a mapping between a subspace of five
-encodes the task that the network is instructed to perform on         stimulus features (referred to as a task-relevant stimulus di-
-the stimulus. Stimulus input features can take any real value         mension) onto five output units of a task-specific response
-between 0 and 1 and can be grouped into stimulus dimen-               dimension, so that only one of the five relevant output units is
-sions that are relevant for a particular task. The network is         permitted to be active (see Fig. 1). The value of each stimu-
-instructed to perform a single task by clamping the corre-            lus feature is drawn from a uniform distribution U[0, 1]. The
-sponding task unit in the task layer to 1 while all other task        rule by which 5 relevant stimulus features of any task-relevant
-units are set to 0. These stimulus and task input values are          stimulus dimension are mapped onto one of the 5 output units
-multiplied by a matrix of connection weights from the re-             of the task-relevant response dimension corresponds to a non-
-spective input layer to a shared associative layer, and then          linear function that was randomly generated2 with a sepa-
-passed through a logistic function to determine the pattern of        rate “teacher“ network (cf. Seung, Sompolinsky, & Tishby,
-activity over the units in the associative layer. This pattern is     1992), and is the same across tasks. However, tasks are con-
-then used (together with a set of direct projections from the         sidered to be independent in that they differ which stimulus
-task layer) to determine the pattern of activity over the output      dimension is linked to which response dimension.
-layer. The latter provides a response pattern that is evaluated           The task environment across all simulations encompasses
-by computing its mean squared error (MSE) with respect to             nine tasks. As illustrated in Fig. 2 groups of three tasks map
-the correct (task-determined) output pattern. Similar to stim-             2 Note that it is ensured that, for the uniform distribution U[0, 1]
-ulus features, output units can be grouped into response di-          of stimulus unit activations in the task-relevant set of input units, ev-
-mensions that are relevant for a particular task. Note that the       ery relevant output unit is equally likely to be required for execution.
-                                                                  830
 
-onto the same response dimension. However, similarity be-       no relevant stimulus features (cf. Fig. 2a), all five stimu-
-tween tasks could be varied by manipulating the overlap be-     lus features (cf. Fig. 2b) or any whole number of features
-tween their relevant stimulus dimensions. At the extremes,      in between, resulting in 6 different task environments. We
-task environments can be generated such that tasks of differ- Task Structure
-                                                                trained   100 networks in each of the environments. The net-
-ent response dimensions relate to separate stimulus features    works were trained on all nine tasks with the same set of 50
-(no feature overlap, Fig. 2a), or the same stimulus features    stimulus samples until the network achieved an MSE of 0.01.
-(full feature overlap, e.g. tasks 1-3 in Fig. 2b).                                                                                                                                                                                                            Feature O
-                                                                                                             (a)   Feature Overlap Between Tasks                    (b)
-                                                                                                                                                                          Multitasking Accuracy (%)
-                                                                                                                                                                                                                                      1
- (a) No Overlap                                                                                                                                                                                       75
-                                                                                                                                            1
-                                     Response Units
-                                                                                Multitasking P(Correct)
-    Between Task-                                                                                         0.75                                                                                        70
-                                                                                                                                                                                                                                      0.8
-                                                                                                                                                                                                                                            Feature Overlap
-   Relevant Stimulus         yo                                                                                                             0.8
-                                                                                                                                                  Feature Overlap
-                                                                                                           0.7                                                                                                                        0.6
-                                                                                                                                                                                                      65
-       Features                                                                                           0.65                              0.6
-                                                                                                                                                                                                      60                              0.4
-                       !"                                                !*
-                            !$                                      !)                                     0.6                              0.4                                                       55
-                                  !# !         !&         !'   !(                                                                                                                                                                     0.2
-                                      %                                                                   0.55
-                                                                                                                                           0.2                                                       50
-  xs                                                                                                       0.5
-                                                                                                                                                                                                           0          0.5         1
-                                                                                                                                                                                                                                      0
-                                                                                                                                            0
-                                     Stimulus Features                                                             0.4   0.6   0.8    1                                                                    Learned Task Correlation
-                                                                                                             Learned Weight Correlation
- (b) Full Overlap                    Response Units                                   Figure 3: Effects of task similarity. (a) Networks were trained
-    Between Task-            yo                                                        in task environments with varying degrees of feature overlap.
-   Relevant Stimulus
-                                                                                       Yellow and red shades highlight task-relevant stimulus fea-
-       Features                      !"        !&         !*
-                                                                                       tures for two tasks involving different response dimensions.
-                                          !$         !)
-                                           !# !% !' !(
-                                                                                       (b) Final multitasking accuracy of the network as a function
-                                                                                      of the learned similarity between tasks involving different
-  xs
-                                     Stimulus Features                                 response dimensions. Colors indicate the degree of feature
-Figure 2: Task environments. For each task, the network was                            overlap present in the task environment as illustrated in (a).
-trained to map a subset of 5 stimulus features onto a subset of                           In order to assess the similarity of learned task representa-
-5 output units. At the extremes tasks that were mapped onto                            tions we focus our analysis on the weights from the task units
-different response dimensions (e.g. tasks 1-3) could either (a)                        to the associative layer, insofar as these reflect the compu-
-rely on separate stimulus features or (b) completely overlap                           tations carried out by the network required to perform each
-in terms of their relevant stimulus features.                                          task. For a given pair of tasks we compute the learned repre-
-   Networks are initialized with a set of small random weights                         sentational similarity between them as the Pearson correlation
-and then trained on all tasks using the backpropagation algo-                          of their weight vectors to the associative layer.
-rithm3 (Rumelhart & Geoffrey E. Hinton, 1986) to produce                                  We measured multitasking performance for pairs of tasks
-the task-specified response for each stimulus.                                         (of different stimulus and response dimensions) by activating
-                                                                                       two task units at the same time and evaluating the concurrent
-       Multitasking Limitations Due to Shared                                          processing performance in the response dimensions relevant
-        Structure in the Task Environment                                              to the two tasks. The accuracy of a single task ASingle can be
-A key feature of neural networks is their ability to discover                          computed as                         ac
-                                                                                                               Asingle = 5                          (1)
-latent structure in the task environment, exploiting similarity                                                          ∑i=1 ai
-between stimulus features in the form of shared representa-
-tions (Hinton, 1986; Saxe, McClelland, & Ganguli, 2013).                                  where ai is the activation of the ith output unit of the task-
-In this section we explore how the emergence of shared rep-                            relevant response dimension and ac is the activation of the
-resentations as a function of structural similarities between                          correct output unit. The multitasking accuracy is simply the
-tasks can impact the multitasking performance of a network.                            mean accuracy of both engaged single tasks.
-                                                                                          The simulation results confirm well-known explorations in
-Simulation Experiment 1: Shared Task                                                   neural networks (Hinton, 1986; McClelland & Rogers, 2003;
-Representations as a Function of Feature Overlap                                       Saxe et al., 2013) that task similarities in the environment
-In order to investigate the effect of structural similarities be-                      can translate into similarities between learned task represen-
-tween tasks we generated task environments with varying                                tations. Critically, this extrinsic bias toward the learning of
-overlap between task-relevant stimulus features. We define                             shared representations negatively affected multitasking per-
-feature overlap as the number of relevant stimulus features                            formance (Fig. 3b). To illustrate this, consider the simultane-
-that are shared between any pair of tasks linked to different                          ous execution of tasks 1 and 5 in an environment as depicted
-response dimensions (see Fig. 3a). That is, two tasks in-                              in Fig. 2b. If the network learns similar representations at the
-volving two different response dimensions could either share                           associative layer for tasks 1 and 2 (note that both tasks rely on
-   3 All reported results were obtained using gradient decent to min-                  the same stimulus features), then executing task 1 will implic-
-imize the MSE of each training pattern. However, we observed the                       itly engage the representation of task 2 which in turn causes
-same qualitative effects using the cross-entropy loss function.                        interference via its link to the response dimension of task 5.
-                                                                              831
+Network Architecture and Processing
 
-                                                                          (a)               𝑦#      𝑦$                 𝑦"
-     Multitasking Limitations due to Intrinsic                                                                              Output gating
-                                                                                                                                 signal
-                     Learning Biases
-                                                                                                                           Associative gating
-In addition to environmental biases that shape the learning of                                                                    signal
-                                                                                                              *
-shared task representations there may be factors intrinsic to                             #
-                                                                                         𝑊'(              𝑊'(
-the neural system that can regulate the degree to which such
-                                                                                           𝑥#       𝑥$                 𝑥"
-representations are exploited in learning. In this section we
-                                                                          (b)                 Group 1           Group 2
-introduce a formal analysis of how such biases can affect the
-                                                                                           𝑦#       𝑦$                𝑦"
-tradeoff between learning efficiency and multitasking perfor-                                                             Output gating signal
-mance. We then use weight initialization as a learning bias               Group 1                                          Group 2
-in simulations to establish a causal relationship between the
-use of shared representations on the one hand, and resulting                                                        *,$
-                                                                                                                  𝑊'(
-                                                                                               #,$
-                                                                                             𝑊'(          *,#                       Associative
-                                                                                    #,#
-                                                                                  𝑊'(                   𝑊'(
-effects on learning and multitasking, on the other hand.                                                                              gating
-                                                                                                                                      signal
-                                                                                           𝑥#       𝑥$                𝑥"
-Formal Intuitions on the Tradeoff between Learning
-Efficiency and Multitasking Capability                               Figure 4: Gating model used for formal analysis. (a) Task
-                                                                     information directly switches on or off task-relevant dimen-
-To gain formal intuition into the tradeoff between multitask-
-                                                                     sions in the output and associative layers. This allows input-
-ing ability and learning speed, we consider a stripped-down
-                                                                     to-hidden weights to be shared across the M different tasks
-version of the introduced network model that is amenable to
-                                                                     corresponding to different√response dimensions, increasing
-analysis. In the full model, nonlinear interactions between
-                                                                     learning speed by a factor M. However, two tasks that rely
-the task units and the stimulus units occur in the associative
-                                                                     on different input dimensions cannot be multitasked due to
-layer. Here we assume a gating model in which these non-
-                                                                     crosstalk at the output (convergent red and green arrows). (b)
-linear interactions are carried out through gating signals that
-                                                                     Multitasking ability can be improved by separating response
-can zero out parts of the activity in the associative and output
-                                                                     dimensions into Q groups, each with a dedicated set of units
-layers, or pass it through unchanged. The choice of which
-                                                                     in the associative layer. Gating now permits one task from
-parts of each layer are gated through on each input is left to
-                                                                     each group to operate concurrently (red and green arrows no
-the designer (not learned, as in the full model).
-                                                                     longer converge). However, weightpsharing is limited to the
-   We study the scheme depicted in Fig. 4 consisting of M
-                                                                     group, yielding a learning speed of M/Q.
-input and response dimensions with full feature overlap (cf.
-Fig. 2b). For the output layer, we assume that the gating            learning speed and multitasking ability. Let t be the number
-variables automatically zero all but the task-relevant response      of iterations required to learn all tasks, Q the maximum num-
-dimensions. For the associative layer, we separate the hid-          ber of concurrently executable tasks, and M the number of
-den units into dimensions, one for each input dimension, and         input/response response dimensions. Then
-make the gating variables zero all representations except the
-                                                                                                    t 2 ∝ Q/M                                   (2)
-one coming from the task-relevant input dimension (Fig. 4a).
-   Crucially, when the gating structure is known on a specific        where the proportionality constant is related to the statisti-
-example, the output of the network is a linear function of the       cal strength of the input-output association for one task, the
-neurons that are on. Given this setting, the learning dynamics       learning rate, and the error cut-off used to decide when learn-
-can be solved exactly using methods developed by Saxe, Mc-           ing is complete (Saxe, Musslick, & Cohen, 2017).
-Clelland, and Ganguli (2014). The key advantage afforded by             Due to the tradeoff in Eqn. (2), gating schemes that share
-the gating scheme is depicted in Fig. 4a: the input-to-hidden        more structure will learn more quickly. Hence generic, ran-
-weights for one input dimension can be shared by all tasks  √        domly initialized nonlinear networks will tend to favor shared
-that rely on that input dimension. This leads to a factor M          representations, as shown in Simulation Experiment 1.
-speedup in learning relative to learning a single task by itself
-(proof omitted due to space constraints).                            Simulation Experiment 2: Effects of Learning
-   However, with this gating system, multitasking is not pos-        Biases for Shared Representations
-sible: gating another task through to the output will lead to        In Simulation 2 we focus on a bias intrinsic to the neural sys-
-interference. To counteract this, the gating scheme must be          tem, i.e. the initialization of the weights from the task layer.
-changed: response dimensions can be divided into Q groups,           We use this factor to systematically examine how the use of
-each with a dedicated set of hidden units (Fig. 4b). This al-        shared representations facilitates the discovery of similarity
-lows tasks that use response dimensions in different output          structure while diminishing multitasking performance. To do
-groups to be performed simultaneously. Hence a maximum               so, we focus initially on a training environment in which tasks
-of Q tasks can be performed simultaneously, but weight shar-         are maximally similar, as this is the condition in which there
-ing is reduced across tasks by a factor Q, slowing learning.         is most opportunity for exploiting shared representations. We
-   This analysis provides, at least in a simplified system, a        then examine environments with 80% and 0% feature overlap
-quantitative expression of the fundamental tradeoff between          between tasks, to test the generality of the observed effects.
-                                                                 832
+Task Environment
 
-    To manipulate the bias towards shared task representations,                           sources of this capacity constraint associated with control re-
-we initialized the weights from the task units to the associa-                            main largely unexplored. Here, we build upon the observation
-tive layer, varying the similarity among the weight vectors                               that multitasking limitations can arise from shared representa-
-across tasks with the rationale that greater similarity should                            tions between tasks (Feng et al., 2014; Musslick et al., 2016),
-produce a greater bias toward the use of shared representa-                               and use a combination of formal analysis and neural network
-tions in the associative layer. Weight vectors for tasks relying                          simulations to examine biases towards shared representations
-on the same stimulus input dimensions were randomly ini-                                  that incur such costs in multitasking.
-tialized to yield a correlation coefficient of value r. The cor-                             In the first part of this study, we build upon early insights of
-relation value r was varied from 0 to 0.975 in steps of 0.025                             connectionism that shared representations emerge as a func-
-and was used to constrain initial weight similarities for 100                             tion of task similarities in the environment and demonstrate
-simulated networks per initial condition. The weight vectors                              the deleterious consequences for multitasking performance.
-for tasks of non-overlapping stimulus dimensions were un-                                 It has been shown that networks are capable of extracting sim-
-correlated. Finally, all task weights to the associative layer                            ilarities from a hierarchically structured input space (Hinton,
-were scaled by a factor of 5 to enhance the effects of different                          1986). Recent analytic and empirical work in the domain of
-initial task similarities. The networks were trained using the                            semantic cognition paints a similar picture: neural systems
-same parameters as reported for Simulation Experiment 1.                                  may gradually discover shared structure in the task environ-
-    Simulation results indicate that networks with a higher                               ment with a bias towards the initial formation of shared, low-
-similarity bias tend to develop more similar representations                              dimensional representations (Saxe et al., 2013; McClelland &
-at the associative layer for those tasks (in terms of their fi-                           Rogers, 2003). Our simulation results are in line with these
-nal weight vector correlations), whereas a lower similarity                               observations showing that shared task representations emerge
-bias leads to more distinct task representations at this layer.                           as a function of high stimulus feature overlap between tasks
-In environments with high feature overlap between tasks,                                  and furthered the insight that such similarities in the task en-
-stronger initial biases toward shared representations lead to                             vironment lead to multitasking limitations.
-increased learning speed (i.e. less iterations required to train
-                                                                                             In the second part, we examined how intrinsic learning bi-
-the network), as similarities between tasks can be exploited
-                                                                                          ases towards shared or separate representations (by means
-(Fig. 5a). Critically, this comes at the cost of multitasking
-                                                                                          of weight initialization) can be used to expose a tradeoff
-performance. Learning benefits gained from shared represen-
-                                                                                          between learning efficiency and multitasking performance.
-tations are less prevalent in environments with less feature
-                                                                                Learning Speed
-                                                                                          Early& work in machine learning suggests that learning bi-
-overlap between tasks. However, effects of weight similarity                     Generalization
-                                                                                          ases towards a particular representation can be understood
-biases on multitasking impairments remain (Fig. 5b).
-                                                                                          as biases of the learner’s hypothesis space (Baxter, 1995),
-(a) 100% Feature Overlap          (b)      Effects Across Task Environments               that is, the set of all hypotheses a learner may use to ac-
-                                                       Multitasking Accuracy (%)
-    52                        1      90                                                 1
+The network consists of two input layers, one of which represents the stimulus presented to the network and another that
+encodes the task that the network is instructed to perform on
+the stimulus. Stimulus input features can take any real value
+between 0 and 1 and can be grouped into stimulus dimensions that are relevant for a particular task. The network is
+instructed to perform a single task by clamping the corresponding task unit in the task layer to 1 while all other task
+units are set to 0. These stimulus and task input values are
+multiplied by a matrix of connection weights from the respective input layer to a shared associative layer, and then
+passed through a logistic function to determine the pattern of
+activity over the units in the associative layer. This pattern is
+then used (together with a set of direct projections from the
+task layer) to determine the pattern of activity over the output
+layer. The latter provides a response pattern that is evaluated
+by computing its mean squared error (MSE) with respect to
+the correct (task-determined) output pattern. Similar to stimulus features, output units can be grouped into response dimensions that are relevant for a particular task. Note that the
+
+Each task is defined as a mapping between a subspace of five
+stimulus features (referred to as a task-relevant stimulus dimension) onto five output units of a task-specific response
+dimension, so that only one of the five relevant output units is
+permitted to be active (see Fig. 1). The value of each stimulus feature is drawn from a uniform distribution U[0, 1]. The
+rule by which 5 relevant stimulus features of any task-relevant
+stimulus dimension are mapped onto one of the 5 output units
+of the task-relevant response dimension corresponds to a nonlinear function that was randomly generated2 with a separate “teacher“ network (cf. Seung, Sompolinsky, & Tishby,
+1992), and is the same across tasks. However, tasks are considered to be independent in that they differ which stimulus
+dimension is linked to which response dimension.
+The task environment across all simulations encompasses
+nine tasks. As illustrated in Fig. 2 groups of three tasks map
+2 Note that it is ensured that, for the uniform distribution U[0, 1]
+of stimulus unit activations in the task-relevant set of input units, every relevant output unit is equally likely to be required for execution.
+
+830
+
+!"
+
+!$
+
+
+xs
+
+Response Units
+
+!# !
+%
+
+!&
+
+!'
+
+!(
+
+!)
+
+!*
+
+Stimulus Features
+
+1
+
+0.75
+0.7
+
+0.8
+
+0.65
+
+0.6
+
+0.6
+
+0.4
+
+0.55
+
+0.2
+
+0.5
+0
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+(b)
+
+75
+70
+
+0.8
+
+65
+
+0.6
+
+60
+
+0.4
+
+55
+
+0.2
+
+50
+0
+
+0
+
+0.5
+
+1
+
+Learned Task Correlation
+
+Learned Weight Correlation
+
+(b) Full Overlap
+Between TaskRelevant Stimulus
+Features
+
+
+yo
+
+!&
+
+!"
+!$
+
+
+xs
+
+Figure 3: Effects of task similarity. (a) Networks were trained
+in task environments with varying degrees of feature overlap.
+Yellow and red shades highlight task-relevant stimulus features for two tasks involving different response dimensions.
+(b) Final multitasking accuracy of the network as a function
+of the learned similarity between tasks involving different
+response dimensions. Colors indicate the degree of feature
+overlap present in the task environment as illustrated in (a).
+
+Response Units
+
+!*
+!)
+
+!# !% !' !(
+Stimulus Features
+
+Figure 2: Task environments. For each task, the network was
+trained to map a subset of 5 stimulus features onto a subset of
+5 output units. At the extremes tasks that were mapped onto
+different response dimensions (e.g. tasks 1-3) could either (a)
+rely on separate stimulus features or (b) completely overlap
+in terms of their relevant stimulus features.
+
+In order to assess the similarity of learned task representations we focus our analysis on the weights from the task units
+to the associative layer, insofar as these reflect the computations carried out by the network required to perform each
+task. For a given pair of tasks we compute the learned representational similarity between them as the Pearson correlation
+of their weight vectors to the associative layer.
+We measured multitasking performance for pairs of tasks
+(of different stimulus and response dimensions) by activating
+two task units at the same time and evaluating the concurrent
+processing performance in the response dimensions relevant
+to the two tasks. The accuracy of a single task ASingle can be
+computed as
+ac
+(1)
+Asingle = 5
+∑i=1 ai
+
+Networks are initialized with a set of small random weights
+and then trained on all tasks using the backpropagation algorithm3 (Rumelhart & Geoffrey E. Hinton, 1986) to produce
+the task-specified response for each stimulus.
+
+Multitasking Limitations Due to Shared
+Structure in the Task Environment
+A key feature of neural networks is their ability to discover
+latent structure in the task environment, exploiting similarity
+between stimulus features in the form of shared representations (Hinton, 1986; Saxe, McClelland, & Ganguli, 2013).
+In this section we explore how the emergence of shared representations as a function of structural similarities between
+tasks can impact the multitasking performance of a network.
+
+where ai is the activation of the ith output unit of the taskrelevant response dimension and ac is the activation of the
+correct output unit. The multitasking accuracy is simply the
+mean accuracy of both engaged single tasks.
+The simulation results confirm well-known explorations in
+neural networks (Hinton, 1986; McClelland & Rogers, 2003;
+Saxe et al., 2013) that task similarities in the environment
+can translate into similarities between learned task representations. Critically, this extrinsic bias toward the learning of
+shared representations negatively affected multitasking performance (Fig. 3b). To illustrate this, consider the simultaneous execution of tasks 1 and 5 in an environment as depicted
+in Fig. 2b. If the network learns similar representations at the
+associative layer for tasks 1 and 2 (note that both tasks rely on
+the same stimulus features), then executing task 1 will implicitly engage the representation of task 2 which in turn causes
+interference via its link to the response dimension of task 5.
+
+Simulation Experiment 1: Shared Task
+Representations as a Function of Feature Overlap
+In order to investigate the effect of structural similarities between tasks we generated task environments with varying
+overlap between task-relevant stimulus features. We define
+feature overlap as the number of relevant stimulus features
+that are shared between any pair of tasks linked to different
+response dimensions (see Fig. 3a). That is, two tasks involving two different response dimensions could either share
+3 All reported results were obtained using gradient decent to minimize the MSE of each training pattern. However, we observed the
+same qualitative effects using the cross-entropy loss function.
+
+831
+
+Feature O
+1
+
+Feature Overlap
+
+
+yo
+
+Between TaskRelevant Stimulus
+Features
+
+Feature Overlap Between Tasks
+
+Feature Overlap
+
+(a) No Overlap
+
+Multitasking P(Correct)
+
+(a)
+
 Multitasking Accuracy (%)
-                                                                                          quire new tasks. We formalized this hypothesis space in terms
-                                                             0% Feature Overlap
-                            Initial Task Correlation                                     Initial Task Similarity
-    50                        0.8    80                                                   of the amount of shared representations between tasks and
-                                                                                        0.8
-    48                        0.6    70                                                   showed how this mediates an inverse relationship between
-                                                                                        0.6
-                                                100%
-    46                        0.4    60
-                                          Feature Overlap             80%
-                                                                                          learning efficiency and interference-free multitasking. Our
-                                                                                        0.4
-    44                        0.2    50                         Feature Overlap           neural network simulations confirmed these analytical predic-
-                                                                                        0.2
-    42                        0      40                                                 0 tions, showing that a weight initialization bias towards shared
-      70    75   80    85              60    70       80    90     100   110    120
- Iterations Required To Train                  Iterations Required To Train               representations enables faster learning if shared structure in
-                                                                                          the environment can be exploited, but incurs a cost for multi-
-Figure 5: Effects of weight similarity bias. Mean multitask-                              tasking. A promising direction for future research may be to
-ing accuracy (for two tasks simultaneously) plotted against                               explore another prediction: our formalism suggests a role for
-the mean number of iterations required to train the network.                              such biases in regularizing the representational complexity of
-Data points represent the mean measures across networks ini-                              the network, thereby promoting generalization performance.
+
+onto the same response dimension. However, similarity beno relevant stimulus features (cf. Fig. 2a), all five stimutween tasks could be varied by manipulating the overlap belus features (cf. Fig. 2b) or any whole number of features
+tween their relevant stimulus dimensions. At the extremes,
+in between, resulting in 6 different task environments. We
+Structure
+task environments can be generated such that tasks of differ- Task
+trained
+100 networks in each of the environments. The netent response dimensions relate to separate stimulus features
+works were trained on all nine tasks with the same set of 50
+(no feature overlap, Fig. 2a), or the same stimulus features
+stimulus samples until the network achieved an MSE of 0.01.
+(full feature overlap, e.g. tasks 1-3 in Fig. 2b).
+
+(a)
+
+Multitasking Limitations due to Intrinsic
+Learning Biases
+
+𝑦#
+
+𝑦"
+
+𝑦$
+
+Output gating
+signal
+Associative gating
+signal
+
+In addition to environmental biases that shape the learning of
+shared task representations there may be factors intrinsic to
+the neural system that can regulate the degree to which such
+representations are exploited in learning. In this section we
+introduce a formal analysis of how such biases can affect the
+tradeoff between learning efficiency and multitasking performance. We then use weight initialization as a learning bias
+in simulations to establish a causal relationship between the
+use of shared representations on the one hand, and resulting
+effects on learning and multitasking, on the other hand.
+
+*
+𝑊'(
+
+#
+𝑊'(
+
+𝑥#
+
+𝑥$
+
+𝑥"
+Group 2
+
+Group 1
+
+(b)
+
+𝑦#
+
+𝑦"
+
+𝑦$
+
+Output gating signal
+
+Group 1
+
+Group 2
+
+#,#
+𝑊'(
+
+#,$
+𝑊'(
+
+𝑥#
+
+Formal Intuitions on the Tradeoff between Learning
+Efficiency and Multitasking Capability
+
+*,#
+𝑊'(
+
+𝑥$
+
+*,$
+𝑊'(
+
+Associative
+gating
+signal
+
+𝑥"
+
+Figure 4: Gating model used for formal analysis. (a) Task
+information directly switches on or off task-relevant dimensions in the output and associative layers. This allows inputto-hidden weights to be shared across the M different tasks
+corresponding to different√response dimensions, increasing
+learning speed by a factor M. However, two tasks that rely
+on different input dimensions cannot be multitasked due to
+crosstalk at the output (convergent red and green arrows). (b)
+Multitasking ability can be improved by separating response
+dimensions into Q groups, each with a dedicated set of units
+in the associative layer. Gating now permits one task from
+each group to operate concurrently (red and green arrows no
+longer converge). However, weightpsharing is limited to the
+group, yielding a learning speed of M/Q.
+
+To gain formal intuition into the tradeoff between multitasking ability and learning speed, we consider a stripped-down
+version of the introduced network model that is amenable to
+analysis. In the full model, nonlinear interactions between
+the task units and the stimulus units occur in the associative
+layer. Here we assume a gating model in which these nonlinear interactions are carried out through gating signals that
+can zero out parts of the activity in the associative and output
+layers, or pass it through unchanged. The choice of which
+parts of each layer are gated through on each input is left to
+the designer (not learned, as in the full model).
+We study the scheme depicted in Fig. 4 consisting of M
+input and response dimensions with full feature overlap (cf.
+Fig. 2b). For the output layer, we assume that the gating
+variables automatically zero all but the task-relevant response
+dimensions. For the associative layer, we separate the hidden units into dimensions, one for each input dimension, and
+make the gating variables zero all representations except the
+one coming from the task-relevant input dimension (Fig. 4a).
+Crucially, when the gating structure is known on a specific
+example, the output of the network is a linear function of the
+neurons that are on. Given this setting, the learning dynamics
+can be solved exactly using methods developed by Saxe, McClelland, and Ganguli (2014). The key advantage afforded by
+the gating scheme is depicted in Fig. 4a: the input-to-hidden
+weights for one input dimension can be shared by all tasks
+√
+that rely on that input dimension. This leads to a factor M
+speedup in learning relative to learning a single task by itself
+(proof omitted due to space constraints).
+However, with this gating system, multitasking is not possible: gating another task through to the output will lead to
+interference. To counteract this, the gating scheme must be
+changed: response dimensions can be divided into Q groups,
+each with a dedicated set of hidden units (Fig. 4b). This allows tasks that use response dimensions in different output
+groups to be performed simultaneously. Hence a maximum
+of Q tasks can be performed simultaneously, but weight sharing is reduced across tasks by a factor Q, slowing learning.
+This analysis provides, at least in a simplified system, a
+quantitative expression of the fundamental tradeoff between
+
+learning speed and multitasking ability. Let t be the number
+of iterations required to learn all tasks, Q the maximum number of concurrently executable tasks, and M the number of
+input/response response dimensions. Then
+t 2 ∝ Q/M
+(2)
+where the proportionality constant is related to the statistical strength of the input-output association for one task, the
+learning rate, and the error cut-off used to decide when learning is complete (Saxe, Musslick, & Cohen, 2017).
+Due to the tradeoff in Eqn. (2), gating schemes that share
+more structure will learn more quickly. Hence generic, randomly initialized nonlinear networks will tend to favor shared
+representations, as shown in Simulation Experiment 1.
+
+Simulation Experiment 2: Effects of Learning
+Biases for Shared Representations
+In Simulation 2 we focus on a bias intrinsic to the neural system, i.e. the initialization of the weights from the task layer.
+We use this factor to systematically examine how the use of
+shared representations facilitates the discovery of similarity
+structure while diminishing multitasking performance. To do
+so, we focus initially on a training environment in which tasks
+are maximally similar, as this is the condition in which there
+is most opportunity for exploiting shared representations. We
+then examine environments with 80% and 0% feature overlap
+between tasks, to test the generality of the observed effects.
+
+832
+
+Initial Task Similarity
+
+Multitasking Accuracy (%)
+
+Initial Task Correlation
+
+Multitasking Accuracy (%)
+
+To manipulate the bias towards shared task representations,
+sources of this capacity constraint associated with control rewe initialized the weights from the task units to the associamain largely unexplored. Here, we build upon the observation
+tive layer, varying the similarity among the weight vectors
+that multitasking limitations can arise from shared representaacross tasks with the rationale that greater similarity should
+tions between tasks (Feng et al., 2014; Musslick et al., 2016),
+produce a greater bias toward the use of shared representaand use a combination of formal analysis and neural network
+tions in the associative layer. Weight vectors for tasks relying
+simulations to examine biases towards shared representations
+on the same stimulus input dimensions were randomly inithat incur such costs in multitasking.
+tialized to yield a correlation coefficient of value r. The corIn the first part of this study, we build upon early insights of
+relation value r was varied from 0 to 0.975 in steps of 0.025
+connectionism that shared representations emerge as a funcand was used to constrain initial weight similarities for 100
+tion of task similarities in the environment and demonstrate
+simulated networks per initial condition. The weight vectors
+the deleterious consequences for multitasking performance.
+for tasks of non-overlapping stimulus dimensions were unIt has been shown that networks are capable of extracting simcorrelated. Finally, all task weights to the associative layer
+ilarities from a hierarchically structured input space (Hinton,
+were scaled by a factor of 5 to enhance the effects of different
+1986). Recent analytic and empirical work in the domain of
+initial task similarities. The networks were trained using the
+semantic cognition paints a similar picture: neural systems
+same parameters as reported for Simulation Experiment 1.
+may gradually discover shared structure in the task environSimulation results indicate that networks with a higher
+ment with a bias towards the initial formation of shared, lowsimilarity bias tend to develop more similar representations
+dimensional representations (Saxe et al., 2013; McClelland &
+at the associative layer for those tasks (in terms of their fiRogers, 2003). Our simulation results are in line with these
+nal weight vector correlations), whereas a lower similarity
+observations showing that shared task representations emerge
+bias leads to more distinct task representations at this layer.
+as a function of high stimulus feature overlap between tasks
+In environments with high feature overlap between tasks,
+and furthered the insight that such similarities in the task enstronger initial biases toward shared representations lead to
+vironment lead to multitasking limitations.
+increased learning speed (i.e. less iterations required to train
+In the second part, we examined how intrinsic learning bithe network), as similarities between tasks can be exploited
+ases towards shared or separate representations (by means
+(Fig. 5a). Critically, this comes at the cost of multitasking
+of weight initialization) can be used to expose a tradeoff
+performance. Learning benefits gained from shared represenbetween learning efficiency and multitasking performance.
+tations are less prevalent in environments with less feature
+Learning Speed
+Early& work in machine learning suggests that learning bioverlap between tasks. However, effects of weight similarity
+Generalization
+ases towards a particular representation can be understood
+biases on multitasking impairments remain (Fig. 5b).
+as biases of the learner’s hypothesis space (Baxter, 1995),
+(a) 100% Feature Overlap
+(b)
+Effects Across Task Environments
+that is, the set of all hypotheses a learner may use to ac1
+1
+52
+90
+quire new tasks. We formalized this hypothesis space in terms
+0% Feature Overlap
+0.8
+0.8
+50
+80
+of the amount of shared representations between tasks and
+0.6
+0.6
+48
+70
+showed how this mediates an inverse relationship between
+100%
+0.4
+0.4
+46
+60
+learning efficiency and interference-free multitasking. Our
+Feature Overlap
+80%
+Feature
+Overlap
+neural network simulations confirmed these analytical predic0.2
+0.2
+44
+50
+0
+0 tions, showing that a weight initialization bias towards shared
+42
+40
+70
+75
+80
+85
+60
+70
+80
+90
+100
+110
+120
+representations enables faster learning if shared structure in
+Iterations Required To Train
+Iterations Required To Train
+the environment can be exploited, but incurs a cost for multiFigure 5: Effects of weight similarity bias. Mean multitasktasking. A promising direction for future research may be to
+ing accuracy (for two tasks simultaneously) plotted against
+explore another prediction: our formalism suggests a role for
+the mean number of iterations required to train the network.
+such biases in regularizing the representational complexity of
+Data points represent the mean measures across networks inithe network, thereby promoting generalization performance.
 tialized with the same task similarity (constrained by task
-                                                                                             Our analyses indicate that neural learning systems, whether
-weight vector correlation) for tasks relying on the same stim-
-                                                                                          natural or artificial, are subject to a tension between “in-
-ulus dimensions. Effects are shown for (a) environments with
-                                                                                          teractive parallelism“ on the one hand, which exploits the
+Our analyses indicate that neural learning systems, whether
+weight vector correlation) for tasks relying on the same stimnatural or artificial, are subject to a tension between “inulus dimensions. Effects are shown for (a) environments with
+teractive parallelism“ on the one hand, which exploits the
 100% feature overlap between tasks, as well as (b) across
-                                                                                          fine grained structure of representations and similarity in the
+fine grained structure of representations and similarity in the
 environments with different feature overlap. Different data
-                                                                                          service of learning, and “independent parallelism“ that sup-
-point clusters correspond to different training environments.
-                                                                                          ports concurrent processing of distinct tasks, on the other
-                                                                                          hand. A similar tension can be found in the domain of learn-
-            General Discussion and Conclusion                                             ing and memory. The complementary learning systems hy-
-The limited ability to perform multiple control-dependent                                 pothesis proposes two separate learning systems, one system
-tasks at the same time is one of the most salient character-                              that relies on shared representations to support inference, as
-istics of human cognition, and is universally considered a                                well as another system that uses separate representations to
-defining feature of cognitive control. Despite these facts, the                           support independent encoding and retrieval of information
-                                                                                   833
+service of learning, and “independent parallelism“ that suppoint clusters correspond to different training environments.
+ports concurrent processing of distinct tasks, on the other
+hand. A similar tension can be found in the domain of learnGeneral Discussion and Conclusion
+ing and memory. The complementary learning systems hyThe limited ability to perform multiple control-dependent
+pothesis proposes two separate learning systems, one system
+tasks at the same time is one of the most salient characterthat relies on shared representations to support inference, as
+istics of human cognition, and is universally considered a
+well as another system that uses separate representations to
+defining feature of cognitive control. Despite these facts, the
+support independent encoding and retrieval of information
 
-(McClelland, McNaughton, & O’Reilly, 1995). The latter                 in the hippocampus and neocortex: insights from the suc-
-system supports a form of independent parallelism for asso-            cesses and failures of connectionist models of learning and
-ciational processes that is similar to the form of independent         memory. Psychological Review, 102(3), 419.
-parallelism for executional processes described in this paper.       McClelland, J. L., & Rogers, T. T. (2003, April). The paral-
-   Altogether our results suggest that the brain may be con-           lel distributed processing approach to semantic cognition.
-fronted with balancing multitasking capability against extrin-         Nature reviews. Neuroscience, 4(4), 310–322.
-sic and intrinsic biases towards shared representations. A ma-       McClelland, J. L., Rumelhart, D. E., & Hinton, G. E. (1986).
-jor goal for the development of artificial systems may be to           The appeal of parallel distributed processing. Cambridge,
-systematically configure the balance between interactive and           MA: MIT Press.
-independent parallelism, as well as to exploit the relative ad-      Meyer, D. E., & Kieras, D. E. (1997). A computational theory
-vantages of each. Most efforts in complex neural architec-             of executive cognitive processes and multiple-task perfor-
-tures have focused predominantly on the discovery of shared            mance: Part I. Basic mechanisms. Psychological review,
-representations for the purpose of inference and generaliza-           104(1), 3.
-tion (Bengio, Courville, & Vincent, 2013). However, one of           Musslick, S., Dey, B., Özcimder, K., Patwary, M. M. A.,
-the future challenges will be to explore the tension between           Willke, T. L., & Cohen, J. D. (2016). Controlled vs. auto-
-learning efficiency and multitasking in networks with higher           matic processing: A graph-theoretic approach to the analy-
-complexity (i.e. deep networks), as well as in more natu-              sis of serial vs. parallel processing in neural network archi-
-ralistic task environments. We hope that this work will help           tectures. In Proceedings of the 38th annual conference of
-inspire a proliferation of efforts to further explore this area.       the Cognitive Science Society (pp. 1547–1552). Philadel-
-                                                                       phia, PA.
-                          References                                 Navon, D., & Gopher, D. (1979). On the economy of the
-Allport, D. A. (1980). Attention and performance. Cognitive            human-processing system. Psychological Review, 86(3),
-   psychology: New directions, 1, 12–153.                              214.
-Anderson, J. R. (2013). The architecture of cognition. Psy-          Posner, M., & Snyder, C. (1975). attention and cognitive con-
-   chology Press.                                                      trol,. In Information processing and cognition: The loyola
-Baxter, J. (1995). Learning internal representations. In Pro-          symposium (pp. 55–85).
-   ceedings of the eighth annual conference on computational         Rumelhart, D. E., & Hinton, G. E. (1986). Learning represen-
-   learning theory (pp. 311–320).                                      tations by back-propagating errors. Nature, 323, 533–536.
-Bengio, Y., Courville, A., & Vincent, P. (2013). Repre-              Salvucci, D. D., & Taatgen, N. A. (2008). Threaded cogni-
-   sentation learning: A review and new perspectives. IEEE             tion: an integrated theory of concurrent multitasking. Psy-
-   Transactions on Pattern Analysis and Machine Intelli-               chological Review, 115(1), 101.
-   gence, 35(8), 1798–1828.                                          Saxe, A. M., McClelland, J. L., & Ganguli, S. (2013). Learn-
-Botvinick, M. M., Braver, T. S., Barch, D. M., Carter, C. S.,          ing hierarchical category structure in deep neural networks.
-   & Cohen, J. D. (2001). Conflict monitoring and cognitive            In Proceedings of the 35th annual meeting of the cognitive
-   control. Psychological Review, 108(3), 624.                         science society (pp. 1271–1276).
-Caruana, R. (1997). Multitask learning. Machine learning,            Saxe, A. M., McClelland, J. L., & Ganguli, S. (2014). Ex-
-   28(1), 41–75.                                                       act solutions to the nonlinear dynamics of learning in deep
-Cohen, J. D., Dunbar, K., & McClelland, J. L. (1990). On the           linear neural networks. In Y. Bengio & Y. LeCun (Eds.), In-
-   control of automatic processes: a parallel distributed pro-         ternational conference on learning representations. Banff,
-   cessing account of the stroop effect. Psychological Review,         Canada.
-   97(3), 332–361.                                                   Saxe, A. M., Musslick, S., & Cohen, J. D. (2017). A
-Feng, S. F., Schwemmer, M., Gershman, S. J., & Cohen, J. D.            formal tradeoff between learning speed and multitasking
-   (2014). Multitasking vs. multiplexing: toward a norma-              ability in a simple neural network. http://www.people
-   tive account of limitations in the simultaneous execution of        .fas.harvard.edu/˜asaxe/multitasking.html. (Re-
-   control-demanding behaviors. Cognitive, Affective, & Be-            trieved May 13, 2017)
-   havioral Neuroscience, 14(1), 129-146.                            Seung, H., Sompolinsky, H., & Tishby, N. (1992). Statistical
-Hinton, G. E. (1986). Learning distributed representations             mechanics of learning from examples. Physical Review A,
-   of concepts. In Proceedings of the 8th confererence of              45(8), 6056.
-   the Cognitive Science Society (pp. 1–12). Hillsdale, NJ:          Shenhav, A., Botvinick, M. M., & Cohen, J. D. (2013). The
-   Lawrence Erlbaum Associates.                                        expected value of control: an integrative theory of anterior
-Kurzban, R., Duckworth, A., Kable, J. W., & Myers, J.                  cingulate cortex function. Neuron, 79(2), 217–240.
-   (2013). An opportunity cost model of subjective effort            Shiffrin, R. M., & Schneider, W. (1977). Controlled and auto-
-   and task performance. The Behavioral and Brain Sciences,            matic human information processing: II. Perceptual learn-
-   36(6), 661–679.                                                     ing, automatic attending and a general theory. Psychologi-
-McClelland, J. L., McNaughton, B. L., & O’Reilly, R. C.                cal Review, 84(2), 127.
-   (1995). Why there are complementary learning systems
-                                                                 834
+833
 
+(McClelland, McNaughton, & O’Reilly, 1995). The latter
+system supports a form of independent parallelism for associational processes that is similar to the form of independent
+parallelism for executional processes described in this paper.
+Altogether our results suggest that the brain may be confronted with balancing multitasking capability against extrinsic and intrinsic biases towards shared representations. A major goal for the development of artificial systems may be to
+systematically configure the balance between interactive and
+independent parallelism, as well as to exploit the relative advantages of each. Most efforts in complex neural architectures have focused predominantly on the discovery of shared
+representations for the purpose of inference and generalization (Bengio, Courville, & Vincent, 2013). However, one of
+the future challenges will be to explore the tension between
+learning efficiency and multitasking in networks with higher
+complexity (i.e. deep networks), as well as in more naturalistic task environments. We hope that this work will help
+inspire a proliferation of efforts to further explore this area.
+
+in the hippocampus and neocortex: insights from the successes and failures of connectionist models of learning and
+memory. Psychological Review, 102(3), 419.
+McClelland, J. L., & Rogers, T. T. (2003, April). The parallel distributed processing approach to semantic cognition.
+Nature reviews. Neuroscience, 4(4), 310–322.
+McClelland, J. L., Rumelhart, D. E., & Hinton, G. E. (1986).
+The appeal of parallel distributed processing. Cambridge,
+MA: MIT Press.
+Meyer, D. E., & Kieras, D. E. (1997). A computational theory
+of executive cognitive processes and multiple-task performance: Part I. Basic mechanisms. Psychological review,
+104(1), 3.
+Musslick, S., Dey, B., Özcimder, K., Patwary, M. M. A.,
+Willke, T. L., & Cohen, J. D. (2016). Controlled vs. automatic processing: A graph-theoretic approach to the analysis of serial vs. parallel processing in neural network architectures. In Proceedings of the 38th annual conference of
+the Cognitive Science Society (pp. 1547–1552). Philadelphia, PA.
+Navon, D., & Gopher, D. (1979). On the economy of the
+human-processing system. Psychological Review, 86(3),
+214.
+Posner, M., & Snyder, C. (1975). attention and cognitive control,. In Information processing and cognition: The loyola
+symposium (pp. 55–85).
+Rumelhart, D. E., & Hinton, G. E. (1986). Learning representations by back-propagating errors. Nature, 323, 533–536.
+Salvucci, D. D., & Taatgen, N. A. (2008). Threaded cognition: an integrated theory of concurrent multitasking. Psychological Review, 115(1), 101.
+Saxe, A. M., McClelland, J. L., & Ganguli, S. (2013). Learning hierarchical category structure in deep neural networks.
+In Proceedings of the 35th annual meeting of the cognitive
+science society (pp. 1271–1276).
+Saxe, A. M., McClelland, J. L., & Ganguli, S. (2014). Exact solutions to the nonlinear dynamics of learning in deep
+linear neural networks. In Y. Bengio & Y. LeCun (Eds.), International conference on learning representations. Banff,
+Canada.
+Saxe, A. M., Musslick, S., & Cohen, J. D. (2017). A
+formal tradeoff between learning speed and multitasking
+ability in a simple neural network. http://www.people
+.fas.harvard.edu/˜asaxe/multitasking.html. (Retrieved May 13, 2017)
+Seung, H., Sompolinsky, H., & Tishby, N. (1992). Statistical
+mechanics of learning from examples. Physical Review A,
+45(8), 6056.
+Shenhav, A., Botvinick, M. M., & Cohen, J. D. (2013). The
+expected value of control: an integrative theory of anterior
+cingulate cortex function. Neuron, 79(2), 217–240.
+Shiffrin, R. M., & Schneider, W. (1977). Controlled and automatic human information processing: II. Perceptual learning, automatic attending and a general theory. Psychological Review, 84(2), 127.
+
+References
+Allport, D. A. (1980). Attention and performance. Cognitive
+psychology: New directions, 1, 12–153.
+Anderson, J. R. (2013). The architecture of cognition. Psychology Press.
+Baxter, J. (1995). Learning internal representations. In Proceedings of the eighth annual conference on computational
+learning theory (pp. 311–320).
+Bengio, Y., Courville, A., & Vincent, P. (2013). Representation learning: A review and new perspectives. IEEE
+Transactions on Pattern Analysis and Machine Intelligence, 35(8), 1798–1828.
+Botvinick, M. M., Braver, T. S., Barch, D. M., Carter, C. S.,
+& Cohen, J. D. (2001). Conflict monitoring and cognitive
+control. Psychological Review, 108(3), 624.
+Caruana, R. (1997). Multitask learning. Machine learning,
+28(1), 41–75.
+Cohen, J. D., Dunbar, K., & McClelland, J. L. (1990). On the
+control of automatic processes: a parallel distributed processing account of the stroop effect. Psychological Review,
+97(3), 332–361.
+Feng, S. F., Schwemmer, M., Gershman, S. J., & Cohen, J. D.
+(2014). Multitasking vs. multiplexing: toward a normative account of limitations in the simultaneous execution of
+control-demanding behaviors. Cognitive, Affective, & Behavioral Neuroscience, 14(1), 129-146.
+Hinton, G. E. (1986). Learning distributed representations
+of concepts. In Proceedings of the 8th confererence of
+the Cognitive Science Society (pp. 1–12). Hillsdale, NJ:
+Lawrence Erlbaum Associates.
+Kurzban, R., Duckworth, A., Kable, J. W., & Myers, J.
+(2013). An opportunity cost model of subjective effort
+and task performance. The Behavioral and Brain Sciences,
+36(6), 661–679.
+McClelland, J. L., McNaughton, B. L., & O’Reilly, R. C.
+(1995). Why there are complementary learning systems
+
+834
+
+

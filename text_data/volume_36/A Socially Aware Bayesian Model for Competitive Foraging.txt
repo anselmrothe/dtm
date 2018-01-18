@@ -3,361 +3,534 @@ Proceedings of the Annual Meeting of the Cognitive Science
 Society
 Title
 A Socially Aware Bayesian Model for Competitive Foraging
+
 Permalink
 https://escholarship.org/uc/item/5w23m0tj
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 36(36)
+
 Authors
 Ahmad, Sheeraz
 Yu, Angela
+
 Publication Date
 2014-01-01
 Peer reviewed
- eScholarship.org                                 Powered by the California Digital Library
-                                                                    University of California
 
-                      A Socially Aware Bayesian Model for Competitive Foraging
-                                               Sheeraz Ahmad (sahmad@cs.ucsd.edu)
-                                             Department of Computer Science and Engineering
-                                                      University of California, San Diego
-                                                      Angela J. Yu (ajyu@ucsd.edu)
-                                                       Department of Cognitive Science
-                                                      University of California, San Diego
-                               Abstract                                   can do better by moving to another patch. Competitive for-
-                                                                          aging, therefore, presents an ecologically convenient case
-   Effectively solving the problem of when and where to forage
-   is critical for survival in many animal species. The task is           study for how individual-based, decentralized learning and
-   further complicated when there are other agents, potentially           decision-making, can lead to coherent and desirable behav-
-   competing for the same limited resources. Previous models              ioral patterns at the group level. Surprisingly, despite the rich
-   of foraging consider agents either in isolation or in groups
-   but without competition. Here, we present a novel Bayesian             body of empirical literature on the subject, the cognitive and
-   model for competitive foraging, Socially Aware Bayesian                neural mechanisms leading to IFD are not well understood.
-   Agent (SABA), that takes into explicit account the presence            Most of the models (see (Pyke, 1984) for a detailed review)
-   of other agents for both learning and decision-making. For
-   comparison, we also implement a simple Naive Agent model               are descriptive in nature, and make unrealistic assumptions
-   that completely ignores the presence of other agents. We find          about foraging agents’ knowledge about the reward environ-
-   that although all models perform well in a stationary environ-         ment and their behavioral constraints. In particular, agents
-   ment, converging quickly to the optimal population-level solu-
-   tion, only SABA with the stochastic foraging policy can read-          are assumed to have precise and unbiased knowledge about
-   ily adapt when the environment is non-stationary. These results        the reward distribution (the ideal assumption), and that they
-   represent a first step toward cognitively sophisticated represen-      can freely travel from one patch to another without any lim-
-   tations for learning and decision-making in competitive forag-
-   ing.                                                                   itation or cost (the free assumption). In more natural scenar-
-                                                                          ios, humans and animals often have to forage without (initial)
-   Keywords:         competitive foraging; Bayesian learning;
-   decision-making; public information; Ideal Free Distribution           knowledge about the relative reward value of the different op-
-   (IFD).                                                                 tions, and there may be costs associated with switching be-
-                                                                          tween options (e.g. time, energy, opportunity cost, money).
-                            Introduction                                  A more complete understanding of competitive foraging be-
-Foraging is the general problem of deciding how to choose                 havior needs to incorporate these factors.
-among different reward options (e.g. food patches) adap-                     Recently, there has been a shift toward models that re-
-tively, based on sequentially observed, noisy data, and thus              lax these strong assumptions, such as EPICURE (Roberts
-in the presence of uncertainty associated with reward values              & Goldstone, 2006), Polyworld (Griffith & Yaeger, 2011),
-of the different options. In competitive foraging, there is both          Avidian agents (Walker, 2011), Omega agents (Seth, 2011),
-benefit, in terms of information, and cost, in terms of com-              and Dynamic system (Krivan et al., 2008). While these mod-
-petition, due to the presence of other foraging agents. Daily             els have demonstrated that IFD can be achieved even when
-life is rife with such competitive foraging examples, such as             the ideal assumption is relaxed, they still make the free as-
-picking a restaurant, asking someone out on a date, bidding               sumption. More importantly, these models are overly sim-
-on a house, picking a vacation location, etc. In the experimen-           plistic in their assumptions about each agent’s representation
-tal literature, this has most often been studied in the context           of the environmental reward distribution and other compet-
-of animals foraging in an environment containing patches of               ing agents. Most of these assume that learning only proceeds
-food (see (Pyke et al., 1977; Perry & Pianka, 1997) for re-               based on private information, i.e. an agent’s own history
-view). The optimal solution for the population is to have                 of choices and reward outcomes (Griffith & Yaeger, 2011;
-the agents distributed proportional to the underlying reward              Walker, 2011; Seth, 2011). EPICURE (Roberts & Goldstone,
-rates at the different food patches, as that ensures maximal              2006) does consider the effect of competition but it just fits
-efficiency of food intake in the population. This distribu-               an ad-hoc, descriptive parameter corresponding to agent den-
-tion is also known as the Ideal Free Distribution (IFD), and              sity, so that the competition has a unidirectional (negative for
-has been observed in humans (Sokolowski et al., 1999; Kraft               their data) effect on agent choices, failing to account for the
-& Baum, 2001; Madden et al., 2002; Goldstone & Ashpole,                   fact that depending on agent’s knowledge, at times high agent
-2004; Goldstone et al., 2005) and other species such as ducks             density might make an option more lucrative. A large body
-(Harper, 1982), guppies (Dill, 1987), sticklebacks (Milinski,             of empirical ecology research shows that animals readily use
-1979), Bumblebees (Dreisig, 1995), etc.                                   public information, i.e. other agents’ choices and possibly
-   Interestingly, IFD is also the individually optimal Nash               also their outcomes, in foraging (e.g. (Krebs, 1973; Boyd,
-equilibrium solution (Nash et al., 1950), in which no agent               1988; Templeton & Giraldeau, 1995)), as well as in other bio-
-                                                                      110
+eScholarship.org
 
-logically important behavior, such as mate selection, predator          ber of discrete abundance levels. Similarly, patch k has
-avoidance, path selection, etc. (see (Galef Jr & Laland, 2005)          (observed) crowd-density φk ∈ {0, 1, 2, . . . , (C − 2), (C − 1)},
-for review). Thus a psychologically plausible model of for-             where C is the number of discrete levels of crowd-density.
-aging should take public information into account.                      There are two reasons for considering quantized levels of
-   A separate line of empirical and modeling studies have               crowd-density instead of exact number of competitors in the
-considered group foraging scenarios in which competition is             model: (1) numerosity judgment noise scales with magnitude
-not a factor (Green, 1980; Lima, 1985; Valone, 1989; Livor-             in humans and animals (Dehaene et al., 1998), (2) having
-eil & Giraldeau, 1997; Olsson & Holmgren, 1998; Sernland et             arbitrarily precise numerosity information can easily over-
-al., 2003), either because rewards are so abundant that there is        whelm private information and lead to informational cascade
-no need for competition, or because the species under study             (Bikhchandani et al., 1992).
+Powered by the California Digital Library
+University of California
+
+A Socially Aware Bayesian Model for Competitive Foraging
+Sheeraz Ahmad (sahmad@cs.ucsd.edu)
+Department of Computer Science and Engineering
+University of California, San Diego
+
+Angela J. Yu (ajyu@ucsd.edu)
+Department of Cognitive Science
+University of California, San Diego
+Abstract
+
+can do better by moving to another patch. Competitive foraging, therefore, presents an ecologically convenient case
+study for how individual-based, decentralized learning and
+decision-making, can lead to coherent and desirable behavioral patterns at the group level. Surprisingly, despite the rich
+body of empirical literature on the subject, the cognitive and
+neural mechanisms leading to IFD are not well understood.
+Most of the models (see (Pyke, 1984) for a detailed review)
+are descriptive in nature, and make unrealistic assumptions
+about foraging agents’ knowledge about the reward environment and their behavioral constraints. In particular, agents
+are assumed to have precise and unbiased knowledge about
+the reward distribution (the ideal assumption), and that they
+can freely travel from one patch to another without any limitation or cost (the free assumption). In more natural scenarios, humans and animals often have to forage without (initial)
+knowledge about the relative reward value of the different options, and there may be costs associated with switching between options (e.g. time, energy, opportunity cost, money).
+A more complete understanding of competitive foraging behavior needs to incorporate these factors.
+
+Effectively solving the problem of when and where to forage
+is critical for survival in many animal species. The task is
+further complicated when there are other agents, potentially
+competing for the same limited resources. Previous models
+of foraging consider agents either in isolation or in groups
+but without competition. Here, we present a novel Bayesian
+model for competitive foraging, Socially Aware Bayesian
+Agent (SABA), that takes into explicit account the presence
+of other agents for both learning and decision-making. For
+comparison, we also implement a simple Naive Agent model
+that completely ignores the presence of other agents. We find
+that although all models perform well in a stationary environment, converging quickly to the optimal population-level solution, only SABA with the stochastic foraging policy can readily adapt when the environment is non-stationary. These results
+represent a first step toward cognitively sophisticated representations for learning and decision-making in competitive foraging.
+Keywords:
+competitive foraging; Bayesian learning;
+decision-making; public information; Ideal Free Distribution
+(IFD).
+
+Introduction
+Foraging is the general problem of deciding how to choose
+among different reward options (e.g. food patches) adaptively, based on sequentially observed, noisy data, and thus
+in the presence of uncertainty associated with reward values
+of the different options. In competitive foraging, there is both
+benefit, in terms of information, and cost, in terms of competition, due to the presence of other foraging agents. Daily
+life is rife with such competitive foraging examples, such as
+picking a restaurant, asking someone out on a date, bidding
+on a house, picking a vacation location, etc. In the experimental literature, this has most often been studied in the context
+of animals foraging in an environment containing patches of
+food (see (Pyke et al., 1977; Perry & Pianka, 1997) for review). The optimal solution for the population is to have
+the agents distributed proportional to the underlying reward
+rates at the different food patches, as that ensures maximal
+efficiency of food intake in the population. This distribution is also known as the Ideal Free Distribution (IFD), and
+has been observed in humans (Sokolowski et al., 1999; Kraft
+& Baum, 2001; Madden et al., 2002; Goldstone & Ashpole,
+2004; Goldstone et al., 2005) and other species such as ducks
+(Harper, 1982), guppies (Dill, 1987), sticklebacks (Milinski,
+1979), Bumblebees (Dreisig, 1995), etc.
+Interestingly, IFD is also the individually optimal Nash
+equilibrium solution (Nash et al., 1950), in which no agent
+
+Recently, there has been a shift toward models that relax these strong assumptions, such as EPICURE (Roberts
+& Goldstone, 2006), Polyworld (Griffith & Yaeger, 2011),
+Avidian agents (Walker, 2011), Omega agents (Seth, 2011),
+and Dynamic system (Krivan et al., 2008). While these models have demonstrated that IFD can be achieved even when
+the ideal assumption is relaxed, they still make the free assumption. More importantly, these models are overly simplistic in their assumptions about each agent’s representation
+of the environmental reward distribution and other competing agents. Most of these assume that learning only proceeds
+based on private information, i.e. an agent’s own history
+of choices and reward outcomes (Griffith & Yaeger, 2011;
+Walker, 2011; Seth, 2011). EPICURE (Roberts & Goldstone,
+2006) does consider the effect of competition but it just fits
+an ad-hoc, descriptive parameter corresponding to agent density, so that the competition has a unidirectional (negative for
+their data) effect on agent choices, failing to account for the
+fact that depending on agent’s knowledge, at times high agent
+density might make an option more lucrative. A large body
+of empirical ecology research shows that animals readily use
+public information, i.e. other agents’ choices and possibly
+also their outcomes, in foraging (e.g. (Krebs, 1973; Boyd,
+1988; Templeton & Giraldeau, 1995)), as well as in other bio-
+
+110
+
+logically important behavior, such as mate selection, predator
+avoidance, path selection, etc. (see (Galef Jr & Laland, 2005)
+for review). Thus a psychologically plausible model of foraging should take public information into account.
+A separate line of empirical and modeling studies have
+considered group foraging scenarios in which competition is
+not a factor (Green, 1980; Lima, 1985; Valone, 1989; Livoreil & Giraldeau, 1997; Olsson & Holmgren, 1998; Sernland et
+al., 2003), either because rewards are so abundant that there is
+no need for competition, or because the species under study
 is by nature highly cooperative. So although these studies
-take public information into account for learning, they do not,         Bayesian Inference
-and have no need to, take into account other agents’ antici-            We use a Bayesian generative model to capture the agent’s
-pated behavior in making foraging decisions. There is also              knowledge about the statistical nature of how reward is gen-
-the caveat that these models assume that other agents’ choice           erated at a patch, and how crowd-density serves as an indica-
-outcomes are publicly observable as well, whereas in many               tor of patch richness. We assume that the agents use Bayesian
-natural situations, perhaps only others’ choices are observ-            inference in the recognition model to update their belief about
-able and not the outcomes. Nevertheless, others’ choices are            the hidden state of the world (patch richness).
-still useful for learning, as they represent crowd-sourced in-             At patch k, reward xt ∈ {0, 1} is generated as:
-formation about the relative reward values for the different
-options.                                                                         p(xt |θk , φtk ) ∼ Bernoulli(xt ; 1 − exp(−θk /φtk )) (1)
-   Thus, there are two broad families of existing models for
-foraging, one considering competition but not the use of pub-           This generative model captures the idea that the probability
-lic information, and the other using public information but             of getting a reward (xt = 1) increases with increasing rich-
-sidestepping competition. In this paper, we consider both               ness level and decreases with increasing crowd-density, but
-the cost (competition) and benefit (public information) of              the dependence is non-linear in both cases.
-foraging among competing agents. We propose a family                       Each agent also needs a model for predicting how other
-of models, which we call SABA (Socially Aware Bayesian                  agents will move, but an exact model of such dynamics is
-Agents), that takes into account: (1) knowledge about the               inherently intractable due to the infinite recursion when an
-fact that more competition at a given patch leads to lower re-          agent, ai , tries to model other agents’ beliefs about the world
-ward, and (2) public information in the form of other agents’           including ai . Thus we need a model of crowd-dynamics that
-choices (and not their outcomes). We also consider two                  is tractable and captures the behavior approximately. We pro-
-self-consistent decision policies, one that makes determinis-           pose:
-tic choices (based on the highest “patch profitability ratio”)
-and another that makes stochastic choices (proportional to the                  p(φtk |θk , φt−1                             0 t
-                                                                                             k ) = α1{φt =φt−1 } + (1 − α)p (φk |θk )  (2)
-inferred “patch profitability ratios” of the different options).                                         k   k
+take public information into account for learning, they do not,
+and have no need to, take into account other agents’ anticipated behavior in making foraging decisions. There is also
+the caveat that these models assume that other agents’ choice
+outcomes are publicly observable as well, whereas in many
+natural situations, perhaps only others’ choices are observable and not the outcomes. Nevertheless, others’ choices are
+still useful for learning, as they represent crowd-sourced information about the relative reward values for the different
+options.
+Thus, there are two broad families of existing models for
+foraging, one considering competition but not the use of public information, and the other using public information but
+sidestepping competition. In this paper, we consider both
+the cost (competition) and benefit (public information) of
+foraging among competing agents. We propose a family
+of models, which we call SABA (Socially Aware Bayesian
+Agents), that takes into account: (1) knowledge about the
+fact that more competition at a given patch leads to lower reward, and (2) public information in the form of other agents’
+choices (and not their outcomes). We also consider two
+self-consistent decision policies, one that makes deterministic choices (based on the highest “patch profitability ratio”)
+and another that makes stochastic choices (proportional to the
+inferred “patch profitability ratios” of the different options).
 We also present a Naive Agent model, a Bayesian analogue
-of the existing competitive foraging models (like EPICURE,              which asserts that at each time instant, the agent distribution
-Polyworld, Avidian and Omega agents), which is oblivious of             can remain the same with probability α, or a redistribution
-other agents both for learning and decision-making.                     around θk can occur with probability (1 − α). The distribu-
-                                                                        tion p0 is peaked at the hidden reward abundance levels θk ; in
-   The rest of the paper is organized as follows. We describe
-                                                                        the following simulations, we assume p0 to be a discretized
-SABA and the Naive Agent model in the next section, ex-
-                                                                        Gaussian with peak at θk . Eq. 2 captures our assumption that
-plaining the inference and decision strategies for both. We
-                                                                        each agent assumes that the population distribution gradually
+of the existing competitive foraging models (like EPICURE,
+Polyworld, Avidian and Omega agents), which is oblivious of
+other agents both for learning and decision-making.
+The rest of the paper is organized as follows. We describe
+SABA and the Naive Agent model in the next section, explaining the inference and decision strategies for both. We
 then present simulation results on a simple two patch foraging
-                                                                        tends toward the IFD from the current configuration, with
 problem, both for a scenario in which reward distribution is
-                                                                        the parameter α parameterizing how fast this convergence is
 stationary over time, and another in which it is non-stationary.
-                                                                        expected to happen. Note that the equation does not imply
 We conclude with a discussion of implications and limitations
-                                                                        that agents have any additional information about the under-
 of our work, as well as pointers for future research.
-                                                                        lying abundance level θk , only that agents assume a certain
-                                                                        behavior of how other agents move, specifically that agent-
-      Socially Aware Bayesian Agents (SABA)                             density is likely to be (noisily) matched to the hidden abun-
-We consider a scenario in which each agent decides which                dance level.
-patch to forage next based on the history of individual reward             In the recognition model, based on the observed reward
-and public information (crowd-density at different patches).            history xt at the chosen patch and the observed crowd density
-There are n patches, and patch k has a (hidden) abundance               history Φk at all patches, each agent updates its belief about
-level θk ∈ {0, 1, 2, . . . , (R − 2), (R − 1)}, where R is the num-     patch richness θk by applying Bayes’ rule. Thus at the chosen
-                                                                    111
 
-patch:                                                                             (fixed) patch-richness instead of attributing it to the (fluctuat-
-                                                                                   ing) presence of competitors:
-   p(θk |xt , Φtk ) ∝ p(xt |θk , φtk )p(φtk |θk , φt−1
-                                                   k )p(θk |x
-                                                                t−1
-                                                                    , Φt−1
-                                                                       k )
-                                                                           (3)                        p̂(xt |θk ) ∼ Bernoulli(xt ; θk )           (7)
-   And at all other patches:
-                                                                                      Furthermore, since individual reward is the only source
-               p(θk |Φtk ) ∝  p(φtk |θk , φt−1             t−1                     of information, these agents only update belief about the at-
-                                             k )p(θk |Φk )                 (4)
-                                                                                   tended patch where reward can be observed. After observing
-Decision Strategies                                                                reward xt , the belief is updated via Bayes rule:
-Since the goal of each agent is to maximize its individual                                          p(θk |xt ) ∝ p̂(xt |θk )p(θk |xt−1 )          (8)
+ber of discrete abundance levels. Similarly, patch k has
+(observed) crowd-density φk ∈ {0, 1, 2, . . . , (C − 2), (C − 1)},
+where C is the number of discrete levels of crowd-density.
+There are two reasons for considering quantized levels of
+crowd-density instead of exact number of competitors in the
+model: (1) numerosity judgment noise scales with magnitude
+in humans and animals (Dehaene et al., 1998), (2) having
+arbitrarily precise numerosity information can easily overwhelm private information and lead to informational cascade
+(Bikhchandani et al., 1992).
+
+Bayesian Inference
+We use a Bayesian generative model to capture the agent’s
+knowledge about the statistical nature of how reward is generated at a patch, and how crowd-density serves as an indicator of patch richness. We assume that the agents use Bayesian
+inference in the recognition model to update their belief about
+the hidden state of the world (patch richness).
+At patch k, reward xt ∈ {0, 1} is generated as:
+p(xt |θk , φtk ) ∼ Bernoulli(xt ; 1 − exp(−θk /φtk ))
+
+(1)
+
+This generative model captures the idea that the probability
+of getting a reward (xt = 1) increases with increasing richness level and decreases with increasing crowd-density, but
+the dependence is non-linear in both cases.
+Each agent also needs a model for predicting how other
+agents will move, but an exact model of such dynamics is
+inherently intractable due to the infinite recursion when an
+agent, ai , tries to model other agents’ beliefs about the world
+including ai . Thus we need a model of crowd-dynamics that
+is tractable and captures the behavior approximately. We propose:
+0 t
+p(φtk |θk , φt−1
+k ) = α1{φt =φt−1 } + (1 − α)p (φk |θk )
+k
+
+(2)
+
+k
+
+which asserts that at each time instant, the agent distribution
+can remain the same with probability α, or a redistribution
+around θk can occur with probability (1 − α). The distribution p0 is peaked at the hidden reward abundance levels θk ; in
+the following simulations, we assume p0 to be a discretized
+Gaussian with peak at θk . Eq. 2 captures our assumption that
+each agent assumes that the population distribution gradually
+tends toward the IFD from the current configuration, with
+the parameter α parameterizing how fast this convergence is
+expected to happen. Note that the equation does not imply
+that agents have any additional information about the underlying abundance level θk , only that agents assume a certain
+behavior of how other agents move, specifically that agentdensity is likely to be (noisily) matched to the hidden abundance level.
+In the recognition model, based on the observed reward
+history xt at the chosen patch and the observed crowd density
+history Φk at all patches, each agent updates its belief about
+patch richness θk by applying Bayes’ rule. Thus at the chosen
+
+Socially Aware Bayesian Agents (SABA)
+We consider a scenario in which each agent decides which
+patch to forage next based on the history of individual reward
+and public information (crowd-density at different patches).
+There are n patches, and patch k has a (hidden) abundance
+level θk ∈ {0, 1, 2, . . . , (R − 2), (R − 1)}, where R is the num-
+
+111
+
+(fixed) patch-richness instead of attributing it to the (fluctuating) presence of competitors:
+
+patch:
+t−1
+p(θk |xt , Φtk ) ∝ p(xt |θk , φtk )p(φtk |θk , φt−1
+, Φt−1
+k )p(θk |x
+k )
+(3)
+And at all other patches:
+
+p(θk |Φtk ) ∝
+
+t−1
+p(φtk |θk , φt−1
+k )p(θk |Φk )
+
+p̂(xt |θk ) ∼ Bernoulli(xt ; θk )
+
+Furthermore, since individual reward is the only source
+of information, these agents only update belief about the attended patch where reward can be observed. After observing
+reward xt , the belief is updated via Bayes rule:
+
+(4)
+
+Decision Strategies
+
+p(θk |xt ) ∝ p̂(xt |θk )p(θk |xt−1 )
+
+Since the goal of each agent is to maximize its individual
 gain, a behaviorally relevant strategy is to move to a patch
-which has the highest expected ratio of patch-richness to                             And the control strategy is:
+which has the highest expected ratio of patch-richness to
 crowd density. Furthermore, relaxing the free assumption
-would imply that moving between patches has some cost.                                                   kt+1 = argmax {E(θk )}                   (9)
-                                                                                                                       k
+would imply that moving between patches has some cost.
 With these considerations, a deterministic strategy for next
-patch selection is:                                                                                                Results
-                                  (                             )                  For ease of visualization, we consider a simple foraging prob-
-               t+1                     E(θk )                                      lem over 2 patches, with 100 agents. We address more
-              k = argmax                         − cs 1{k6=kt }            (5)
-                           k          E(φt+1
-                                          k )                                      complex scenarios in the Discussion. The (hidden) patch
-                                                                                   richness θk ∈ {0, 1, 2, . . . , 9, 10}, and the (observed) crowd-
-   The deterministic policy bases the decision on not only                         density φk ∈ {0, 1, 2, . . . , 9, 10}. The α parameter in the ap-
-the agent’s belief about patch richness but also about its be-                     proximate crowd-density distribution, eq. 2, is 0.6. Fig. 1
-lief about how other agents would move (eq. 2). Since the                          shows the behavior of SABA (Deterministic and Stochastic
-crowd dynamics model is only approximate, a disagreement                           strategies), as well as Naive Agents for a stationary environ-
-between true dynamics and assumed dynamics could poten-                            ment [7 3], i.e. the richness level of patch 1 (blue) is 7, and
-tially lead to misinformed decisions. To avoid this, an agent                      that of patch 2 (green) is 3. The dotted lines show the IFD,
-can also employ a stochastic policy that only depends on its                       which is matched to patch richness, and is therefore also [7 3].
-belief about patch richness, so that:                                              The solid lines show the simulated distributions when all the
-                                                                                   agents follow a given strategy. We note that agents following
-                         p(kt+1 = k) ∝ E(θk )                              (6)     any of the three strategies achieve IFD. However, only the
-                                                                                   stochastic policy achieves a dynamic equilibrium whereas for
-Another motivation for using a stochastic strategy comes                           the other two, the number of agents on a given patch remains
-from the animal behavior data (Harper, 1982) where the equi-                       constant once equilibrium is attained. Note that although it
-librium is dynamic in nature, i.e. agents (ducks) move be-                         seems like that both Deterministic and Naive strategies under-
-tween patches so that the number of ducks on any patch still                       or over-match, this is not the case, since the discretization of
-approximates the IFD. A stochastic strategy does lead to a dy-                     richness and crowd density enforces that the observed crowd-
-namic equilibrium as agents choose a location randomly and                         density is always an integer. For example, for the determin-
-hence switch often, whereas in a deterministic strategy the                        istic strategy, although there are 68 agents at blue patch, as
-choice of location becomes fixed once the system is in equi-                       far as the agents are considered it is crowd-density level 7,
-librium. As we will see in the result section, a deterministic                     which is matched to the patch richness. Thus, just by looking
-strategy can get stuck in a suboptimal solution.                                   at the aggregate agent behavior for this environment, it may
-                                                                                   seem that all three strategies are equally good, leading to the
-                            Naive Agents                                           optimal solution.
-Several existing models of foraging (like (Roberts & Gold-                            In order to further differentiate the models and investi-
-stone, 2006; Griffith & Yaeger, 2011; Walker, 2011; Seth,                          gate the scenarios where considering social information may
-2011)) propose agents that maintain an estimate of patch-                          potentially be useful, we look at the beliefs that agents on
-richness based on their individual experience and employ a                         different patches infer. In other words, we wish to under-
-simple strategy for selecting the next patch. In order to com-                     stand whether the agents, following these different strategies,
-pare SABA to this class of model, we propose agents within                         also correctly figure out the underlying richness of different
-our Bayesian framework, that are agnostic about social in-                         patches, in addition to just the observed IFD behavior. This
-formation and crowd’s effect on the reward. Furthermore,                           is important, because an agent operating with incorrect be-
-these agents greedily choose the next patch as the one which                       lief (e.g. believing that all other patches are very low on re-
-they believe to be the best (has highest expected value of                         sources) may never adapt to changes in the environment (e.g.
-patch richness). Such agents have a wrong statistical model                        always stays at the settled patch even when its own patch has
-of the environment, attributing the reward outcome solely to                       deteriorated). Fig. 2 shows the average beliefs of agents in a
-                                                                               112
+patch selection is:
+)
+(
+E(θk )
+t+1
+− cs 1{k6=kt }
+(5)
+k = argmax
+E(φt+1
+k
+k )
 
-Figure 1: Stationary Environment: [7 3]. Dotted lines indicate the patch richness level (hidden). Solid lines indicate the normalized agent
+(8)
+
+And the control strategy is:
+kt+1 = argmax {E(θk )}
+
+(9)
+
+k
+
+Results
+For ease of visualization, we consider a simple foraging problem over 2 patches, with 100 agents. We address more
+complex scenarios in the Discussion. The (hidden) patch
+richness θk ∈ {0, 1, 2, . . . , 9, 10}, and the (observed) crowddensity φk ∈ {0, 1, 2, . . . , 9, 10}. The α parameter in the approximate crowd-density distribution, eq. 2, is 0.6. Fig. 1
+shows the behavior of SABA (Deterministic and Stochastic
+strategies), as well as Naive Agents for a stationary environment [7 3], i.e. the richness level of patch 1 (blue) is 7, and
+that of patch 2 (green) is 3. The dotted lines show the IFD,
+which is matched to patch richness, and is therefore also [7 3].
+The solid lines show the simulated distributions when all the
+agents follow a given strategy. We note that agents following
+any of the three strategies achieve IFD. However, only the
+stochastic policy achieves a dynamic equilibrium whereas for
+the other two, the number of agents on a given patch remains
+constant once equilibrium is attained. Note that although it
+seems like that both Deterministic and Naive strategies underor over-match, this is not the case, since the discretization of
+richness and crowd density enforces that the observed crowddensity is always an integer. For example, for the deterministic strategy, although there are 68 agents at blue patch, as
+far as the agents are considered it is crowd-density level 7,
+which is matched to the patch richness. Thus, just by looking
+at the aggregate agent behavior for this environment, it may
+seem that all three strategies are equally good, leading to the
+optimal solution.
+In order to further differentiate the models and investigate the scenarios where considering social information may
+potentially be useful, we look at the beliefs that agents on
+different patches infer. In other words, we wish to understand whether the agents, following these different strategies,
+also correctly figure out the underlying richness of different
+patches, in addition to just the observed IFD behavior. This
+is important, because an agent operating with incorrect belief (e.g. believing that all other patches are very low on resources) may never adapt to changes in the environment (e.g.
+always stays at the settled patch even when its own patch has
+deteriorated). Fig. 2 shows the average beliefs of agents in a
+
+The deterministic policy bases the decision on not only
+the agent’s belief about patch richness but also about its belief about how other agents would move (eq. 2). Since the
+crowd dynamics model is only approximate, a disagreement
+between true dynamics and assumed dynamics could potentially lead to misinformed decisions. To avoid this, an agent
+can also employ a stochastic policy that only depends on its
+belief about patch richness, so that:
+p(kt+1 = k) ∝ E(θk )
+
+(7)
+
+(6)
+
+Another motivation for using a stochastic strategy comes
+from the animal behavior data (Harper, 1982) where the equilibrium is dynamic in nature, i.e. agents (ducks) move between patches so that the number of ducks on any patch still
+approximates the IFD. A stochastic strategy does lead to a dynamic equilibrium as agents choose a location randomly and
+hence switch often, whereas in a deterministic strategy the
+choice of location becomes fixed once the system is in equilibrium. As we will see in the result section, a deterministic
+strategy can get stuck in a suboptimal solution.
+
+Naive Agents
+Several existing models of foraging (like (Roberts & Goldstone, 2006; Griffith & Yaeger, 2011; Walker, 2011; Seth,
+2011)) propose agents that maintain an estimate of patchrichness based on their individual experience and employ a
+simple strategy for selecting the next patch. In order to compare SABA to this class of model, we propose agents within
+our Bayesian framework, that are agnostic about social information and crowd’s effect on the reward. Furthermore,
+these agents greedily choose the next patch as the one which
+they believe to be the best (has highest expected value of
+patch richness). Such agents have a wrong statistical model
+of the environment, attributing the reward outcome solely to
+
+112
+
+Figure 1: Stationary Environment: [7 3]. Dotted lines indicate the patch richness level (hidden). Solid lines indicate the normalized agent
 density on each patch, blue: patch 1 and green: patch 2.
+
 Figure 2: Inferred beliefs of agents at different patches. Dotted lines show the true richness level of the two patches. Blue: Belief about patch
 1, of agent at patch 1. Green: Belief about patch 1, of agent at patch 2. Red: Belief about patch 2, of agent at patch 1. Cyan: Belief about
 patch 2, of agent at patch 2. The boundaries indicate the standard deviation of beliefs.
-given patch about the two patches. We note that the agents                                              Discussion
+
+Discussion
+
+given patch about the two patches. We note that the agents
 following the deterministic strategy infer the richness that is
-qualitatively accurate, i.e. both agents at patch 1 and patch 2             We introduced a Bayesian competitive foraging model,
-believe that patch 1 is richer, and similarly both believe that             SABA, as well as a Naive Agent model. SABA takes into ac-
-patch 2 is poorer, although the beliefs are not always strong.              count both the self and public information, which is in accor-
-Agents following the stochastic strategy infer the quantita-                dance with the findings that animals use both of these sources
-tively accurate richness, i.e. agents at both patches become                for learning and decision-making while foraging. Introduc-
-confident that patch 1 has a richness level 7, and patch 2 has              tion of stochasticity leads to an adaptive policy with dynamic
-a richness level 3. On the other hand, agents following the                 equilibrium, as observed for foraging animals. Our model is
-Naive strategy fail to infer even the qualitative trends, specif-           principled in that it only makes assumptions about the sta-
-ically agents at patch 2 settle on a belief that patch 2 is better          tistical nature of the environment, in contrast to the ad hoc
-than patch 1, opposite of the real richness levels. These ob-               parameter fitting needed by existing approaches. In a com-
-servations motivated us to investigate whether the different                prehensive review on the use of public information (Valone
-strategies can perform well when the environment changes.                   & Templeton, 2002), the authors pointed out two shortcom-
-                                                                            ings of the state-of-the-art research in the field stemming from
-   Fig. 3 shows the behavior of different algorithms for a non-             these assumptions: (1) each agent can not only observe all the
-stationary environment [6 4] → [7 3], the change occurring af-              other foragers but also whether they received a reward, (2)
-ter 150 time-steps. For this case, the stochastic strategy is the           public information serves as an additional sample informa-
-only one that adapts, and achieves IFD in the changed envi-                 tion and is given equal weighting as the self-information. We
-ronment, owing to its ability to infer the hidden richness cor-             relax assumption 1 by allowing each agent to only observe
-rectly. The deterministic strategy suffers because it puts too              the crowd-density at other patches instead of the quantity of
-much trust on other agents, both during inference and deci-                 food available or each forager’s individual choice outcome.
-sion making, which leads to self-information being inundated                We relax assumption 2 by modeling public information as
-by less accurate public information. The naive strategy suf-                having a constant level of informativeness (discretization) re-
-fers because it does not incorporate public information at all.             gardless of the absolute number of competing agents. These
-The results shown suggest that a strategy like the stochastic               also alleviate the problem of informational cascade since self
-one that uses public information, without letting it overwhelm              information contributes more to the inference. Although, we
-self information, works the best.                                           show results for 2 patches, the model extends naturally to
-                                                                        113
+qualitatively accurate, i.e. both agents at patch 1 and patch 2
+believe that patch 1 is richer, and similarly both believe that
+patch 2 is poorer, although the beliefs are not always strong.
+Agents following the stochastic strategy infer the quantitatively accurate richness, i.e. agents at both patches become
+confident that patch 1 has a richness level 7, and patch 2 has
+a richness level 3. On the other hand, agents following the
+Naive strategy fail to infer even the qualitative trends, specifically agents at patch 2 settle on a belief that patch 2 is better
+than patch 1, opposite of the real richness levels. These observations motivated us to investigate whether the different
+strategies can perform well when the environment changes.
 
-Figure 3: Non-stationary Environment: [6 4] → [7 3]. Dotted lines indicate the patch richness level (hidden) which changes at time-step 150.
+We introduced a Bayesian competitive foraging model,
+SABA, as well as a Naive Agent model. SABA takes into account both the self and public information, which is in accordance with the findings that animals use both of these sources
+for learning and decision-making while foraging. Introduction of stochasticity leads to an adaptive policy with dynamic
+equilibrium, as observed for foraging animals. Our model is
+principled in that it only makes assumptions about the statistical nature of the environment, in contrast to the ad hoc
+parameter fitting needed by existing approaches. In a comprehensive review on the use of public information (Valone
+& Templeton, 2002), the authors pointed out two shortcomings of the state-of-the-art research in the field stemming from
+these assumptions: (1) each agent can not only observe all the
+other foragers but also whether they received a reward, (2)
+public information serves as an additional sample information and is given equal weighting as the self-information. We
+relax assumption 1 by allowing each agent to only observe
+the crowd-density at other patches instead of the quantity of
+food available or each forager’s individual choice outcome.
+We relax assumption 2 by modeling public information as
+having a constant level of informativeness (discretization) regardless of the absolute number of competing agents. These
+also alleviate the problem of informational cascade since self
+information contributes more to the inference. Although, we
+show results for 2 patches, the model extends naturally to
+
+Fig. 3 shows the behavior of different algorithms for a nonstationary environment [6 4] → [7 3], the change occurring after 150 time-steps. For this case, the stochastic strategy is the
+only one that adapts, and achieves IFD in the changed environment, owing to its ability to infer the hidden richness correctly. The deterministic strategy suffers because it puts too
+much trust on other agents, both during inference and decision making, which leads to self-information being inundated
+by less accurate public information. The naive strategy suffers because it does not incorporate public information at all.
+The results shown suggest that a strategy like the stochastic
+one that uses public information, without letting it overwhelm
+self information, works the best.
+
+113
+
+Figure 3: Non-stationary Environment: [6 4] → [7 3]. Dotted lines indicate the patch richness level (hidden) which changes at time-step 150.
 Solid lines indicate the normalized agent density on each patch, blue: patch 1 and green: patch 2.
-more patches, and the increase in complexity is linear ow-                which the reward options are located (embedded) over a ter-
-ing to the inference on patches being decoupled. Simulations              rain, and the hidden reward abundance level is an unknown
-for 3 and 4 patches show that the model achieves IFD without              continuous function over that terrain – this would also allow
-high computational demands.                                               the possibility of including patch-switching cost that depends
-    We believe our work is a step toward more sophisticated               on the distance traveled between two options. However, this
-models of decision making in social scenarios. However, it                scenario poses serious tractability issues since the number of
-also has limitations that leave scope for future inquiries, some          patches is not finite (or even countable) any more. One way
-of which we discuss here. The model of crowd-dynamics,                    to get around this is to use a parametric reward surface or a
-eq. 2, is only approximate and needs to be revisited for                  Bayesian non-parametric formulation such as a Gaussian Pro-
-more complex problems. This also means that we need                       cess (Williams & Rasmussen, 1996). Then each sample can
-ways to manage how much trust to place in public infor-                   be used to update the agent’s beliefs about the entire terrain.
-mation, since not only the model of crowd-dynamics is ap-                    Yet another direction for future enquiry is to consider a col-
-proximate, an agent cannot trust other agents to be behaving              lection of heterogenous agents who may differ in capability,
-optimally. Towards this trust management goal, we tried an                costs, and goals. Indeed, heterogeneity has been observed
-inference method, called Perturbed Bayes (Jadbabaie et al.,               in animals, in which more dominant members may “despot-
-2012), which provides a way to combine high quality self-                 ically” monopolize some food patches and push the popula-
-information with the low-quality public information. How-                 tion distribution away from IFD (Parker & Sutherland, 1986).
-ever, the technique is ad-hoc and there is no principled way                 To conclude, the problem of competitive foraging in its en-
-of deciding how to combine the differential-quality informa-              tirety is highly complex. This model represents a first step
-tion sources, making it only moderately useful for the prob-              toward combining self and public information rationally to
-lem. There are few other investigations in this domain, but               infer the hidden richness of different patches and using this
-it is largely an open problem. Another approach we tried, is              inferred knowledge, along with beliefs about other agents’
-to start doubtful about public information, and put incremen-             intended actions, to inform future decisions. And this individ-
-tally more trust in the crowd, since the crowd is expected to             ually optimal, decentralized foraging strategy naturally leads
-have learned more about the environment as time passes. We                to IFD, the socially optimal solution for competitive foraging.
-implement this idea by decreasing the variance of the distri-
-bution p0 in eq. 2 with time, but it is not clear how to set the                               Acknowledgments
+
+more patches, and the increase in complexity is linear owing to the inference on patches being decoupled. Simulations
+for 3 and 4 patches show that the model achieves IFD without
+high computational demands.
+We believe our work is a step toward more sophisticated
+models of decision making in social scenarios. However, it
+also has limitations that leave scope for future inquiries, some
+of which we discuss here. The model of crowd-dynamics,
+eq. 2, is only approximate and needs to be revisited for
+more complex problems. This also means that we need
+ways to manage how much trust to place in public information, since not only the model of crowd-dynamics is approximate, an agent cannot trust other agents to be behaving
+optimally. Towards this trust management goal, we tried an
+inference method, called Perturbed Bayes (Jadbabaie et al.,
+2012), which provides a way to combine high quality selfinformation with the low-quality public information. However, the technique is ad-hoc and there is no principled way
+of deciding how to combine the differential-quality information sources, making it only moderately useful for the problem. There are few other investigations in this domain, but
+it is largely an open problem. Another approach we tried, is
+to start doubtful about public information, and put incrementally more trust in the crowd, since the crowd is expected to
+have learned more about the environment as time passes. We
+implement this idea by decreasing the variance of the distribution p0 in eq. 2 with time, but it is not clear how to set the
 rate of this decrease in a principled manner.
-                                                                          This project was supported by Qualcomm’s Fellow Mentor
-    Another way to improve the performance in a non-                      Advisor Fellowship to S. Ahmad and A. J. Yu; we thank Qual-
-stationary environment, is to use a Dynamic Belief Model                  comm mentors Yinyin Liu and Blythe Towal for helpful feed-
-(DBM) (Yu & Cohen, 2009), which assumes non-stationarity                  back. This material is based upon work supported in part by
-of the environment in the generative model, making agent                  the U. S. Army Research Laboratory and the U. S. Army Re-
-more aware during inference that resource levels can change               search Office under contract/grant number W911NF1110391.
+Another way to improve the performance in a nonstationary environment, is to use a Dynamic Belief Model
+(DBM) (Yu & Cohen, 2009), which assumes non-stationarity
+of the environment in the generative model, making agent
+more aware during inference that resource levels can change
 abruptly. Using a model such as DBM would improve not
-only the Naive Agents but also SABA, especially when com-                                          References
-bined with a deterministic decision policy, although the pa-
-rameter specifying the rate of change would have to be higher             Bikhchandani, S., Hirshleifer, D., & Welch, I. (1992). A
-in Naive Agent compared to SABA, as it would need to                         theory of fads, fashion, custom, and cultural change as in-
-account for reward variability not only due to true reward                   formational cascades. Journal of political Economy, 992–
-non-stationarity but also net profitability due to the pres-                 1026.
-ence/absence of other agents.                                             Boyd, R. (1988). Culture and the evolutionary process. Uni-
-    Another direction for extension is to consider a scenario in             versity of Chicago Press.
-                                                                     114
+only the Naive Agents but also SABA, especially when combined with a deterministic decision policy, although the parameter specifying the rate of change would have to be higher
+in Naive Agent compared to SABA, as it would need to
+account for reward variability not only due to true reward
+non-stationarity but also net profitability due to the presence/absence of other agents.
+Another direction for extension is to consider a scenario in
 
-Dehaene, S., Dehaene-Lambertz, G., & Cohen, L. (1998).               Olsson, O., & Holmgren, N. M. (1998). The survival-rate-
-  Abstract representations of numbers in the animal and hu-            maximizing policy for bayesian foragers: wait for good
-  man brain. Trends in neurosciences, 21(8), 355–361.                  news. Behavioral Ecology, 9(4), 345–353.
-Dill, L. M. (1987). Animal decision making and its ecological        Parker, G., & Sutherland, W. (1986). Ideal free distributions
-  consequences: the future of aquatic ecology and behaviour.           when individuals differ in competitive ability: phenotype-
-  Canadian Journal of Zoology, 65(4), 803–811.                         limited ideal free models. Animal Behaviour, 34(4), 1222–
-Dreisig, H. (1995). Ideal free distributions of nectar foraging        1242.
-  bumblebees. Oikos, 161–172.                                        Perry, G., & Pianka, E. R. (1997). Animal foraging: past,
-Galef Jr, B. G., & Laland, K. N. (2005). Social learning               present and future. Trends in Ecology & Evolution, 12(9),
-  in animals: empirical studies and theoretical models. Bio-           360–364.
-  science, 55(6), 489–499.                                           Pyke, G. H. (1984). Optimal foraging theory: a critical re-
-Goldstone, R. L., & Ashpole, B. C. (2004). Human foraging              view. Annual review of ecology and systematics, 15, 523–
-  behavior in a virtual environment. Psychonomic Bulletin              575.
-  & Review, 11(3), 508–514.                                          Pyke, G. H., Pulliam, H. R., & Charnov, E. L. (1977). Opti-
-Goldstone, R. L., Ashpole, B. C., & Roberts, M. E. (2005).             mal foraging: a selective review of theory and tests. Quar-
-  Knowledge of resources and competitors in human forag-               terly Review of Biology, 137–154.
-  ing. Psychonomic Bulletin & Review, 12(1), 81–87.                  Roberts, M. E., & Goldstone, R. L. (2006). Epicure: Spa-
-Green, R. F. (1980). Bayesian birds: a simple example of               tial and knowledge limitations in group foraging. Adaptive
-  oaten’s stochastic model of optimal foraging. Theoretical            Behavior, 14(4), 291–314.
-  Population Biology, 18(2), 244–256.                                Sernland, E., Olsson, O., & Holmgren, N. M. (2003). Does
-Griffith, V., & Yaeger, L. S. (2011). Ideal free distribution          information sharing promote group foraging? Proceed-
-  in agents with evolved neural architectures. arXiv preprint          ings of the Royal Society of London. Series B: Biological
-  arXiv:1112.3574.                                                     Sciences, 270(1520), 1137–1141.
-Harper, D. (1982). Competitive foraging in mallards:ideal            Seth, A. K. (2011). Optimal agent-based models of action
-  freeducks. Animal Behaviour, 30(2), 575–584.                         selection. Modeling natural action selection, Cambridge
-Jadbabaie, A., Molavi, P., Sandroni, A., & Tahbaz-Salehi, A.           University Press.
-  (2012). Non-bayesian social learning. Games and Eco-               Sokolowski, M., Tonneau, F., & Baqué, E. F. i. (1999). The
-  nomic Behavior.                                                      ideal free distribution in humans: An experimental test.
-Kraft, J. R., & Baum, W. M. (2001). Group choice: The ideal            Psychonomic bulletin & review, 6(1), 157–161.
-  free distribution of human social behavior. Journal of the         Templeton, J. J., & Giraldeau, L.-A. (1995). Patch assessment
-  Experimental Analysis of Behavior, 76(1), 21–42.                     in foraging flocks of european starlings: evidence for the
-Krebs, J. R. (1973). Social learning and the significance of           use of public information. Behavioral Ecology, 6(1), 65–
-  mixed-species flocks of chickadees (parus spp.). Canadian            72.
-  Journal of Zoology, 51(12), 1275–1288.
-                                                                     Valone, T. J. (1989). Group foraging, public information, and
-Krivan, V., Cressman, R., Schneider, C., et al. (2008).                patch estimation. Oikos, 357–363.
-  The ideal free distribution: a review and synthesis of the
-                                                                     Valone, T. J., & Templeton, J. J. (2002). Public information
-  game-theoretic perspective. Theoretical population biol-
-                                                                       for the assessment of quality: a widespread social phe-
-  ogy, 73(3), 403–425.
-                                                                       nomenon. Philosophical Transactions of the Royal Soci-
-Lima, S. L. (1985). Sampling behavior of starlings foraging            ety of London. Series B: Biological Sciences, 357(1427),
-  in simple patchy environments. Behavioral Ecology and                1549–1557.
-  Sociobiology, 16(2), 135–142.
-                                                                     Walker, J. C. (2011). The evolution of optimal foraging
-Livoreil, B., & Giraldeau, L.-A. (1997). Patch departure deci-
-                                                                       strategies in populations of digital organisms. In Proceed-
-  sions by spice finches foraging singly or in groups. Animal
-                                                                       ings of the 13th annual conference on genetic and evolu-
-  behaviour, 54(4), 967–977.
-                                                                       tionary computation (pp. 203–210).
+which the reward options are located (embedded) over a terrain, and the hidden reward abundance level is an unknown
+continuous function over that terrain – this would also allow
+the possibility of including patch-switching cost that depends
+on the distance traveled between two options. However, this
+scenario poses serious tractability issues since the number of
+patches is not finite (or even countable) any more. One way
+to get around this is to use a parametric reward surface or a
+Bayesian non-parametric formulation such as a Gaussian Process (Williams & Rasmussen, 1996). Then each sample can
+be used to update the agent’s beliefs about the entire terrain.
+Yet another direction for future enquiry is to consider a collection of heterogenous agents who may differ in capability,
+costs, and goals. Indeed, heterogeneity has been observed
+in animals, in which more dominant members may “despotically” monopolize some food patches and push the population distribution away from IFD (Parker & Sutherland, 1986).
+To conclude, the problem of competitive foraging in its entirety is highly complex. This model represents a first step
+toward combining self and public information rationally to
+infer the hidden richness of different patches and using this
+inferred knowledge, along with beliefs about other agents’
+intended actions, to inform future decisions. And this individually optimal, decentralized foraging strategy naturally leads
+to IFD, the socially optimal solution for competitive foraging.
+
+Acknowledgments
+This project was supported by Qualcomm’s Fellow Mentor
+Advisor Fellowship to S. Ahmad and A. J. Yu; we thank Qualcomm mentors Yinyin Liu and Blythe Towal for helpful feedback. This material is based upon work supported in part by
+the U. S. Army Research Laboratory and the U. S. Army Research Office under contract/grant number W911NF1110391.
+
+References
+Bikhchandani, S., Hirshleifer, D., & Welch, I. (1992). A
+theory of fads, fashion, custom, and cultural change as informational cascades. Journal of political Economy, 992–
+1026.
+Boyd, R. (1988). Culture and the evolutionary process. University of Chicago Press.
+
+114
+
+Dehaene, S., Dehaene-Lambertz, G., & Cohen, L. (1998).
+Abstract representations of numbers in the animal and human brain. Trends in neurosciences, 21(8), 355–361.
+Dill, L. M. (1987). Animal decision making and its ecological
+consequences: the future of aquatic ecology and behaviour.
+Canadian Journal of Zoology, 65(4), 803–811.
+Dreisig, H. (1995). Ideal free distributions of nectar foraging
+bumblebees. Oikos, 161–172.
+Galef Jr, B. G., & Laland, K. N. (2005). Social learning
+in animals: empirical studies and theoretical models. Bioscience, 55(6), 489–499.
+Goldstone, R. L., & Ashpole, B. C. (2004). Human foraging
+behavior in a virtual environment. Psychonomic Bulletin
+& Review, 11(3), 508–514.
+Goldstone, R. L., Ashpole, B. C., & Roberts, M. E. (2005).
+Knowledge of resources and competitors in human foraging. Psychonomic Bulletin & Review, 12(1), 81–87.
+Green, R. F. (1980). Bayesian birds: a simple example of
+oaten’s stochastic model of optimal foraging. Theoretical
+Population Biology, 18(2), 244–256.
+Griffith, V., & Yaeger, L. S. (2011). Ideal free distribution
+in agents with evolved neural architectures. arXiv preprint
+arXiv:1112.3574.
+Harper, D. (1982). Competitive foraging in mallards:ideal
+freeducks. Animal Behaviour, 30(2), 575–584.
+Jadbabaie, A., Molavi, P., Sandroni, A., & Tahbaz-Salehi, A.
+(2012). Non-bayesian social learning. Games and Economic Behavior.
+Kraft, J. R., & Baum, W. M. (2001). Group choice: The ideal
+free distribution of human social behavior. Journal of the
+Experimental Analysis of Behavior, 76(1), 21–42.
+Krebs, J. R. (1973). Social learning and the significance of
+mixed-species flocks of chickadees (parus spp.). Canadian
+Journal of Zoology, 51(12), 1275–1288.
+Krivan, V., Cressman, R., Schneider, C., et al. (2008).
+The ideal free distribution: a review and synthesis of the
+game-theoretic perspective. Theoretical population biology, 73(3), 403–425.
+Lima, S. L. (1985). Sampling behavior of starlings foraging
+in simple patchy environments. Behavioral Ecology and
+Sociobiology, 16(2), 135–142.
+Livoreil, B., & Giraldeau, L.-A. (1997). Patch departure decisions by spice finches foraging singly or in groups. Animal
+behaviour, 54(4), 967–977.
 Madden, G. J., Peden, B. F., & Yamaguchi, T. (2002). Human
-                                                                     Williams, C. K. I., & Rasmussen, C. E. (1996). Gaussian
-  group choice: Discrete-trial and free-operant tests of the
-                                                                       processes for regression. In M. M. D. S. Touretzky &
-  ideal free distribution. Journal of the Experimental Analy-
-                                                                       M. E. Hasselmo (Eds.), Advances in neural information
-  sis of Behavior, 78(1), 1–15.
-                                                                       processing systems 8 (p. 514-20). Cambridge, MA: MIT
-Milinski, M. (1979). An evolutionarily stable feeding strat-           Press.
-  egy in sticklebacks1. Zeitschrift für Tierpsychologie, 51(1),
-                                                                     Yu, A. J., & Cohen, J. D. (2009). Sequential effects: Supersti-
-  36–40.
-                                                                       tion or rational behavior? Advances in Neural Information
+group choice: Discrete-trial and free-operant tests of the
+ideal free distribution. Journal of the Experimental Analysis of Behavior, 78(1), 1–15.
+Milinski, M. (1979). An evolutionarily stable feeding strategy in sticklebacks1. Zeitschrift für Tierpsychologie, 51(1),
+36–40.
 Nash, J. F., et al. (1950). Equilibrium points in n-person
-                                                                       Processing Systems, 21, 1873-80.
-  games. Proceedings of the national academy of sciences,
-  36(1), 48–49.
-                                                                 115
+games. Proceedings of the national academy of sciences,
+36(1), 48–49.
 
+Olsson, O., & Holmgren, N. M. (1998). The survival-ratemaximizing policy for bayesian foragers: wait for good
+news. Behavioral Ecology, 9(4), 345–353.
+Parker, G., & Sutherland, W. (1986). Ideal free distributions
+when individuals differ in competitive ability: phenotypelimited ideal free models. Animal Behaviour, 34(4), 1222–
+1242.
+Perry, G., & Pianka, E. R. (1997). Animal foraging: past,
+present and future. Trends in Ecology & Evolution, 12(9),
+360–364.
+Pyke, G. H. (1984). Optimal foraging theory: a critical review. Annual review of ecology and systematics, 15, 523–
+575.
+Pyke, G. H., Pulliam, H. R., & Charnov, E. L. (1977). Optimal foraging: a selective review of theory and tests. Quarterly Review of Biology, 137–154.
+Roberts, M. E., & Goldstone, R. L. (2006). Epicure: Spatial and knowledge limitations in group foraging. Adaptive
+Behavior, 14(4), 291–314.
+Sernland, E., Olsson, O., & Holmgren, N. M. (2003). Does
+information sharing promote group foraging? Proceedings of the Royal Society of London. Series B: Biological
+Sciences, 270(1520), 1137–1141.
+Seth, A. K. (2011). Optimal agent-based models of action
+selection. Modeling natural action selection, Cambridge
+University Press.
+Sokolowski, M., Tonneau, F., & Baqué, E. F. i. (1999). The
+ideal free distribution in humans: An experimental test.
+Psychonomic bulletin & review, 6(1), 157–161.
+Templeton, J. J., & Giraldeau, L.-A. (1995). Patch assessment
+in foraging flocks of european starlings: evidence for the
+use of public information. Behavioral Ecology, 6(1), 65–
+72.
+Valone, T. J. (1989). Group foraging, public information, and
+patch estimation. Oikos, 357–363.
+Valone, T. J., & Templeton, J. J. (2002). Public information
+for the assessment of quality: a widespread social phenomenon. Philosophical Transactions of the Royal Society of London. Series B: Biological Sciences, 357(1427),
+1549–1557.
+Walker, J. C. (2011). The evolution of optimal foraging
+strategies in populations of digital organisms. In Proceedings of the 13th annual conference on genetic and evolutionary computation (pp. 203–210).
+Williams, C. K. I., & Rasmussen, C. E. (1996). Gaussian
+processes for regression. In M. M. D. S. Touretzky &
+M. E. Hasselmo (Eds.), Advances in neural information
+processing systems 8 (p. 514-20). Cambridge, MA: MIT
+Press.
+Yu, A. J., & Cohen, J. D. (2009). Sequential effects: Superstition or rational behavior? Advances in Neural Information
+Processing Systems, 21, 1873-80.
+
+115
+
+

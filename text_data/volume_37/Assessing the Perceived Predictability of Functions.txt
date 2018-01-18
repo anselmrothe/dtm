@@ -1,414 +1,744 @@
-                     Assessing the Perceived Predictability of Functions
+Assessing the Perceived Predictability of Functions
 Eric Schulz1 (e.schulz@cs.ucl.ac.uk), Joshua B. Tenenbaum2 (jbt@mit.edu), David N. Reshef 3 (dnreshef@mit.edu),
-          Maarten Speekenbrink1 (m.speekenbrink@ucl.ac.uk), & Samuel J. Gershman2 (sjgershm@mit.edu)
-                1
-                  Department of Experimental Psychology, University College London, London, WC1H 0AP
-                     2
-                       Department of Brain and Cognitive Sciences, MIT, Cambridge, MA 02139, USA
-            3
-              Department of Electrical Engineering and Computer Science, MIT, Cambridge, MA 02139, USA
-                           Abstract                               provides a good fit to human function learning data
-     How do we perceive the predictability of functions? We       (Griffiths et al., 2009). GP regression also lends itself
-     derive a rational measure of a function’s predictabil-       to mathematical analysis, which we utilize in our mod-
-     ity based on Gaussian process learning curves. Using         eling of predictability.
-     this measure, we show that the smoothness of a func-
-     tion can be more important to predictability judgments
-     than the variance of additive noise or the number of
-     samples. These patterns can be captured well by the                                Background
-     learning curve for Gaussian process regression, which in
-     turn crucially depends on the eigenvalue spectrum of
-     the covariance function. Using approximate bounds on
-     the learning curve, we model participants’ predictabil-      Most previous research on human function learning has
-     ity judgments about sampled functions and find that          focused on interpolation and extrapolation (see Mc-
-     smoothness is indeed a better predictor for perceived        Daniel & Busemeyer, 2005, for a review). In an interpo-
-     predictability than both the variance and the sample
-     size. This means that it can sometimes be preferable         lation task, participants are presented with input-output
-     to learn about noisy but smooth functions instead of         pairs and then asked to make predictions about the out-
-     deterministic complex ones.                                  puts for test inputs that are between the training inputs.
-     Keywords: Function learning, predictability, smooth-         An extrapolation task is similar, but uses test inputs that
-     ness, Gaussian processes
-                                                                  are outside the convex hull of training inputs. Studies
-                        Introduction                              using these tasks have revealed what kinds of functions
-                                                                  are easier to learn, and what kinds of inductive biases
-  Learning about functions from noisy observations is a
-                                                                  guide predictive judgments. For example, linear func-
-  ubiquitous task. How much food should I cook to sat-
-                                                                  tions are usually easier to learn than non-linear func-
-  isfy every guest at a party? How much do I have to turn
-                                                                  tions, and non-monotonic functions are easier to learn
-  the faucet handle in order to get the right temperature?
-                                                                  than monotonic functions (Brehmer, 1974). People tend
-  An important problem facing a learner in the real world
-                                                                  to exhibit a bias towards functions with positive linear
-  is choosing what functions to learn. While the number
-                                                                  slopes and an intercept of zero (Kwantes & Neal, 2006;
-  of functional relations between variables is virtually lim-
-                                                                  Kalish et al., 2007). Other studies have shown that peo-
-  itless, only predictable functions are worth learning. For
-                                                                  ple are able to partition the input space into multiple
-  example, one might attempt to learn a function relat-
-                                                                  distinct functions (Kalish et al., 2004).
-  ing gas prices to batting averages, but this function is
-  unlikely to be predictable in the sense that the learned           A number of models have been proposed to account
-  function can generalize accurately to new inputs. In this       for these phenomena. Early theories posited the use
-  paper, we provide a formal framework for predictability,        of explicit rule-based functions (Brehmer, 1974; Carroll,
-  and study its implications for human function learning.         1963; Koh & Meyer, 1991), but these theories have trou-
-     To appreciate why judging predictability is difficult,       ble accounting for order-of-difficulty effects in interpola-
-  consider two kinds of functions: one that is complex            tion tasks (McDaniel & Busemeyer, 2005), fail to pre-
-  (non-smooth) but nearly deterministic, and another that         dict extrapolation performance (DeLosh et al., 1997),
-  is simple (smooth) but noisy. Which function is more            and are unable to learn a partitioning of the input space
-  predictable? The answer is not obvious, but we show             (Kalish et al., 2004). Later theories used connectionist
-  experimentally that human judgments exhibit a system-           networks to capture many of these phenomena (DeLosh
-  atic preference in accordance with our theoretical analy-       et al., 1997; Kalish et al., 2004; McDaniel & Busemeyer,
-  sis. Specifically, we find that—both theoretically and          2005). In some cases (e.g., Kalish et al., 2004; McDaniel
-  empirically—smoothness is a stronger determinant of             & Busemeyer, 2005) these networks incorporated rule-
-  predictability than noisiness.                                  based functions into a hybrid architecture. One limita-
-     To arrive at this result, we adopt a rational theory         tion of these theories is that they lack an obvious way
-  of function learning based on Gaussian process (GP) re-         to compute predictability. In the next section, we de-
-  gression (Rasmussen & Williams, 2006). This theory              scribe the GP theory of function learning (Griffiths et al.,
-  unifies a number of earlier accounts (Koh & Meyer, 1991;        2009), which offers a probabilistic perspective on pre-
-  DeLosh et al., 1997; McDaniel & Busemeyer, 2005), and           dictability.
-                                                              2116
+Maarten Speekenbrink1 (m.speekenbrink@ucl.ac.uk), & Samuel J. Gershman2 (sjgershm@mit.edu)
+1
+Department of Experimental Psychology, University College London, London, WC1H 0AP
+2
+Department of Brain and Cognitive Sciences, MIT, Cambridge, MA 02139, USA
+3
+Department of Electrical Engineering and Computer Science, MIT, Cambridge, MA 02139, USA
+Abstract
 
-            Gaussian process regression                                the generalization error is lower as predictions will be
-Instead of assuming a parametric function class (as in                 closer to the underlying truth of the the actual function.
-early theories of function learning; Brehmer, 1974; Car-               Therefore, these two things, predictability and the gen-
-roll, 1963; Koh & Meyer, 1991), GP regression places a                 eralization error, are two sides of the same coin (Goerg,
-prior distribution (namely, a GP) directly over the space              2013). The learning curves for GP regression can be
-of functions and carries out Bayesian inference in func-               used to derive a priori predictions about how different
-tion space (Rasmussen & Williams, 2006). Let f (x) be                  properties of functions such as smoothness, variance, and
-a function mapping an input x to an output y. A GP                     sample size influence perceived predictability. In partic-
-defines a distribution p(f ) over such functions. A GP is              ular, factors that increase the generalization error should
-parametrized by a mean function m(x) and a covariance                  lead to lower predictability judgments.
-function (or “kernel”) k(x, x0 ):                                         Given a dataset x and an error function L(·, ·) which
-                                                                       measures the difference between the predicted and true
-           m(x) = E [f (x)]                                    (1)     function values, the data-dependent generalization er-
-               0                              0
-         k(x, x ) = E [(f (x) − m(x))(f (x ) − m(x ))]   0
-                                                               (2)     ror is defined as the expected error on a test input x0 ,
-                                                                       marginalizing over the latent function:
-Suppose we have observed n input-output pairs, (x, y),                                    Z        Z
-where x = [x1 , . . . , xn ]> and y = [y1 , . . . , yn ]> . We as-                E(x) =     p(f )     L(f (x0 ), f¯(x0 )) dx0 df, (6)
-sume an additive noise model:                                                              f        x0
-                                                                       where f¯(x) = E[f (x0 )|x, y]. It is called the data-
-               y = f (x) + ,        ∼ N (0, σ 2 ),           (3)
-                                                                       dependent error as it still depends on the position of
-where σ 2 is the noise variance. Given a GP prior on the               the observed input points. The data-independent gener-
-functions, f ∼ GP(m, k), the posterior distribution over               alization error is defined as the expectation of E(x) with
-f (x0 ) given input x0 is Gaussian with mean and variance              respect to a density p(x) on inputs with sample size n:
-given by:                                                                                          Z
-                                                                                          E(n) =       p(x)E(x) dx.                (7)
-         E[f (x0 )|x, y] = k> (K + σ 2 I)−1 y                  (4)                                   x
-               0               0  0       >         2   −1             It is called the data-independent error as it does not de-
-        V[f (x )|x, y] = k(x , x ) − k (K + σ I)           k   (5)
-                                                                       pend on the observations per se, but rather provides an
-where k = [k(x1 , x0 ), . . . , k(xn , x0 )]> and K is the pos-        a priori expectation of the error after n sample point
-itive definite kernel matrix of covariances evaluated at               have been observed. A learning curve is constructed
-the training inputs: Kij = k(xi , xj ). The GP theory                  by calculating the data-independent generalization er-
-of function learning assumes that participants report                  ror as a function of the sample size. While the learning
-E[f (x0 )] when asked to interpolate or extrapolate a func-            curve is not analytically tractable (except for a few spe-
-tion (Griffiths et al., 2009).                                         cial cases), it is possible to derive a lower bound using
-   The covariance function encodes assumptions about                   the eigenfunction     expansion of the covariance function:
-                                                                       k(x, x0 ) = i λi φi (x)φi (x), where {λi } is the spectrum
-                                                                                     P
-what sorts of functions are probable a priori (i.e., it pro-
-vides a form of inductive bias). Typically, this inductive             of eigenvalues (decreasing as a function of i) and {φi (x)}
-bias corresponds to assumptions about the smoothness                   are the eigenfunctions.
-of functions over the input space, but assumptions about                  As shown by Opper & Vivarelli (1999), the generaliza-
-periodicity, linearity, and non-stationarity can also be               tion error for the squared-loss error function, L(y, ŷ) =
-encoded in the covariance function. These assumptions                  |y − ŷ|2 , can be lower-bounded by:
-have important implications for learning and predictabil-
-                                                                                                        N
-ity, as we explore in the next section.                                                                X       λi
-                                                                                          E(n) ≥ σ 2                   ,           (8)
-                                                                                                           σ 2 + nλi
-                      Learning curves                                                                  i=1
-Theoretical learning curves relate the expected general-               where N is the number of non-zero eigenvalues. Loosely
-ization error of a model to the amount of training data                speaking, the eigenvalue spectrum summarizes how the
-(Opper & Vivarelli, 1999; Williams & Vivarelli, 2000;                  correlation between the function values of two points
-Sollich & Halees, 2002). They can be seen as a math-                   changes as a function of their input distance. Smoother
-ematical expression of a function’s predictability, given              functions have eigenvalues that decay more slowly across
-assumptions about the prior over functions, the noise                  the spectrum. Smooth functions have long-distance cor-
-process, and the distribution of inputs. Intuitively, a                relations, which makes it easier to learn and therefore
-function exhibits a higher predictability if it is easier to           leads to smaller generalization errors.
-predict new input points that are randomly chosen from                    The theoretical predictions of learning curves can be
-the input space. If points are easier to predict, then                 seen even more clearly when we look at covariance func-
-                                                                   2117
+provides a good fit to human function learning data
+(Griffiths et al., 2009). GP regression also lends itself
+to mathematical analysis, which we utilize in our modeling of predictability.
 
-tions with power-law spectral decay1 (Sollich & Halees,
-2002): λi ∝ i−r . Asymptotically (E(n)  σ 2 ), the learn-
-                                                                               Functions sampled from Matern kernel
-                                                                                             Sampling from s=1
-ing curve scales as                                                        4
-                                                                           2
-                                     − r−1
-                                σ2
-                                        r
-                                                                           0
-                   E(n) ∝                     .           (9)
-                                n                                      −2
-                                                                       −4
-This analysis tells us that the most important factor                                        Sampling from s=2
-                                                                           4
+How do we perceive the predictability of functions? We
+derive a rational measure of a function’s predictability based on Gaussian process learning curves. Using
+this measure, we show that the smoothness of a function can be more important to predictability judgments
+than the variance of additive noise or the number of
+samples. These patterns can be captured well by the
+learning curve for Gaussian process regression, which in
+turn crucially depends on the eigenvalue spectrum of
+the covariance function. Using approximate bounds on
+the learning curve, we model participants’ predictability judgments about sampled functions and find that
+smoothness is indeed a better predictor for perceived
+predictability than both the variance and the sample
+size. This means that it can sometimes be preferable
+to learn about noisy but smooth functions instead of
+deterministic complex ones.
+Keywords: Function learning, predictability, smoothness, Gaussian processes
+
+Background
+
+Introduction
+Learning about functions from noisy observations is a
+ubiquitous task. How much food should I cook to satisfy every guest at a party? How much do I have to turn
+the faucet handle in order to get the right temperature?
+An important problem facing a learner in the real world
+is choosing what functions to learn. While the number
+of functional relations between variables is virtually limitless, only predictable functions are worth learning. For
+example, one might attempt to learn a function relating gas prices to batting averages, but this function is
+unlikely to be predictable in the sense that the learned
+function can generalize accurately to new inputs. In this
+paper, we provide a formal framework for predictability,
+and study its implications for human function learning.
+To appreciate why judging predictability is difficult,
+consider two kinds of functions: one that is complex
+(non-smooth) but nearly deterministic, and another that
+is simple (smooth) but noisy. Which function is more
+predictable? The answer is not obvious, but we show
+experimentally that human judgments exhibit a systematic preference in accordance with our theoretical analysis. Specifically, we find that—both theoretically and
+empirically—smoothness is a stronger determinant of
+predictability than noisiness.
+To arrive at this result, we adopt a rational theory
+of function learning based on Gaussian process (GP) regression (Rasmussen & Williams, 2006). This theory
+unifies a number of earlier accounts (Koh & Meyer, 1991;
+DeLosh et al., 1997; McDaniel & Busemeyer, 2005), and
+
+Most previous research on human function learning has
+focused on interpolation and extrapolation (see McDaniel & Busemeyer, 2005, for a review). In an interpolation task, participants are presented with input-output
+pairs and then asked to make predictions about the outputs for test inputs that are between the training inputs.
+An extrapolation task is similar, but uses test inputs that
+are outside the convex hull of training inputs. Studies
+using these tasks have revealed what kinds of functions
+are easier to learn, and what kinds of inductive biases
+guide predictive judgments. For example, linear functions are usually easier to learn than non-linear functions, and non-monotonic functions are easier to learn
+than monotonic functions (Brehmer, 1974). People tend
+to exhibit a bias towards functions with positive linear
+slopes and an intercept of zero (Kwantes & Neal, 2006;
+Kalish et al., 2007). Other studies have shown that people are able to partition the input space into multiple
+distinct functions (Kalish et al., 2004).
+A number of models have been proposed to account
+for these phenomena. Early theories posited the use
+of explicit rule-based functions (Brehmer, 1974; Carroll,
+1963; Koh & Meyer, 1991), but these theories have trouble accounting for order-of-difficulty effects in interpolation tasks (McDaniel & Busemeyer, 2005), fail to predict extrapolation performance (DeLosh et al., 1997),
+and are unable to learn a partitioning of the input space
+(Kalish et al., 2004). Later theories used connectionist
+networks to capture many of these phenomena (DeLosh
+et al., 1997; Kalish et al., 2004; McDaniel & Busemeyer,
+2005). In some cases (e.g., Kalish et al., 2004; McDaniel
+& Busemeyer, 2005) these networks incorporated rulebased functions into a hybrid architecture. One limitation of these theories is that they lack an obvious way
+to compute predictability. In the next section, we describe the GP theory of function learning (Griffiths et al.,
+2009), which offers a probabilistic perspective on predictability.
+
+2116
+
+Gaussian process regression
+Instead of assuming a parametric function class (as in
+early theories of function learning; Brehmer, 1974; Carroll, 1963; Koh & Meyer, 1991), GP regression places a
+prior distribution (namely, a GP) directly over the space
+of functions and carries out Bayesian inference in function space (Rasmussen & Williams, 2006). Let f (x) be
+a function mapping an input x to an output y. A GP
+defines a distribution p(f ) over such functions. A GP is
+parametrized by a mean function m(x) and a covariance
+function (or “kernel”) k(x, x0 ):
+m(x) = E [f (x)]
+
+(1)
+
+0
+
+0
+
+0
+
+k(x, x ) = E [(f (x) − m(x))(f (x ) − m(x ))]
+
+(2)
+
+Suppose we have observed n input-output pairs, (x, y),
+where x = [x1 , . . . , xn ]> and y = [y1 , . . . , yn ]> . We assume an additive noise model:
+ ∼ N (0, σ 2 ),
+
+y = f (x) + ,
+
+(3)
+
+where σ 2 is the noise variance. Given a GP prior on the
+functions, f ∼ GP(m, k), the posterior distribution over
+f (x0 ) given input x0 is Gaussian with mean and variance
+given by:
+E[f (x0 )|x, y] = k> (K + σ 2 I)−1 y
+0
+
+0
+
+0
+
+>
+
+the generalization error is lower as predictions will be
+closer to the underlying truth of the the actual function.
+Therefore, these two things, predictability and the generalization error, are two sides of the same coin (Goerg,
+2013). The learning curves for GP regression can be
+used to derive a priori predictions about how different
+properties of functions such as smoothness, variance, and
+sample size influence perceived predictability. In particular, factors that increase the generalization error should
+lead to lower predictability judgments.
+Given a dataset x and an error function L(·, ·) which
+measures the difference between the predicted and true
+function values, the data-dependent generalization error is defined as the expected error on a test input x0 ,
+marginalizing over the latent function:
+Z
+Z
+p(f )
+L(f (x0 ), f¯(x0 )) dx0 df,
+(6)
+E(x) =
+f
+
+where f¯(x) = E[f (x0 )|x, y]. It is called the datadependent error as it still depends on the position of
+the observed input points. The data-independent generalization error is defined as the expectation of E(x) with
+respect to a density p(x) on inputs with sample size n:
+Z
+E(n) =
+p(x)E(x) dx.
+(7)
+
+(4)
+2
+
+−1
+
+V[f (x )|x, y] = k(x , x ) − k (K + σ I)
+
+k
+
+(5)
+
+where k = [k(x1 , x0 ), . . . , k(xn , x0 )]> and K is the positive definite kernel matrix of covariances evaluated at
+the training inputs: Kij = k(xi , xj ). The GP theory
+of function learning assumes that participants report
+E[f (x0 )] when asked to interpolate or extrapolate a function (Griffiths et al., 2009).
+The covariance function encodes assumptions about
+what sorts of functions are probable a priori (i.e., it provides a form of inductive bias). Typically, this inductive
+bias corresponds to assumptions about the smoothness
+of functions over the input space, but assumptions about
+periodicity, linearity, and non-stationarity can also be
+encoded in the covariance function. These assumptions
+have important implications for learning and predictability, as we explore in the next section.
+
+x0
+
+x
+
+It is called the data-independent error as it does not depend on the observations per se, but rather provides an
+a priori expectation of the error after n sample point
+have been observed. A learning curve is constructed
+by calculating the data-independent generalization error as a function of the sample size. While the learning
+curve is not analytically tractable (except for a few special cases), it is possible to derive a lower bound using
+the eigenfunction
+expansion of the covariance function:
+P
+k(x, x0 ) = i λi φi (x)φi (x), where {λi } is the spectrum
+of eigenvalues (decreasing as a function of i) and {φi (x)}
+are the eigenfunctions.
+As shown by Opper & Vivarelli (1999), the generalization error for the squared-loss error function, L(y, ŷ) =
+|y − ŷ|2 , can be lower-bounded by:
+E(n) ≥ σ 2
+
+N
+X
+
+λi
+,
+σ 2 + nλi
+
+(8)
+
+Learning curves
+
+i=1
+
+Theoretical learning curves relate the expected generalization error of a model to the amount of training data
+(Opper & Vivarelli, 1999; Williams & Vivarelli, 2000;
+Sollich & Halees, 2002). They can be seen as a mathematical expression of a function’s predictability, given
+assumptions about the prior over functions, the noise
+process, and the distribution of inputs. Intuitively, a
+function exhibits a higher predictability if it is easier to
+predict new input points that are randomly chosen from
+the input space. If points are easier to predict, then
+
+where N is the number of non-zero eigenvalues. Loosely
+speaking, the eigenvalue spectrum summarizes how the
+correlation between the function values of two points
+changes as a function of their input distance. Smoother
+functions have eigenvalues that decay more slowly across
+the spectrum. Smooth functions have long-distance correlations, which makes it easier to learn and therefore
+leads to smaller generalization errors.
+The theoretical predictions of learning curves can be
+seen even more clearly when we look at covariance func-
+
+2117
+
+tions with power-law spectral decay1 (Sollich & Halees,
+2002): λi ∝ i−r . Asymptotically (E(n)  σ 2 ), the learning curve scales as
+
+E(n) ∝
+
+σ2
+n
+
+Functions sampled from Matern kernel
+Sampling from s=1
+
+4
+2
+
+− r−1
+r
+.
+
+0
+
+(9)
+
+−2
+−4
+
+This analysis tells us that the most important factor
 influencing a GP’s learning curve is the smoothness of
-the covariance function (parametrized in terms of the                      2
-spectral decay rate r). The generalization error de-                f(x)   0
-pends polynomially on the variance but exponentially on                −2
-smoothness. The implication is that noisy, smooth func-                −4
-                                                                                             Sampling from s=3
-tions are more predictable than deterministic, complex                     4
-functions. This is intuitive, because smooth functions                     2
-allow data to be more strongly aggregated across differ-                   0
-ent input points, whereas anything one can learn about
-                                                                       −2
+the covariance function (parametrized in terms of the
+spectral decay rate r). The generalization error depends polynomially on the variance but exponentially on
+smoothness. The implication is that noisy, smooth functions are more predictable than deterministic, complex
+functions. This is intuitive, because smooth functions
+allow data to be more strongly aggregated across different input points, whereas anything one can learn about
 a complex function is very local.
-                                                                       −4
-                                                                               0.0     2.5          5.0          7.5   10.0
-           Parametrizing smoothness                                                              Input x
+
+Sampling from s=2
+
+4
+
+f(x)
+
+2
+0
+
+−2
+−4
+Sampling from s=3
+
+4
+2
+0
+−2
+−4
+0.0
+
+Parametrizing smoothness
+
+2.5
+
+5.0
+
+7.5
+
+10.0
+
+Input x
+
 To create functions with different levels of smoothness,
 we can employ a flexible class of stationary covariance
-functions constructed from the modified Bessel function          Figure 1: Samples from GPs with Matérn covari-
-(Rasmussen & Williams, 2006). Letting τ = |x − x0 |, the         ance functions of different orders.
+functions constructed from the modified Bessel function
+(Rasmussen & Williams, 2006). Letting τ = |x − x0 |, the
 Matérn class of covariance function is given by:
-                         √     !ν       √     !
-                                                                 two different covariance functions with two different de-
-                  21−ν     2ντ            2ντ
-        ks (τ ) =                 Kν            ,   (10)         grees of added noise. The learning curves were derived
-                  Γ(ν)     γ               γ
-                                                                 by averaging 10,000 learning trials over 100 sequentially
-                                                                 provided and evenly distributed input points.
+!ν
+!
+√
+√
+2ντ
+2ντ
+21−ν
+Kν
+,
+(10)
+ks (τ ) =
+Γ(ν)
+γ
+γ
 where γ > 0 is a length-scale parameter, Kν (·) is the
-                                                                   Again, we can see that smoothness matters more than
 modified Bessel function of order ν = s − 1/2 for integral
-                                                                 noise variance. However, there is a trade-off at the end of
 s, and Γ(·) is the gamma function. We will refer to s as
-                                                                 the scale as the added noise naturally defines the asymp-
 the order of the Gaussian process.
-                                                                 tote of the learning curves (if there is noise, one will
-   When s = 1, Eq. 10 corresponds to the Ornstein-
-                                                                 always be a bit wrong). With these theoretical and sim-
-Uhlenbeck covariance function, which generates a pro-
-                                                                 ulation results in hand, we now turn to an experimental
-cess that is not mean square differentiable (see Ras-
-                                                                 exploration of our formal account.
-mussen & Williams, 2006). This means that sampled
-functions will produce very rough outputs. When s > 1,                                   Experiment
-the process is s − 1 times mean square differentiable, be-
-                                                                 We asked participants to judge the predictability of func-
-coming smoother with increasing s. In the limit s → ∞,
-                                                                 tions (displayed as a scatter plot), while manipulating
-it is equivalent to a squared exponential covariance func-
-                                                                 the smoothness, noisiness and sample size. This allowed
-tion. We used Matérn functions of order up to 3 here as
-                                                                 us to quantitatively measure the influence of these dif-
+When s = 1, Eq. 10 corresponds to the OrnsteinUhlenbeck covariance function, which generates a process that is not mean square differentiable (see Rasmussen & Williams, 2006). This means that sampled
+functions will produce very rough outputs. When s > 1,
+the process is s − 1 times mean square differentiable, becoming smoother with increasing s. In the limit s → ∞,
+it is equivalent to a squared exponential covariance function. We used Matérn functions of order up to 3 here as
 it is empirically hard to distinguish between functions of
-                                                                 ferent factors on perceived predictability. Based on the
 higher order. Figure 1 shows several sampled functions
-                                                                 analysis learning curves described in the previous sec-
 from Matérn covariance functions of different orders. It
-                                                                 tion, we postulated the following 3 hypotheses:
 can clearly be seen how a higher s produces smoother
-functions.2                                                      1. Sample size and smoothness will correlate positively
-   In the simple one-dimensional cases used here we can             with perceived predictability, whereas noise variance
-also easily simulate learning curves. This will provide us          will correlate negatively.
+functions.2
+In the simple one-dimensional cases used here we can
+also easily simulate learning curves. This will provide us
 with a sanity check of the approximated learning curves
-derived above. Figure 2 shows the learning curves for            2. The effect of smoothness will be bigger than the effects
-   1
-                                                                    of noise and sample size.
-     The one-dimensional Ornstein-Uhlenbeck covariance
-function described in the next section has this property, with   3. The approximate learning curve given a sample will
+derived above. Figure 2 shows the learning curves for
+1
+The one-dimensional Ornstein-Uhlenbeck covariance
+function described in the next section has this property, with
 r = 2.
-   2
-     Further examples of functions are available at http://
-                                                                    be the most important factor influencing participants’
-bit.ly/1CtXfMA.                                                     predictability judgments overall.
-                                                             2118
+2
+Further examples of functions are available at http://
+bit.ly/1CtXfMA.
 
-                                                                         Figure 3: Screenshot of experiment.
-                                                                different characteristics governing the generating process
-Figure 2: Simulated learning curves. Generalization             were manipulated. The length-scale of the covariance
-error as a function of sample size for different levels of      function was fixed at γ = 1.
+Figure 1: Samples from GPs with Matérn covariance functions of different orders.
+two different covariance functions with two different degrees of added noise. The learning curves were derived
+by averaging 10,000 learning trials over 100 sequentially
+provided and evenly distributed input points.
+Again, we can see that smoothness matters more than
+noise variance. However, there is a trade-off at the end of
+the scale as the added noise naturally defines the asymptote of the learning curves (if there is noise, one will
+always be a bit wrong). With these theoretical and simulation results in hand, we now turn to an experimental
+exploration of our formal account.
+
+Experiment
+We asked participants to judge the predictability of functions (displayed as a scatter plot), while manipulating
+the smoothness, noisiness and sample size. This allowed
+us to quantitatively measure the influence of these different factors on perceived predictability. Based on the
+analysis learning curves described in the previous section, we postulated the following 3 hypotheses:
+1. Sample size and smoothness will correlate positively
+with perceived predictability, whereas noise variance
+will correlate negatively.
+2. The effect of smoothness will be bigger than the effects
+of noise and sample size.
+3. The approximate learning curve given a sample will
+be the most important factor influencing participants’
+predictability judgments overall.
+
+2118
+
+Figure 3: Screenshot of experiment.
+
+Figure 2: Simulated learning curves. Generalization
+error as a function of sample size for different levels of
 noisiness (σ 2 ) and smoothness (s).
-                                                                Results
-                                                                Figure 4 shows the relationship between different GP
-Participants                                                    parameters and perceived predictability. Increasing
-47 participants were recruited via prolificacademic.co.uk       smoothness resulted in higher perceived predictability,
-and received £1 for their participation. 27 participants        and increasing noise variance reduced perceived pre-
-were female and the overall age had a mean of 24 with           dictability. The overall effect of an increasing sample
-a standard deviation of 5.                                      size on the perceived predictability was negligible. This
-                                                                finding has at least two potential explanations: (1) It
-Task                                                            might be the case that participants overestimate the pre-
-Participants were told that they had to assess how well         dictability with small sample sizes as they tend to infer
-they could potentially predict different functions on a         smoother functions than the ones they actually see; (2)
-scale from 0 (not at all) to 100 (certainly). It was ex-        the equidistantly spaced inputs we presented to partic-
-plained to them that prediction means to assess a new in-       ipants might permit easier prediction, since they cover
-put point uniformly sampled from the input range. They          more space overall.
-were sequentially shown 50 different samples of func-
-tions and had to indicate how well they thought they                           Estimate       SD   t-value    Pr(>|t|)
-could predict a newly sampled point of that function.              Intercept        41.70    1.82     22.93        0.00
-The functions were created online using Javascript.3 A                     n         0.79    1.02       0.77       0.44
-screenshot of the experiment is shown in Figure 3.                         s         8.00    0.72     11.11        0.00
-                                                                          σ2        -5.21    0.66      -7.90       0.00
-Design                                                                 n×s           1.48    0.38       3.90       0.00
-Participants saw 50 trials where points were sampled                 n × σ2         -1.42    0.38      -3.73       0.00
-equidistantly from different GPs with the Matérn co-                 s × σ2        -2.12    0.38      -5.54       0.00
-variance function. The parameters for the smoothness
-s = [1, 2, 3], the variance σ 2 = [0, 0.05, 0.1, 0.15, 0.2],    Table 1: Parameter estimates from mixed-effects
-and sample size n = [10, 20, 30, 40, 50] were randomly          regression analysis.
+
+Participants
+47 participants were recruited via prolificacademic.co.uk
+and received £1 for their participation. 27 participants
+were female and the overall age had a mean of 24 with
+a standard deviation of 5.
+
+Task
+Participants were told that they had to assess how well
+they could potentially predict different functions on a
+scale from 0 (not at all) to 100 (certainly). It was explained to them that prediction means to assess a new input point uniformly sampled from the input range. They
+were sequentially shown 50 different samples of functions and had to indicate how well they thought they
+could predict a newly sampled point of that function.
+The functions were created online using Javascript.3 A
+screenshot of the experiment is shown in Figure 3.
+
+different characteristics governing the generating process
+were manipulated. The length-scale of the covariance
+function was fixed at γ = 1.
+
+Results
+Figure 4 shows the relationship between different GP
+parameters and perceived predictability. Increasing
+smoothness resulted in higher perceived predictability,
+and increasing noise variance reduced perceived predictability. The overall effect of an increasing sample
+size on the perceived predictability was negligible. This
+finding has at least two potential explanations: (1) It
+might be the case that participants overestimate the predictability with small sample sizes as they tend to infer
+smoother functions than the ones they actually see; (2)
+the equidistantly spaced inputs we presented to participants might permit easier prediction, since they cover
+more space overall.
+
+Intercept
+n
+s
+σ2
+n×s
+n × σ2
+s × σ2
+
+Design
+Participants saw 50 trials where points were sampled
+equidistantly from different GPs with the Matérn covariance function. The parameters for the smoothness
+s = [1, 2, 3], the variance σ 2 = [0, 0.05, 0.1, 0.15, 0.2],
+and sample size n = [10, 20, 30, 40, 50] were randomly
 selected on each trial. As GP samples were created on
-the spot, no participant saw the same function; only the           We quantitatively assessed the influence of the dif-
-                                                                ferent factors by performing a mixed-effects regression.
-   3
-     Code available at github.com/ericschulz/gpsmooth.          The parameter estimates are summarized in Table 1. In
-                                                            2119
+the spot, no participant saw the same function; only the
+3
 
-                      What affects predictability judgmenets?
-                                                                                                    100
-                                Smoothness
-        100           ●
-                      ●
-                      ●
-            75
-Certainty
-                                                                Smoothness                              75
-            50                                                   Low
-                                                                 Medium
-                                                                                       Predictability
-                                                                 High
-            25
-                                                                                                        50
-             0
-                      0              1                2
-                                     S
-                                    Noise                                                               25
-        100
-            75
-                                                                 Noise level
-Certainty
-                                                                  Small                                 0
-            50
-                                                                  Medium                                     0   10    20    30   40   50   60   70   80   90 100
-                                                                                                                      Generalization error percentile
-                                                                  Large
-            25
-             0                                                                    Figure 5: Perceived predictability as a function of
-                 0        0.05       0.1       0.15       0.2
-                                      σ2                                          theoretical generalization error.
-                                 Sample size
-        100
-                                                                                  dictability. As shown in Figure 5, the theoretical gen-
-            75
-                                                                                  eralization error is a modest but significant predictor
-                                                                Sample size       of perceived predictability (r = −34, p < 0.01). Note
-Certainty
-                                                                 Small
-            50
-                                                                 Medium
-                                                                                  that we used the data-independent generalization error
-                                                                 Large
-                                                                                  (Eq. 7) for this analysis. However, it is more likely
-            25                                                                    that participants are basing their judgments on the data-
-                                                                                  dependent generalization error (Eq. 6). Surprisingly, the
-             0
-                 10        20        30        40         50                      data-dependent generalization error produced a slightly
-                                     N                                            lower correlation (r = −0.31, p < 0.01). This suggests
-                                                                                  that we are not yet capturing some of the essential deter-
-                 Figure 4: Perceived predictability.                              minants of predictability perception. Therefore, the last
-                                                                                  hypothesis could only be confirmed within constraints.
-                                                                                                                            Discussion
-agreement with our qualitative characterization, both                             We have shown that the GP model of function learn-
-smoothness and noise variance had a significant effect                            ing provides a framework for understanding the per-
-on predictability. The effect of sample size, on the other                        ception of predictability. The model captures qualita-
-hand, was not significant. Nonetheless, sample size in-                           tive effects of a function’s smoothness, noise variance,
-teracted significantly with both of the other variables:                          and sample size on the generalization error (a measure
-increasing sample size reduced the effects of smoothness                          of unpredictability). The smoothness of a function ex-
-and noise variance. Thus, sample size does appear to                              erts a stronger influence on predictability than noise
-be a modulator of perceived predictability. Therefore,                            or sample size, consistent with both theoretical learn-
-hypotheses 1 could be partially confirmed.                                        ing curves and our experimental data. This means that
-   Next, we calculated the correlations between each of                           a smooth but noisy function is perceived as more pre-
-the different factors and the predictability judgments for                        dictable than a complex but near-deterministic function.
-each participant individually and found that the aver-                            We also showed that the model could quantitatively cap-
-aged correlation between smoothness and perceived pre-                            ture participants’ predictability judgments, although it
-dictability (r = 0.36, p < 0.01) was indeed greater than                          still leaves a fair amount of variance unexplained.
-the correlation between noise and perceived predictabil-                             One reason for the relatively low correlation between
-ity (r = −0.24, p < 0.01) and between sample size and                             generalization error and predictability might be because
-perceived predictability (r = 0.06, p > 0.05). There-                             our analysis assumed that the covariance function is
-fore, the second hypothesis could be confirmed. Finally,                          known. If participants are using a different covariance
-we examined whether the theoretical learning curve pro-                           function, this will change the form of the learning curves
-vides an accurate quantitative model of perceived pre-                            (although the qualitative predictions of the results re-
-                                                                               2120
+Code available at github.com/ericschulz/gpsmooth.
 
-ported here would remain the same; Sollich, 2005). In          Acknowledgements
-future work, we will explore models that learn the co-         ES is supported by the UK Centre for Financial Computing
-variance function parameters.                                  and Data Analytics.
-   The answer to the question of how we perceive the                                   References
-predictability of a function is probably more nuanced          Brehmer, B. (1974). Hypotheses about relations between
-than our account suggests. Statistically speaking, our           scaled variables in the learning of probabilistic inference
-                                                                 tasks. Organizational Behavior and Human Performance,
-ability to learn a function of a given complexity improves       11 , 1–27.
-with increasing sample size, and thus for a given level        Carroll, J. D. (1963). Functional learning: The learning of
-of complexity there is a sample size at which we would           continuous functional mappings relating stimulus and re-
-find the function highly predictable. This means that,           sponse continua. Education Testing Service.
-                                                               DeLosh, E. L., Busemeyer, J. R., & McDaniel, M. A. (1997).
-for example, using the same levels of complexity that            Extrapolation: The sine qua non for abstraction in func-
-we explored here but at much large samples sizes, the            tion learning. Journal of Experimental Psychology: Learn-
-effect of smoothness on predictability might be relatively       ing, Memory, and Cognition, 23 , 968–986.
-weaker than what we report here. At different levels of        Duvenaud, D., Lloyd, J. R., Grosse, R., Tenenbaum, J. B., &
-                                                                 Ghahramani, Z. (2013). Structure discovery in nonpara-
-complexity and sample size, the human perception of the          metric regression through compositional kernel search. In
-predictability of functions, as well as which factors drive      Proceedings of the 30th International Conference on Ma-
-that predictability, may vary.                                   chine Learning, (pp. 1166–1174).
-                                                               Goerg, G. (2013). Forecastable component analysis. In Pro-
-   While we have considered a fairly simple family of co-        ceedings of the 30th International Conference on Machine
-variance functions, evidence suggests that people have           Learning (ICML-13), (pp. 64–72).
-richer representations; for example, a single function         Goodman, N. D., Ullman, T. D., & Tenenbaum, J. B. (2011).
-                                                                 Learning a theory of causality. Psychological Review , 118 ,
-may be partitioned into several different sub-functions          110–119.
-(Kalish et al., 2004). We can take this one step further       Griffiths, T. L., Lucas, C., Williams, J., & Kalish, M. L.
-and ask whether functional knowledge is compositional,           (2009). Modeling human function learning with gaussian
-                                                                 processes. In Advances in Neural Information Processing
-building complex functions out of simpler building blocks        Systems, (pp. 553–560).
-using a ‘function grammar’ (Duvenaud et al., 2013). An         Kalish, M. L., Griffiths, T. L., & Lewandowsky, S. (2007). It-
-interesting question for future research is whether people       erated learning: Intergenerational knowledge transmission
-                                                                 reveals inductive biases. Psychonomic Bulletin & Review ,
-can learn complex functions more easily when they are            14 , 288–294.
-consistent with an intuitive function grammar, similarly       Kalish, M. L., Lewandowsky, S., & Kruschke, J. K. (2004).
-to how schemas facilitate the rapid acquisition of causal        Population of linear experts: knowledge partitioning and
-knowledge (Goodman et al., 2011).                                function learning. Psychological Review , 111 , 1072–1099.
-                                                               Koh, K., & Meyer, D. E. (1991). Function learning: Induc-
-   Another way to explore intuitive theories of pre-             tion of continuous stimulus-response relations. Journal of
-dictability is to place priors directly over the spectral        Experimental Psychology: Learning, Memory, and Cogni-
-                                                                 tion, 17 , 811–836.
+Estimate
+41.70
+0.79
+8.00
+-5.21
+1.48
+-1.42
+-2.12
+
+SD
+1.82
+1.02
+0.72
+0.66
+0.38
+0.38
+0.38
+
+t-value
+22.93
+0.77
+11.11
+-7.90
+3.90
+-3.73
+-5.54
+
+Pr(>|t|)
+0.00
+0.44
+0.00
+0.00
+0.00
+0.00
+0.00
+
+Table 1: Parameter estimates from mixed-effects
+regression analysis.
+We quantitatively assessed the influence of the different factors by performing a mixed-effects regression.
+The parameter estimates are summarized in Table 1. In
+
+2119
+
+What affects predictability judgmenets?
+100
+
+Smoothness
+100
+
+●
+●
+●
+
+75
+
+Smoothness
+Low
+Medium
+High
+
+50
+
+Predictability
+
+Certainty
+
+75
+
+25
+0
+0
+
+1
+
+2
+
+S
+
+50
+
+25
+
+Noise
+100
+
+Certainty
+
+75
+
+Noise level
+Small
+
+50
+
+0
+0
+
+Medium
+
+25
+
+0.05
+
+0.1
+
+σ2
+
+0.15
+
+20
+
+30
+
+40
+
+50
+
+60
+
+70
+
+80
+
+90 100
+
+Figure 5: Perceived predictability as a function of
+theoretical generalization error.
+
+0
+0
+
+10
+
+Generalization error percentile
+
+Large
+
+0.2
+
+Sample size
+100
+
+Certainty
+
+75
+
+dictability. As shown in Figure 5, the theoretical generalization error is a modest but significant predictor
+of perceived predictability (r = −34, p < 0.01). Note
+that we used the data-independent generalization error
+(Eq. 7) for this analysis. However, it is more likely
+that participants are basing their judgments on the datadependent generalization error (Eq. 6). Surprisingly, the
+data-dependent generalization error produced a slightly
+lower correlation (r = −0.31, p < 0.01). This suggests
+that we are not yet capturing some of the essential determinants of predictability perception. Therefore, the last
+hypothesis could only be confirmed within constraints.
+
+Sample size
+Small
+
+50
+
+Medium
+Large
+
+25
+0
+10
+
+20
+
+30
+
+N
+
+40
+
+50
+
+Figure 4: Perceived predictability.
+
+Discussion
+agreement with our qualitative characterization, both
+smoothness and noise variance had a significant effect
+on predictability. The effect of sample size, on the other
+hand, was not significant. Nonetheless, sample size interacted significantly with both of the other variables:
+increasing sample size reduced the effects of smoothness
+and noise variance. Thus, sample size does appear to
+be a modulator of perceived predictability. Therefore,
+hypotheses 1 could be partially confirmed.
+Next, we calculated the correlations between each of
+the different factors and the predictability judgments for
+each participant individually and found that the averaged correlation between smoothness and perceived predictability (r = 0.36, p < 0.01) was indeed greater than
+the correlation between noise and perceived predictability (r = −0.24, p < 0.01) and between sample size and
+perceived predictability (r = 0.06, p > 0.05). Therefore, the second hypothesis could be confirmed. Finally,
+we examined whether the theoretical learning curve provides an accurate quantitative model of perceived pre-
+
+We have shown that the GP model of function learning provides a framework for understanding the perception of predictability. The model captures qualitative effects of a function’s smoothness, noise variance,
+and sample size on the generalization error (a measure
+of unpredictability). The smoothness of a function exerts a stronger influence on predictability than noise
+or sample size, consistent with both theoretical learning curves and our experimental data. This means that
+a smooth but noisy function is perceived as more predictable than a complex but near-deterministic function.
+We also showed that the model could quantitatively capture participants’ predictability judgments, although it
+still leaves a fair amount of variance unexplained.
+One reason for the relatively low correlation between
+generalization error and predictability might be because
+our analysis assumed that the covariance function is
+known. If participants are using a different covariance
+function, this will change the form of the learning curves
+(although the qualitative predictions of the results re-
+
+2120
+
+ported here would remain the same; Sollich, 2005). In
+future work, we will explore models that learn the covariance function parameters.
+The answer to the question of how we perceive the
+predictability of a function is probably more nuanced
+than our account suggests. Statistically speaking, our
+ability to learn a function of a given complexity improves
+with increasing sample size, and thus for a given level
+of complexity there is a sample size at which we would
+find the function highly predictable. This means that,
+for example, using the same levels of complexity that
+we explored here but at much large samples sizes, the
+effect of smoothness on predictability might be relatively
+weaker than what we report here. At different levels of
+complexity and sample size, the human perception of the
+predictability of functions, as well as which factors drive
+that predictability, may vary.
+While we have considered a fairly simple family of covariance functions, evidence suggests that people have
+richer representations; for example, a single function
+may be partitioned into several different sub-functions
+(Kalish et al., 2004). We can take this one step further
+and ask whether functional knowledge is compositional,
+building complex functions out of simpler building blocks
+using a ‘function grammar’ (Duvenaud et al., 2013). An
+interesting question for future research is whether people
+can learn complex functions more easily when they are
+consistent with an intuitive function grammar, similarly
+to how schemas facilitate the rapid acquisition of causal
+knowledge (Goodman et al., 2011).
+Another way to explore intuitive theories of predictability is to place priors directly over the spectral
 density representation of a covariance function (Wilson
-                                                               Kwantes, P. J., & Neal, A. (2006). Why people underesti-
-& Adams, 2013). Because theoretical predictability can           mate y when extrapolating in linear functions. Journal of
-be directly related to the entropy of the spectral den-          Experimental Psychology: Learning, Memory, and Cogni-
-sity (Goerg, 2013), we predict that different spectral           tion, 32 , 1019–1030.
-                                                               McDaniel, M. A., & Busemeyer, J. R. (2005). The conceptual
-density shapes will systematically change predictability         basis of function learning and extrapolation: Comparison
-judgments.                                                       of rule-based and associative-based models. Psychonomic
-                                                                 Bulletin & Review , 12 , 24–42.
-   A different direction for future research is manipulat-
-                                                               Opper, M., & Vivarelli, F. (1999). General bounds on Bayes
-ing the way in which input points are sampled. For ex-           errors for regression with Gaussian processes. Advances in
-ample, learning curves change as a function of whether           Neural Information Processing Systems, 11 , 302–308.
-inputs are sampled randomly or using directed explo-           Rasmussen, C. E., & Williams, C. K. (2006). Gaussian Pro-
-                                                                 cesses for Machine Learning. MIT Press.
-ration (Ritter, 2000). We intend to further validate our       Ritter, K. (2000). Average-Case Analysis of Numerical Prob-
-measure of predictability by letting participants choose         lems. Springer Verlag.
-between different functions and then ask them to gen-          Sollich, P. (2005). Can gaussian process regression be made
-erate predictions for newly observed points directly in a        robust against model mismatch? In Deterministic and
-                                                                 Statistical Methods in Machine Learning, (pp. 199–210).
-follow-up experiment. This will bring our novel approach         Springer.
-even closer to traditional approaches of experiments on        Sollich, P., & Halees, A. (2002). Learning curves for gaussian
-human function learning (DeLosh et al., 1997).                   process regression: Approximations and bounds. Neural
-                                                                 Computation, 14 , 1393–1428.
-   Unlike previous work on function learning, which            Williams, C. K., & Vivarelli, F. (2000). Upper and lower
-has focused on interpolation and extrapolation perfor-           bounds on the learning curve for gaussian processes. Ma-
-mance, our work explored a relatively novel facet—               chine Learning, 40 , 77–102.
-                                                               Wilson, A., & Adams, R. (2013). Gaussian process kernels
-predictability. We expect that this simple assay will pro-       for pattern discovery and extrapolation. In Proceedings
-vide a rich source of information about function knowl-          of the 30th International Conference on Machine Learning
-edge.                                                            (ICML-13), (pp. 1067–1075).
-                                                           2121
+& Adams, 2013). Because theoretical predictability can
+be directly related to the entropy of the spectral density (Goerg, 2013), we predict that different spectral
+density shapes will systematically change predictability
+judgments.
+A different direction for future research is manipulating the way in which input points are sampled. For example, learning curves change as a function of whether
+inputs are sampled randomly or using directed exploration (Ritter, 2000). We intend to further validate our
+measure of predictability by letting participants choose
+between different functions and then ask them to generate predictions for newly observed points directly in a
+follow-up experiment. This will bring our novel approach
+even closer to traditional approaches of experiments on
+human function learning (DeLosh et al., 1997).
+Unlike previous work on function learning, which
+has focused on interpolation and extrapolation performance, our work explored a relatively novel facet—
+predictability. We expect that this simple assay will provide a rich source of information about function knowledge.
 
+Acknowledgements
+ES is supported by the UK Centre for Financial Computing
+and Data Analytics.
+
+References
+Brehmer, B. (1974). Hypotheses about relations between
+scaled variables in the learning of probabilistic inference
+tasks. Organizational Behavior and Human Performance,
+11 , 1–27.
+Carroll, J. D. (1963). Functional learning: The learning of
+continuous functional mappings relating stimulus and response continua. Education Testing Service.
+DeLosh, E. L., Busemeyer, J. R., & McDaniel, M. A. (1997).
+Extrapolation: The sine qua non for abstraction in function learning. Journal of Experimental Psychology: Learning, Memory, and Cognition, 23 , 968–986.
+Duvenaud, D., Lloyd, J. R., Grosse, R., Tenenbaum, J. B., &
+Ghahramani, Z. (2013). Structure discovery in nonparametric regression through compositional kernel search. In
+Proceedings of the 30th International Conference on Machine Learning, (pp. 1166–1174).
+Goerg, G. (2013). Forecastable component analysis. In Proceedings of the 30th International Conference on Machine
+Learning (ICML-13), (pp. 64–72).
+Goodman, N. D., Ullman, T. D., & Tenenbaum, J. B. (2011).
+Learning a theory of causality. Psychological Review , 118 ,
+110–119.
+Griffiths, T. L., Lucas, C., Williams, J., & Kalish, M. L.
+(2009). Modeling human function learning with gaussian
+processes. In Advances in Neural Information Processing
+Systems, (pp. 553–560).
+Kalish, M. L., Griffiths, T. L., & Lewandowsky, S. (2007). Iterated learning: Intergenerational knowledge transmission
+reveals inductive biases. Psychonomic Bulletin & Review ,
+14 , 288–294.
+Kalish, M. L., Lewandowsky, S., & Kruschke, J. K. (2004).
+Population of linear experts: knowledge partitioning and
+function learning. Psychological Review , 111 , 1072–1099.
+Koh, K., & Meyer, D. E. (1991). Function learning: Induction of continuous stimulus-response relations. Journal of
+Experimental Psychology: Learning, Memory, and Cognition, 17 , 811–836.
+Kwantes, P. J., & Neal, A. (2006). Why people underestimate y when extrapolating in linear functions. Journal of
+Experimental Psychology: Learning, Memory, and Cognition, 32 , 1019–1030.
+McDaniel, M. A., & Busemeyer, J. R. (2005). The conceptual
+basis of function learning and extrapolation: Comparison
+of rule-based and associative-based models. Psychonomic
+Bulletin & Review , 12 , 24–42.
+Opper, M., & Vivarelli, F. (1999). General bounds on Bayes
+errors for regression with Gaussian processes. Advances in
+Neural Information Processing Systems, 11 , 302–308.
+Rasmussen, C. E., & Williams, C. K. (2006). Gaussian Processes for Machine Learning. MIT Press.
+Ritter, K. (2000). Average-Case Analysis of Numerical Problems. Springer Verlag.
+Sollich, P. (2005). Can gaussian process regression be made
+robust against model mismatch? In Deterministic and
+Statistical Methods in Machine Learning, (pp. 199–210).
+Springer.
+Sollich, P., & Halees, A. (2002). Learning curves for gaussian
+process regression: Approximations and bounds. Neural
+Computation, 14 , 1393–1428.
+Williams, C. K., & Vivarelli, F. (2000). Upper and lower
+bounds on the learning curve for gaussian processes. Machine Learning, 40 , 77–102.
+Wilson, A., & Adams, R. (2013). Gaussian process kernels
+for pattern discovery and extrapolation. In Proceedings
+of the 30th International Conference on Machine Learning
+(ICML-13), (pp. 1067–1075).
+
+2121
+
+

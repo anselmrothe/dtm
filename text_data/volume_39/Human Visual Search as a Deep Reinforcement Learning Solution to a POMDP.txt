@@ -1,362 +1,546 @@
-   Human Visual Search as a Deep Reinforcement Learning Solution to a POMDP
-                                           Aditya Acharya (axa384@student.bham.ac.uk)
-                                                          School of Computer Science
-                                                           University of Birmingham
-                                                   Xiuli Chen (x.chen.1@bham.ac.uk)
-                                                             School of Psychology
-                                                           University of Birmingham
-                                  Christopher W. Myers (Christopher.Myers2@wpafb.af.mil)
-                                                         Air Force Research Laboratory
-                                               Performance and Learning Models Branch, USA
-                                                  Richard L. Lewis (rickl@umich.edu)
-                                                           Department of Psychology
-                                                   University of Michigan,Ann Arbor, USA
-                                                Andrew Howes (HowesA@bham.ac.uk)
-                                                          School of Computer Science
-                                                           University of Birmingham
-                                Abstract                                  & Singh, 2014). In fact, there is a long history of cognitive
-   When people search for a target in a novel image they often
-                                                                          science research on visual search and there are a number of
-   make use of eye movements to bring the relatively high acuity          competing theoretical approaches.
-   fovea to bear on areas of interest. The strategies that control
-   these eye movements for visual search have been of substantial            First are the map-based approaches described by (Kowler,
-   scientific interest. In the current article we report a new com-       2011), such as salience maps (Itti & Koch, 2000) and activa-
-   putational model that shows how strategies for visual search           tion maps (Pomplun, Reingold, & Shen, 2003; Wolfe, 2007),
-   are an emergent consequence of perceptual/motor constraints
-   and approximately optimal strategies. The model solves a Par-          where the perceived visual information is represented as a
-   tially Observable Markov Decision Process (POMDP) using                topological distribution in a graphical map form. The salient
-   deep Q-learning to acquire strategies that optimise the trade-         area or peaks in the map represent items that significantly dif-
-   off between speed and accuracy. Results are reported for the
-   Distractor-ratio task.                                                 fer from their neighbouring items, that may contain attributes
-                                                                          of interest. These peaks in the map are then used to guide the
-   Keywords: Computational Rationality; Deep Reinforcement
-   Learning; Deep Q-Learning; Visual Attention.                           eyes through the display using some selection rules, such as
-                                                                          a greedy heuristic (Pomplun et al., 2003) or a winner-take-all
-                            Introduction                                  heuristic (Itti & Koch, 2000). To summarize, the map based
-One of the many tasks for which people use vision is to search            approach assumes that saccades are programmed to move the
-for items in the environment. Visual search might be used to              fovea to those areas in the display that stand out from sur-
-locate a phone on a table, a car in a parking lot or a fam-               roundings.
-ily member in a crowd. In a typical laboratory visual search                 Second are the Bayes optimal state estimation approaches
-task, participants are asked to find a visual target amongst dis-         (Myers, Lewis, & Howes, 2013; Najemnik & Geisler, 2008),
-tractors. For example, searching for a Gabor patch in a high              in which it is assumed that visual information is recorded as
-contrast noisy background (Najemnik & Geisler, 2008), or                  a Bayesian estimate of the state of the world. On each fix-
-searching for a red coloured letter O in a display that consists          ation the estimated state is updated by optimally integrating
-of red Xs and green Os (Shen, Reingold, & Pomplun, 2000).                 information (Bayes rule) from the previous state and from the
-Many, though not all, visual search tasks require a number of             fovea and from the periphery according to its reliability. The
-fixations and saccades before the target is found.                        eye movements are then made using these states and apply-
-   From a cognitive science perspective, visual search is in-             ing a heuristic decision rule (e.g., ‘Maximum A Posteriori’
-teresting because data from visual search experiments can be              (MAP)) to navigate. This rule generates a behaviour in which
-used to inform theories of the underlying constraints on vision           attention is directed to areas which have the highest proba-
-(e.g (Geisler, 2011) and also to inform theories of how peo-              bility of target present. Alternatively, Najemnik and Geisler
-ple adapt eye movement strategies to these constraints (e.g               (2005) observed that the number, and spatial distribution, of
-(Najemnik & Geisler, 2005). Human behaviour is a con-                     saccades could be better explained by a model in which each
-sequence of both the constraints and the adapted strategies               saccade was directed to an ‘ideal’ location (i.e., a location
-and explanations of behaviour require both (Lewis, Howes,                 that maximises information gained). Their model was sensi-
-                                                                       51
+Human Visual Search as a Deep Reinforcement Learning Solution to a POMDP
+Aditya Acharya (axa384@student.bham.ac.uk)
+School of Computer Science
+University of Birmingham
 
-tive to known human constraints on vision, i.e., the accuracy
+Xiuli Chen (x.chen.1@bham.ac.uk)
+School of Psychology
+University of Birmingham
+
+Christopher W. Myers (Christopher.Myers2@wpafb.af.mil)
+Air Force Research Laboratory
+Performance and Learning Models Branch, USA
+
+Richard L. Lewis (rickl@umich.edu)
+Department of Psychology
+University of Michigan,Ann Arbor, USA
+
+Andrew Howes (HowesA@bham.ac.uk)
+School of Computer Science
+University of Birmingham
+Abstract
+
+& Singh, 2014). In fact, there is a long history of cognitive
+science research on visual search and there are a number of
+competing theoretical approaches.
+
+When people search for a target in a novel image they often
+make use of eye movements to bring the relatively high acuity
+fovea to bear on areas of interest. The strategies that control
+these eye movements for visual search have been of substantial
+scientific interest. In the current article we report a new computational model that shows how strategies for visual search
+are an emergent consequence of perceptual/motor constraints
+and approximately optimal strategies. The model solves a Partially Observable Markov Decision Process (POMDP) using
+deep Q-learning to acquire strategies that optimise the tradeoff between speed and accuracy. Results are reported for the
+Distractor-ratio task.
+Keywords: Computational Rationality; Deep Reinforcement
+Learning; Deep Q-Learning; Visual Attention.
+
+First are the map-based approaches described by (Kowler,
+2011), such as salience maps (Itti & Koch, 2000) and activation maps (Pomplun, Reingold, & Shen, 2003; Wolfe, 2007),
+where the perceived visual information is represented as a
+topological distribution in a graphical map form. The salient
+area or peaks in the map represent items that significantly differ from their neighbouring items, that may contain attributes
+of interest. These peaks in the map are then used to guide the
+eyes through the display using some selection rules, such as
+a greedy heuristic (Pomplun et al., 2003) or a winner-take-all
+heuristic (Itti & Koch, 2000). To summarize, the map based
+approach assumes that saccades are programmed to move the
+fovea to those areas in the display that stand out from surroundings.
+
+Introduction
+One of the many tasks for which people use vision is to search
+for items in the environment. Visual search might be used to
+locate a phone on a table, a car in a parking lot or a family member in a crowd. In a typical laboratory visual search
+task, participants are asked to find a visual target amongst distractors. For example, searching for a Gabor patch in a high
+contrast noisy background (Najemnik & Geisler, 2008), or
+searching for a red coloured letter O in a display that consists
+of red Xs and green Os (Shen, Reingold, & Pomplun, 2000).
+Many, though not all, visual search tasks require a number of
+fixations and saccades before the target is found.
+From a cognitive science perspective, visual search is interesting because data from visual search experiments can be
+used to inform theories of the underlying constraints on vision
+(e.g (Geisler, 2011) and also to inform theories of how people adapt eye movement strategies to these constraints (e.g
+(Najemnik & Geisler, 2005). Human behaviour is a consequence of both the constraints and the adapted strategies
+and explanations of behaviour require both (Lewis, Howes,
+
+Second are the Bayes optimal state estimation approaches
+(Myers, Lewis, & Howes, 2013; Najemnik & Geisler, 2008),
+in which it is assumed that visual information is recorded as
+a Bayesian estimate of the state of the world. On each fixation the estimated state is updated by optimally integrating
+information (Bayes rule) from the previous state and from the
+fovea and from the periphery according to its reliability. The
+eye movements are then made using these states and applying a heuristic decision rule (e.g., ‘Maximum A Posteriori’
+(MAP)) to navigate. This rule generates a behaviour in which
+attention is directed to areas which have the highest probability of target present. Alternatively, Najemnik and Geisler
+(2005) observed that the number, and spatial distribution, of
+saccades could be better explained by a model in which each
+saccade was directed to an ‘ideal’ location (i.e., a location
+that maximises information gained). Their model was sensi-
+
+51
+
+tive to known human constraints on vision, i.e., the accuracy
 of perceiving a feature degrades with eccentricity.
-   Third are the optimal control approaches (Butko & Movel-
-lan, 2008; Hayhoe & Ballard, 2014; Nunez-Varela & Wyatt,
-2013; Sprague, Ballard, & Robinson, 2007), in which it is as-
-sumed that the eye movements are not made to estimate some
+Third are the optimal control approaches (Butko & Movellan, 2008; Hayhoe & Ballard, 2014; Nunez-Varela & Wyatt,
+2013; Sprague, Ballard, & Robinson, 2007), in which it is assumed that the eye movements are not made to estimate some
 statistics about the world but rather the goal is to maximize
-                                                                                (a)                   (b)                  (c)
 the overall performance utility. The maximum reward/utility
-an individual can attain throughout the task is bounded by           Figure 1: Distractor ratio stimuli with ratio distributions: (a)
-the noisy encoding of the visual information by the human            3:45, (b) 24:24, (c) 46:2 and target stimuli: red coloured letter
-brain. In contrast to map-based and optimal state estimation         O.
+an individual can attain throughout the task is bounded by
+the noisy encoding of the visual information by the human
+brain. In contrast to map-based and optimal state estimation
 approaches, where prior assumptions about eye movement
 decisions are made by heuristic rules, the control strategy
 emerges as a consequence of bounds imposed by the human
 visual system. To summarize, the optimal control approach
 assumes that the saccades are programmed to move the fovea
 so as to maximise task utility/reward.
-   In the current article we report a novel (approximately) op-
-timal control model of the distractor ratio task. The purpose
-of this model is to (1) explain phenomena not previously ex-
-plained as optimal control, (2) to further elucidate the fram-
-ing of visual search as a Partially Observable Markov De-
-cision Process (POMDP) (Kaelbling, Littman, & Cassandra,
-1998), and (3) to explore the role of deep Q-learning (Mnih                          (a)                             (b)
-et al., 2015) in solving the tractability problems with previ-
-                                                                     Figure 2: (a) Average number of fixations per trial as a func-
-ous optimal state estimation and optimal control approaches.
-                                                                     tion of the number of distractors sharing colour with the
+In the current article we report a novel (approximately) optimal control model of the distractor ratio task. The purpose
+of this model is to (1) explain phenomena not previously explained as optimal control, (2) to further elucidate the framing of visual search as a Partially Observable Markov Decision Process (POMDP) (Kaelbling, Littman, & Cassandra,
+1998), and (3) to explore the role of deep Q-learning (Mnih
+et al., 2015) in solving the tractability problems with previous optimal state estimation and optimal control approaches.
 The model goes beyond the optimal state estimation model
-                                                                     search target in target-absent trials and target-present trials
 of Myers in that it is applied to the full display size used by
-                                                                     for high discriminability condition. (b) Saccadic bias (the
 (Shen, Reingold, & Pomplun, 2003). The model uses deep
-                                                                     difference between the observed frequency and chance per-
-Q-learning to solve a POMDP. It attempts to maximise a re-
-                                                                     formance) as a function of the number of same-colour distrac-
-ward signal given constraints imposed by the human visual
-                                                                     tors in target- absent trials for high discriminability condition
+Q-learning to solve a POMDP. It attempts to maximise a reward signal given constraints imposed by the human visual
 information processing system. We compare the performance
-                                                                     (Shen et al., 2003)
 of the optimal control model to a model that uses MAP-like
 heuristics. We show that the optimal control model offers
-higher utility and better fits to the human data than the heuris-    display (b), for which a response takes a relatively long time.
-tic model. Lastly, we use the model to explain phenom-               The distractor ratio effect reported by Shen et al. (2003) is
-ena associated with the distractor ratio paradigm (Bacon &           shown in Figure 2.
-Egeth, 1997; Shen et al., 2000; Zohary & Hochstein, 1989).              In addition to the distractor-ratio effect, Shen et al. (2003)
-A phenomena that has previously been explained using the             also observed a saccadic selectivity effect. In Figure 2, the
-salience-map based approach.                                         frequency of saccades to same-colour distractors is plotted
-                                                                     against the number of same-colour distractors. In the plot,
-               The Distractor Ratio Task                             the saccade frequencies are higher for rare features (colour
-In the distractor ratio task the display consists of a target ob-    or shape) than should be expected by chance (represented by
-ject, which is randomly positioned amongst distractor objects        the horizontal line). When the same-colour distractors are
-each of which shares at least one common feature with the            rare in the display, the participants were more likely to make
-target. The goal is to respond whether the target is present or      eye movements towards them than when they were common.
-absent. An example display is shown in Figure 1 where the            Conversely, when the number of same-colour distractors was
-target is a red letter O. The distractors in this display share      high, the participants were more likely to make eye move-
-either a same-colour or same-shape feature with the target.          ment towards same-shape distractors.
-   In a number of studies it has been observed that people re-
-spond more quickly, and with fewer eye movements, for ex-                                      The Model
-treme ratios of same colour to same shape distractors (Egeth,        In the following sections we describe the individual compo-
-Virzi, & Garbart, 1984; Shen et al., 2003). In Figure 1, the         nents of the model for performing a 36-element distractor-
-target – a red letter O – can be located easily in display (a)       ratio task, and provide a walk-through of the model process
-and (c) with ratios 3:45 and 46:2 respectively as compared to        before presenting the model results.
-                                                                  52
+higher utility and better fits to the human data than the heuristic model. Lastly, we use the model to explain phenomena associated with the distractor ratio paradigm (Bacon &
+Egeth, 1997; Shen et al., 2000; Zohary & Hochstein, 1989).
+A phenomena that has previously been explained using the
+salience-map based approach.
 
- External Display                                                                variance in the model, σ f (θ, w f ) is the variance to simulate
- In the model, we represent the display by randomly distribut-                   the degrading eccentricity and ‘θ’ is the distance between
- ing the target and the distractors in a grid, where each cell                   the fixated cell and location j.
- consists of either a target object, a distractor object with com-           2. Spatial Smearing: Another source of uncertainty in the
- mon colour or a distractor object with common shape. In                         human visual system is the localization error (Levi, 2008),
- the display, there is only one target object and the number of                  where information in the parafovea may erroneously com-
- distractors are determined by randomly sampling a ratio per                     bine features from one location with adjacent locations.
- trail.                                                                          Therefore, for each location in the colour and shape vector
-    The display is represented by two feature vectors, one for                   a weighted sum is calculated for the location and its adja-
- colour and one for shape. The presence or absence of a fea-                     cent eight locations. For example, If a red X is surrounded
- ture in each cell in the model is represented numerically by                    by green Os in the parafovea then, as a consequence of spa-
- the number 1 for presence and 0 for absence. The random                         tial smearing, the participant would be uncertain whether
- distribution of these features in the environment was achieved                  they are actually looking at a red X or a green O.
- by sampling randomly from the following set of ratios, r = R
- (3:33, 6:30, 9:27, 12:24, 15:21, 18:18, 21:15, 24:12, 27:9,                     In the model, spatial smearing is represented by a weight-
- 30:6, 33:3).                                                                    ing function (Gaussian kernel) with standard deviation as
-                                                                                 a function of visual angle ‘θ’ between the fovea and the
- Actions                                                                         given location, and a scalar weight ‘wspatial ’ to scale the ef-
- The action space consists of (1) fixate on a cell, (2) respond                  fect of distance to the fovea for spatial noise. The weight-
- present and (3) respond absent. In our study there was a grid                   ing function here is a normalised function. As ‘θ’ (dis-
- of 6x6 coloured shapes and there were therefore a total of 36                   tance) increases the acuity decreases and the standard de-
- possible fixation actions. A trial was terminated by the choice                 viation of the Gaussian kernel increases, this means that the
- of the present or absent action.                                                percept of the item at a given location suffers greater inter-
-                                                                                 ference from surrounding items. This encoding is done for
- Reward                                                                          each location in the display. Thus, the equation for the ob-
- A reward was given after choosing a present or absent ac-                       servation after adding spatial noise at location j given that
- tion. The reward distribution was defined as a value 10 for                     the target features are at location St ∈ (1, 2, ..., n) and the
- a correct response, a value of −10 for an incorrect response                    eye is focused on location k is as follows,
- and a value of −1 for each fixation. The penalty on each fixa-
- tion imposes a speed-accuracy trade-off. More fixations gives
- greater accuracy but at a cost.                                                    δ percept (St , j) = K(s, σs (θ jk , wspatial )) × δ f eatural (St , j)
- Observation Model                                                                                                               θ jk
-                                                                                                σspatial (θ jk , wspatial ) =             +c
- Every time the model fixates, it also makes an observation.                                                                  (wspatial )
- The observation obtained by the model is constrained by the
- noise in the human visual system. Two types of noise are                        where, K is the Gaussian kernel with kernel size s = 1,
- added to the signal: spatial smearing noise and feature noise.                  σs (θ jk , ws ) is the variance. δ percept (St , j) is calculated sep-
-                                                                                 arately for both shape and colour feature vectors. c is a
-1. Feature Noise: The human eye’s ability to discriminate                        constant with value 10−4 to avoid 0 variance in the model.
-    and perceive object features degrades with eccentricity ac-                  Now each percept (δ percept ) (one for colour and one for
-    cording to a hyperbolic function (Strasburger, Rentschler,                   shape) is represented as a vector of noisy observations for
-    & Jüttner, 2011). To model this function we added Gaus-                     each location. A consequence of introducing the noise is
-    sian white noise with mean 0 and standard deviation as ec-                   uncertainty in the content of the location.
-    centricity, i.e., a function of visual angle ‘θ’ between the
-    fovea and the given location, and a scalar weight ‘w f eatural ’          State Estimation
-    to scale the effect of distance to the fovea for feature noise.           At each time step t on which a fixation is made the model
-    Therefore, the equation for the observation after adding                  receives a noisy observation for each location. The values for
-    feature noise at location j given that the eye is focused on              perceived colour and shape are then combined (Hadamard
-    location k is as follows,                                                 product) for each location [i, j]. We refer to these combined
-                                                                              values as relevance scores, where a higher score in a loca-
-          δ f eatural (St , j) = v[st ] + N(θ, σ f (θ jk , w f eatural ))
-                                                                              tion signifies high relevance to the task. These scores are
-                                                        θ jk                  then integrated across fixations, using naive Bayesian infer-
-               σ f eatural (θ jk , w f eatural ) =                +c          ence (Kalman filter), to get the current state Bt which is a
-                                                   (w f eatural )
-                                                                              vector of estimated relevance scores across fixations1 .
-    where, v[st ] = 1 if the location st contains a target feature,               1 The integration of information across fixation is a local update
-    else v[st ] = 0, c is a constant with value 10−4 to avoid 0               for each cell.
-                                                                          53
+(a)
 
-Heuristic Control Model                                                  Algorithm 1 Deep Q Network Algorithm
-                                                                           1: initialize replay memory D, weights of the main network
+(b)
+
+(c)
+
+Figure 1: Distractor ratio stimuli with ratio distributions: (a)
+3:45, (b) 24:24, (c) 46:2 and target stimuli: red coloured letter
+O.
+
+(a)
+
+(b)
+
+Figure 2: (a) Average number of fixations per trial as a function of the number of distractors sharing colour with the
+search target in target-absent trials and target-present trials
+for high discriminability condition. (b) Saccadic bias (the
+difference between the observed frequency and chance performance) as a function of the number of same-colour distractors in target- absent trials for high discriminability condition
+(Shen et al., 2003)
+
+display (b), for which a response takes a relatively long time.
+The distractor ratio effect reported by Shen et al. (2003) is
+shown in Figure 2.
+In addition to the distractor-ratio effect, Shen et al. (2003)
+also observed a saccadic selectivity effect. In Figure 2, the
+frequency of saccades to same-colour distractors is plotted
+against the number of same-colour distractors. In the plot,
+the saccade frequencies are higher for rare features (colour
+or shape) than should be expected by chance (represented by
+the horizontal line). When the same-colour distractors are
+rare in the display, the participants were more likely to make
+eye movements towards them than when they were common.
+Conversely, when the number of same-colour distractors was
+high, the participants were more likely to make eye movement towards same-shape distractors.
+
+The Distractor Ratio Task
+In the distractor ratio task the display consists of a target object, which is randomly positioned amongst distractor objects
+each of which shares at least one common feature with the
+target. The goal is to respond whether the target is present or
+absent. An example display is shown in Figure 1 where the
+target is a red letter O. The distractors in this display share
+either a same-colour or same-shape feature with the target.
+In a number of studies it has been observed that people respond more quickly, and with fewer eye movements, for extreme ratios of same colour to same shape distractors (Egeth,
+Virzi, & Garbart, 1984; Shen et al., 2003). In Figure 1, the
+target – a red letter O – can be located easily in display (a)
+and (c) with ratios 3:45 and 46:2 respectively as compared to
+
+The Model
+In the following sections we describe the individual components of the model for performing a 36-element distractorratio task, and provide a walk-through of the model process
+before presenting the model results.
+
+52
+
+External Display
+
+variance in the model, σ f (θ, w f ) is the variance to simulate
+the degrading eccentricity and ‘θ’ is the distance between
+the fixated cell and location j.
+
+In the model, we represent the display by randomly distributing the target and the distractors in a grid, where each cell
+consists of either a target object, a distractor object with common colour or a distractor object with common shape. In
+the display, there is only one target object and the number of
+distractors are determined by randomly sampling a ratio per
+trail.
+The display is represented by two feature vectors, one for
+colour and one for shape. The presence or absence of a feature in each cell in the model is represented numerically by
+the number 1 for presence and 0 for absence. The random
+distribution of these features in the environment was achieved
+by sampling randomly from the following set of ratios, r = R
+(3:33, 6:30, 9:27, 12:24, 15:21, 18:18, 21:15, 24:12, 27:9,
+30:6, 33:3).
+
+2. Spatial Smearing: Another source of uncertainty in the
+human visual system is the localization error (Levi, 2008),
+where information in the parafovea may erroneously combine features from one location with adjacent locations.
+Therefore, for each location in the colour and shape vector
+a weighted sum is calculated for the location and its adjacent eight locations. For example, If a red X is surrounded
+by green Os in the parafovea then, as a consequence of spatial smearing, the participant would be uncertain whether
+they are actually looking at a red X or a green O.
+In the model, spatial smearing is represented by a weighting function (Gaussian kernel) with standard deviation as
+a function of visual angle ‘θ’ between the fovea and the
+given location, and a scalar weight ‘wspatial ’ to scale the effect of distance to the fovea for spatial noise. The weighting function here is a normalised function. As ‘θ’ (distance) increases the acuity decreases and the standard deviation of the Gaussian kernel increases, this means that the
+percept of the item at a given location suffers greater interference from surrounding items. This encoding is done for
+each location in the display. Thus, the equation for the observation after adding spatial noise at location j given that
+the target features are at location St ∈ (1, 2, ..., n) and the
+eye is focused on location k is as follows,
+
+Actions
+The action space consists of (1) fixate on a cell, (2) respond
+present and (3) respond absent. In our study there was a grid
+of 6x6 coloured shapes and there were therefore a total of 36
+possible fixation actions. A trial was terminated by the choice
+of the present or absent action.
+
+Reward
+A reward was given after choosing a present or absent action. The reward distribution was defined as a value 10 for
+a correct response, a value of −10 for an incorrect response
+and a value of −1 for each fixation. The penalty on each fixation imposes a speed-accuracy trade-off. More fixations gives
+greater accuracy but at a cost.
+
+δ percept (St , j) = K(s, σs (θ jk , wspatial )) × δ f eatural (St , j)
+
+Observation Model
+
+σspatial (θ jk , wspatial ) =
+
+Every time the model fixates, it also makes an observation.
+The observation obtained by the model is constrained by the
+noise in the human visual system. Two types of noise are
+added to the signal: spatial smearing noise and feature noise.
+
+where, K is the Gaussian kernel with kernel size s = 1,
+σs (θ jk , ws ) is the variance. δ percept (St , j) is calculated separately for both shape and colour feature vectors. c is a
+constant with value 10−4 to avoid 0 variance in the model.
+
+1. Feature Noise: The human eye’s ability to discriminate
+and perceive object features degrades with eccentricity according to a hyperbolic function (Strasburger, Rentschler,
+& Jüttner, 2011). To model this function we added Gaussian white noise with mean 0 and standard deviation as eccentricity, i.e., a function of visual angle ‘θ’ between the
+fovea and the given location, and a scalar weight ‘w f eatural ’
+to scale the effect of distance to the fovea for feature noise.
+Therefore, the equation for the observation after adding
+feature noise at location j given that the eye is focused on
+location k is as follows,
+
+Now each percept (δ percept ) (one for colour and one for
+shape) is represented as a vector of noisy observations for
+each location. A consequence of introducing the noise is
+uncertainty in the content of the location.
+
+State Estimation
+At each time step t on which a fixation is made the model
+receives a noisy observation for each location. The values for
+perceived colour and shape are then combined (Hadamard
+product) for each location [i, j]. We refer to these combined
+values as relevance scores, where a higher score in a location signifies high relevance to the task. These scores are
+then integrated across fixations, using naive Bayesian inference (Kalman filter), to get the current state Bt which is a
+vector of estimated relevance scores across fixations1 .
+
+δ f eatural (St , j) = v[st ] + N(θ, σ f (θ jk , w f eatural ))
+σ f eatural (θ jk , w f eatural ) =
+
+θ jk
+(w f eatural )
+
+θ jk
++c
+(wspatial )
+
++c
+
+where, v[st ] = 1 if the location st contains a target feature,
+else v[st ] = 0, c is a constant with value 10−4 to avoid 0
+
+1 The integration of information across fixation is a local update
+for each cell.
+
+53
+
+Heuristic Control Model
+
+Algorithm 1 Deep Q Network Algorithm
+1: initialize replay memory D, weights of the main network
+
 The Heuristic control model makes fixations and observations
-                                                                               θ and target network θ0 .
 as described above. In order to decide which fixations to use
-                                                                           2:  observe the initial state s.
 and when to respond it makes use of two heuristics. The first
-                                                                           3:  repeat
 uses a MAP-like strategy to determine where to fixate next,
-                                                                           4:      select an action a
 and the second uses a thresholded stopping rule.
-                                                                           5:            with probability epsilon select a random action.
-                                                                           6:            otherwise select a = argmaxa0 Q(s, a0 ; θ).
-Optimal Control Model
-                                                                           7:      perform the action a.
-As we have said, at each point in time, the model observes                 8:      observe the reward r and new state s0 for action a.
-the external environment through a noisy percept with a high               9:      store transition < s, a, r, s > in the replay memory D.
-resolution fovea and low resolution parafovea and receives an            10:       sample random transitions < s, a, r, s > from the re-
-observation ot . The model then extract the high resolution lo-                play memory D.
-cal information from the environment by taking actions at ∈ A            11:       calculate the target value t for each sampled transi-
-(A is the set of actions) to move the fovea (e.g., choose where                tion.
-to move the fovea). Since the environment is only partially              12:       if s0 is the terminal state then
-observed the model needs to integrate information over time              13:            t =r
-in order to determine how to act and how to make eye move-               14:       else
-ments most effectively. It does this using the Bayesian state            15:            t = r + γQ(s0 , maxa0 Q(s0 , a0 ; θ); θ0 )
-estimator described above.                                               16:       end if
-   At each step, the model receives a scalar reward rt (which            17:       update the network using (t − Q(s, a; θ))2 as the loss.
-depends on the action taken by the agent), and the goal of               18:       s = s0
-the agent is to maximize the total sum of such rewards R =               19:       after every fixed steps θ0 = θ
-E[∑ γt−1 rt ], where γ ∈ (0, 1) is the discount factor.                  20:   until terminal state
-   The most important aspect of the Optimal Control model
-is that rather than using heuristics to choose what to do next,
-it learns an approximately optimal policy using Deep Q-
-                                                                                                   Model Results
-learning.                                                                The Heuristic control model was run for 30,000 trials and 10
-Deep Q-learning The Deep Q-learner made use of the fol-                  regression runs to check for consistency. The Optimal con-
-lowing network architecture.                                             trol model was run for 20 million trials. We first tested the
-                                                                         accuracy of the models. Accuracy is the proportion of tri-
-   The relevance score estimate Bt (36 element vector) from
-                                                                         als on which the model correctly responded either present or
-the state estimator (above) was taken as the input. This input
-                                                                         absent. The best fitting optimal control model achieved an ac-
-was connected to a fully connected hidden layer consisting of
-                                                                         curacy of 96% in its last 50000 trials. In comparison, human
-nodes equivalent to number of elements in the display, i.e.,
-                                                                         participants achieved 98% accuracy. The accuracy of the best
-36, with rectifier activation function. This is followed by a
-                                                                         fitting Heuristic control model was 94%. Accuracy and utility
-second fully connected hidden layer consisting of again nodes
-                                                                         of both models is plotted in Figure 3. The plots show a clear
-equivalent to number of elements in the display, i.e., 36, with
-                                                                         advantage of the Optimal control model for all explored pa-
-sigmoid activation function. Finally, the output layer was a
-                                                                         rameter settings. In other words, the approximately Optimal
-fully connected linear layer of 38 nodes with single output for
-                                                                         control model outperforms the Heuristic control model in all
-each action in the task. To avoid over-fitting of the network
-                                                                         cases.
-l2 regularization of the weights was applied with value 10−5 .
-                                                                             Plots of fixation frequency versus same colour distractor-
-   During the training process a fixed size batch of transitions
-                                                                         ratio at different levels of spatial and feature noise are shown
-< s, a, r, s0 > were sampled from a replay memory and used
-                                                                         in Figure 5. The results show that both model Heuristic
-for learning. For each time step (t), the deep Q-network (with
-                                                                         and Optimal control model generate similar distractor ratio
-parameters θ) is trained to approximate the action-value (Q-
-                                                                         curves to humans (Figure 2) for target absent, where more
-value) function from the sampled transitions by minimizing
-                                                                         fixations are required for ratios close to 1. While the RM-
-the loss functions L(θi ):
-                                                                         SEs for the Heuristic control model were smaller than for the
-                                                                         Optimal control model (Optimal: RMSE = 0.81; Heuristic
-                L(θi ) = Es,a∼πθ [(yi − Q(s, a; θ))2 ]                   RMSE = 0.41), the goodness of fit against Human perfor-
-                                                                         mance for the Heuristic control model was R2 = 0.95 and for
-   where yi = r + γmaxa0 Q(s0 , a0 ; θ0 ) is the target Q-value esti-    the Optimal control model was R2 = 0.98. A weakness of the
-mated from a target Q-network (θ0 ). The parameters of target            Heuristic control model was that it produced DR effects for
-Q-network (θ0 ) is copied over from the learned network (θ)              both target present and target absent. In contrast, the Optimal
-after a fixed number of iterations.                                      control model predicted a DR effect in the absent condition
-                                                                      54
 
-                 (a)                           (b)                    (a) Heuristic Control Present     (b) Optimal Control Present
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+
+Optimal Control Model
+As we have said, at each point in time, the model observes
+the external environment through a noisy percept with a high
+resolution fovea and low resolution parafovea and receives an
+observation ot . The model then extract the high resolution local information from the environment by taking actions at ∈ A
+(A is the set of actions) to move the fovea (e.g., choose where
+to move the fovea). Since the environment is only partially
+observed the model needs to integrate information over time
+in order to determine how to act and how to make eye movements most effectively. It does this using the Bayesian state
+estimator described above.
+At each step, the model receives a scalar reward rt (which
+depends on the action taken by the agent), and the goal of
+the agent is to maximize the total sum of such rewards R =
+E[∑ γt−1 rt ], where γ ∈ (0, 1) is the discount factor.
+The most important aspect of the Optimal Control model
+is that rather than using heuristics to choose what to do next,
+it learns an approximately optimal policy using Deep Qlearning.
+
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+
+θ and target network θ0 .
+observe the initial state s.
+repeat
+select an action a
+with probability epsilon select a random action.
+otherwise select a = argmaxa0 Q(s, a0 ; θ).
+perform the action a.
+observe the reward r and new state s0 for action a.
+store transition < s, a, r, s > in the replay memory D.
+sample random transitions < s, a, r, s > from the replay memory D.
+calculate the target value t for each sampled transition.
+if s0 is the terminal state then
+t =r
+else
+t = r + γQ(s0 , maxa0 Q(s0 , a0 ; θ); θ0 )
+end if
+update the network using (t − Q(s, a; θ))2 as the loss.
+s = s0
+after every fixed steps θ0 = θ
+until terminal state
+
+Model Results
+The Heuristic control model was run for 30,000 trials and 10
+regression runs to check for consistency. The Optimal control model was run for 20 million trials. We first tested the
+accuracy of the models. Accuracy is the proportion of trials on which the model correctly responded either present or
+absent. The best fitting optimal control model achieved an accuracy of 96% in its last 50000 trials. In comparison, human
+participants achieved 98% accuracy. The accuracy of the best
+fitting Heuristic control model was 94%. Accuracy and utility
+of both models is plotted in Figure 3. The plots show a clear
+advantage of the Optimal control model for all explored parameter settings. In other words, the approximately Optimal
+control model outperforms the Heuristic control model in all
+cases.
+Plots of fixation frequency versus same colour distractorratio at different levels of spatial and feature noise are shown
+in Figure 5. The results show that both model Heuristic
+and Optimal control model generate similar distractor ratio
+curves to humans (Figure 2) for target absent, where more
+fixations are required for ratios close to 1. While the RMSEs for the Heuristic control model were smaller than for the
+Optimal control model (Optimal: RMSE = 0.81; Heuristic
+RMSE = 0.41), the goodness of fit against Human performance for the Heuristic control model was R2 = 0.95 and for
+the Optimal control model was R2 = 0.98. A weakness of the
+Heuristic control model was that it produced DR effects for
+both target present and target absent. In contrast, the Optimal
+control model predicted a DR effect in the absent condition
+
+Deep Q-learning The Deep Q-learner made use of the following network architecture.
+The relevance score estimate Bt (36 element vector) from
+the state estimator (above) was taken as the input. This input
+was connected to a fully connected hidden layer consisting of
+nodes equivalent to number of elements in the display, i.e.,
+36, with rectifier activation function. This is followed by a
+second fully connected hidden layer consisting of again nodes
+equivalent to number of elements in the display, i.e., 36, with
+sigmoid activation function. Finally, the output layer was a
+fully connected linear layer of 38 nodes with single output for
+each action in the task. To avoid over-fitting of the network
+l2 regularization of the weights was applied with value 10−5 .
+During the training process a fixed size batch of transitions
+< s, a, r, s0 > were sampled from a replay memory and used
+for learning. For each time step (t), the deep Q-network (with
+parameters θ) is trained to approximate the action-value (Qvalue) function from the sampled transitions by minimizing
+the loss functions L(θi ):
+L(θi ) = Es,a∼πθ [(yi − Q(s, a; θ))2 ]
+where yi = r + γmaxa0 Q(s0 , a0 ; θ0 ) is the target Q-value estimated from a target Q-network (θ0 ). The parameters of target
+Q-network (θ0 ) is copied over from the learned network (θ)
+after a fixed number of iterations.
+
+54
+
+(a)
+
+(b)
+
+(a) Heuristic Control Present
+
+(b) Optimal Control Present
+
+(c) Heuristic Control Absent
+
+(d) Optimal Control Absent
+
 Figure 3: (a) Mean accuracy achieved by both models plotted
 against different noise parameter settings. (b) Mean utility
-gained by both models plotted against different noise param-
-eter settings. Where, FN is Feature noise, SN is Spatial Noise
+gained by both models plotted against different noise parameter settings. Where, FN is Feature noise, SN is Spatial Noise
 and TH is the threshold set for heuristic control model.
-                                                                       (c) Heuristic Control Absent    (d) Optimal Control Absent
-                                                                    Figure 5: Number of fixations as a function of same-colour
-                                                                    distractors for (a) the Heuristic model with target present, (b)
-                                                                    the Control model with target present, (c) the Heuristic model
-                                                                    with target absent, (d) the Heuristic model with target present.
-    (a) Heuristic Control model    (b) Optimal Control model
-                                                                    likely due to the fact that we used the same noise parameter
-Figure 4: Saccadic bias as a function of the number of same         values for both shape and colour in the model’s observation
-colour distractors for Target Absent.                               function. Further work is needed to explore the effect of the
-                                                                    known differences in acuity functions for shape and colour
-                                                                    (Kieras & Hornof, 2014).
-only. In terms of the shape of the DR curve and saccadic se-
-lectivity curve, the similarity between humans and Optimal                          Discussion and Conclusion
+
+Figure 5: Number of fixations as a function of same-colour
+distractors for (a) the Heuristic model with target present, (b)
+the Control model with target present, (c) the Heuristic model
+with target absent, (d) the Heuristic model with target present.
+(a) Heuristic Control model
+
+(b) Optimal Control model
+
+likely due to the fact that we used the same noise parameter
+values for both shape and colour in the model’s observation
+function. Further work is needed to explore the effect of the
+known differences in acuity functions for shape and colour
+(Kieras & Hornof, 2014).
+
+Figure 4: Saccadic bias as a function of the number of same
+colour distractors for Target Absent.
+
+only. In terms of the shape of the DR curve and saccadic selectivity curve, the similarity between humans and Optimal
 control model is greater than the similarity between Heuristic
-control model and humans (see Figure 2).                            While the results presented here are preliminary, they offer
-    The saccadic bias effect is shown in Figure 4. For the ex-      some evidence that the distractor-ratio effect is the conse-
-plored parameter settings, the Heuristic control model gen-         quence of an approximately optimal adaptation to the con-
-erated higher levels of saccadic bias than generated by the         straints imposed by the human visual information processing
-Optimal control model and these levels were nearer to those         system. Unlike previous work, including Myers et al. (2013),
-generated by humans (Optimal: RMSE = 8.93; Heuristic                our results are based on a model that makes approximately
-RMSE = 6.93). However, the Optimal control model ex-                optimal control decisions to choose fixation locations rather
-plained more of the variance. The goodness of fit of the best       than a model that uses MAP-like heuristics.
-fitting Heuristic control model was R2 = .94. In contrast, the          Achieving these results required two contributions to cog-
-best fitting Optimal control model had a goodness of fit of         nitive modeling. The first is the novel application of POMDPs
-R2 = 0.97. While the Heuristic control model predicts a mag-        to the framing of the distractor-ratio problem, further extend-
-nitude of saccadic bias that corresponds to that of humans at       ing the work of Butko and Movellan (2008). The POMDP
-extreme levels of same-color (around 30%), it is the Optimal        framing is important because it provides a rigorous basis
-control model that has the better fit. This is likely due to        for exploring the computationally rational adaptation of hu-
-the extreme curvature (sinusoidal) of the saccadic bias for the     man strategies to known information processing constraints
-Heuristic model which is not present in the humans.                 (Lewis et al., 2014; Howes, Lewis, & Vera, 2009). It thereby
-    One of the effects in the human data that is not captured by    helps make the crucial link between cognitive mechanism and
-either the Optimal or the Heuristic control model is the asym-      rationality that supports deep explanations of behaviour.
-metric effect of shape and colour (see Figure 2). This is very          The second contribution is the novel application of Deep
-                                                                 55
+control model and humans (see Figure 2).
+The saccadic bias effect is shown in Figure 4. For the explored parameter settings, the Heuristic control model generated higher levels of saccadic bias than generated by the
+Optimal control model and these levels were nearer to those
+generated by humans (Optimal: RMSE = 8.93; Heuristic
+RMSE = 6.93). However, the Optimal control model explained more of the variance. The goodness of fit of the best
+fitting Heuristic control model was R2 = .94. In contrast, the
+best fitting Optimal control model had a goodness of fit of
+R2 = 0.97. While the Heuristic control model predicts a magnitude of saccadic bias that corresponds to that of humans at
+extreme levels of same-color (around 30%), it is the Optimal
+control model that has the better fit. This is likely due to
+the extreme curvature (sinusoidal) of the saccadic bias for the
+Heuristic model which is not present in the humans.
+One of the effects in the human data that is not captured by
+either the Optimal or the Heuristic control model is the asymmetric effect of shape and colour (see Figure 2). This is very
 
-Q-Learning (Mnih et al., 2015) to determine the optimal pol-        Kaelbling, L. P., Littman, M. L., & Cassandra, A. R. (1998).
-icy given a theory of human visual information processing             Planning and acting in partially observable stochastic do-
-capacities. The role of reinforcement learning based algo-            mains. Artificial intelligence, 101(1), 99–134.
-rithm’s have previously been proposed as means of explaining        Kieras, D. E., & Hornof, A. J. (2014). Towards accurate
-human learning processes (Dayan & Daw, 2008) and also, as             and practical predictive models of active-vision-based vi-
-means of deriving rational analyses of what a person should           sual search. In Proceedings of the 32nd annual acm con-
-do in particular task (Chater, 2009). Our work is more aligned        ference on human factors in computing systems (pp. 3875–
-with the goals of (Chater, 2009). The purpose of our rein-            3884).
-forcement learner was not to model the step-by-step learn-          Kowler, E. (2011). Eye movements: The past 25years. Vision
-ing process, but rather to model the rational outcome of the          research, 51(13), 1457–1483.
-learning process – an approximately optimal adaptation to in-       Levi, D. M. (2008). Crowdingan essential bottleneck for
-formation processing limits.                                          object recognition: A mini-review. Vision research, 48(5),
-   There is a substantial amount of work to be done. While the        635–654.
-best fitting Optimal control model explained 98% of the vari-       Lewis, R. L., Howes, A., & Singh, S. (2014). Com-
-ance, to be fully confident that it is better than the Heuristic      putational rationality: Linking mechanism and behavior
-control model, we need to more fully explore the parameter            through bounded utility maximization. Topics in cognitive
-space of both models. For example, for the Heuristic control          science, 6(2), 279–311.
-model, it might be the case that even higher feature noise,         Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Ve-
-and lower spatial noise, might further improve the fit. We            ness, J., Bellemare, M. G., . . . others (2015). Human-
-also need to find a fit that reduces the RMSE of the Optimal          level control through deep reinforcement learning. Nature,
-control model.                                                        518(7540), 529–533.
-   In conclusion, we have demonstrated that framing the vi-         Myers, C. W., Lewis, R. L., & Howes, A. (2013). Bounded
-sual search problem as a POMDP and solving this problem               optimal state estimation and control in visual search: Ex-
-with deep Q-learning is a viable approach to explaining ef-           plaining distractor ratio effects. In Proc. cogsci.
-fects such as distractor-ratio and saccadic selectivity.            Najemnik, J., & Geisler, W. S. (2005). Optimal eye move-
-                                                                      ment strategies in visual search. Nature, 434(7031), 387–
-                          References                                  391.
-                                                                    Najemnik, J., & Geisler, W. S. (2008). Eye movement statis-
-Bacon, W. F., & Egeth, H. E. (1997). Goal-directed guid-              tics in humans are consistent with an optimal search strat-
-   ance of attention: evidence from conjunctive visual search.        egy. Journal of Vision, 8(3), 4–4.
-   Journal of Experimental Psychology: Human Perception             Nunez-Varela, J., & Wyatt, J. L. (2013). Models of gaze con-
-   and Performance, 23(4), 948.                                       trol for manipulation tasks. ACM Transactions on Applied
-Butko, N. J., & Movellan, J. R. (2008). I-pomdp: An infomax           Perception (TAP), 10(4), 20.
-   model of eye movement. In Development and learning,              Pomplun, M., Reingold, E. M., & Shen, J. (2003). Area
-   2008. icdl 2008. 7th ieee international conference on (pp.         activation: A computational model of saccadic selectivity
-   139–144).                                                          in visual search. Cognitive Science, 27(2), 299–312.
-Chater, N. (2009). Rational and mechanistic perspectives on         Shen, J., Reingold, E. M., & Pomplun, M. (2000). Distractor
-   reinforcement learning. Cognition, 113(3), 350–364.                ratio influences patterns of eye movements during visual
-Dayan, P., & Daw, N. D. (2008). Decision theory, reinforce-           search. Perception, 29(2), 241–250.
-   ment learning, and the brain. Cognitive, Affective, & Be-        Shen, J., Reingold, E. M., & Pomplun, M. (2003). Guid-
-   havioral Neuroscience, 8(4), 429–453.                              ance of eye movements during conjunctive visual search:
-Egeth, H. E., Virzi, R. A., & Garbart, H. (1984). Searching           the distractor-ratio effect.      Canadian Journal of Ex-
-   for conjunctively defined targets. Journal of Experimental         perimental Psychology/Revue canadienne de psychologie
-   Psychology: Human Perception and Performance, 10(1),               expérimentale, 57(2), 76.
-   32.                                                              Sprague, N., Ballard, D., & Robinson, A. (2007). Modeling
-Geisler, W. S. (2011). Contributions of ideal observer theory         embodied visual behaviors. ACM Transactions on Applied
-   to vision research. Vision research, 51(7), 771–781.               Perception (TAP), 4(2), 11.
-Hayhoe, M., & Ballard, D. (2014). Modeling task control of          Strasburger, H., Rentschler, I., & Jüttner, M. (2011). Periph-
-   eye movements. Current Biology, 24(13), R622–R628.                 eral vision and pattern recognition: A review. Journal of
-Howes, A., Lewis, R. L., & Vera, A. (2009). Rational adap-            vision, 11(5), 13–13.
-   tation under task and processing constraints: implications       Wolfe, J. M. (2007). Guided search 4.0. Integrated models
-   for testing theories of cognition and action. Psychological        of cognitive systems, 99–119.
-   review, 116(4), 717.                                             Zohary, E., & Hochstein, S. (1989). How serial is serial
-Itti, L., & Koch, C. (2000). A saliency-based search mecha-           processing in vision? Perception, 18(2), 191–200.
-   nism for overt and covert shifts of visual attention. Vision
-   research, 40(10), 1489–1506.
-                                                                 56
+Discussion and Conclusion
+While the results presented here are preliminary, they offer
+some evidence that the distractor-ratio effect is the consequence of an approximately optimal adaptation to the constraints imposed by the human visual information processing
+system. Unlike previous work, including Myers et al. (2013),
+our results are based on a model that makes approximately
+optimal control decisions to choose fixation locations rather
+than a model that uses MAP-like heuristics.
+Achieving these results required two contributions to cognitive modeling. The first is the novel application of POMDPs
+to the framing of the distractor-ratio problem, further extending the work of Butko and Movellan (2008). The POMDP
+framing is important because it provides a rigorous basis
+for exploring the computationally rational adaptation of human strategies to known information processing constraints
+(Lewis et al., 2014; Howes, Lewis, & Vera, 2009). It thereby
+helps make the crucial link between cognitive mechanism and
+rationality that supports deep explanations of behaviour.
+The second contribution is the novel application of Deep
 
+55
+
+Q-Learning (Mnih et al., 2015) to determine the optimal policy given a theory of human visual information processing
+capacities. The role of reinforcement learning based algorithm’s have previously been proposed as means of explaining
+human learning processes (Dayan & Daw, 2008) and also, as
+means of deriving rational analyses of what a person should
+do in particular task (Chater, 2009). Our work is more aligned
+with the goals of (Chater, 2009). The purpose of our reinforcement learner was not to model the step-by-step learning process, but rather to model the rational outcome of the
+learning process – an approximately optimal adaptation to information processing limits.
+There is a substantial amount of work to be done. While the
+best fitting Optimal control model explained 98% of the variance, to be fully confident that it is better than the Heuristic
+control model, we need to more fully explore the parameter
+space of both models. For example, for the Heuristic control
+model, it might be the case that even higher feature noise,
+and lower spatial noise, might further improve the fit. We
+also need to find a fit that reduces the RMSE of the Optimal
+control model.
+In conclusion, we have demonstrated that framing the visual search problem as a POMDP and solving this problem
+with deep Q-learning is a viable approach to explaining effects such as distractor-ratio and saccadic selectivity.
+
+Kaelbling, L. P., Littman, M. L., & Cassandra, A. R. (1998).
+Planning and acting in partially observable stochastic domains. Artificial intelligence, 101(1), 99–134.
+Kieras, D. E., & Hornof, A. J. (2014). Towards accurate
+and practical predictive models of active-vision-based visual search. In Proceedings of the 32nd annual acm conference on human factors in computing systems (pp. 3875–
+3884).
+Kowler, E. (2011). Eye movements: The past 25years. Vision
+research, 51(13), 1457–1483.
+Levi, D. M. (2008). Crowdingan essential bottleneck for
+object recognition: A mini-review. Vision research, 48(5),
+635–654.
+Lewis, R. L., Howes, A., & Singh, S. (2014). Computational rationality: Linking mechanism and behavior
+through bounded utility maximization. Topics in cognitive
+science, 6(2), 279–311.
+Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness, J., Bellemare, M. G., . . . others (2015). Humanlevel control through deep reinforcement learning. Nature,
+518(7540), 529–533.
+Myers, C. W., Lewis, R. L., & Howes, A. (2013). Bounded
+optimal state estimation and control in visual search: Explaining distractor ratio effects. In Proc. cogsci.
+Najemnik, J., & Geisler, W. S. (2005). Optimal eye movement strategies in visual search. Nature, 434(7031), 387–
+391.
+Najemnik, J., & Geisler, W. S. (2008). Eye movement statistics in humans are consistent with an optimal search strategy. Journal of Vision, 8(3), 4–4.
+Nunez-Varela, J., & Wyatt, J. L. (2013). Models of gaze control for manipulation tasks. ACM Transactions on Applied
+Perception (TAP), 10(4), 20.
+Pomplun, M., Reingold, E. M., & Shen, J. (2003). Area
+activation: A computational model of saccadic selectivity
+in visual search. Cognitive Science, 27(2), 299–312.
+Shen, J., Reingold, E. M., & Pomplun, M. (2000). Distractor
+ratio influences patterns of eye movements during visual
+search. Perception, 29(2), 241–250.
+Shen, J., Reingold, E. M., & Pomplun, M. (2003). Guidance of eye movements during conjunctive visual search:
+the distractor-ratio effect.
+Canadian Journal of Experimental Psychology/Revue canadienne de psychologie
+expérimentale, 57(2), 76.
+Sprague, N., Ballard, D., & Robinson, A. (2007). Modeling
+embodied visual behaviors. ACM Transactions on Applied
+Perception (TAP), 4(2), 11.
+Strasburger, H., Rentschler, I., & Jüttner, M. (2011). Peripheral vision and pattern recognition: A review. Journal of
+vision, 11(5), 13–13.
+Wolfe, J. M. (2007). Guided search 4.0. Integrated models
+of cognitive systems, 99–119.
+Zohary, E., & Hochstein, S. (1989). How serial is serial
+processing in vision? Perception, 18(2), 191–200.
+
+References
+Bacon, W. F., & Egeth, H. E. (1997). Goal-directed guidance of attention: evidence from conjunctive visual search.
+Journal of Experimental Psychology: Human Perception
+and Performance, 23(4), 948.
+Butko, N. J., & Movellan, J. R. (2008). I-pomdp: An infomax
+model of eye movement. In Development and learning,
+2008. icdl 2008. 7th ieee international conference on (pp.
+139–144).
+Chater, N. (2009). Rational and mechanistic perspectives on
+reinforcement learning. Cognition, 113(3), 350–364.
+Dayan, P., & Daw, N. D. (2008). Decision theory, reinforcement learning, and the brain. Cognitive, Affective, & Behavioral Neuroscience, 8(4), 429–453.
+Egeth, H. E., Virzi, R. A., & Garbart, H. (1984). Searching
+for conjunctively defined targets. Journal of Experimental
+Psychology: Human Perception and Performance, 10(1),
+32.
+Geisler, W. S. (2011). Contributions of ideal observer theory
+to vision research. Vision research, 51(7), 771–781.
+Hayhoe, M., & Ballard, D. (2014). Modeling task control of
+eye movements. Current Biology, 24(13), R622–R628.
+Howes, A., Lewis, R. L., & Vera, A. (2009). Rational adaptation under task and processing constraints: implications
+for testing theories of cognition and action. Psychological
+review, 116(4), 717.
+Itti, L., & Koch, C. (2000). A saliency-based search mechanism for overt and covert shifts of visual attention. Vision
+research, 40(10), 1489–1506.
+
+56
+
+

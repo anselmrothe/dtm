@@ -3,380 +3,727 @@ Proceedings of the Annual Meeting of the Cognitive Science
 Society
 Title
 Learning to Reason Pragmatically with Cognitive Limitations
+
 Permalink
 https://escholarship.org/uc/item/5rk439ms
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 36(36)
+
 Authors
 Vogel, Adam
 Gomez Emilsson, Andreas
 Frank, Michael C.
 et al.
+
 Publication Date
 2014-01-01
 Peer reviewed
- eScholarship.org                                 Powered by the California Digital Library
-                                                                    University of California
 
-                   Learning to Reason Pragmatically with Cognitive Limitations
-                   Adam Vogel                          Andrés Goméz Emilsson                        Michael C. Frank
-            acvogel@stanford.edu                        nc07agom@stanford.edu                      mcfrank@stanford.edu
-           Stanford Computer Science                        Stanford Psychology                       Stanford Psychology
-                                 Dan Jurafsky                                            Christopher Potts
-                           jurafsky@stanford.edu                                      cgpotts@stanford.edu
-                               Stanford Linguistics                                      Stanford Linguistics
-                               Abstract                                 complex utterances: slowly via complex recursive inferences
-   Recursive Bayesian models of linguistic communication cap-           made as each sentence is processed, (Geurts, 2009; Huang
-   ture a variety of intricate kinds of pragmatic enrichment, but       & Snedeker, 2009) or quickly via inferences that are pre-
-   they tend to depend on the unrealistic assumption that agents        compiled and cached based on previous interactions (Levin-
-   are invariably optimal reasoners. We present a discrimina-
-   tive model that seeks to capitalize on the insights of such          son, 2000; Grodner et al., 2010; Smith et al., 2013). Instead,
-   approaches while addressing these concerns about inferential         our discriminatively-trained model instantiates a third possi-
-   power. The model relies on only approximate representations          bility, extending Jurafsky 2004: learning to directly map sur-
-   of language and context, and its recursive properties are lim-
-   ited to the training phase. The resulting behavior is often not      face linguistic cues to speaker intent. Like the interpretive
-   optimal, but we present experimental evidence that this subop-       models, a learned model explains how context-sensitive infer-
-   timal behavior is closely aligned with human performance on          ences could be drawn at communication time; like the cached
-   both simple and complex reference games.
-                                                                        models, it explains why processing could be fast and direct.
-                           Introduction                                    Our central question is whether our model’s behavior
-Recursive Bayesian models of language production and com-               matches human performance across a wide range of situa-
-prehension capture a variety of intricate phenomena concern-            tions. To address this, we use collaborative reference games
-ing context dependence and pragmatic enrichment (Jäger,                (Rosenberg & Cohen, 1964; Clark & Wilkes-Gibbs, 1986;
-2007; Franke, 2009; Frank & Goodman, 2012; Bergen et                    DeVault et al., 2005) in which a speaker refers to an object in
-al., 2012; Vogel et al., 2013; Smith et al., 2013). In these            a shared visual scene and the listener uses the speaker’s mes-
-models, speakers and listeners reason about each other re-              sage to try to guess the intended referent. By manipulating
-cursively in order to achieve ever more optimal communi-                the properties of the scene and the speaker’s available mes-
-cation systems. These approaches offer precise, algorithmic             sages, we can ensure that pragmatic reasoning is required for
-perspectives on philosophical and linguistic theories of com-           reliable success. We report several experiments that identify
-munication (Lewis, 1969; Grice, 1975; Horn, 1984), and they             the bounds on human performance in these reference games,
-make robust predictions about experimental data (Stiller et             and we compare human performance to our model, showing
-al., 2011; Rohde et al., 2012; Degen et al., 2013).                     that its inferences closely align with human performance.
-   Despite the success of these models, they raise concerns
-                                                                                             Reference Games
+eScholarship.org
+
+Powered by the California Digital Library
+University of California
+
+Learning to Reason Pragmatically with Cognitive Limitations
+Adam Vogel
+
+Andrés Goméz Emilsson
+
+Michael C. Frank
+
+acvogel@stanford.edu
+Stanford Computer Science
+
+nc07agom@stanford.edu
+Stanford Psychology
+
+mcfrank@stanford.edu
+Stanford Psychology
+
+Dan Jurafsky
+
+Christopher Potts
+
+jurafsky@stanford.edu
+Stanford Linguistics
+
+cgpotts@stanford.edu
+Stanford Linguistics
+
+Abstract
+Recursive Bayesian models of linguistic communication capture a variety of intricate kinds of pragmatic enrichment, but
+they tend to depend on the unrealistic assumption that agents
+are invariably optimal reasoners. We present a discriminative model that seeks to capitalize on the insights of such
+approaches while addressing these concerns about inferential
+power. The model relies on only approximate representations
+of language and context, and its recursive properties are limited to the training phase. The resulting behavior is often not
+optimal, but we present experimental evidence that this suboptimal behavior is closely aligned with human performance on
+both simple and complex reference games.
+
+Introduction
+Recursive Bayesian models of language production and comprehension capture a variety of intricate phenomena concerning context dependence and pragmatic enrichment (Jäger,
+2007; Franke, 2009; Frank & Goodman, 2012; Bergen et
+al., 2012; Vogel et al., 2013; Smith et al., 2013). In these
+models, speakers and listeners reason about each other recursively in order to achieve ever more optimal communication systems. These approaches offer precise, algorithmic
+perspectives on philosophical and linguistic theories of communication (Lewis, 1969; Grice, 1975; Horn, 1984), and they
+make robust predictions about experimental data (Stiller et
+al., 2011; Rohde et al., 2012; Degen et al., 2013).
+Despite the success of these models, they raise concerns
 about inferential power, in that they assume that the agents are
-invariably optimal reasoners with unbounded computational               Figure 1 depicts a reference game scenario. There are three
-resources. These concerns can be mitigated by stipulations              potential referents (A, B, and C), each with a pre-specified set
-about depth of iteration (Camerer et al., 2004; Franke, 2009;           of properties (wearing glasses, wearing a hat, having a mus-
-Jäger, 2007, 2012), but the models remain computationally              tache). The speaker is privately assigned one of the referents.
-demanding and powerful.                                                 Using a message from a pre-defined vocabulary, the speaker
-                                                                        tries to convey the identity of this referent to the listener. The
-                                                                        listener(19)
-   We seek to capitalize on the insights of these approaches
-while addressing these concerns. We define a discriminative                       uses the message to choose one of the referents. Intu-
-model of pragmatic reasoning that requires no explicit rep-             itively, the two participants’ goals are aligned: they win just
-resentation of the context. Rather, it relies only on features          in case the speaker’s referent is the hearer’s choice.
+invariably optimal reasoners with unbounded computational
+resources. These concerns can be mitigated by stipulations
+about depth of iteration (Camerer et al., 2004; Franke, 2009;
+Jäger, 2007, 2012), but the models remain computationally
+demanding and powerful.
+We seek to capitalize on the insights of these approaches
+while addressing these concerns. We define a discriminative
+model of pragmatic reasoning that requires no explicit representation of the context. Rather, it relies only on features
 of the environment and language. In addition, the recursive
 aspects of the model are limited to training: we employ a
 self-training regime in which, starting with basic models of
-the speaker and the hearer, we use the speaker to generate su-
-pervised training data for the listener, and vice versa. Once
-this phase is complete, the model makes decisions without                                A
-                                                                                        R1              B
-                                                                                                        R2                C
-                                                                                                                          R3
+the speaker and the hearer, we use the speaker to generate supervised training data for the listener, and vice versa. Once
+this phase is complete, the model makes decisions without
 any recursion. The models are both more efficient and more
-fallible than the above generative ones.                                                         “mustache”
-                                                                                Figure 1: Scenario  for a simple reference game.
-   Our model also offers a way to reconcile previous expla-
-nations of the interpretation or production of pragmatically            Code and data: github.com/acvogel/discriminative-ibr
-                                                                    3055
+fallible than the above generative ones.
+Our model also offers a way to reconcile previous explanations of the interpretation or production of pragmatically
 
-Definition                                                              The listener ANN has three outputs, one per target. Given a
-Formally, a reference game is a tuple G = (M, T, J·K), where T          reference game and a message, the listener selects the target
-is the set of targets, M is the set of messages, and J·K : M → 2T       corresponding to the highest output activation.
-is the semantics of the messages, which dictates which targets             The training procedure for speakers (Algorithm 3) pro-
-each message is true of. A speaker S is a (possibly stochastic)         ceeds similarly. For each reference game G ∈ G and for each
-function G × T → M from a game and target to a message.                 target t ∈ T , we query the listener to determine whether there
-Similarly, a listener L is a function G × M → T from a game             is a message m that the listener interprets as target t. If so, we
-and a message to a target. For a given run of a game G and              add a training example with (G,t) as the features and m as the
-target t, the speaker produces the message m = S(G,t), the              label. For some listeners, there is no message it interprets as
-listener selects a target t 0 = L(G, m), and they win iff t = t 0 .     a particular target, so we do not add those to the training set.
-                                                                           The listener and speaker ANNs have the same structure:
-Literal Speaker and Listener                                            a fully-connected network with 12 input features, one a hid-
-To initialize the learning procedure described in the next sec-         den layer whose size we vary in the experiments, and 3 out-
-tion, we define literal speakers and listeners, who rely entirely       put nodes. The models are trained with back propagation
-on the semantics of the messages, with no consideration of              (Rumelhart et al., 1986), using the PyBrain library (Schaul
-the other participant’s behavior. The literal speaker S0 , when         et al., 2010).
+complex utterances: slowly via complex recursive inferences
+made as each sentence is processed, (Geurts, 2009; Huang
+& Snedeker, 2009) or quickly via inferences that are precompiled and cached based on previous interactions (Levinson, 2000; Grodner et al., 2010; Smith et al., 2013). Instead,
+our discriminatively-trained model instantiates a third possibility, extending Jurafsky 2004: learning to directly map surface linguistic cues to speaker intent. Like the interpretive
+models, a learned model explains how context-sensitive inferences could be drawn at communication time; like the cached
+models, it explains why processing could be fast and direct.
+Our central question is whether our model’s behavior
+matches human performance across a wide range of situations. To address this, we use collaborative reference games
+(Rosenberg & Cohen, 1964; Clark & Wilkes-Gibbs, 1986;
+DeVault et al., 2005) in which a speaker refers to an object in
+a shared visual scene and the listener uses the speaker’s message to try to guess the intended referent. By manipulating
+the properties of the scene and the speaker’s available messages, we can ensure that pragmatic reasoning is required for
+reliable success. We report several experiments that identify
+the bounds on human performance in these reference games,
+and we compare human performance to our model, showing
+that its inferences closely align with human performance.
+
+Reference Games
+Figure 1 depicts a reference game scenario. There are three
+potential referents (A, B, and C), each with a pre-specified set
+of properties (wearing glasses, wearing a hat, having a mustache). The speaker is privately assigned one of the referents.
+Using a message from a pre-defined vocabulary, the speaker
+tries to convey the identity of this referent to the listener. The
+listener(19)
+uses the message to choose one of the referents. Intuitively, the two participants’ goals are aligned: they win just
+in case the speaker’s referent is the hearer’s choice.
+
+A
+R1
+
+B
+R2
+
+C
+R3
+
+Figure 1: Scenario
+for a simple reference game.
+“mustache”
+Code and data: github.com/acvogel/discriminative-ibr
+
+3055
+
+Definition
+Formally, a reference game is a tuple G = (M, T, J·K), where T
+is the set of targets, M is the set of messages, and J·K : M → 2T
+is the semantics of the messages, which dictates which targets
+each message is true of. A speaker S is a (possibly stochastic)
+function G × T → M from a game and target to a message.
+Similarly, a listener L is a function G × M → T from a game
+and a message to a target. For a given run of a game G and
+target t, the speaker produces the message m = S(G,t), the
+listener selects a target t 0 = L(G, m), and they win iff t = t 0 .
+
+Literal Speaker and Listener
+To initialize the learning procedure described in the next section, we define literal speakers and listeners, who rely entirely
+on the semantics of the messages, with no consideration of
+the other participant’s behavior. The literal speaker S0 , when
 given a target to refer to, picks uniformly at random from
-messages which are true of the target:                                     Algorithm: SelfTrain
-                                                                           Input: Reference games G, Number of iterations N
-                S0 (G,t) = Uniform ({m|t ∈ JmK})                (1)        Output: Listener L
-Similarly, the literal listener L0 , when given a message m,               Initialize S = S0
-picks randomly from targets in the semantics of the message:               for i from 1 to N do
-                                                                                L = TrainListener(G, S)
-                L0 (G, m) = Uniform ({t|t ∈ JmK})               (2)             S = TrainSpeaker(G, L)
-                                                                           end
-              Discriminative Best Response                                 return L
-Our model relies on iterated self-training, alternating between
-discriminatively training the listener and the speaker. This              Algorithm 1: Train listener and speaker ANNs for a given
-method requires no generative model of the context or mes-                number of iterations, starting from the literal speaker S0 .
-sages, but rather only a shallow feature vector representation.
-Furthermore, there is no explicit recursive reasoning proce-               Algorithm: TrainListener
-dure of the sort common in the generative approaches dis-                  Input: Reference games G, Speaker S
-cussed above. At evaluation time, our trained listener simply              Output: Listener L
-generates features for the problem and utterance, and com-                 Initialize training data X = Y = 0/
-putes the model activation for each possible target.                       foreach Reference game G = (T, M) ∈ G do
-   Algorithm 1 describes the training algorithm. It takes as in-                foreach Target t ∈ T do
-put a set of reference games G, and a number of training itera-                     m = S(G,t)
-tions to perform, N. Starting with the literal speaker, we train                    Append (G, m) to X
-a listener using the input reference games and the speaker (Al-                     Append t to Y
-gorithm 2). Then, using this newly trained listener, we retrain                 end
-the speaker (Algorithm 3), using the current listener to cre-              end
-ate training data. We use an artificial neural network (ANN)               return ANN-Train(X,Y )
-as the discriminative classifier, but other learning algorithms
-would work as well. This procedure repeats for N iterations,             Algorithm 2: Train a listener ANN from a given speaker.
-yielding a self-trained ANN listener and speaker.
-   To train a listener (Algorithm 2), we use a speaker S to
-generate training data as follows. For each reference game                          Simulations with Synthetic Data
-G ∈ G, and for each target t ∈ T , we query the speaker to              We first evaluate our ANN listener model on a variety of au-
-get the speaker’s chosen message m = S(G,t). We then form               tomatically generated reference games.
-a training set in which the input features are games com-
-bined with messages and the gold label is the target t that the         Experimental Design
-speaker intended to refer to. The listener ANN uses a simple            We first generated the full set Gsep of three-target, three-
-feature representation: a binary feature for the presence or            feature reference games that have fully separating equilibria,
-absence of each feature for each target, and also a binary fea-         that is, games that can be resolved to totally unambiguous
-ture for each possible message. For three targets, three prop-          speaker and listener strategies in the iterated best response
-erties, and three utterances, this yields twelve binary features.       (IBR) model of Franke (2009) and Jäger (2007, 2012). From
-                                                                    3056
+messages which are true of the target:
+S0 (G,t) = Uniform ({m|t ∈ JmK})
 
-  Algorithm: TrainSpeaker                                             cursion depths (Figure 3). All have perfect accuracy on the
-  Input: Reference games G, Listener L                                level 0 problems (barely visible along the top of the plot),
-  Output: Speaker S                                                   with rapidly increasing accuracy on the level 1 and 2 prob-
-  Initialize training data X = Y = 0/                                 lems. The accuracies shown here are using the probabilities
-  foreach Reference game G = (T, M) ∈ G do                            of each target given a message (Frank & Goodman, 2012;
-       foreach Target t ∈ T do                                        Bergen et al., 2012). If we instead always choose the target
-           if ∃m such that L(G, m) = t then                           with the highest probability given a message (Franke, 2009;
-               Append (G,t) to X                                      Jäger, 2007, 2012), the IBR model solves the problems ex-
-               Append m to Y                                          actly after one and two levels, respectively.
-           end
-       end
-  end                                                                                                  1.0    ANN Accuracy on Synthetic Data
-  return ANN-Train(X,Y )
-                                                                                                       0.8
- Algorithm 3: Train a speaker ANN from a given listener.
-                                                                                     Listener Precision
-                                                                                                       0.6
-Gsep , we generated 1,206 specific reference instances, where                                          0.4
-an instance is a game G, a message m, and an intended target                                                                                 Level 0
-t. We separate these instances by the depth of reasoning that                                          0.2                                   Level 1
-an IBR listener requires to identify a unique target. Level 0                                                                                Level 2
-problems require only the literal semantics of messages, i.e.,                                         0.00       2       4         6        8         10
-the message uniquely identifies the target; level 1 problems                                                          Training Iterations
-require reasoning about a speaker that reasons about a lit-               (a) Varying the number of training iterations, with 50 hidden nodes.
-eral listener; and level 2 problems require reasoning about
-a speaker that reasons about a level 1 listener. Using these in-                                       1.0ANN Accuracy by Size of Hidden Layer
-stances (G, m,t), we self-train our listener model using only
-the game information G and the message m, holding out the                                              0.8
-                                                                                   Listener Accuracy
-target t for evaluation, as described in Algorithm 1.
-                                                                                                       0.6
+The listener ANN has three outputs, one per target. Given a
+reference game and a message, the listener selects the target
+corresponding to the highest output activation.
+The training procedure for speakers (Algorithm 3) proceeds similarly. For each reference game G ∈ G and for each
+target t ∈ T , we query the listener to determine whether there
+is a message m that the listener interprets as target t. If so, we
+add a training example with (G,t) as the features and m as the
+label. For some listeners, there is no message it interprets as
+a particular target, so we do not add those to the training set.
+The listener and speaker ANNs have the same structure:
+a fully-connected network with 12 input features, one a hidden layer whose size we vary in the experiments, and 3 output nodes. The models are trained with back propagation
+(Rumelhart et al., 1986), using the PyBrain library (Schaul
+et al., 2010).
+Algorithm: SelfTrain
+Input: Reference games G, Number of iterations N
+Output: Listener L
+Initialize S = S0
+for i from 1 to N do
+L = TrainListener(G, S)
+S = TrainSpeaker(G, L)
+end
+return L
+
+(1)
+
+Similarly, the literal listener L0 , when given a message m,
+picks randomly from targets in the semantics of the message:
+L0 (G, m) = Uniform ({t|t ∈ JmK})
+
+(2)
+
+Discriminative Best Response
+Our model relies on iterated self-training, alternating between
+discriminatively training the listener and the speaker. This
+method requires no generative model of the context or messages, but rather only a shallow feature vector representation.
+Furthermore, there is no explicit recursive reasoning procedure of the sort common in the generative approaches discussed above. At evaluation time, our trained listener simply
+generates features for the problem and utterance, and computes the model activation for each possible target.
+Algorithm 1 describes the training algorithm. It takes as input a set of reference games G, and a number of training iterations to perform, N. Starting with the literal speaker, we train
+a listener using the input reference games and the speaker (Algorithm 2). Then, using this newly trained listener, we retrain
+the speaker (Algorithm 3), using the current listener to create training data. We use an artificial neural network (ANN)
+as the discriminative classifier, but other learning algorithms
+would work as well. This procedure repeats for N iterations,
+yielding a self-trained ANN listener and speaker.
+To train a listener (Algorithm 2), we use a speaker S to
+generate training data as follows. For each reference game
+G ∈ G, and for each target t ∈ T , we query the speaker to
+get the speaker’s chosen message m = S(G,t). We then form
+a training set in which the input features are games combined with messages and the gold label is the target t that the
+speaker intended to refer to. The listener ANN uses a simple
+feature representation: a binary feature for the presence or
+absence of each feature for each target, and also a binary feature for each possible message. For three targets, three properties, and three utterances, this yields twelve binary features.
+
+Algorithm 1: Train listener and speaker ANNs for a given
+number of iterations, starting from the literal speaker S0 .
+Algorithm: TrainListener
+Input: Reference games G, Speaker S
+Output: Listener L
+Initialize training data X = Y = 0/
+foreach Reference game G = (T, M) ∈ G do
+foreach Target t ∈ T do
+m = S(G,t)
+Append (G, m) to X
+Append t to Y
+end
+end
+return ANN-Train(X,Y )
+Algorithm 2: Train a listener ANN from a given speaker.
+
+Simulations with Synthetic Data
+We first evaluate our ANN listener model on a variety of automatically generated reference games.
+
+Experimental Design
+We first generated the full set Gsep of three-target, threefeature reference games that have fully separating equilibria,
+that is, games that can be resolved to totally unambiguous
+speaker and listener strategies in the iterated best response
+(IBR) model of Franke (2009) and Jäger (2007, 2012). From
+
+3056
+
+Algorithm: TrainSpeaker
+Input: Reference games G, Listener L
+Output: Speaker S
+Initialize training data X = Y = 0/
+foreach Reference game G = (T, M) ∈ G do
+foreach Target t ∈ T do
+if ∃m such that L(G, m) = t then
+Append (G,t) to X
+Append m to Y
+end
+end
+end
+return ANN-Train(X,Y )
+
+cursion depths (Figure 3). All have perfect accuracy on the
+level 0 problems (barely visible along the top of the plot),
+with rapidly increasing accuracy on the level 1 and 2 problems. The accuracies shown here are using the probabilities
+of each target given a message (Frank & Goodman, 2012;
+Bergen et al., 2012). If we instead always choose the target
+with the highest probability given a message (Franke, 2009;
+Jäger, 2007, 2012), the IBR model solves the problems exactly after one and two levels, respectively.
+
+1.0
+
+ANN Accuracy on Synthetic Data
+
+Listener Precision
+
+0.8
+
+Algorithm 3: Train a speaker ANN from a given listener.
+
+0.6
+
 Results
-We first evaluated how the number of training iterations af-                                           0.4
-fects model performance. Figure 2(a) shows how the accu-                                                                                     Level 0
-racy of the training model changes over training iterations.
-                                                                                                       0.2                                   Level 1
-The x-axis is how many training iterations the listener un-                                                                                  Level 2
-                                                                                                       0.00    10 20 30 40 50 60 70 80
-derwent. (The listener with 0 training iterations is the literal                                                  Number of Hidden Nodes
-listener.) The y-axis is the precision of the model on the spe-           (b) Varying the number of hidden nodes, for 10 training iterations.
-cific type of problem. We next explored how the size of the
-hidden layer affects listener performance, by varying the size                Figure 2: ANN Listener accuracy on synthetic data.
+We first evaluated how the number of training iterations affects model performance. Figure 2(a) shows how the accuracy of the training model changes over training iterations.
+The x-axis is how many training iterations the listener underwent. (The listener with 0 training iterations is the literal
+listener.) The y-axis is the precision of the model on the specific type of problem. We next explored how the size of the
+hidden layer affects listener performance, by varying the size
 of the hidden layer and evaluating each model’s performance
 after 10 training iterations (Figure 2(b)).
-Discussion                                                                                         1.0        IBR Accuracy on Synthetic Data
+
+0.4
+
+Level 0
+Level 1
+Level 2
+
+0.2
+
+0.00
+
+2
+
+4
+6
+Training Iterations
+
+8
+
+10
+
+(a) Varying the number of training iterations, with 50 hidden nodes.
+
+1.0ANN Accuracy by Size of Hidden Layer
+Listener Accuracy
+
+Gsep , we generated 1,206 specific reference instances, where
+an instance is a game G, a message m, and an intended target
+t. We separate these instances by the depth of reasoning that
+an IBR listener requires to identify a unique target. Level 0
+problems require only the literal semantics of messages, i.e.,
+the message uniquely identifies the target; level 1 problems
+require reasoning about a speaker that reasons about a literal listener; and level 2 problems require reasoning about
+a speaker that reasons about a level 1 listener. Using these instances (G, m,t), we self-train our listener model using only
+the game information G and the message m, holding out the
+target t for evaluation, as described in Algorithm 1.
+
+0.8
+0.6
+0.4
+
+Level 0
+Level 1
+Level 2
+
+0.2
+0.00
+
+10 20 30 40 50 60 70 80
+Number of Hidden Nodes
+
+(b) Varying the number of hidden nodes, for 10 training iterations.
+
+Figure 2: ANN Listener accuracy on synthetic data.
+
+Discussion
 Model accuracy decreases as the problem level (complexity)
-increases. The literal speaker performs perfectly on level 0                                       0.8
-                                                                               Listener Accuracy
+increases. The literal speaker performs perfectly on level 0
 problems, as expected. It is surprising that the trained models
-perform less than perfectly on these easy problems. A listener                                     0.6
+perform less than perfectly on these easy problems. A listener
 trained only on level 0 problems achieves perfect accuracy
-on level 0 problems, so it seems that training on the more                                         0.4
-difficult problems leads to some degradation in performance                                                                                 Level 0
-on easy problems. The trained listeners perform well, with                                         0.2                                      Level 1
-91% accuracy on level 0, 85% on level 1 problems, and 59%                                                                                   Level 2
-on level 2 problems. Figure 2(b) shows that the size of the                                        0.00            5         10         15            20
-hidden layer has some effect on model performance, but that                                                        Depth of IBR Recursion
-after a certain threshold the performance stabilizes.                       Figure 3: IBR listener accuracy on synthetic problems.
-   We also evaluated IBR listener models for a variety of re-
-                                                                   3057
+on level 0 problems, so it seems that training on the more
+difficult problems leads to some degradation in performance
+on easy problems. The trained listeners perform well, with
+91% accuracy on level 0, 85% on level 1 problems, and 59%
+on level 2 problems. Figure 2(b) shows that the size of the
+hidden layer has some effect on model performance, but that
+after a certain threshold the performance stabilizes.
+We also evaluated IBR listener models for a variety of re-
 
-                                              1.00                                                           1.00
-                      Proportion responding                                          Proportion responding
-                                              0.75                                                           0.75
-                                              0.50                                                           0.50
-                                              0.25                                                           0.25
-                                              0.00                                                           0.00
-                                                        0         1           2                                          0         1           2
-                                                            Inference Level                                                  Inference Level
-                                                “hat”   1        0            0                                 “hat”
-                                                                                                                         1        0            0
-                                      “glasses”
-                                                        1        1            0                              “glasses”
-                                                                                                                         1        0            1
-                                                                                        “mustache”
-                                                                                                                         0        1            1
-                                              Figure 4: Human data and experimental matrices from Experiments 1 and 2.
-    Experiment 1: Simple Scalar Implicature                                           Figure 4, the message “hat” unambiguously refers to the face
-                                                                                      with the hat and glasses; since there is no inference neces-
+3057
+
+Listener Accuracy
+
+1.0
+
+IBR Accuracy on Synthetic Data
+
+0.8
+0.6
+0.4
+0.2
+0.00
+
+Level 0
+Level 1
+Level 2
+5
+15
+10
+Depth of IBR Recursion
+
+20
+
+Figure 3: IBR listener accuracy on synthetic problems.
+
+1.00
+
+Proportion responding
+
+Proportion responding
+
+1.00
+0.75
+0.50
+0.25
+0.00
+
+“glasses”
+
+0.50
+0.25
+0.00
+
+0
+
+“hat”
+
+0.75
+
+1
+1
+
+1
+
+2
+
+0
+1
+
+0
+0
+
+Inference Level
+
+0
+
+“hat”
+“glasses”
+“mustache”
+
+1
+1
+0
+
+1
+
+2
+
+0
+0
+1
+
+0
+1
+1
+
+Inference Level
+
+Figure 4: Human data and experimental matrices from Experiments 1 and 2.
+
+Experiment 1: Simple Scalar Implicature
 To quantitatively compare our model with human data, we
-                                                                                      sary, we call this a level 0 problem. In contrast, the mes-
 conducted two experiments with human participants in which
-                                                                                      sage “glasses” could logically refer to the face with a hat and
 we asked them to play reference games that varied in their
-                                                                                      glasses, or the face with just glasses. A pragmatic inference is
-inferential complexity. We then compare performance of hu-
-                                                                                      required to conclude that the message refers to the face with-
-man participants to that of our discriminative model. Our first
-                                                                                      out a hat; we refer to this as a level 1 problem.
+inferential complexity. We then compare performance of human participants to that of our discriminative model. Our first
 experiment used the simple referential context shown in the
-left of Figure 4, following Stiller et al. (2011).                                    Procedure Participants saw a webpage that first introduced
-                                                                                      them to an interlocutor, “Bob”, who routinely engaged in
-Methods                                                                               some action (e.g., visiting his friends for the friend item).
-Participants We recruited 120 participants on Amazon                                  They then saw a scene like that shown in Figure 4 and read
-Mechanical Turk, of whom 65 received the level 0 stimulus,                            that “Bob can only say one word to communicate with you
-and 55 received the level 1 stimulus.                                                 and he says: [target]”, where [target] indicates the message
-                                                                                      relating to the particular condition they had been randomly
-Stimuli For each participant, we generated a reference                                assigned to (e.g., “glasses” for the level 1 inference in Fig-
-game with an underlying matrix description identical to that                          ure 4). Participants were instructed to indicate which item
-shown in the left of Figure 4. We generated the reference                             they thought was Bob’s target via a 3-alternative forced-
-game by choosing a base item randomly from among six pos-                             choice. Afterwards, they completed a simple check question
-sible options: boat, friend (shown in Figure 4), pizza, snow-                         (provide the interlocutor’s name), which we used to exclude
-man, sundae, and Christmas tree. Each of the possible items                           non-compliant participants.
+left of Figure 4, following Stiller et al. (2011).
+
+Methods
+Participants We recruited 120 participants on Amazon
+Mechanical Turk, of whom 65 received the level 0 stimulus,
+and 55 received the level 1 stimulus.
+Stimuli For each participant, we generated a reference
+game with an underlying matrix description identical to that
+shown in the left of Figure 4. We generated the reference
+game by choosing a base item randomly from among six possible options: boat, friend (shown in Figure 4), pizza, snowman, sundae, and Christmas tree. Each of the possible items
 had three features that were plausible additions to the base
-item. For example, the friend item has a hat, glasses, and                            Results
+item. For example, the friend item has a hat, glasses, and
 mustache, while the boat item has a sail, cabin, and motor.
-For this experiment, we randomly chose two features, ran-                             Human performance is plotted in the bar graph in Figure 4.
-domly assigning them to rows in the underlying matrix (en-                            The level 0 utterance was trivial, with 95% of participants
-suring, e.g., that glasses was not always the target feature),                        choosing correctly. Participants also made a substantial por-
-and we randomly assigned targets to positions in the display                          tion of implicature-consistent responses (75%) in the level 1
-(ensuring, e.g., that the target was not always in the middle).                       condition, replicating Stiller et al. (2011).
-   This reference game supports two possible inference types,                            We next compare human performance to the ANN listener
-which we refer to as level 0 and level 1, following our usage                         model, which was trained on Gsep . The accuracy of an ANN
-in the previous section. In the case of the display shown in                          listener with 50 hidden nodes is shown in Figure 5(a), for a
-                                                                                  3058
+For this experiment, we randomly chose two features, randomly assigning them to rows in the underlying matrix (ensuring, e.g., that glasses was not always the target feature),
+and we randomly assigned targets to positions in the display
+(ensuring, e.g., that the target was not always in the middle).
+This reference game supports two possible inference types,
+which we refer to as level 0 and level 1, following our usage
+in the previous section. In the case of the display shown in
 
-                            1.0ANN Accuracy on the Simple Condition                                            ANN Accuracy on the Complex Condition
-                                                                                                              1.0
-                            0.8                                                                               0.8
-        Listener Accuracy                                                                 Listener Accuracy
-                            0.6                                                                               0.6
-                            0.4                                                                               0.4
-                                                                                                                                                    Level 0
-                            0.2                                     Level 0                                   0.2                                   Level 1
-                                                                    Level 1                                                                         Level 2
-                            0.00        2         4         6         8       10                              0.00      2         4         6         8       10
-                                              Training Iterations                                                             Training Iterations
-                                             (a) ANN Simple                                                                 (b) ANN Complex
-                 Figure 5: Evaluation of the ANN listener with 50 hidden nodes on the simple (a) and complex (b) settings.
-                            1.0    IBR Accuracy on Simple Condition                                           1.0 IBR Accuracy on Complex Condition
-                            0.8                                                                               0.8
-        Listener Accuracy                                                                 Listener Accuracy
-                            0.6                                                                               0.6
-                            0.4                                                                               0.4
-                                                                                                                                                    Level 0
-                            0.2                                     Level 0                                   0.2                                   Level 1
-                                                                    Level 1                                                                         Level 2
-                            0.00            5         10         15           20                              0.00          5         10         15           20
-                                            Depth of IBR Recursion                                                          Depth of IBR Recursion
-                                              (a) IBR Simple                                                                 (b) IBR Complex
-                                                Figure 6: Evaluation of IBR listeners with different depths of recursion.
-variety of training iterations. The case of 0 training iterations                     Stimuli Stimuli were generated identically to those in Ex-
-corresponds to the literal listener L0 . We see that the literal                      periment 1, except that we used the base matrix shown on the
-listener gets all of the level 0 (unambiguous) problems cor-                          right in Figure 4. With the setting shown there, the message
-rect, and 50% of the level 1 problems. The ANN slightly                               “hat” is level 0, “mustache” is level 1, and “glasses” is level 2.
+Figure 4, the message “hat” unambiguously refers to the face
+with the hat and glasses; since there is no inference necessary, we call this a level 0 problem. In contrast, the message “glasses” could logically refer to the face with a hat and
+glasses, or the face with just glasses. A pragmatic inference is
+required to conclude that the message refers to the face without a hat; we refer to this as a level 1 problem.
+Procedure Participants saw a webpage that first introduced
+them to an interlocutor, “Bob”, who routinely engaged in
+some action (e.g., visiting his friends for the friend item).
+They then saw a scene like that shown in Figure 4 and read
+that “Bob can only say one word to communicate with you
+and he says: [target]”, where [target] indicates the message
+relating to the particular condition they had been randomly
+assigned to (e.g., “glasses” for the level 1 inference in Figure 4). Participants were instructed to indicate which item
+they thought was Bob’s target via a 3-alternative forcedchoice. Afterwards, they completed a simple check question
+(provide the interlocutor’s name), which we used to exclude
+non-compliant participants.
+
+Results
+Human performance is plotted in the bar graph in Figure 4.
+The level 0 utterance was trivial, with 95% of participants
+choosing correctly. Participants also made a substantial portion of implicature-consistent responses (75%) in the level 1
+condition, replicating Stiller et al. (2011).
+We next compare human performance to the ANN listener
+model, which was trained on Gsep . The accuracy of an ANN
+listener with 50 hidden nodes is shown in Figure 5(a), for a
+
+3058
+
+ANN Accuracy on the Complex Condition
+1.0
+
+0.8
+
+0.8
+
+Listener Accuracy
+
+Listener Accuracy
+
+1.0ANN Accuracy on the Simple Condition
+
+0.6
+0.4
+
+Level 0
+Level 1
+
+0.2
+0.00
+
+2
+
+4
+6
+Training Iterations
+
+8
+
+0.6
+0.4
+
+0.00
+
+10
+
+Level 0
+Level 1
+Level 2
+
+0.2
+
+(a) ANN Simple
+
+2
+
+4
+6
+Training Iterations
+
+8
+
+10
+
+(b) ANN Complex
+
+Figure 5: Evaluation of the ANN listener with 50 hidden nodes on the simple (a) and complex (b) settings.
+
+IBR Accuracy on Simple Condition
+
+1.0 IBR Accuracy on Complex Condition
+
+0.8
+
+Listener Accuracy
+
+Listener Accuracy
+
+1.0
+
+0.6
+0.4
+
+Level 0
+Level 1
+
+0.2
+0.00
+
+5
+15
+10
+Depth of IBR Recursion
+
+0.8
+0.6
+0.4
+
+0.00
+
+20
+
+Level 0
+Level 1
+Level 2
+
+0.2
+
+(a) IBR Simple
+
+5
+15
+10
+Depth of IBR Recursion
+
+20
+
+(b) IBR Complex
+
+Figure 6: Evaluation of IBR listeners with different depths of recursion.
+variety of training iterations. The case of 0 training iterations
+corresponds to the literal listener L0 . We see that the literal
+listener gets all of the level 0 (unambiguous) problems correct, and 50% of the level 1 problems. The ANN slightly
 outperforms the humans but is well aligned with them: 91%
-                                                                                      Procedure                      The procedure was identical to Experiment 1.
 accuracy on the level 0 problems, and 86% accuracy on the
-level 1 problems.                                                                     Results
-   Lastly, we evaluated the iterated best response (IBR) model
-                                                                                      Figure 4 shows human performance on the more complex
-on this condition, shown in Figure 6(a). The IBR model is al-
-                                                                                      scalar implicature task. Similar to the simple task, 95% cor-
-ways correct on the level 0 problems, and quickly increases
-                                                                                      rectly identified the level 0 referent, and 77% correctly picked
+level 1 problems.
+Lastly, we evaluated the iterated best response (IBR) model
+on this condition, shown in Figure 6(a). The IBR model is always correct on the level 0 problems, and quickly increases
 in accuracy on the level 1 problems as the depth of recursion
-                                                                                      the level 1 referent. However, humans had much more trouble
-increases. This evaluation uses the IBR probabilities to com-
-                                                                                      with the level 2 inference, with just 52% selecting the correct
-pute accuracy. If we instead evaluate by predicting the target
-                                                                                      referent given the utterance.
+increases. This evaluation uses the IBR probabilities to compute accuracy. If we instead evaluate by predicting the target
 with highest probability for each message, it gets all of the
-level 1 problems correct after one level of recursion.                                   These results too align with the ANN model (Figure 5(b)).
-                                                                                      We see similar performance on the level 0 and level 1 prob-
-                                                                                      lems as in the previous experiment. Importantly, the model
-  Experiment 2: Complex Scalar Implicature                                            also has much more difficulty with the level 2 problems (70%
-Methods                                                                               accuracy), which persists across number of training iterations.
-                                                                                      Although the model is more accurate than the human sub-
-Participants We recruited 180 participants from Mechani-                              jects, the results are qualitatively similar.
-cal Turk, with 55 receiving the level 0 stimulus, 60 receiving                           This stands in marked contrast to the IBR model’s perfor-
-level 1, and 65 receiving level 2.                                                    mance, summarized in Figure 6(b). This model always gets
-                                                                                   3059
+level 1 problems correct after one level of recursion.
 
-the level 0 problems correct. As the depth of recursion in-         Grice, H. P. (1975). Logic and conversation. In P. Cole &
-creases, the IBR confidence asymptotes to 1. In the same               J. Morgan (Eds.), Syntax and semantics (Vol. 3: Speech
-way as in the simple condition, if we instead evaluate the             Acts).
-IBR model by choosing the highest probability target for each       Grodner, D. J., Klein, N. M., Carbary, K. M., & Tanenhaus,
-message, it correctly identifies the level 1 targets after one         M. K. (2010). “Some,” and possibly all, scalar inferences
-step of recursion, and all of the level 2 problems after two           are not delayed: Evidence for immediate pragmatic enrich-
-steps of recursion, thereby vastly outperforming our human             ment. Cognition, 116(1), 42–55.
-subjects.                                                           Horn, L. R. (1984). Toward a new taxonomy for pragmatic in-
-                                                                       ference: Q-based and R-based implicature. In D. Schiffrin
-                         Conclusion                                    (Ed.), Meaning, form, and use in context: Linguistic appli-
-We presented a discriminative model of communication that              cations (pp. 11–42).
-embodies the central insights of recursive generative models        Huang, T. T., & Snedeker, J. (2009). Online interpretation of
-of pragmatic reasoning but is more computationally efficient,          scalar quantifiers: Insight into the semantics–pragmatics
-particularly at decision time. Using experiments involving             interface. Cognitive Psychology, 58(3), 376–415.
-simple and complex reference games, we showed that the              Jäger, G. (2007). Game dynamics connects semantics and
-model displays human-like pragmatic behavior. In closing,              pragmatics. In Game theory and linguistic meaning. Am-
-we note that the models have additional advantages that we             sterdam.
-were unable to explore here, including (i) the ability to rea-
-                                                                    Jäger, G. (2012). Game theory in semantics and pragmatics.
-son in terms of partial, heterogeneous representations of the
-                                                                       In C. Maienborn, K. von Heusinger, & P. Portner (Eds.),
+Experiment 2: Complex Scalar Implicature
+Methods
+Participants We recruited 180 participants from Mechanical Turk, with 55 receiving the level 0 stimulus, 60 receiving
+level 1, and 65 receiving level 2.
+
+Stimuli Stimuli were generated identically to those in Experiment 1, except that we used the base matrix shown on the
+right in Figure 4. With the setting shown there, the message
+“hat” is level 0, “mustache” is level 1, and “glasses” is level 2.
+Procedure
+
+The procedure was identical to Experiment 1.
+
+Results
+Figure 4 shows human performance on the more complex
+scalar implicature task. Similar to the simple task, 95% correctly identified the level 0 referent, and 77% correctly picked
+the level 1 referent. However, humans had much more trouble
+with the level 2 inference, with just 52% selecting the correct
+referent given the utterance.
+These results too align with the ANN model (Figure 5(b)).
+We see similar performance on the level 0 and level 1 problems as in the previous experiment. Importantly, the model
+also has much more difficulty with the level 2 problems (70%
+accuracy), which persists across number of training iterations.
+Although the model is more accurate than the human subjects, the results are qualitatively similar.
+This stands in marked contrast to the IBR model’s performance, summarized in Figure 6(b). This model always gets
+
+3059
+
+the level 0 problems correct. As the depth of recursion increases, the IBR confidence asymptotes to 1. In the same
+way as in the simple condition, if we instead evaluate the
+IBR model by choosing the highest probability target for each
+message, it correctly identifies the level 1 targets after one
+step of recursion, and all of the level 2 problems after two
+steps of recursion, thereby vastly outperforming our human
+subjects.
+
+Conclusion
+We presented a discriminative model of communication that
+embodies the central insights of recursive generative models
+of pragmatic reasoning but is more computationally efficient,
+particularly at decision time. Using experiments involving
+simple and complex reference games, we showed that the
+model displays human-like pragmatic behavior. In closing,
+we note that the models have additional advantages that we
+were unable to explore here, including (i) the ability to reason in terms of partial, heterogeneous representations of the
 environment, (ii) a decoupling of inferential power (depth of
-                                                                       Semantics: An international handbook of natural language
-iteration) from memory (dimensionality of the hidden repre-
-                                                                       meaning (Vol. 3). Berlin: Mouton de Gruyter.
-sentations), and (iii) a level of computational efficiency that
-makes them scalable to truly massive problems involving lan-        Jurafsky, D. (2004). Pragmatics and computational linguis-
-guage and action together.                                             tics. In L. R. Horn & G. Ward (Eds.), The handbook of
-                                                                       pragmatics (pp. 578–604). Oxford: Blackwell.
-                    Acknowledgments                                 Levinson, S. C. (2000). Presumptive meanings: The theory of
-                                                                       generalized conversational implicature. Cambridge, MA.
-We gratefully acknowledge the support of the Nuance Foun-
-dation and ONR grant N00014-13-1-0287.                              Lewis, D. (1969). Convention. Cambridge, MA: Harvard
-                                                                       University Press. (Reprinted 2002 by Blackwell)
-                          References                                Rohde, H., Seyfarth, S., Clark, B. Z., Jäger, G., & Kaufmann,
-                                                                       S. (2012). Communicating with cost-based implicature: A
-Bergen, L., Goodman, N. D., & Levy, R. (2012). That’s
-                                                                       game-theoretic approach to ambiguity. In The 16th work-
-   what she (could have) said: How alternative utterances af-
-                                                                       shop on the semantics and pragmatics of dialogue. Paris.
-   fect language use. In Cogsci 2012.
-                                                                    Rosenberg, S., & Cohen, B. D. (1964). Speakers’ and lis-
-Camerer, C. F., Ho, T.-H., & Chong, J.-K. (2004). A cogni-
-                                                                       teners’ processes in a word communication task. Science,
-   tive hierarchy model of games. The Quarterly Journal of
-                                                                       145, 1201–1203.
-   Economics, 119(3), 861–898.
-                                                                    Rumelhart, D. E., Hinton, G. E., & Williams, R. J. (1986).
-Clark, H. H., & Wilkes-Gibbs, D. (1986). Referring as a                Learning representations by back-propagating errors. Na-
-   collaborative process. Cognition, 22(1), 1–39.                      ture, 323(6088), 533–536.
-Degen, J., Franke, M., & Jäger, G. (2013). Cost-based prag-        Schaul, T., Bayer, J., Wierstra, D., Sun, Y., Felder, M.,
-   matic inference about referential expressions. In Cogsci            Sehnke, F., et al. (2010). Pybrain. Journal of Machine
-   2013.                                                               Learning Research, 11, 743–746.
-DeVault, D., Kariaeva, N., Kothari, A., Oved, I., & Stone,          Smith, N. J., Goodman, N. D., & Frank, M. C. (2013). Learn-
-   M. (2005). An information-state approach to collaborative           ing and using language via recursive pragmatic reasoning
-   reference. In Proceedings of the ACL interactive poster             about other agents. In NIPS 2013.
-   and demonstration sessions.                                      Stiller, A., Goodman, N. D., & Frank, M. C. (2011). Ad-hoc
-Frank, M. C., & Goodman, N. D. (2012). Predicting prag-                scalar implicature in adults and children. In Proceedings of
-   matic reasoning in language games. Science, 336(6084),              the 33rd annual meeting of the Cognitive Science Society.
-   998.                                                                Boston.
-Franke, M. (2009). Signal to act: Game theory in pragmatics.        Vogel, A., Bodoia, M., Potts, C., & Jurafsky, D. (2013).
-   Institute for Logic, Language and Computation, University           Emergence of Gricean maxims from multi-agent decision
-   of Amsterdam.                                                       theory. In NAACL 2013.
-Geurts, B. (2009). Scalar implicatures and local pragmatics.
-   Mind and Language, 24(1), 51–79.
-                                                                3060
+iteration) from memory (dimensionality of the hidden representations), and (iii) a level of computational efficiency that
+makes them scalable to truly massive problems involving language and action together.
 
+Acknowledgments
+We gratefully acknowledge the support of the Nuance Foundation and ONR grant N00014-13-1-0287.
+
+References
+Bergen, L., Goodman, N. D., & Levy, R. (2012). That’s
+what she (could have) said: How alternative utterances affect language use. In Cogsci 2012.
+Camerer, C. F., Ho, T.-H., & Chong, J.-K. (2004). A cognitive hierarchy model of games. The Quarterly Journal of
+Economics, 119(3), 861–898.
+Clark, H. H., & Wilkes-Gibbs, D. (1986). Referring as a
+collaborative process. Cognition, 22(1), 1–39.
+Degen, J., Franke, M., & Jäger, G. (2013). Cost-based pragmatic inference about referential expressions. In Cogsci
+2013.
+DeVault, D., Kariaeva, N., Kothari, A., Oved, I., & Stone,
+M. (2005). An information-state approach to collaborative
+reference. In Proceedings of the ACL interactive poster
+and demonstration sessions.
+Frank, M. C., & Goodman, N. D. (2012). Predicting pragmatic reasoning in language games. Science, 336(6084),
+998.
+Franke, M. (2009). Signal to act: Game theory in pragmatics.
+Institute for Logic, Language and Computation, University
+of Amsterdam.
+
+Grice, H. P. (1975). Logic and conversation. In P. Cole &
+J. Morgan (Eds.), Syntax and semantics (Vol. 3: Speech
+Acts).
+Grodner, D. J., Klein, N. M., Carbary, K. M., & Tanenhaus,
+M. K. (2010). “Some,” and possibly all, scalar inferences
+are not delayed: Evidence for immediate pragmatic enrichment. Cognition, 116(1), 42–55.
+Horn, L. R. (1984). Toward a new taxonomy for pragmatic inference: Q-based and R-based implicature. In D. Schiffrin
+(Ed.), Meaning, form, and use in context: Linguistic applications (pp. 11–42).
+Huang, T. T., & Snedeker, J. (2009). Online interpretation of
+scalar quantifiers: Insight into the semantics–pragmatics
+interface. Cognitive Psychology, 58(3), 376–415.
+Jäger, G. (2007). Game dynamics connects semantics and
+pragmatics. In Game theory and linguistic meaning. Amsterdam.
+Jäger, G. (2012). Game theory in semantics and pragmatics.
+In C. Maienborn, K. von Heusinger, & P. Portner (Eds.),
+Semantics: An international handbook of natural language
+meaning (Vol. 3). Berlin: Mouton de Gruyter.
+Jurafsky, D. (2004). Pragmatics and computational linguistics. In L. R. Horn & G. Ward (Eds.), The handbook of
+pragmatics (pp. 578–604). Oxford: Blackwell.
+Levinson, S. C. (2000). Presumptive meanings: The theory of
+generalized conversational implicature. Cambridge, MA.
+Lewis, D. (1969). Convention. Cambridge, MA: Harvard
+University Press. (Reprinted 2002 by Blackwell)
+Rohde, H., Seyfarth, S., Clark, B. Z., Jäger, G., & Kaufmann,
+S. (2012). Communicating with cost-based implicature: A
+game-theoretic approach to ambiguity. In The 16th workshop on the semantics and pragmatics of dialogue. Paris.
+Rosenberg, S., & Cohen, B. D. (1964). Speakers’ and listeners’ processes in a word communication task. Science,
+145, 1201–1203.
+Rumelhart, D. E., Hinton, G. E., & Williams, R. J. (1986).
+Learning representations by back-propagating errors. Nature, 323(6088), 533–536.
+Schaul, T., Bayer, J., Wierstra, D., Sun, Y., Felder, M.,
+Sehnke, F., et al. (2010). Pybrain. Journal of Machine
+Learning Research, 11, 743–746.
+Smith, N. J., Goodman, N. D., & Frank, M. C. (2013). Learning and using language via recursive pragmatic reasoning
+about other agents. In NIPS 2013.
+Stiller, A., Goodman, N. D., & Frank, M. C. (2011). Ad-hoc
+scalar implicature in adults and children. In Proceedings of
+the 33rd annual meeting of the Cognitive Science Society.
+Boston.
+Vogel, A., Bodoia, M., Potts, C., & Jurafsky, D. (2013).
+Emergence of Gricean maxims from multi-agent decision
+theory. In NAACL 2013.
+
+Geurts, B. (2009). Scalar implicatures and local pragmatics.
+Mind and Language, 24(1), 51–79.
+
+3060
+
+

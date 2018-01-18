@@ -1,425 +1,763 @@
-       Understanding the Role of Perception in the Evolution of Human Language
-                                             Isaac Davis (isaacd@andrew.cmu.edu)
-                                        Department of Philosophy, Carnegie Mellon University
-                             Abstract                                 achieve this using unsupervised learning techniques from
-                                                                      Machine Learning and Cognitive Science.
-   In this paper, we propose a flexible modeling framework for           In the following section, we present the relevant back-
-   studying the role of perception in language learning and lan-
-   guage evolution. This is achieved by augmenting some novel         ground in signaling games and reinforcement learning, and
-   and some existing evolutionary signaling game models with          briefly discuss why the standard model is not yet equipped for
-   existing techniques in machine learning and cognitive science.     studying interactions between perception and language learn-
-   The result is a “grounded” signaling game in which agents
-   must extract relevant information from their environment via       ing. We then present our grounded signaling game model,
-   a cognitive processing mechanism, then learn to communi-           and draw on literature in Deep Reinforcement Learning to de-
-   cate that information with each other. The choice of cogni-        rive an effective learning rule. In order to avoid introducing
-   tive processing mechanism is left as a free parameter, allow-
-   ing the model to be tailored to a wide variety of problems         too much complexity at once, we first present the model with
-   and tasks. We present results from simulations using both a        a “trivial” perception mechanism, consisting of the identity
-   Bayesian perception model and a neural network based per-          map on sensory inputs. After deriving the learning rule for
-   ception model, which demonstrate how perception can “pre-
-   process” environmental data in a way that is well suited for       this model, we then outline how to incorporate a non-trivial
-   communication. Lastly, we discuss how the model can be ex-         perception mechanism, and briefly discuss the two percep-
-   tended to study other roles that perception may play in lan-       tion mechanisms we will test. We then present results from
-   guage learning. Keywords: Evolutionary Signaling Games,
-   Perception, Language Evolution, Reinforcement Learning             a battery of experiments in which the agents must learn to
-                                                                      communicate structured visual information from a synthetic
-                                                                      image environment. These results provide insights into the
-                          Introduction                                role of perception as a “pre-processing” step for communi-
-In this paper, we are interested in studying three broadly de-        cation, and reveal some interesting interactions between the
-fined types of interaction between perception and language            type of environment and perception mechanism. Lastly, we
-learning. The first, and perhaps most obvious, is how our per-        discuss how the current model can be extended to study all
-ceptions of the world constrain and affect our ability to learn       three types of interaction addressed in the introduction.
+Understanding the Role of Perception in the Evolution of Human Language
+Isaac Davis (isaacd@andrew.cmu.edu)
+Department of Philosophy, Carnegie Mellon University
+Abstract
+In this paper, we propose a flexible modeling framework for
+studying the role of perception in language learning and language evolution. This is achieved by augmenting some novel
+and some existing evolutionary signaling game models with
+existing techniques in machine learning and cognitive science.
+The result is a “grounded” signaling game in which agents
+must extract relevant information from their environment via
+a cognitive processing mechanism, then learn to communicate that information with each other. The choice of cognitive processing mechanism is left as a free parameter, allowing the model to be tailored to a wide variety of problems
+and tasks. We present results from simulations using both a
+Bayesian perception model and a neural network based perception model, which demonstrate how perception can “preprocess” environmental data in a way that is well suited for
+communication. Lastly, we discuss how the model can be extended to study other roles that perception may play in language learning. Keywords: Evolutionary Signaling Games,
+Perception, Language Evolution, Reinforcement Learning
+
+Introduction
+In this paper, we are interested in studying three broadly defined types of interaction between perception and language
+learning. The first, and perhaps most obvious, is how our perceptions of the world constrain and affect our ability to learn
 language. The second type of interaction is the reverse of
-the first- how does learning a language shape our perceptions                  Background and Related Material
-of the world? The third interaction, with a long history of           Signaling Games
-philosophical inquiry, is how differing cognitive representa-
-tions between agents affects their ability to communicate with        In a two-player signaling game, the sender observes an infor-
-each other. We propose a flexible modeling framework that             mation state d ∈ D , drawn from some probability distribution
-can be used to represent and study all three types of interac-        P(D ). The sender then chooses a signal x ∈ X according to
-tions between perception and language learning.                       some decision rule, and transmits the signal to the receiver.
-                                                                      The receiver then observes the signal, and chooses some act
-   This framework has two core components. The first are
-                                                                      a ∈ A according to the receiver’s decision rule. Both players
-evolutionary signaling games which have been used exten-
-                                                                      then receive a payout R(d, a), which is a function of the state,
-sively to explain a wide variety of communication phenom-
-                                                                      and act, but not the signal. The game is fully cooperative, in
-ena in animals, from mating calls and warning calls in mam-
-                                                                      that both players receive the same payout every round.
-mals and birds, to pheromone signaling in insect communi-
-                                                                         The sender’s decision rule can be represented by a func-
-ties. More recent work has applied these models to the evo-
-                                                                      tion assigning each state d to a probability distribution Ps (x|d)
-lution of human language and human linguistic phenomena,
-                                                                      over signals, and likewise for the receiver’s rule Pr (a|x). With
-such as compositionality (Franke 2015) and convex percep-
-                                                                      this notation, the expected reward for both players is given by
-tual categories (Jager 2007, O’Connor 2014). These mod-
-els typically represent a situation in which two agents must
-                                                                          E[R|Ps , Pr ] =      ∑        P(d)Ps (x|d)Pr (a|x)R(d, a)  (1)
-coordinate their behavior in such a way as to achieve some                                d∈D ,x∈X ,a∈A
+the first- how does learning a language shape our perceptions
+of the world? The third interaction, with a long history of
+philosophical inquiry, is how differing cognitive representations between agents affects their ability to communicate with
+each other. We propose a flexible modeling framework that
+can be used to represent and study all three types of interactions between perception and language learning.
+This framework has two core components. The first are
+evolutionary signaling games which have been used extensively to explain a wide variety of communication phenomena in animals, from mating calls and warning calls in mammals and birds, to pheromone signaling in insect communities. More recent work has applied these models to the evolution of human language and human linguistic phenomena,
+such as compositionality (Franke 2015) and convex perceptual categories (Jager 2007, O’Connor 2014). These models typically represent a situation in which two agents must
+coordinate their behavior in such a way as to achieve some
 common goal, but without any pre-defined common language
-with which to communicate.                                            An evolutionary signaling game is played for many rounds,
-   We shall see, however, that the standard signaling game            and after each round, players update their strategies accord-
-model is not well suited for studying interactions between            ing to some learning rule. The most well-studied and of-
-cognition and language learning. In order to represent percep-        ten used form of reinforcement learning in signaling games
-tion and language in the same model, we derive a “grounded”           is Roth-Erev reinforcement learning. A Roth-Erev learning
-signaling game, in which agents respond to raw sensory                agent (the sender, for this example) is represented by a set of
-inputs, rather than cleanly-defined information states. We            decision parameters W s , one parameter for each state-signal
-                                                                  1902
+with which to communicate.
+We shall see, however, that the standard signaling game
+model is not well suited for studying interactions between
+cognition and language learning. In order to represent perception and language in the same model, we derive a “grounded”
+signaling game, in which agents respond to raw sensory
+inputs, rather than cleanly-defined information states. We
 
-pair. Each weight wsi, j represents the sender’s unnormalized         endowed with an inner mental language (Skyrms 2010), they
-probability of choosing signal xi given state d j , and the Roth-     need not know what the game is “about,” or even that they are
-Erev update rule is very simple. If in one round of play the          playing a game at all. It is certainly important, if we wish to
-sender observes state d j , chooses signal xi , and receives re-      study interactions between perception and language-learning,
-ward R, then the sender updates weight wsi, j by some fixed           that we not make any restrictive cognitive assumptions which
-proportion of the reward, ∆wsi, j = αR, and leaves all other          would “screen off” the cognitive details of interest. However,
-weights unchanged.                                                    outside of very simple or tightly controlled experimental set-
-   In a signaling game with two equiprobable states, Roth-            tings, the standard representation actually imposes some very
-Erev reinforcement learning will always converge to a sig-            strict assumptions about the agents’ perceptions, albeit im-
-naling system equilibrium, in which the correct act is always         plicitly.
-chosen. In games with more than two states, or with non-
-uniformly distributed states, Roth-Erev learning will some-              To illustrate this, consider the following two very similar,
-times converge to a partial pooling equilibrium, in which             but not identical signaling games: in Game 1, the sender ob-
-some states are communicated accurately, and others are               serves one of ten cards C1 , . . . ,C10 , each of which depicts a
-“pooled” into a single signal. Such outcomes are Nash Equi-           digit 0 − 9, and sends one of ten signals. The receiver must
-libria, meaning that neither player can improve the outcome           pull on one of ten levers, each of which bears a digit 0 − 9. If
-by unilaterally changing their own strategy. The probability          the card and chosen lever show the same number, both play-
-of converging to such partial pooling equilibria increases with       ers receive a reward of 1, otherwise they receive no payout.
-the number of states (Huttegger, Skyrms, Smead, & Zollman             This game fits exactly into the signaling game framework de-
-2010).                                                                scribed above.
-   While our general framework is compatible with any sig-
-naling game model, the experiments for this paper will be                Now consider Game 2: in Game 2, the signals and the re-
-based on the Sim-Max game (Jager 2007), a variation of the            ceiver’s actions are the same as Game 1. However, instead of
-standard signaling game. In a Sim-Max game, the receiver’s            observing one of ten cards, the sender now observes a card
-goal is to guess which state the sender observed, and the re-         depicting a handwritten digit 0 − 9. How would we represent
-ward function is a distance metric representing “similarity”          the state space for Game 2? A first guess might be to repre-
-between states. Such models are used when the state space is          sent it as having the same state space as Game 1, since each
-much richer than the signal space, and one-to-one state-signal        observation depicts one of 10 digits. But unlike Game 1, we
-mappings are no longer possible. An example of this is color-         cannot guarantee uniformity across separate instances of the
-even though colors vary continuously, we employ a relatively          same digit. Not all instances of 0 will look the same, and
-small number of words for describing them.                            so they are distinct information states. To assume that they
-                                                                      are not distinct information states is to assume that the sender
-         Limitations of the Standard Model                            perceives them as the same, or recognizes that they are of the
-                                                                      same category. But these are acts of cognition. Seeing a digit
-The Roth-Erev reinforcement learning model is favored in              handwritten on a card is not the same an recognizing which
-signaling games for its simplicity and minimality of cogni-           digit it depicts, or even recognizing that it is a digit at all. In
-tive assumptions. However, there are two factors that prevent         this sense, the standard approach of representing states and
-us from using the standard model for our purposes. The first          acts as finite sets of distinct labels implicitly imposes presup-
-factor is entirely practical. In particular, Roth-Erev reinforce-     poses a fixed way in which agents perceive, recognize, and
-ment learning, while simple and well studied, does not scale          process their environments.
-well to larger problems, as it requires a single decision param-
-eter for each state-signal pair. This makes Roth-Erev learn-             This brings us to the two underlying principles of our
-ing prohibitively slow to converge on large problems, and re-         framework. First, in order to represent all of the informa-
-stricts us to relatively small simulations.                           tion available to agents, without explicitly assuming how
-   The second problem with the standard model is more con-            they perceive or represent that information, we must repre-
-ceptual. In the standard treatment of signaling games, states         sent states as raw sensory inputs, rather than discrete infor-
-are represented as uniform, discrete “labels,” or in the usual        mation states. Second, because sensory inputs tend to be
-Sim-Max game as a uniformly distributed compact subset of             high-dimensional, it is no longer the case, as with the stan-
-Euclidean space. The key feature in these models is that              dard signaling game, that states cannot be distinguished ex-
-there is no internal structure to the states themselves. That         cept through the reward function. In particular, Unsupervised
-is, the players cannot discriminate between two states except         Learning algorithms can infer informational structure from
-through the reward function- two different states are either          high-dimensional sensory inputs without any feedback or su-
-identical or not, but any further delineation between states can      pervision. Thus, by integrating an unsupervised perception
-only be inferred from their effect on the payout. This, how-          model into a “grounded” signaling game, we can represent
-ever, is often regarded as an advantage of the standard rep-          the evolution of both the external signaling language and the
-resentation, rather than a limitation. The agents need not be         agents’ internal representations in the same framework.
-                                                                  1903
+achieve this using unsupervised learning techniques from
+Machine Learning and Cognitive Science.
+In the following section, we present the relevant background in signaling games and reinforcement learning, and
+briefly discuss why the standard model is not yet equipped for
+studying interactions between perception and language learning. We then present our grounded signaling game model,
+and draw on literature in Deep Reinforcement Learning to derive an effective learning rule. In order to avoid introducing
+too much complexity at once, we first present the model with
+a “trivial” perception mechanism, consisting of the identity
+map on sensory inputs. After deriving the learning rule for
+this model, we then outline how to incorporate a non-trivial
+perception mechanism, and briefly discuss the two perception mechanisms we will test. We then present results from
+a battery of experiments in which the agents must learn to
+communicate structured visual information from a synthetic
+image environment. These results provide insights into the
+role of perception as a “pre-processing” step for communication, and reveal some interesting interactions between the
+type of environment and perception mechanism. Lastly, we
+discuss how the current model can be extended to study all
+three types of interaction addressed in the introduction.
 
-                                  The Model                                        where σ is the standard sigmoid activation function σ(x) =
-In this section, we present the model used in the experiments                      1/(1 + e−x ). Those familiar with ANNs will note that this
-for this paper. We first present the model with a “trivial” per-                   is the standard expression for the activation value of a unit
-ception mechanism, which performs no significant cognitive                         with sigmoid activation function. In the stochastic network
-processing. Once we derive the learning rule for this model,                       corresponding to this game, the activation value is treated
-we then outline how a non-trivial perception mechanism can                         as a probability, and the output of unit xi is sampled from
-be incorporated. The framework is designed to place no re-                         the Bernoulli distribution xi ∼ Bernoulli(Ps (xi = 1|d)). Each
-strictions on what perception model we use, and so we will                         weight Wisj determines, in some sense, the “importance” of
-test two mechanisms, representing two schools of thought on                        coordinate j in determining the value of signal component
-modeling cognitive processing.                                                     xi . The sender then generates the signal x by first comput-
-                                                                                   ing the activation probability for each signal coordinate, then
-The Grounded Signaling Game                                                        independently sampling each coordinate from the computed
-In the experiments we present here, the state space D will be                      Bernoulli distribution. Thus, the sender’s probability of send-
-a synthetic image environment, presented to the sender as a                        ing signal x given object d factors as:
+Background and Related Material
+Signaling Games
+In a two-player signaling game, the sender observes an information state d ∈ D , drawn from some probability distribution
+P(D ). The sender then chooses a signal x ∈ X according to
+some decision rule, and transmits the signal to the receiver.
+The receiver then observes the signal, and chooses some act
+a ∈ A according to the receiver’s decision rule. Both players
+then receive a payout R(d, a), which is a function of the state,
+and act, but not the signal. The game is fully cooperative, in
+that both players receive the same payout every round.
+The sender’s decision rule can be represented by a function assigning each state d to a probability distribution Ps (x|d)
+over signals, and likewise for the receiver’s rule Pr (a|x). With
+this notation, the expected reward for both players is given by
+E[R|Ps , Pr ] =
+
+∑
+
+P(d)Ps (x|d)Pr (a|x)R(d, a)
+
+(1)
+
+d∈D ,x∈X ,a∈A
+
+An evolutionary signaling game is played for many rounds,
+and after each round, players update their strategies according to some learning rule. The most well-studied and often used form of reinforcement learning in signaling games
+is Roth-Erev reinforcement learning. A Roth-Erev learning
+agent (the sender, for this example) is represented by a set of
+decision parameters W s , one parameter for each state-signal
+
+1902
+
+pair. Each weight wsi, j represents the sender’s unnormalized
+probability of choosing signal xi given state d j , and the RothErev update rule is very simple. If in one round of play the
+sender observes state d j , chooses signal xi , and receives reward R, then the sender updates weight wsi, j by some fixed
+proportion of the reward, ∆wsi, j = αR, and leaves all other
+weights unchanged.
+In a signaling game with two equiprobable states, RothErev reinforcement learning will always converge to a signaling system equilibrium, in which the correct act is always
+chosen. In games with more than two states, or with nonuniformly distributed states, Roth-Erev learning will sometimes converge to a partial pooling equilibrium, in which
+some states are communicated accurately, and others are
+“pooled” into a single signal. Such outcomes are Nash Equilibria, meaning that neither player can improve the outcome
+by unilaterally changing their own strategy. The probability
+of converging to such partial pooling equilibria increases with
+the number of states (Huttegger, Skyrms, Smead, & Zollman
+2010).
+While our general framework is compatible with any signaling game model, the experiments for this paper will be
+based on the Sim-Max game (Jager 2007), a variation of the
+standard signaling game. In a Sim-Max game, the receiver’s
+goal is to guess which state the sender observed, and the reward function is a distance metric representing “similarity”
+between states. Such models are used when the state space is
+much richer than the signal space, and one-to-one state-signal
+mappings are no longer possible. An example of this is coloreven though colors vary continuously, we employ a relatively
+small number of words for describing them.
+
+Limitations of the Standard Model
+The Roth-Erev reinforcement learning model is favored in
+signaling games for its simplicity and minimality of cognitive assumptions. However, there are two factors that prevent
+us from using the standard model for our purposes. The first
+factor is entirely practical. In particular, Roth-Erev reinforcement learning, while simple and well studied, does not scale
+well to larger problems, as it requires a single decision parameter for each state-signal pair. This makes Roth-Erev learning prohibitively slow to converge on large problems, and restricts us to relatively small simulations.
+The second problem with the standard model is more conceptual. In the standard treatment of signaling games, states
+are represented as uniform, discrete “labels,” or in the usual
+Sim-Max game as a uniformly distributed compact subset of
+Euclidean space. The key feature in these models is that
+there is no internal structure to the states themselves. That
+is, the players cannot discriminate between two states except
+through the reward function- two different states are either
+identical or not, but any further delineation between states can
+only be inferred from their effect on the payout. This, however, is often regarded as an advantage of the standard representation, rather than a limitation. The agents need not be
+
+endowed with an inner mental language (Skyrms 2010), they
+need not know what the game is “about,” or even that they are
+playing a game at all. It is certainly important, if we wish to
+study interactions between perception and language-learning,
+that we not make any restrictive cognitive assumptions which
+would “screen off” the cognitive details of interest. However,
+outside of very simple or tightly controlled experimental settings, the standard representation actually imposes some very
+strict assumptions about the agents’ perceptions, albeit implicitly.
+To illustrate this, consider the following two very similar,
+but not identical signaling games: in Game 1, the sender observes one of ten cards C1 , . . . ,C10 , each of which depicts a
+digit 0 − 9, and sends one of ten signals. The receiver must
+pull on one of ten levers, each of which bears a digit 0 − 9. If
+the card and chosen lever show the same number, both players receive a reward of 1, otherwise they receive no payout.
+This game fits exactly into the signaling game framework described above.
+Now consider Game 2: in Game 2, the signals and the receiver’s actions are the same as Game 1. However, instead of
+observing one of ten cards, the sender now observes a card
+depicting a handwritten digit 0 − 9. How would we represent
+the state space for Game 2? A first guess might be to represent it as having the same state space as Game 1, since each
+observation depicts one of 10 digits. But unlike Game 1, we
+cannot guarantee uniformity across separate instances of the
+same digit. Not all instances of 0 will look the same, and
+so they are distinct information states. To assume that they
+are not distinct information states is to assume that the sender
+perceives them as the same, or recognizes that they are of the
+same category. But these are acts of cognition. Seeing a digit
+handwritten on a card is not the same an recognizing which
+digit it depicts, or even recognizing that it is a digit at all. In
+this sense, the standard approach of representing states and
+acts as finite sets of distinct labels implicitly imposes presupposes a fixed way in which agents perceive, recognize, and
+process their environments.
+This brings us to the two underlying principles of our
+framework. First, in order to represent all of the information available to agents, without explicitly assuming how
+they perceive or represent that information, we must represent states as raw sensory inputs, rather than discrete information states. Second, because sensory inputs tend to be
+high-dimensional, it is no longer the case, as with the standard signaling game, that states cannot be distinguished except through the reward function. In particular, Unsupervised
+Learning algorithms can infer informational structure from
+high-dimensional sensory inputs without any feedback or supervision. Thus, by integrating an unsupervised perception
+model into a “grounded” signaling game, we can represent
+the evolution of both the external signaling language and the
+agents’ internal representations in the same framework.
+
+1903
+
+The Model
+In this section, we present the model used in the experiments
+for this paper. We first present the model with a “trivial” perception mechanism, which performs no significant cognitive
+processing. Once we derive the learning rule for this model,
+we then outline how a non-trivial perception mechanism can
+be incorporated. The framework is designed to place no restrictions on what perception model we use, and so we will
+test two mechanisms, representing two schools of thought on
+modeling cognitive processing.
+
+The Grounded Signaling Game
+In the experiments we present here, the state space D will be
+a synthetic image environment, presented to the sender as a
 vector of raw pixel values, and the signal space X = {0, 1}k
-                                                                                                      k
-will consist of binary vectors of length k. As with the Sim-
-                                                                                        Ps (x|d) = ∏(Ps (xi = 1|d))xi (1 − Ps (xi = 1|d))1−xi     (3)
-Max game, the receiver’s action will be produce a guess d out                                       i=1
+will consist of binary vectors of length k. As with the SimMax game, the receiver’s action will be produce a guess d out
 as to which state d in , the sender initially observes, based on
-the sender’s signal x. The reward function will be a distance                      The receiver’s distribution is defined similarly, with the roles
-metric representing similarity between images.                                     of d and x being reversed. With Ps and Pr defined as above,
-   Recall that a Roth-Erev learning agent requires one param-                      the expected reward function in equation (1) can be inter-
-eter for each state-signal pair. In these experiments, however,                    preted as an objective function J(Ws ,Wr ) = E[R|Ps , Pr ] to a
-we will use 36-pixel binary images, and signals between 4                          multi-agent optimization problem, where both players wish
-and 36 bits in length. Even though only a small number of                          to maximize J(Ws ,Wr ), but each player directly controls only
-possible images d ∈ {0, 1}36 will ever appear with non-zero                        one set of parameters. For this experiment in particular, the
-probability, the players do not know ahead of time which im-                       cooperative objective is to output an image that is most sim-
-ages are present, or how many appear with positive proba-                          ilar to the input image, which is the same objective used in
-bility. This is an important distinction, as the receiver must                     training certain types of auto-encoders (a type of unsuper-
-reconstruct the original image pixel-by-pixel, rather than sim-                    vised ANN, trained to accurately reconstruct its own inputs).
-ply guessing from a list of potential images. Therefore, defin-                    Thus, we can efficiently represent a single round of this sig-
-ing a Roth-Erev reinforcement learning agent for this game                         naling game as a single forward pass through the three-layer
-would require up to 272 separate decision parameters for each                      stochastic-sigmoid auto-encoder network shown in figure 1.
+the sender’s signal x. The reward function will be a distance
+metric representing similarity between images.
+Recall that a Roth-Erev learning agent requires one parameter for each state-signal pair. In these experiments, however,
+we will use 36-pixel binary images, and signals between 4
+and 36 bits in length. Even though only a small number of
+possible images d ∈ {0, 1}36 will ever appear with non-zero
+probability, the players do not know ahead of time which images are present, or how many appear with positive probability. This is an important distinction, as the receiver must
+reconstruct the original image pixel-by-pixel, rather than simply guessing from a list of potential images. Therefore, defining a Roth-Erev reinforcement learning agent for this game
+would require up to 272 separate decision parameters for each
 player. Clearly this is intractable even for small images, and
-we must look elsewhere to derive a tractable learning rule. To                     The Learning Rule
-this end, we draw on the representational flexibility of Artifi-                   An auto-encoder, like most feed-forward neural networks, is
-cial Neural Networks (ANNs).                                                       generally trained using some variation of gradient descent
-                                                                                   via back-propagation of errors 1 . In each step of the back-
-                     Ws                                     Wr
-                                                                                   propagation algorithm, an input vector is passed through the
-            d1
-                                  x1            x1
-                                                                         d1
-                                                                                   network, generating a hidden representation (in this case sig-
-                                                                                   nal) from which the latter half of the network attempts to
-  din                                   X                                    dout
-                                                                                   reconstruct the original input. The error signal (difference
-                                   xk signal     xk
-            dn                                                           dn
-                                                                                   between input and output) at each unit is “propagated” back-
-               Sender’s decision:
-                    Ps(x|d)
-                                                    Receiver’s decision:
-                                                          Pr(d|x)
-                                                                                   wards, and each weight is adjusted according to its “effect” on
-                                                                                   the resulting error. Back-propagation algorithms have been
-                                                                                   extremely successful in training neural networks to perform
-Figure 1: Information flow for one round of the signaling                          highly complex tasks, so it is tempting to co-opt the back-
-game                                                                               propagation algorithm as a “learning rule” for our two agents.
-                                                                                   However, even though we can represent our signaling game
-   Figure 1 depicts a single round of the signaling game.                          with a three-layer feed-forward network, a key assumption of
-Rather than defining the sender with one decision parameter                        the model prevents us from using back-propagation directly.
-per state-signal pair, we define a decision rule Ps (x|d in ,W s )                 In particular, the back-propagation algorithm computes the
-with one parameter per state-signal coordinate pair. Given a                       update to layer l as a function of the parameter and activation
+we must look elsewhere to derive a tractable learning rule. To
+this end, we draw on the representational flexibility of Artificial Neural Networks (ANNs).
+
+d1
+
+Ws
+
+Wr
+x1
+
+din
+
+d1
+
+x1
+
+dout
+
+X
+xk
+
+xk
+
+signal
+
+dn
+
+dn
+Sender’s decision:
+Ps(x|d)
+
+Receiver’s decision:
+Pr(d|x)
+
+Figure 1: Information flow for one round of the signaling
+game
+Figure 1 depicts a single round of the signaling game.
+Rather than defining the sender with one decision parameter
+per state-signal pair, we define a decision rule Ps (x|d in ,W s )
+with one parameter per state-signal coordinate pair. Given a
 state d, we define, for each signal-coordinate xi :
-                                                                                       1 Technically,   exact back-propagation cannot be applied to a
-                                                             !
-                                              n                                    stochastic network, though there are several versions of “approxi-
-                  Ps (xi = 1|d) = σ          ∑ Wi,s j d j                   (2)    mate” back-propagation for stochastic networks, e.g. (Gu, Levine,
-                                                                                   Sutskever, & Mnih 2015)
-                                             j=1
-                                                                               1904
+!
+n
 
-values of layer l + 1. In this scenario, however, each layer                   representation z from an object d, while the generative map
-represents a separate human agent, who cannot share param-                     F −1 : Z → D generates an object d from an internal repre-
-eter information with each other, thus preventing the requisite                sentation z (this is a slight abuse of notation, as the generative
-gradient information from flowing across agents.                               map will not in general be the inverse of the recognition map).
-   Because of this, we instead use a REINFORCE learn-
-ing rule, first named in Williams (1992). Consider a sin-                                                                         d          Fs                   Fs-1
-                                                                                                                                                                                d
-                                                                                1. Pre-training:
-gle round of the signaling game in which sender observes                                                                                                Zs
-state d = (d1 , . . . , dn ), sends signal x = (x1 , . . . , xk ), receiver                                            din
-guesses state d 0 = (d10 , . . . , dn0 ), and both players receive re-          • Players interact with environment
-                                                                                  separately, perform unsupervised
-                                                                                                                                                        Zs
-ward R(d, d 0 ). We define ∆Wi,s j and ∆Wi,r j , the weight updates               learning
-                                                                                                                                  d                                             d
-for sender and receiver, as                                                                                                  Sender’s Recognition Model      Sender’s Generative Model
-       ∆Wi,s j   = ε(R(d, d 0 ) − bi j )(xi − Ps (xi = 1|d))d j         (4)     •  Perception mechanism learns low-
-                                                                                                                                             Fr                   Fr-1
-                                                                                   dimensional representation of data             d                                              d
-                                 0
-       ∆Wi,r j   = ε(R(d, d        ) − bi j )(di0 − Pr (di0 = 1|x))x j  (5)        (recognition model), and generative
-                                                                                   model from representations to
-                                                                                                                                                          Zr
-                                                                                   objects
-                                                                                                                       din
-where ε is a learning rate and bi j is a reinforcement base-
-                                                                                                                                                          Zr
-line. The main property of REINFORCE rules, as shown in                                                                           d                                              d
-(Williams 1992), is that the weight updates shown in equa-
-                                                                                                                             Receiver’s Recognition Model     Receiver’s Generative Model
-tions (4) and (5) are unbiased estimates of the true gradi-
-ent of J(Ws ,Wr ), the expected reward function. That is,                       2. Playing the signaling game              d
-                                                                                                                                               Zs
-(R(d, d 0 ) − bi j )(xi − Ps (xi = 1|d))d j is an unbiased estimate                                                                                      Ws
-                                                                                                                                                                   x1
-                                                                                                                                                                                      signal
-of ∂J/∂Wisj , and (R(d, d 0 ) − bi j )(di0 − Pr (di0 = 1|x))x j is an un-                                       din                                                               X
-biased estimate of ∂J/∂Wirj . This allows the two players to                       •  Signaling game proceeds as
-                                                                                      usual, but decisions are                                 Zs
-                                                                                                                                                                   xk
-cooperatively implement an approximate gradient descent al-                           functions of internal
-                                                                                      representations
-                                                                                                                           d
-                                                                                                                                 Fs(din)          Sender’s decision:
-                                                                                                                                                        Ps(x|Zs)
-gorithm, despite the fact that neither player is explicitly com-
-                                                                                   •  REINFORCE learning applies
-puting any gradients. This rule is both computationally inex-                         using same reinforcement             d
-                                                                                      signal as original game
-pensive and avoids the information-sharing problem of back-                                                                                     Zr                  x1
-                                                                                                                                                          Wr
-propagation, so it is well suited to our task.                                                                 dout                                                               X
-   Even though equations (4) and (5) are unbiased estimates                                                                                                         xk
-                                                                                                                                                Zr
-of the true gradient, they can be very high variance estimates,                                                            d
-                                                                                                                                 Fr(Zr  )-1       Receiver’s decision:
-so outside of very simple tasks, the “pure vanilla” REIN-                                                                                                Pr(Zr|x)
-FORCE rule (i.e. bi j = 0) can be hopelessly slow to converge.
-We therefore use a minimum variance, unit-specific baseline                    Figure 2: Perception as a pre-processing step prior to signal-
-derived in Bengio (2013), given by the expression.                             ing game
-                                E[(hi − σ(ai ))2 R]                                 In the experiments we present here, perception will take
-                        bi j =                                          (6)
-                                E[(hi − σ(ai ))2 ]                             the form of a pre-processing step (figure 2). Prior to play-
-                                                                               ing the signaling game, each player will independently sam-
-where hi is the output value and σ(ai ) the activation value of                ple images from their environment, engaging in unsuper-
-unit i. This can be easily computed on the fly by maintaining                  vised learning, training their recognition maps Fs , Fr as well
-moving averages of weight updates and rewards over time.                       as generative maps Fs−1 , Fr−1 . Once the perception mech-
-                                                                               anisms have been trained, the signaling game proceeds as
-Adding Perception to the Model                                                 usual, except that the sender now makes their signaling de-
-The signaling game model we just introduced is “grounded,”                     cision Ps (x|zin                s
-                                                                                                        s ,W ) as a function of the sender’s internal rep-
-in the sense that states are represented as sensory inputs, but                resentation Fs (d ) = zin      in                                  in
-                                                                                                                        s of the state d . The receiver then
-we have yet to incorporate a perception mechanism. While                       observes the signal, and first generates an internal represen-
-perception is a broadly defined and widely studied subject, we                 tation zout    r , which is then mapped to output image dr . The
-                                                                                                                                                                           out
-will adopt a very general stance on what constitutes “percep-                  reward value is then computed as usual, and we apply the
-tion.” We will take perception to be any map F : D → Z from                    same REINFORCE updates in (4)-(5) to the player’s decision
-states (represented as sensory inputs) to lower-dimensional                    parameters.
+Ps (xi = 1|d) = σ
+
+∑ Wi,s j d j
+
+j=1
+
+(2)
+
+where σ is the standard sigmoid activation function σ(x) =
+1/(1 + e−x ). Those familiar with ANNs will note that this
+is the standard expression for the activation value of a unit
+with sigmoid activation function. In the stochastic network
+corresponding to this game, the activation value is treated
+as a probability, and the output of unit xi is sampled from
+the Bernoulli distribution xi ∼ Bernoulli(Ps (xi = 1|d)). Each
+weight Wisj determines, in some sense, the “importance” of
+coordinate j in determining the value of signal component
+xi . The sender then generates the signal x by first computing the activation probability for each signal coordinate, then
+independently sampling each coordinate from the computed
+Bernoulli distribution. Thus, the sender’s probability of sending signal x given object d factors as:
+k
+
+Ps (x|d) = ∏(Ps (xi = 1|d))xi (1 − Ps (xi = 1|d))1−xi
+
+(3)
+
+i=1
+
+The receiver’s distribution is defined similarly, with the roles
+of d and x being reversed. With Ps and Pr defined as above,
+the expected reward function in equation (1) can be interpreted as an objective function J(Ws ,Wr ) = E[R|Ps , Pr ] to a
+multi-agent optimization problem, where both players wish
+to maximize J(Ws ,Wr ), but each player directly controls only
+one set of parameters. For this experiment in particular, the
+cooperative objective is to output an image that is most similar to the input image, which is the same objective used in
+training certain types of auto-encoders (a type of unsupervised ANN, trained to accurately reconstruct its own inputs).
+Thus, we can efficiently represent a single round of this signaling game as a single forward pass through the three-layer
+stochastic-sigmoid auto-encoder network shown in figure 1.
+
+The Learning Rule
+An auto-encoder, like most feed-forward neural networks, is
+generally trained using some variation of gradient descent
+via back-propagation of errors 1 . In each step of the backpropagation algorithm, an input vector is passed through the
+network, generating a hidden representation (in this case signal) from which the latter half of the network attempts to
+reconstruct the original input. The error signal (difference
+between input and output) at each unit is “propagated” backwards, and each weight is adjusted according to its “effect” on
+the resulting error. Back-propagation algorithms have been
+extremely successful in training neural networks to perform
+highly complex tasks, so it is tempting to co-opt the backpropagation algorithm as a “learning rule” for our two agents.
+However, even though we can represent our signaling game
+with a three-layer feed-forward network, a key assumption of
+the model prevents us from using back-propagation directly.
+In particular, the back-propagation algorithm computes the
+update to layer l as a function of the parameter and activation
+1 Technically,
+
+exact back-propagation cannot be applied to a
+stochastic network, though there are several versions of “approximate” back-propagation for stochastic networks, e.g. (Gu, Levine,
+Sutskever, & Mnih 2015)
+
+1904
+
+values of layer l + 1. In this scenario, however, each layer
+represents a separate human agent, who cannot share parameter information with each other, thus preventing the requisite
+gradient information from flowing across agents.
+Because of this, we instead use a REINFORCE learning rule, first named in Williams (1992). Consider a single round of the signaling game in which sender observes
+state d = (d1 , . . . , dn ), sends signal x = (x1 , . . . , xk ), receiver
+guesses state d 0 = (d10 , . . . , dn0 ), and both players receive reward R(d, d 0 ). We define ∆Wi,s j and ∆Wi,r j , the weight updates
+for sender and receiver, as
+∆Wi,s j
+∆Wi,r j
+
+= ε(R(d, d 0 ) − bi j )(xi − Ps (xi = 1|d))d j
+= ε(R(d, d
+
+0
+
+) − bi j )(di0 − Pr (di0
+
+= 1|x))x j
+
+representation z from an object d, while the generative map
+F −1 : Z → D generates an object d from an internal representation z (this is a slight abuse of notation, as the generative
+map will not in general be the inverse of the recognition map).
+Fs-1
+
+Fs
+
+d
+
+1. Pre-training:
+
+d
+
+Zs
+din
+
+•
+
+Players interact with environment
+separately, perform unsupervised
+learning
+
+Zs
+d
+
+d
+
+Sender’s Recognition Model
+
+(4)
+
+•
+
+(5)
+
+Perception mechanism learns lowdimensional representation of data
+(recognition model), and generative
+model from representations to
+objects
+
+Sender’s Generative Model
+
+Fr-1
+
+Fr
+
+d
+
+d
+
+Zr
+din
+
+where ε is a learning rate and bi j is a reinforcement baseline. The main property of REINFORCE rules, as shown in
+(Williams 1992), is that the weight updates shown in equations (4) and (5) are unbiased estimates of the true gradient of J(Ws ,Wr ), the expected reward function. That is,
+(R(d, d 0 ) − bi j )(xi − Ps (xi = 1|d))d j is an unbiased estimate
+of ∂J/∂Wisj , and (R(d, d 0 ) − bi j )(di0 − Pr (di0 = 1|x))x j is an unbiased estimate of ∂J/∂Wirj . This allows the two players to
+cooperatively implement an approximate gradient descent algorithm, despite the fact that neither player is explicitly computing any gradients. This rule is both computationally inexpensive and avoids the information-sharing problem of backpropagation, so it is well suited to our task.
+Even though equations (4) and (5) are unbiased estimates
+of the true gradient, they can be very high variance estimates,
+so outside of very simple tasks, the “pure vanilla” REINFORCE rule (i.e. bi j = 0) can be hopelessly slow to converge.
+We therefore use a minimum variance, unit-specific baseline
+derived in Bengio (2013), given by the expression.
+bi j =
+
+E[(hi − σ(ai ))2 R]
+E[(hi − σ(ai ))2 ]
+
+(6)
+
+where hi is the output value and σ(ai ) the activation value of
+unit i. This can be easily computed on the fly by maintaining
+moving averages of weight updates and rewards over time.
+
+Adding Perception to the Model
+The signaling game model we just introduced is “grounded,”
+in the sense that states are represented as sensory inputs, but
+we have yet to incorporate a perception mechanism. While
+perception is a broadly defined and widely studied subject, we
+will adopt a very general stance on what constitutes “perception.” We will take perception to be any map F : D → Z from
+states (represented as sensory inputs) to lower-dimensional
 internal representations Z . These internal representations
-can be interpreted as the features, categories, concepts, pat-                 Representing Perception
-terns, rules, etc. from which our higher-level decisions are                   There has been surge of interest in computational models of
-made. For these particular experiments, we shall use percep-                   perception, from both Machine Learning and Cognitive Sci-
-tion models that learn both a recognition map and a gener-                     ence. We will test two different models, representing two
-ative map. The recognition map F : D → Z infers a latent                       main approaches that have been taken in studying perception.
-                                                                           1905
+can be interpreted as the features, categories, concepts, patterns, rules, etc. from which our higher-level decisions are
+made. For these particular experiments, we shall use perception models that learn both a recognition map and a generative map. The recognition map F : D → Z infers a latent
 
-The first are Bayesian models, which represent perception as         ing them into a single image. This construction is based on an
-a rational inference problem. Given object d, we infer a la-         experiment in Griffiths & Ghahramani (2005). The third en-
-tent representation z by maximizing the posterior probability        vironment (HIERARCHY) is hierarchically distributed over
-P(z|d) ∝ P(d|z)P(z) using Bayes’ rule. This requires an ob-          two categories: there are 12 images with non-zero probabil-
-ject model P(d|z), as well as a prior distribution P(z) over all     ity, depicting either horizontal or vertical bars. Images are di-
-possible latent representations. We shall use an Infinite Latent     vided into category A (vertical) and category B (horizontal).
-Feature Model, which learns a binary feature representation          Within each category, each image is equally likely to appear,
-of visual data, without having to pre-define a fixed number of       but images from category A are twice as likely to appear as
-latent features. This is achieved using an Indian Buffet Pro-        images from category B. The FEATURE and HIERARCHY
-cess (IBP) prior, which defines a probability distribution over      environment test the agents’ abilities to learn non-trivial in-
-binary vectors with an unbounded number of features (Grif-           formational structure from the environment.
-fiths & Ghahramani 2005). While exact inference over this                 For each environment, we test a noiseless version, in which
-distribution is intractable, MCMC sampling methods can be            images are presented to the sender with binary pixel values,
-used to perform tractable inference.                                 as well as two levels of corrupting noise, in which each pixel
-   The second perception mechanism we shall test a                   is independently perturbed before being shown to the sender.
-Helmholtz Machine (Dayan et al 1995), representing a neuro-          For a reward function, we test three different distance metrics-
-computing model of perception. A Helmholtz Machine                   Hamming (L1 ), Euclidean (L2 ), and a patch-specific function
-is a type of variational auto-encoder, which learns a low-           that depends only on certain regions of the image.
-dimensional representation of sensory inputs by iteratively
-inferring latent representations from data, then reconstruct-        Results
-ing simulated data from internal representations. These two          Figure 3 shows a summary of results across our experiments,
-steps are iterated in an alternating “wake-sleep” cycle, with        using the Hamming metric reward function (we observed no
-the objective of minimizing the Kullback-Liebler divergence          significant differences across reward functions). Convergence
-between the true distribution and the generative distribution.       rates indicate the number of iterations required to achieve a
-The result is a low-dimensional binary representation of the         threshold 90% of optimal performance, averaged over 5 runs
-data, encoded on the hidden units of the network. While the          for each condition. The Bayesian and Helmholtz columns
-Helmholtz Machine in its original form has been rendered             correspond to the two perception models, while the Identify
-largely obsolete by more powerful methods, we use this ar-           column indicates the trivial perception mechanism that per-
-chitecture for its relative simplicity and pedagogical value in      forms no cognitive processing.
+Zr
+d
+
+d
+
+Receiver’s Recognition Model
+
+2. Playing the signaling game
+
+Receiver’s Generative Model
+
+d
+Zs
+
+Ws
+
+x1
+signal
+
+din
+•
+
+•
+
+Signaling game proceeds as
+usual, but decisions are
+functions of internal
+representations
+REINFORCE learning applies
+using same reinforcement
+signal as original game
+
+X
+xk
+
+Zs
+d
+
+Fs(din)
+
+Sender’s decision:
+Ps(x|Zs)
+
+d
+Zr
+
+Wr
+
+x1
+X
+
+dout
+Zr
+d
+
+Fr(Zr
+
+)-1
+
+xk
+
+Receiver’s decision:
+Pr(Zr|x)
+
+Figure 2: Perception as a pre-processing step prior to signaling game
+In the experiments we present here, perception will take
+the form of a pre-processing step (figure 2). Prior to playing the signaling game, each player will independently sample images from their environment, engaging in unsupervised learning, training their recognition maps Fs , Fr as well
+as generative maps Fs−1 , Fr−1 . Once the perception mechanisms have been trained, the signaling game proceeds as
+usual, except that the sender now makes their signaling des
+cision Ps (x|zin
+s ,W ) as a function of the sender’s internal repin
+in
+resentation Fs (d ) = zin
+s of the state d . The receiver then
+observes the signal, and first generates an internal represenout
+tation zout
+r , which is then mapped to output image dr . The
+reward value is then computed as usual, and we apply the
+same REINFORCE updates in (4)-(5) to the player’s decision
+parameters.
+
+Representing Perception
+There has been surge of interest in computational models of
+perception, from both Machine Learning and Cognitive Science. We will test two different models, representing two
+main approaches that have been taken in studying perception.
+
+1905
+
+The first are Bayesian models, which represent perception as
+a rational inference problem. Given object d, we infer a latent representation z by maximizing the posterior probability
+P(z|d) ∝ P(d|z)P(z) using Bayes’ rule. This requires an object model P(d|z), as well as a prior distribution P(z) over all
+possible latent representations. We shall use an Infinite Latent
+Feature Model, which learns a binary feature representation
+of visual data, without having to pre-define a fixed number of
+latent features. This is achieved using an Indian Buffet Process (IBP) prior, which defines a probability distribution over
+binary vectors with an unbounded number of features (Griffiths & Ghahramani 2005). While exact inference over this
+distribution is intractable, MCMC sampling methods can be
+used to perform tractable inference.
+The second perception mechanism we shall test a
+Helmholtz Machine (Dayan et al 1995), representing a neurocomputing model of perception. A Helmholtz Machine
+is a type of variational auto-encoder, which learns a lowdimensional representation of sensory inputs by iteratively
+inferring latent representations from data, then reconstructing simulated data from internal representations. These two
+steps are iterated in an alternating “wake-sleep” cycle, with
+the objective of minimizing the Kullback-Liebler divergence
+between the true distribution and the generative distribution.
+The result is a low-dimensional binary representation of the
+data, encoded on the hidden units of the network. While the
+Helmholtz Machine in its original form has been rendered
+largely obsolete by more powerful methods, we use this architecture for its relative simplicity and pedagogical value in
 the context of our goals.
-                                                                              Conditions                       Bayesian                       Helmholtz                         Identity
-                Experiments and Results                               Environment
-                                                                          PICTURE
-                                                                                       Noise Level1
-                                                                                                   0
-                                                                                                      Signal Size2   Convergence
-                                                                                                                     Rate
-                                                                                                                   8 1.1x105
-                                                                                                                                     Signal Size2   Convergence
-                                                                                                                                                    Rate
-                                                                                                                                                  8 1.4x105
-                                                                                                                                                                    Signal Size2    Convergence
-                                                                                                                                                                                    Rate
-                                                                                                                                                                                  8 *4.5x105
-In this section we describe the environments and experimen-                                     0.25               8 1.2x105                      8 1.4x105                       8 *5.0x105
-tal conditions we tested, present the results of these experi-                                  0.35               8 1.2x105                      8 1.5x105                       8 *4.8x105
-                                                                         FEATURE                   0               4 0.3x105                      6 0.8x105                       6 0.8x105
-ments, and discuss their implications.                                                          0.25               4 0.4x105                      6 0.9x105                       6 0.8x105
-                                                                                                0.35               4 0.4x105                      6 0.9x105                       6 1.1x105
-Experimental Conditions                                               HIERARCHY                    0               4 1.0x105                      4 0.6x105                       4 1.0x105
-                                                                                                0.25               4 1.2x105                      4 0.8x105                       4 1.5x105
-We tested three different 36-pixel synthetic image environ-
-                                                                                                0.35               4 1.3x105                      4 0.8x105                       4 1.3x105
-ments, each intended to represent a different kind of informa-        1Value indicates SD of mean-zero Gaussian noise
-tional structure. For the first environment (PICTURE), we de-         2Smallest bit-size that converged to optimum (best pooling outcome if optimum not achieved) across all runs
-fined 8 specific 36-pixel images, each equally likely to appear,      *Indicates partial pooling outcome
+
+ing them into a single image. This construction is based on an
+experiment in Griffiths & Ghahramani (2005). The third environment (HIERARCHY) is hierarchically distributed over
+two categories: there are 12 images with non-zero probability, depicting either horizontal or vertical bars. Images are divided into category A (vertical) and category B (horizontal).
+Within each category, each image is equally likely to appear,
+but images from category A are twice as likely to appear as
+images from category B. The FEATURE and HIERARCHY
+environment test the agents’ abilities to learn non-trivial informational structure from the environment.
+For each environment, we test a noiseless version, in which
+images are presented to the sender with binary pixel values,
+as well as two levels of corrupting noise, in which each pixel
+is independently perturbed before being shown to the sender.
+For a reward function, we test three different distance metricsHamming (L1 ), Euclidean (L2 ), and a patch-specific function
+that depends only on certain regions of the image.
+
+Results
+Figure 3 shows a summary of results across our experiments,
+using the Hamming metric reward function (we observed no
+significant differences across reward functions). Convergence
+rates indicate the number of iterations required to achieve a
+threshold 90% of optimal performance, averaged over 5 runs
+for each condition. The Bayesian and Helmholtz columns
+correspond to the two perception models, while the Identify
+column indicates the trivial perception mechanism that performs no cognitive processing.
+Conditions
+
+Experiments and Results
+
+Environment
+PICTURE
+
+In this section we describe the environments and experimental conditions we tested, present the results of these experiments, and discuss their implications.
+
+FEATURE
+
+Experimental Conditions
+
+HIERARCHY
+
+We tested three different 36-pixel synthetic image environments, each intended to represent a different kind of informational structure. For the first environment (PICTURE), we defined 8 specific 36-pixel images, each equally likely to appear,
 and assign 0 probability to all other images. These 8 images
-were chosen so as to avoid recurring components or features                                                      Figure 3: Results
+were chosen so as to avoid recurring components or features
 across images. This serves as a baseline evaluation for the
-perception mechanisms- we can think of the PICTURE envi-                  In the PICTURE environment, both perception mecha-
-ronment as representing a “traditional” signaling game setup,        nisms drastically improved convergence speed, by effectively
-in which the “true” state space consists of 8 discrete states        reducing the scale of the problem from 236 to 8 states. This
-that share no common internal structure. In the context of our       pre-processing also smoothed over irregularities that would
-project, “there are only 8 things here” represents prior knowl-      occur under the trivial perception mechanism, where the re-
-edge or recognition, and so the players must learn that their        ceiver would fix the value of certain pixels across all images.
-environment contains only these 8 images directly through            Introducing the perception mechanism allows the receiver to
-their sensory inputs.                                                reconstruct the image based on their own internal representa-
-   The second environment (FEATURE) consists of compo-               tions of the environment, rather than by individually choosing
-sitionally distributed images. We define four 3 × 3 pixel pat-       the value of each output pixel.
-terns (features), and generate each 6 × 6 pixel image by ran-             In the FEATURE environment, convergence to the opti-
-domly selecting any number of the four features and compos-          mum was fast and reliable through all levels of noise, even
-                                                                 1906
+perception mechanisms- we can think of the PICTURE environment as representing a “traditional” signaling game setup,
+in which the “true” state space consists of 8 discrete states
+that share no common internal structure. In the context of our
+project, “there are only 8 things here” represents prior knowledge or recognition, and so the players must learn that their
+environment contains only these 8 images directly through
+their sensory inputs.
+The second environment (FEATURE) consists of compositionally distributed images. We define four 3 × 3 pixel patterns (features), and generate each 6 × 6 pixel image by randomly selecting any number of the four features and compos-
 
-with the trivial model. The fact that communication is eas-            Perceptual Similarity in Communication
-ier to learn in the FEATURE environment than the PICTURE               The model we present here already has most of what we need
-environment, even though the former contains twice as many             to address the third type of interaction, relating to perceptual
-states as the latter, shows that it is not just the number of dis-     similarity across agents. That is, we already represent the
-tinct states that affects learning, but the content of the states      evolution of both the external language and the internal repre-
-themselves. However, the trivial model was only able to con-           sentations, so all we need is a means of quantifying “percep-
-verge to the optimum using a 6-bit signal, which is not mini-          tual similarity” across multiple agents. To this end, we can
-mal. The Bayesian perception mechanism, however, allowed               use cross-systems analysis techniques like Representational
-the agents to correctly identify 4 latent features in their envi-      Similarity Analysis (Kriegeskorte, N., Mur, M., & Bandet-
-ronment, which enabled them to learn to communicate using              tini, P. A. 2008), a method for quantifying “representational
-a minimal 4-bit signal. The Helmholtz model did not lead to            similarity” between two different representation systems, re-
-any reduction in signal size. This is because the Bayesian             gardless of the underlying topologies of the systems them-
-model learns the number of latent features from the data,              selves. This would allow us to study inter-agent learning per-
-while the Helmholtz Machine uses a fixed number of hidden              formance as a function of the similarity between their inter-
-units. Thus the Bayesian model was able to learn a more effi-          nal representations, and perhaps identify a “communicability
-cient 4-feature representation than the network-based model,           threshold” of perceptual similarity below which no commu-
-enabling more efficient communication.                                 nication is possible.
-   In the HIERARCHY environment, convergence was fast
-and reliable under all 3 models, using a minimal 4-bit sig-                                    References
-nal. The Helmholtz model is able to learn the more efficient           Bengio, Y., Lonard, N., & Courville, A. (2013). Estimating
-representation in this environment, using one hidden unit to              or propagating gradients through stochastic neurons for
-code for the category, and 6 more for each image within a                 conditional computation. arXiv preprint arXiv:1308.3432.
+1Value
+
+Bayesian
+
+Noise Level1
+
+Signal Size2
+
+0
+
+Convergence
+Rate
+8 1.1x105
+
+Helmholtz
+Signal Size2
+
+Convergence
+Rate
+8 1.4x105
+
+Identity
+Signal Size2
+
+Convergence
+Rate
+8 *4.5x105
+
+0.25
+
+8 1.2x105
+
+8 1.4x105
+
+8 *5.0x105
+
+0.35
+
+8 1.2x105
+
+8 1.5x105
+
+8 *4.8x105
+
+0
+
+4 0.3x105
+
+6 0.8x105
+
+6 0.8x105
+
+0.25
+
+4 0.4x105
+
+6 0.9x105
+
+6 0.8x105
+
+0.35
+
+4 0.4x105
+
+6 0.9x105
+
+6 1.1x105
+
+0
+
+4 1.0x105
+
+4 0.6x105
+
+4 1.0x105
+
+0.25
+
+4 1.2x105
+
+4 0.8x105
+
+4 1.5x105
+
+0.35
+
+4 1.3x105
+
+4 0.8x105
+
+4 1.3x105
+
+indicates SD of mean-zero Gaussian noise
+
+2Smallest
+
+bit-size that converged to optimum (best pooling outcome if optimum not achieved) across all runs
+
+*Indicates partial pooling outcome
+
+Figure 3: Results
+In the PICTURE environment, both perception mechanisms drastically improved convergence speed, by effectively
+reducing the scale of the problem from 236 to 8 states. This
+pre-processing also smoothed over irregularities that would
+occur under the trivial perception mechanism, where the receiver would fix the value of certain pixels across all images.
+Introducing the perception mechanism allows the receiver to
+reconstruct the image based on their own internal representations of the environment, rather than by individually choosing
+the value of each output pixel.
+In the FEATURE environment, convergence to the optimum was fast and reliable through all levels of noise, even
+
+1906
+
+with the trivial model. The fact that communication is easier to learn in the FEATURE environment than the PICTURE
+environment, even though the former contains twice as many
+states as the latter, shows that it is not just the number of distinct states that affects learning, but the content of the states
+themselves. However, the trivial model was only able to converge to the optimum using a 6-bit signal, which is not minimal. The Bayesian perception mechanism, however, allowed
+the agents to correctly identify 4 latent features in their environment, which enabled them to learn to communicate using
+a minimal 4-bit signal. The Helmholtz model did not lead to
+any reduction in signal size. This is because the Bayesian
+model learns the number of latent features from the data,
+while the Helmholtz Machine uses a fixed number of hidden
+units. Thus the Bayesian model was able to learn a more efficient 4-feature representation than the network-based model,
+enabling more efficient communication.
+In the HIERARCHY environment, convergence was fast
+and reliable under all 3 models, using a minimal 4-bit signal. The Helmholtz model is able to learn the more efficient
+representation in this environment, using one hidden unit to
+code for the category, and 6 more for each image within a
 category. This reduced convergence time by up to half. The
-                                                                       Dayan, P., Hinton, G. E., Neal, R. M., & Zemel, R. S.
-Bayesian model, however, learns a less efficient representa-
-                                                                          (1995). The helmholtz machine. Neural computation,
-tion, identifying 1 binary feature for each of the 12 images in
-                                                                          7(5), 889-904.
-the environment, and does not significantly improve conver-
-gence speed.                                                           Franke, M. (2015). The evolution of compositionality and
-                                                                          proto-syntax in signaling games. Journal of Logic,
-              Discussion and Future Work                                  Language and Information, forthcoming.
-                                                                       Griffiths, T. L., & Ghahramani, Z. (2005). Infinite latent
-The results from the previous section demonstrate how a per-              feature models and the Indian buffet process. In NIPS
-ception mechanism can be incorporated into a signaling game               (Vol. 18, pp. 475-482).
-model, and shed some light on the first interaction we raised
-in the introduction. In particular, we saw that a perception           Gu, S., Levine, S., Sutskever, I., & Mnih, A. (2015).
-pre-processing step can enable faster and more robust coop-               MuProp: Unbiased backpropagation for stochastic neural
-erative learning from high-dimensional sensory inputs. We                 networks. arXiv preprint arXiv:1511.05176.
-also saw that certain perception models can learn more effi-           Huttegger, S. M., Skyrms, B., Smead, R., & Zollman, K. J.
-cient representations in certain environments. In this section,           (2010). Evolutionary dynamics of Lewis signaling games:
-we discuss how the existing model can be extended to address              signaling systems vs. partial pooling. Synthese, 172(1),
-the other types of interactions we wish to study.                         177-191.
-Other Roles of Perception                                              Jager, G. (2007). The evolution of convex categories.
-                                                                          Linguistics and Philosophy, 30(5), 551-564.
-In the experiments presented here, perception was used                 Kriegeskorte, N., Mur, M., & Bandettini, P. A. (2008).
-strictly as a pre-processing step, but in order to better under-          Representational similarity analysis-connecting the
-stand how language-learning can affect perception, we must                branches of systems neuroscience. Frontiers in systems
-allow the perception mechanisms to be trained in parallel with            neuroscience, 2, 4.
-the signaling game. While the REINFORCE rule we present
-here does not scale well to very deep models with multiple             O’Connor, C. (2014). Evolving perceptual categories.
-hidden layers, recent advances in Deep Reinforcement Learn-               Philosophy of Science, 81(5), 840-851.
-ing and Deep Q-learning allow us to scale the basic architec-          Skyrms, B. (2010). Signals: Evolution, learning, and
-ture up to very large tasks. Additionally, we may be inter-               information. Oxford University Press.
-ested in fixing the behavior of one agent, so that the non-fixed
-                                                                       Williams, R. J. (1992). Simple statistical gradient-following
-player learns the language of the fixed player. This would
-                                                                          algorithms for connectionist reinforcement learning.
-allow us to observe any influence that the fixed player’s lan-
-                                                                          Machine learning, 8(3-4), 229-256.
-guage has on the non-fixed player’s learned representations.
-                                                                   1907
+Bayesian model, however, learns a less efficient representation, identifying 1 binary feature for each of the 12 images in
+the environment, and does not significantly improve convergence speed.
 
+Discussion and Future Work
+The results from the previous section demonstrate how a perception mechanism can be incorporated into a signaling game
+model, and shed some light on the first interaction we raised
+in the introduction. In particular, we saw that a perception
+pre-processing step can enable faster and more robust cooperative learning from high-dimensional sensory inputs. We
+also saw that certain perception models can learn more efficient representations in certain environments. In this section,
+we discuss how the existing model can be extended to address
+the other types of interactions we wish to study.
+
+Perceptual Similarity in Communication
+The model we present here already has most of what we need
+to address the third type of interaction, relating to perceptual
+similarity across agents. That is, we already represent the
+evolution of both the external language and the internal representations, so all we need is a means of quantifying “perceptual similarity” across multiple agents. To this end, we can
+use cross-systems analysis techniques like Representational
+Similarity Analysis (Kriegeskorte, N., Mur, M., & Bandettini, P. A. 2008), a method for quantifying “representational
+similarity” between two different representation systems, regardless of the underlying topologies of the systems themselves. This would allow us to study inter-agent learning performance as a function of the similarity between their internal representations, and perhaps identify a “communicability
+threshold” of perceptual similarity below which no communication is possible.
+
+References
+Bengio, Y., Lonard, N., & Courville, A. (2013). Estimating
+or propagating gradients through stochastic neurons for
+conditional computation. arXiv preprint arXiv:1308.3432.
+Dayan, P., Hinton, G. E., Neal, R. M., & Zemel, R. S.
+(1995). The helmholtz machine. Neural computation,
+7(5), 889-904.
+Franke, M. (2015). The evolution of compositionality and
+proto-syntax in signaling games. Journal of Logic,
+Language and Information, forthcoming.
+Griffiths, T. L., & Ghahramani, Z. (2005). Infinite latent
+feature models and the Indian buffet process. In NIPS
+(Vol. 18, pp. 475-482).
+Gu, S., Levine, S., Sutskever, I., & Mnih, A. (2015).
+MuProp: Unbiased backpropagation for stochastic neural
+networks. arXiv preprint arXiv:1511.05176.
+Huttegger, S. M., Skyrms, B., Smead, R., & Zollman, K. J.
+(2010). Evolutionary dynamics of Lewis signaling games:
+signaling systems vs. partial pooling. Synthese, 172(1),
+177-191.
+
+Other Roles of Perception
+
+Jager, G. (2007). The evolution of convex categories.
+Linguistics and Philosophy, 30(5), 551-564.
+
+In the experiments presented here, perception was used
+strictly as a pre-processing step, but in order to better understand how language-learning can affect perception, we must
+allow the perception mechanisms to be trained in parallel with
+the signaling game. While the REINFORCE rule we present
+here does not scale well to very deep models with multiple
+hidden layers, recent advances in Deep Reinforcement Learning and Deep Q-learning allow us to scale the basic architecture up to very large tasks. Additionally, we may be interested in fixing the behavior of one agent, so that the non-fixed
+player learns the language of the fixed player. This would
+allow us to observe any influence that the fixed player’s language has on the non-fixed player’s learned representations.
+
+Kriegeskorte, N., Mur, M., & Bandettini, P. A. (2008).
+Representational similarity analysis-connecting the
+branches of systems neuroscience. Frontiers in systems
+neuroscience, 2, 4.
+O’Connor, C. (2014). Evolving perceptual categories.
+Philosophy of Science, 81(5), 840-851.
+Skyrms, B. (2010). Signals: Evolution, learning, and
+information. Oxford University Press.
+Williams, R. J. (1992). Simple statistical gradient-following
+algorithms for connectionist reinforcement learning.
+Machine learning, 8(3-4), 229-256.
+
+1907
+
+

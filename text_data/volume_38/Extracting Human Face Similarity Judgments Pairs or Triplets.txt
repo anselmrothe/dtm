@@ -1,311 +1,395 @@
-                 Extracting Human Face Similarity Judgments: Pairs or Triplets?
-                                     Linjie Li1 , Vicente Malave2 , Amanda Song2 , and Angela J. Yu2
-                        (lil121@ucsd.edu, vmalave@cogsci.ucsd.edu, mas065@ad.ucsd.edu, ajyu@ucsd.edu)
-          1 Department of Electrical and Computer Engineering, University of California, San Diego, La Jolla, CA, USA
-                     2 Department of Cognitive Science, University of California, San Diego, La Jolla, CA, USA
-                               Abstract                                   were discussed early in the multidimensional scaling liter-
-                                                                          ature (W. S. Torgerson, 1958). Sometimes they are con-
-   Two experimental protocols, pairwise rating and triplet rank-          verted directly to numeric values and then used with an algo-
-   ing, have been commonly used for eliciting perceptual similar-
-   ity judgments for faces and other objects. However, there has          rithm designed for pairs. More recently, algorithms have ap-
-   been little systematic comparison of the two methods. Pairwise         peared in machine learning which learn directly from ordinal
-   rating has the advantage of greater precision, but triplet rank-       information Shepard (1962), or triplets, with no intermedi-
-   ing is potentially a cognitive less taxing task, thus resulting in
-   less noisy responses. Here, we introduce several information-          ate step: Generalized Non-metric Multidimensional Scaling
-   theoretic measures of how useful responses from the two pro-           (GNMDS) (Agarwal et al., 2007) , the Crowd Kernel algo-
-   tocols are for the purpose of response prediction and parame-          rithm (Tamuz et al., 2011) and Stochastic triplet Embedding
-   ter estimation. Using face similarity data collected on Amazon
-   Mechanical Turk, we demonstrate that triplet ranking is signif-        (STE) (van der Maaten & Weinberger, 2012).
-   icantly better for extracting subject-specific preferences, while         While both pairwise rating and triplet ranking have been
-   the two are comparable when pooling across subjects. While             used extensively in the literature, there has scant acknowl-
-   the specific conclusions should be interpreted cautiously, due
-   to the particularly simple Bayesian model for response gener-          edgement of the types of noise that can corrupt the two kinds
-   ation utilized here, the work provides a information-theoretic         of responses, and thus little systematic comparison of the in-
-   framework for quantifying how repetitions within and across            formational utility of the two. In information terms, pairwise
-   subjects can help to combat noise in human responses, as well
-   as giving some insight into the nature of similarity representa-       rating has the advantage of having more precision, and thus
-   tion and response noise in humans. More generally, this work           more capability of transmitting more information about hu-
-   demonstrates that substantial noise and inconsistency corrupt          man preferences. However, this greater precision could po-
-   similarity judgments, both within- and across-subjects, with
-   consequent implications for experimental design and data in-           tentially be offset by the greater cognitive difficulty for hu-
-   terpretation.                                                          mans to come up with numerical ratings, rather than mak-
-   Keywords: similarity judgment, triplet ranking, pairwise rat-          ing relative judgments. Moreover, different human subjects
-   ing, information theory, Bayesian modeling
-                                                                          may interpret the numerical scale slightly differently, con-
-                                                                          tributing to even more inter-subject noise. These factors
-                           Introduction                                   can potentially translate into greater response noise or self-
-Several protocols have been developed in recent years to col-             inconsistency, thus largely or even completely negating the
-lect expensive and time-consuming human perceptual simi-                  precision advantage of pairwise rating over triplet ranking. A
-larity judgments, such as among face images. Similarity is                recent paper comparing several methods of collecting similar-
-a pairwise numeric relationship between a pair of objects,                ity data, (Demiralp et al. (2014)), compared pairwise rating in
-where a higher value of similarity indicates that the objects             relative judgements terms of efficiency and consistency, and
-are perceived to be more similar. For cognitive science, this             found that relative judgments can be more consistent.
-is useful for predicting future judgments on unseen stimu-                   More generally, in terms of the design of experiments
-lus pairs, inferring a low-dimensional internal representation            involving extracting human similarity judgments, there has
-of the object space, identifying individual and group differ-             been little exploration of how many times a particular stim-
-ences, and so on. For artificial intelligence, this type of data          ulus display (resulting in a judgment) should be repeated
-is often used as “ground truth” to label or categorize data,              within subject or across subjects. Indeed, most algorithms
-train or evaluate machine learning algorithms, predict future             simply ignore the fact there may be noise within- and across-
-preferences in consumer marketing, etc.                                   subjects, treating the data is noise-free. In terms of experi-
-   There are two common ways to collect similarity ratings.               mental design, there is an obvious need to quantify and char-
-Pairwise rating typically ask subjects to rate the perceived              acterize the noise in order to chose the number of trials within
-similarity of stimulus pairs using numbers on a specified                 and across subjects. In terms of cognitive science, a better un-
-numerical scale (such as a Likert scale). Algorithms such                 derstanding of the noise corrupting similarity judgments can
-as classical multidimensional scaling (W. Torgerson, 1952;                yield insight into the nature of similarity representation in the
-W. S. Torgerson, 1958) and modern variants (Borg & Groe-                  brain.
-nen, 2005) make use of numeric, pairwise ratings. Another                    In this paper, we utilize several different information-
-type of experiment has instead asked subjects to make ordi-               theoretic and probabilistic measures to quantify the informa-
-nal judgments. One such algorithm, triplet ranking, consists              tion utility of pairwise rating and triplet ranking for extract-
-of asking subjects to choose which pair of stimuli among                  ing facial similarity judgments. Based on a simple Bayesian
-three presented is the most similar. Relative comparisons                 model, we compute the posterior distribution over the param-
-                                                                      1427
+Extracting Human Face Similarity Judgments: Pairs or Triplets?
+Linjie Li1 , Vicente Malave2 , Amanda Song2 , and Angela J. Yu2
+(lil121@ucsd.edu, vmalave@cogsci.ucsd.edu, mas065@ad.ucsd.edu, ajyu@ucsd.edu)
+1 Department of Electrical and Computer Engineering, University of California, San Diego, La Jolla, CA, USA
+2 Department of Cognitive Science, University of California, San Diego, La Jolla, CA, USA
+Abstract
+Two experimental protocols, pairwise rating and triplet ranking, have been commonly used for eliciting perceptual similarity judgments for faces and other objects. However, there has
+been little systematic comparison of the two methods. Pairwise
+rating has the advantage of greater precision, but triplet ranking is potentially a cognitive less taxing task, thus resulting in
+less noisy responses. Here, we introduce several informationtheoretic measures of how useful responses from the two protocols are for the purpose of response prediction and parameter estimation. Using face similarity data collected on Amazon
+Mechanical Turk, we demonstrate that triplet ranking is significantly better for extracting subject-specific preferences, while
+the two are comparable when pooling across subjects. While
+the specific conclusions should be interpreted cautiously, due
+to the particularly simple Bayesian model for response generation utilized here, the work provides a information-theoretic
+framework for quantifying how repetitions within and across
+subjects can help to combat noise in human responses, as well
+as giving some insight into the nature of similarity representation and response noise in humans. More generally, this work
+demonstrates that substantial noise and inconsistency corrupt
+similarity judgments, both within- and across-subjects, with
+consequent implications for experimental design and data interpretation.
+Keywords: similarity judgment, triplet ranking, pairwise rating, information theory, Bayesian modeling
 
-eters of the distribution, as well as a marginal predictive dis-
-tribution of the response for the next subject or the same sub-
-ject on the next trial. We can then compute the information
-gained (entropy reduced) relative to both of these distribu-
-tions, as well as a prediction error measure, for both both
-data collection methods. We collected face similarity judg-
-ment data, in both pairwise and triplet forms, on Amazon Me-
-chanical Turk, and then used the various measures to quantify
+Introduction
+Several protocols have been developed in recent years to collect expensive and time-consuming human perceptual similarity judgments, such as among face images. Similarity is
+a pairwise numeric relationship between a pair of objects,
+where a higher value of similarity indicates that the objects
+are perceived to be more similar. For cognitive science, this
+is useful for predicting future judgments on unseen stimulus pairs, inferring a low-dimensional internal representation
+of the object space, identifying individual and group differences, and so on. For artificial intelligence, this type of data
+is often used as “ground truth” to label or categorize data,
+train or evaluate machine learning algorithms, predict future
+preferences in consumer marketing, etc.
+There are two common ways to collect similarity ratings.
+Pairwise rating typically ask subjects to rate the perceived
+similarity of stimulus pairs using numbers on a specified
+numerical scale (such as a Likert scale). Algorithms such
+as classical multidimensional scaling (W. Torgerson, 1952;
+W. S. Torgerson, 1958) and modern variants (Borg & Groenen, 2005) make use of numeric, pairwise ratings. Another
+type of experiment has instead asked subjects to make ordinal judgments. One such algorithm, triplet ranking, consists
+of asking subjects to choose which pair of stimuli among
+three presented is the most similar. Relative comparisons
+
+were discussed early in the multidimensional scaling literature (W. S. Torgerson, 1958). Sometimes they are converted directly to numeric values and then used with an algorithm designed for pairs. More recently, algorithms have appeared in machine learning which learn directly from ordinal
+information Shepard (1962), or triplets, with no intermediate step: Generalized Non-metric Multidimensional Scaling
+(GNMDS) (Agarwal et al., 2007) , the Crowd Kernel algorithm (Tamuz et al., 2011) and Stochastic triplet Embedding
+(STE) (van der Maaten & Weinberger, 2012).
+While both pairwise rating and triplet ranking have been
+used extensively in the literature, there has scant acknowledgement of the types of noise that can corrupt the two kinds
+of responses, and thus little systematic comparison of the informational utility of the two. In information terms, pairwise
+rating has the advantage of having more precision, and thus
+more capability of transmitting more information about human preferences. However, this greater precision could potentially be offset by the greater cognitive difficulty for humans to come up with numerical ratings, rather than making relative judgments. Moreover, different human subjects
+may interpret the numerical scale slightly differently, contributing to even more inter-subject noise. These factors
+can potentially translate into greater response noise or selfinconsistency, thus largely or even completely negating the
+precision advantage of pairwise rating over triplet ranking. A
+recent paper comparing several methods of collecting similarity data, (Demiralp et al. (2014)), compared pairwise rating in
+relative judgements terms of efficiency and consistency, and
+found that relative judgments can be more consistent.
+More generally, in terms of the design of experiments
+involving extracting human similarity judgments, there has
+been little exploration of how many times a particular stimulus display (resulting in a judgment) should be repeated
+within subject or across subjects. Indeed, most algorithms
+simply ignore the fact there may be noise within- and acrosssubjects, treating the data is noise-free. In terms of experimental design, there is an obvious need to quantify and characterize the noise in order to chose the number of trials within
+and across subjects. In terms of cognitive science, a better understanding of the noise corrupting similarity judgments can
+yield insight into the nature of similarity representation in the
+brain.
+In this paper, we utilize several different informationtheoretic and probabilistic measures to quantify the information utility of pairwise rating and triplet ranking for extracting facial similarity judgments. Based on a simple Bayesian
+model, we compute the posterior distribution over the param-
+
+1427
+
+eters of the distribution, as well as a marginal predictive distribution of the response for the next subject or the same subject on the next trial. We can then compute the information
+gained (entropy reduced) relative to both of these distributions, as well as a prediction error measure, for both both
+data collection methods. We collected face similarity judgment data, in both pairwise and triplet forms, on Amazon Mechanical Turk, and then used the various measures to quantify
 the informational utility of the two methods. We demonstrate
 that when predicting future responses from a subject’s own
 data, triplet is better; however, when predicting a subject’s
 response from others’ data, the two methods are comparable.
-                                                                            Figure 2: Sample questionnaire of triplet rankings.
-   The rest of the paper is organized as follows: in the Meth-
-ods section, we explain the experimental design and the data
+The rest of the paper is organized as follows: in the Methods section, we explain the experimental design and the data
 modeling/analysis methods. In the Results section, we show
-                                                                     experiments in five steps. Subjects are first presented a de-
 how triplets are better than pairs within subject and vice versa
-                                                                     scription of the task with an option of accepting it. Once the
 across subjects. In the Discussion section, we discuss the
-                                                                     task was accepted, subjects complete a short training session,
 broader impacts of our results, as well as fruitful directions
-                                                                     using an interface identical to the actual task interface. After
 of future work.
-                                                                     the training session, subjects are prompted with the full set of
-                           Methods                                   faces and asked to think about the most similar and dissimilar
-                                                                     stimuli in the set – this is to ensure subjects are aware of the
-Experimental Design                                                  full range of possible extent of similarity/dissimilarity, so as
-We collected human similarity judgments on face images               to reduce inconsistency on pairwise ratings. Afterward, sub-
-through Amazon Mechanical Turk, relying on two types of              ject complete the experimental task. In the last step, they pro-
-similarity judgments: a pairwise rating task, and a triplet          vide information about themselves and submit their results.
-ranking task. In the pairwise task, subjects were sequentially       Two out of 90 subjects were thrown out due to being non-
-presented pairs of faces and asked to rate the similarity of         compliant.
-each pair on a 9-point Likert scale (Figure 1). In the triplet          The face images were taken from the 10k US Adult Faces
-task, we asked subjects to decide which pair of faces out of         database provided by Aude Oliva’s group at MIT (Bainbridge
-the three were the most similar to each other (Figure 2). The        et al., 2013) and then cropped for uniformity in presentation.
-order within trials (which pairs were presented on left and
-right, which triplet appeared in which order), as well as the        Data Conversion
-order of trials, was randomized for each subject. To ensure          Since subjects have 9 options in the pairwise setting but only
-data quality, we also used catch trials, asking for ratings of       3 choices in the triple setting, direct comparison between
-identical stimuli (both in the pairwise and triplet cases) to        these two types of data is difficult. Since the pairwise data
-identify non-compliant subjects.                                     can be easily converted to triplet data, while the reverse, or
-                                                                     converting both to a common format, is not possible with-
-                                                                     out making many assumptions about the underlying response
-                                                                     generation process, we choose to convert the pairwise data
-                                                                     into equivalent triplet data (based on which of the three pairs
-                                                                     receives the highest similarity rating), and then use identical
-                                                                     measures to compare the two in the remainder of the paper.
-                                                                     Correlation Analysis
-                                                                     As a first analysis of within-subject and across-subject consis-
-                                                                     tency, we perform a correlation analysis. 35 stimuli (triplets)
-                                                                     were rated by 88 subjects, each stimulus repeated 4 times, and
-                                                                     there are 3 possible responses per trial.
-      Figure 1: Sample questionnaire of pairwise rating.                We compute the average across-subject correlation as fol-
-                                                                     lows: for each stimulus, we compute the Pearson correlation
-   In the experiment, we present 7 faces to 90 subjects in the       coefficient between the empirical distributions (across the 3
-two formats, exhaustively covering all possible pairs/triplets,      possible responses) of two subjects, and average across all
-for a total of 35 sets of triplets and 21 pairs. To aid the as-      stimuli and all possible pairings of subjects.
-sessment of self-consistency, we present each pair and each             We compute the average within-subject correlation as fol-
-triplet four times to each subject. Subjects carried out the         lows: for each stimulus in a subject, count the number of
-                                                                 1428
 
-pairwise responses that agree and then normalize by 6, the            (a)                               (b)
+Methods
+Experimental Design
+We collected human similarity judgments on face images
+through Amazon Mechanical Turk, relying on two types of
+similarity judgments: a pairwise rating task, and a triplet
+ranking task. In the pairwise task, subjects were sequentially
+presented pairs of faces and asked to rate the similarity of
+each pair on a 9-point Likert scale (Figure 1). In the triplet
+task, we asked subjects to decide which pair of faces out of
+the three were the most similar to each other (Figure 2). The
+order within trials (which pairs were presented on left and
+right, which triplet appeared in which order), as well as the
+order of trials, was randomized for each subject. To ensure
+data quality, we also used catch trials, asking for ratings of
+identical stimuli (both in the pairwise and triplet cases) to
+identify non-compliant subjects.
+
+Figure 2: Sample questionnaire of triplet rankings.
+
+experiments in five steps. Subjects are first presented a description of the task with an option of accepting it. Once the
+task was accepted, subjects complete a short training session,
+using an interface identical to the actual task interface. After
+the training session, subjects are prompted with the full set of
+faces and asked to think about the most similar and dissimilar
+stimuli in the set – this is to ensure subjects are aware of the
+full range of possible extent of similarity/dissimilarity, so as
+to reduce inconsistency on pairwise ratings. Afterward, subject complete the experimental task. In the last step, they provide information about themselves and submit their results.
+Two out of 90 subjects were thrown out due to being noncompliant.
+The face images were taken from the 10k US Adult Faces
+database provided by Aude Oliva’s group at MIT (Bainbridge
+et al., 2013) and then cropped for uniformity in presentation.
+
+Data Conversion
+Since subjects have 9 options in the pairwise setting but only
+3 choices in the triple setting, direct comparison between
+these two types of data is difficult. Since the pairwise data
+can be easily converted to triplet data, while the reverse, or
+converting both to a common format, is not possible without making many assumptions about the underlying response
+generation process, we choose to convert the pairwise data
+into equivalent triplet data (based on which of the three pairs
+receives the highest similarity rating), and then use identical
+measures to compare the two in the remainder of the paper.
+
+Correlation Analysis
+
+Figure 1: Sample questionnaire of pairwise rating.
+In the experiment, we present 7 faces to 90 subjects in the
+two formats, exhaustively covering all possible pairs/triplets,
+for a total of 35 sets of triplets and 21 pairs. To aid the assessment of self-consistency, we present each pair and each
+triplet four times to each subject. Subjects carried out the
+
+As a first analysis of within-subject and across-subject consistency, we perform a correlation analysis. 35 stimuli (triplets)
+were rated by 88 subjects, each stimulus repeated 4 times, and
+there are 3 possible responses per trial.
+We compute the average across-subject correlation as follows: for each stimulus, we compute the Pearson correlation
+coefficient between the empirical distributions (across the 3
+possible responses) of two subjects, and average across all
+stimuli and all possible pairings of subjects.
+We compute the average within-subject correlation as follows: for each stimulus in a subject, count the number of
+
+1428
+
+pairwise responses that agree and then normalize by 6, the
 total number of pairwise comparisons across four trials. The
 score therefore has a value of 1/6 for really noisy data (e.g.
 (1, 1, 2)) and 1 for really consistent data (e. g. (3, 0, 0)). This
 value is then averaged across stimuli for each subject.
+
+(a)
+
+(b)
+
 Statistical Modeling
-Given a triplet composed of three faces {A,B,C}, the sub-
-ject chooses which of the three pairs, {AB,AC,BC}, is most              Figure 3: Cross correlation matrix of (a) triplet comparison
-similar. For simplicity, we model a subject’s responses to              and (b) pairwise rating. These heat maps indicate how sub-
-one stimulus as a multinomial distribution, P(dix |vecrx ) =            jects are correlated with each other. Subjects are ordered us-
-Mult(4, rx ), where dx (l) is the number of times the l th pair         ing hierarchical clustering.
+Given a triplet composed of three faces {A,B,C}, the subject chooses which of the three pairs, {AB,AC,BC}, is most
+similar. For simplicity, we model a subject’s responses to
+one stimulus as a multinomial distribution, P(dix |vecrx ) =
+Mult(4, rx ), where dx (l) is the number of times the l th pair
 in a triplet x is chosen (l = 1, 2, 3), and rx l is the probability
-of choosing the l th pair. In the across-subject analysis, we as-
-sume that all the subjects share the same preference vector rx
-and thus generate responses from the same distribution.               (a)                               (b)
-   We assume a conjugate prior, i.e. a Dirichlet prior distribu-
-tion p0 (rix ; θ), where θ = [1, 1, 1]. The posterior distribution
-is thus also Dirichlet, and its mean is the predictive prior dis-
-tribution for the next response/subject.
+of choosing the l th pair. In the across-subject analysis, we assume that all the subjects share the same preference vector rx
+and thus generate responses from the same distribution.
+We assume a conjugate prior, i.e. a Dirichlet prior distribution p0 (rix ; θ), where θ = [1, 1, 1]. The posterior distribution
+is thus also Dirichlet, and its mean is the predictive prior distribution for the next response/subject.
 Information Gain Given the Bayesian response generation
 model, we can compare how much information is provided by
-pairwise or triplet data. We define information gain as the re-
-duction in entropy, and we calculate the information gain rel-
-ative to both the posterior distribution and the predictive dis-        Figure 4: (a) Average within-subject correlation and (b)
-tribution for the two methods, both within-subject and across           across-subject correlation for triplet comparison and pairwise
-subjects.                                                               rating. Error bars denote standard errors of the mean.
-Prediction Error Use the Bayesian model, we can com-
-pute a predictive prior distribution over the next re-
-sponse/subject based on previous responses/subjects on the                 Correlation (consistency) is a very coarse measure of the
-stimulus. We use MAP estimation (mode of the distribution)              utility of data, as a subject giving the same response (e.g. 1)
-to predict the next response, and can therefore compute a pre-          to all stimuli on all trials would achieve maximal correlation
-dictive accuracy measure.                                               but actually yield minimal information about any true pref-
-                                                                        erences. We therefore need measures that quantify not only
-                                                                        consistency but also diversity of responses, and that brings us
-                             Results                                    naturally to information-theory. We therefore utilize a simple
-                                                                        Bayesian generative model to capture how noisy responses
-                                                                        arise from true (hidden) similarity percepts. We then use
-As a first analysis of within-subject and across-subject consis-        this model to compute both entropy-reduction related to the
-tency, we perform a correlation analysis in order to measure            model parameters, based on the posterior distribution, as well
-how consistent the subjects were with their own responses on            as to the subject’s future responses, based on the predictive
-previous trials, or with the responses of other subjects. Figure        prior distribution (see Methods).
-3 shows that cross-correlation of responses across subjects for            We find that triplets are more informative than pairs within
-the same triplets, suggesting distinct subgroups of individuals         subject, while they are comparable across subjects. Figure 5
-based on overall similarity judgments. The clusters indicate            presents the information gain related to the posterior distribu-
-that there are some consensus among the subjects that might             tion and the predictive distribution, as we see more and more
-be using the same criteria to judge facial similarity. As shown         data from one subject. After all four repetitions, the informa-
-in Figure 4, we find that self-consistency is higher for triplet        tion provided by triplet comparison is more than that gained
-data than the pairwise data, while inter-subject consistency            from pairwise ranking, and the difference is significant. Even
-is higher for pairwise data than triplet data. The difference           though the incremental information gain is decreasing as the
-of across subject correlation between triplets and pairs is sig-        number of repetitions increases (as we would expect), there
-nificant, while two methods have comparable within subject              is still significant information gained through the fourth rep-
-correlations.                                                           etition.
-                                                                    1429
+pairwise or triplet data. We define information gain as the reduction in entropy, and we calculate the information gain relative to both the posterior distribution and the predictive distribution for the two methods, both within-subject and across
+subjects.
+Prediction Error Use the Bayesian model, we can compute a predictive prior distribution over the next response/subject based on previous responses/subjects on the
+stimulus. We use MAP estimation (mode of the distribution)
+to predict the next response, and can therefore compute a predictive accuracy measure.
 
-    The result of the across-subjects analysis (Figure 6) indi-   (a)                              (b)
-cates that the two methods are similar in efficacy. The incre-
-mental information gain converges to 0 as number of subjects
+Results
+As a first analysis of within-subject and across-subject consistency, we perform a correlation analysis in order to measure
+how consistent the subjects were with their own responses on
+previous trials, or with the responses of other subjects. Figure
+3 shows that cross-correlation of responses across subjects for
+the same triplets, suggesting distinct subgroups of individuals
+based on overall similarity judgments. The clusters indicate
+that there are some consensus among the subjects that might
+be using the same criteria to judge facial similarity. As shown
+in Figure 4, we find that self-consistency is higher for triplet
+data than the pairwise data, while inter-subject consistency
+is higher for pairwise data than triplet data. The difference
+of across subject correlation between triplets and pairs is significant, while two methods have comparable within subject
+correlations.
+
+Figure 3: Cross correlation matrix of (a) triplet comparison
+and (b) pairwise rating. These heat maps indicate how subjects are correlated with each other. Subjects are ordered using hierarchical clustering.
+
+(a)
+
+(b)
+
+Figure 4: (a) Average within-subject correlation and (b)
+across-subject correlation for triplet comparison and pairwise
+rating. Error bars denote standard errors of the mean.
+Correlation (consistency) is a very coarse measure of the
+utility of data, as a subject giving the same response (e.g. 1)
+to all stimuli on all trials would achieve maximal correlation
+but actually yield minimal information about any true preferences. We therefore need measures that quantify not only
+consistency but also diversity of responses, and that brings us
+naturally to information-theory. We therefore utilize a simple
+Bayesian generative model to capture how noisy responses
+arise from true (hidden) similarity percepts. We then use
+this model to compute both entropy-reduction related to the
+model parameters, based on the posterior distribution, as well
+as to the subject’s future responses, based on the predictive
+prior distribution (see Methods).
+We find that triplets are more informative than pairs within
+subject, while they are comparable across subjects. Figure 5
+presents the information gain related to the posterior distribution and the predictive distribution, as we see more and more
+data from one subject. After all four repetitions, the information provided by triplet comparison is more than that gained
+from pairwise ranking, and the difference is significant. Even
+though the incremental information gain is decreasing as the
+number of repetitions increases (as we would expect), there
+is still significant information gained through the fourth repetition.
+
+1429
+
+The result of the across-subjects analysis (Figure 6) indicates that the two methods are similar in efficacy. The incremental information gain converges to 0 as number of subjects
 increases. However, the first 15 subjects provide around 80%
 of total predictive information gain and approximately 60%
 of total posterior information gain.
-(a)                              (b)
-                                                                  (c)                              (d)
-(c)                              (d)
-                                                                    Figure 6: Across-subjects information gain of (a) posterior
-                                                                    distribution and (c) predictive distribution; cumulative across
-                                                                    subjects information gain of (b) posterior distribution and (d)
-                                                                    predictive distribution. The upper line plots in (a) and (c)
-                                                                    show the results from the first 30 subjects; the insets show the
-                                                                    results from all subjects. The lower bar graphs in (a) and (c)
-                                                                    show the point-wise differences of the upper line plots (triplet
-Figure 5: Within-subject information gain of (a) posterior dis-     - pairwise).
-tribution and (c) predictive distribution; total within-subject
-information gain of (b) posterior distribution and (d) predic-
-                                                                    This indicates that variability across subjects is not only due
-tive distribution. The lower bar graphs in (a) and (c) plot the
-                                                                    to noise but also due to systematic individual differences in
-point-wise differences of the upper line plots (triplet - pair-
-                                                                    preferences.
-wise).
-                                                                       Similar to other measures, triplet data yield a higher predic-
-                                                                    tive accuracy within-subject than pairwise data, but are simi-
-    While information gain measures how confident we are            lar when predicting across subjects.
+(a)
+
+(c)
+
+(a)
+
+(b)
+
+(c)
+
+(d)
+
+(b)
+
+(d)
+
+Figure 6: Across-subjects information gain of (a) posterior
+distribution and (c) predictive distribution; cumulative across
+subjects information gain of (b) posterior distribution and (d)
+predictive distribution. The upper line plots in (a) and (c)
+show the results from the first 30 subjects; the insets show the
+results from all subjects. The lower bar graphs in (a) and (c)
+show the point-wise differences of the upper line plots (triplet
+- pairwise).
+
+Figure 5: Within-subject information gain of (a) posterior distribution and (c) predictive distribution; total within-subject
+information gain of (b) posterior distribution and (d) predictive distribution. The lower bar graphs in (a) and (c) plot the
+point-wise differences of the upper line plots (triplet - pairwise).
+While information gain measures how confident we are
 about the estimated model parameters or about the model
-predictions of future responses, it does not tell us how much                                Discussion
-better the model is getting at predicting future responses. In      Similarity learning has been a well-studied topic in cognitive
-particular, while model precision can improve, its accuracy         science research. In this area, the study of facial similarity
-may saturate or even decline. One can think of the entropy-         has been particularly prominent, both due to the important
-related measures as quantifying variance in predictive accu-        role facial processing plays in human interactions, as well as
-racy, while the prediction error measure quantifes bias. We         due to the extremely high dimensionality of the face image
-therefore also use the Dirichlet-multinomial response model         space and lack of an obvious low-dimensional featural rep-
-to make predictions (using MAP estimate) and compute an             resentation. While various experimental methodologies have
-average accuracy measure by comparing to human responses.           been utilized to elicit facial similarity judgments, there has
-    As illustrated in Figure 7, as more and more data are col-      been little systematic comparison of their efficacy. More trou-
-lected, both within- and across-subject prediction error and        blingly, most algorithms have assumed human responses to
-entropy decrease. Prediction error decreases sharply before         be free of noise and to be completely interchangeable from
-the 5th subjects across subjects and the second repetition          one subject’s response to another’s. To tackle some of these
-within subjects. Notably, predictive error rate stops decreas-      issues, we introduce a suite of statistical and information
-ing sooner than predictive entropy, indicating the model is         theoretic measures for investigating the amount and type of
-probably somewhat misspecified: as predictive uncertainty           noise within- and across-subjects. We applied these methods,
-(variance) decreases, total accuracy is already saturated (bias     along with a simple Dirichlet-multinomial Bayesian model
-persists). In addition, prediction error converges to approxi-      for response generation, to a novel crowdsourced dataset. We
-mately 0.23 within subject, compared to 0.32 across subjects.       found that triplet ranking is more informative and predictive
-                                                                1430
+predictions of future responses, it does not tell us how much
+better the model is getting at predicting future responses. In
+particular, while model precision can improve, its accuracy
+may saturate or even decline. One can think of the entropyrelated measures as quantifying variance in predictive accuracy, while the prediction error measure quantifes bias. We
+therefore also use the Dirichlet-multinomial response model
+to make predictions (using MAP estimate) and compute an
+average accuracy measure by comparing to human responses.
+As illustrated in Figure 7, as more and more data are collected, both within- and across-subject prediction error and
+entropy decrease. Prediction error decreases sharply before
+the 5th subjects across subjects and the second repetition
+within subjects. Notably, predictive error rate stops decreasing sooner than predictive entropy, indicating the model is
+probably somewhat misspecified: as predictive uncertainty
+(variance) decreases, total accuracy is already saturated (bias
+persists). In addition, prediction error converges to approximately 0.23 within subject, compared to 0.32 across subjects.
 
-(a)                              (b)
-                                                                      relevant to the general problem of crowdsourcing similar-
-                                                                      ity models. Depending on the goal of a similarity experi-
-                                                                      ment, different methods should be chosen. If the experiment
-                                                                      aims at modeling personal preferences, triplet comparison
-                                                                      appear to provide higher quality data. When the goal is to
-                                                                      find a population-level model of similarity judgements, with-
-                                                                      out worrying about individual differences, then pairwise data
-                                                                      compare well to triplet data. More generally, our work speaks
-                                                                      to how many repetitions within and across subjects should be
-                                                                      employed. According to the information gain analysis, our
-(c)                              (d)                                  data reveal that most of the information is provided by the
-                                                                      first 15 subjects. However, as any given model is probably
-                                                                      not perfect in capturing human responses, greater model pre-
-                                                                      cision may not translate to greater ability to predict future hu-
-                                                                      man responses. This is consistent with our observation that,
-                                                                      in terms of predicting future responses, two repetitions within
-                                                                      subject and five repetitions across subjects exhaust informa-
-                                                                      tion gain. Moreover, we provided a framework to compute
-                                                                      how good a data collection scheme is.
-                                                                         The simple Dirichlet-multinomial model we introduced
-Figure 7: Within-subject (a) prediction error and (b) predic-         provides a baseline for the comparison between triplet rank-
-tion entropy; across-subject (c) prediction error and (d) pre-        ings and pairwise ratings. If a more complicated model is to
-diction entropy. Lower bar graphs indicates the point-wise            be proposed in the future, with our framework, all the analy-
-differences of the upper line plots (triplet - pairwise).             sis can be performed to quantify the efficacy of a technique,
-                                                                      or compare across various techniques. An obvious next step
-                                                                      for a better model is to integrate the relationship among dif-
-for eliciting facial similarity judgments within a particular         ferent stimuli. The response model we utilized here simply
-subject. It is consistent with the hypothesis that humans are         assumes all triplets to be independent from each other. Simi-
-better at making relative similarity judgments. Although pair-        larity data are usually used to fit a latent variable model (such
-wise rating has greater granularity, it has often been observed       as multidimensional scaling), where faces are shared among
-that humans give more self-consistent responses when report-          triplets, and therefore one can use one set of triplet responses
-ing relative preferences than assigning numeric values to in-         to potentially predict responses about another triplet with par-
-dividual items, especially in complex judgments that involve          tially overlapping faces, or even completely new data. One
-high-dimensional input. Forcing humans to assign numerical            valuable direction of future research would be to find a low-
-values to complex judgments can not only fail to add infor-           dimensional embedding of face images, in which we model
-mation but can additionally corrupt the information available         similarity responses as arising from the perceptual distance
-in simpler relative ranking responses. In contrast to within-         between faces. The analyses proposed in this paper easily ex-
-subject analysis, we found triplet ranking and pairwise rating        tend to latent variable models, and would be the focus of our
-to be comparable in across-subject modeling. Why this is the          future work.
+This indicates that variability across subjects is not only due
+to noise but also due to systematic individual differences in
+preferences.
+Similar to other measures, triplet data yield a higher predictive accuracy within-subject than pairwise data, but are similar when predicting across subjects.
+
+Discussion
+Similarity learning has been a well-studied topic in cognitive
+science research. In this area, the study of facial similarity
+has been particularly prominent, both due to the important
+role facial processing plays in human interactions, as well as
+due to the extremely high dimensionality of the face image
+space and lack of an obvious low-dimensional featural representation. While various experimental methodologies have
+been utilized to elicit facial similarity judgments, there has
+been little systematic comparison of their efficacy. More troublingly, most algorithms have assumed human responses to
+be free of noise and to be completely interchangeable from
+one subject’s response to another’s. To tackle some of these
+issues, we introduce a suite of statistical and information
+theoretic measures for investigating the amount and type of
+noise within- and across-subjects. We applied these methods,
+along with a simple Dirichlet-multinomial Bayesian model
+for response generation, to a novel crowdsourced dataset. We
+found that triplet ranking is more informative and predictive
+
+1430
+
+(a)
+
+(b)
+
+(c)
+
+(d)
+
+Figure 7: Within-subject (a) prediction error and (b) prediction entropy; across-subject (c) prediction error and (d) prediction entropy. Lower bar graphs indicates the point-wise
+differences of the upper line plots (triplet - pairwise).
+
+for eliciting facial similarity judgments within a particular
+subject. It is consistent with the hypothesis that humans are
+better at making relative similarity judgments. Although pairwise rating has greater granularity, it has often been observed
+that humans give more self-consistent responses when reporting relative preferences than assigning numeric values to individual items, especially in complex judgments that involve
+high-dimensional input. Forcing humans to assign numerical
+values to complex judgments can not only fail to add information but can additionally corrupt the information available
+in simpler relative ranking responses. In contrast to withinsubject analysis, we found triplet ranking and pairwise rating
+to be comparable in across-subject modeling. Why this is the
 case is an interesting topic for future investigations.
-                                                                                           Acknowledgments
-    We covered two of the possible experimental designs used
-to collect similarity data, but other exist, such as spatial ar-      This research is in part funded by a UCSD FISP awarded to
-rangement (Demiralp et al. (2014)), which could also benefit          AJY. VM is supported by a San Diego Fellowship.
+We covered two of the possible experimental designs used
+to collect similarity data, but other exist, such as spatial arrangement (Demiralp et al. (2014)), which could also benefit
 from our analysis. Our model has its limitations as well. We
-                                                                                                References
 convert pairwise ratings into equivalent triplet rankings for all
-our analysis: this step may induce a loss of information in the       Agarwal, S., Wills, J., Cayton, L., Lanckriet, G., Kriegman,
-pairwise data. Converting pairs to triplets not only allows an           D. J., & Belongie, S. (2007). Generalized non-metric mul-
-apple to apple comparison, but also minimizes the number of              tidimensional scaling. In International conference on arti-
-assumptions we need to make. One may argue that measuring                ficial intelligence and statistics (pp. 11–18).
-mutual information between subjects’ responses is a more in-          Bainbridge, W. A., Isola, P., & Oliva, A. (2013). The intrinsic
-tuitive and reasonable model free comparison. However, with              memorability of face photographs. Journal of Experimen-
-9 possible choices in the pairwise setting, we need much more            tal Psychology: General, 142(4), 1323.
-data to compute mutual information of the pairwise data than          Borg, I., & Groenen, P. J. (2005). Modern multidimensional
-the triplet data, which make it infeasible.                              scaling: Theory and applications. Springer Science &
-    Our results have broader implications. Our analysis is               Business Media.
-                                                                  1431
+our analysis: this step may induce a loss of information in the
+pairwise data. Converting pairs to triplets not only allows an
+apple to apple comparison, but also minimizes the number of
+assumptions we need to make. One may argue that measuring
+mutual information between subjects’ responses is a more intuitive and reasonable model free comparison. However, with
+9 possible choices in the pairwise setting, we need much more
+data to compute mutual information of the pairwise data than
+the triplet data, which make it infeasible.
+Our results have broader implications. Our analysis is
 
-Cao, C., & Ai, H.-Z. (2015). Facial similarity learning with
-  humans in the loop. Journal of Computer Science and
-  Technology, 30(3), 499–510.
+relevant to the general problem of crowdsourcing similarity models. Depending on the goal of a similarity experiment, different methods should be chosen. If the experiment
+aims at modeling personal preferences, triplet comparison
+appear to provide higher quality data. When the goal is to
+find a population-level model of similarity judgements, without worrying about individual differences, then pairwise data
+compare well to triplet data. More generally, our work speaks
+to how many repetitions within and across subjects should be
+employed. According to the information gain analysis, our
+data reveal that most of the information is provided by the
+first 15 subjects. However, as any given model is probably
+not perfect in capturing human responses, greater model precision may not translate to greater ability to predict future human responses. This is consistent with our observation that,
+in terms of predicting future responses, two repetitions within
+subject and five repetitions across subjects exhaust information gain. Moreover, we provided a framework to compute
+how good a data collection scheme is.
+The simple Dirichlet-multinomial model we introduced
+provides a baseline for the comparison between triplet rankings and pairwise ratings. If a more complicated model is to
+be proposed in the future, with our framework, all the analysis can be performed to quantify the efficacy of a technique,
+or compare across various techniques. An obvious next step
+for a better model is to integrate the relationship among different stimuli. The response model we utilized here simply
+assumes all triplets to be independent from each other. Similarity data are usually used to fit a latent variable model (such
+as multidimensional scaling), where faces are shared among
+triplets, and therefore one can use one set of triplet responses
+to potentially predict responses about another triplet with partially overlapping faces, or even completely new data. One
+valuable direction of future research would be to find a lowdimensional embedding of face images, in which we model
+similarity responses as arising from the perceptual distance
+between faces. The analyses proposed in this paper easily extend to latent variable models, and would be the focus of our
+future work.
+
+Acknowledgments
+This research is in part funded by a UCSD FISP awarded to
+AJY. VM is supported by a San Diego Fellowship.
+
+References
+Agarwal, S., Wills, J., Cayton, L., Lanckriet, G., Kriegman,
+D. J., & Belongie, S. (2007). Generalized non-metric multidimensional scaling. In International conference on artificial intelligence and statistics (pp. 11–18).
+Bainbridge, W. A., Isola, P., & Oliva, A. (2013). The intrinsic
+memorability of face photographs. Journal of Experimental Psychology: General, 142(4), 1323.
+Borg, I., & Groenen, P. J. (2005). Modern multidimensional
+scaling: Theory and applications. Springer Science &
+Business Media.
+
+1431
+
+Cao, C., & Ai, H.-Z. (2015). Facial similarity learning with
+humans in the loop. Journal of Computer Science and
+Technology, 30(3), 499–510.
 Demiralp, Ç., Bernstein, M. S., & Heer, J. (2014). Learning
-  perceptual kernels for visualization design. IEEE Trans.
-  Visualization & Comp. Graphics (Proc. InfoVis).
-Navarro, D. J., & Griffiths, T. L. (2006). A nonparamet-
-  ric bayesian method for inferring features from similarity
-  judgments. In Advances in neural information processing
-  systems (pp. 1033–1040).
-Shepard, R. N. (1962). The analysis of proximities: Multi-
-  dimensional scaling with an unknown distance function. i.
-  Psychometrika, 27(2), 125–140.
+perceptual kernels for visualization design. IEEE Trans.
+Visualization & Comp. Graphics (Proc. InfoVis).
+Navarro, D. J., & Griffiths, T. L. (2006). A nonparametric bayesian method for inferring features from similarity
+judgments. In Advances in neural information processing
+systems (pp. 1033–1040).
+Shepard, R. N. (1962). The analysis of proximities: Multidimensional scaling with an unknown distance function. i.
+Psychometrika, 27(2), 125–140.
 Tamuz, O., Liu, C., Belongie, S., Shamir, O., & Kalai, A. T.
-  (2011). Adaptively learning the crowd kernel. arXiv
-  preprint arXiv:1105.1033.
+(2011). Adaptively learning the crowd kernel. arXiv
+preprint arXiv:1105.1033.
 Torgerson, W. (1952). Multidimensional Scaling: I. Theory
-  and Method*. Psychometrika, 17(4), 401–419.
+and Method*. Psychometrika, 17(4), 401–419.
 Torgerson, W. S. (1958). Theory and methods of scaling.
 van der Maaten, L., & Weinberger, K. (2012). Stochastic
-  triplet embedding.
-                                                             1432
+triplet embedding.
 
+1432
+
+

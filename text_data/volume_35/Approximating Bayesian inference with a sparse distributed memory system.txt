@@ -3,442 +3,891 @@ Proceedings of the Annual Meeting of the Cognitive Science
 Society
 Title
 Approximating Bayesian inference with a sparse distributed memory system
+
 Permalink
 https://escholarship.org/uc/item/1jd302c8
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 35(35)
+
 Authors
 Abbott, Joshua
 Hamrick, Jessica
 Griffiths, Thomas
+
 Publication Date
 2013-01-01
 Peer reviewed
- eScholarship.org                                 Powered by the California Digital Library
-                                                                    University of California
 
-      Approximating Bayesian inference with a sparse distributed memory system
-                                           Joshua T. Abbott (joshua.abbott@berkeley.edu)
-                                            Jessica B. Hamrick (jhamrick@berkeley.edu)
-                                         Thomas L. Griffiths (tom griffiths@berkeley.edu)
-                             Department of Psychology, University of California, Berkeley, CA 94720 USA
-                               Abstract                                     we take on this challenge by showing that an associative
-                                                                            memory using sparse distributed representations can be
-   Probabilistic models of cognition have enjoyed recent success
-   in explaining how people make inductive inferences. Yet, the             used to approximate Bayesian inference, producing behavior
-   difficult computations over structured representations that are          consistent with a structured statistical model while using
-   often required by these models seem incompatible with the                distributed representations of the kind normally associated
-   continuous and distributed nature of human minds. To recon-
-   cile this issue, and to understand the implications of constraints       with artificial neural networks.
-   on probabilistic models, we take the approach of formalizing                The associative memory that we use to approximate
-   the mechanisms by which cognitive and neural processes could
-   approximate Bayesian inference. Specifically, we show that an            Bayesian inference implements a Monte Carlo algorithm
-   associative memory system using sparse, distributed represen-            known as importance sampling. Previous work has shown
-   tations can be reinterpreted as an importance sampler, a Monte           that this algorithm can be implemented in a common psycho-
-   Carlo method of approximating Bayesian inference. This ca-
-   pacity is illustrated through two case studies: a simple letter          logical process model – an exemplar model (Shi, Griffiths,
-   reconstruction task, and the classic problem of property induc-          Feldman, & Sanborn, 2010). Shi and Griffiths (2009) further
-   tion. Broadly, our work demonstrates that probabilistic mod-             demonstrated that importance sampling can be implemented
-   els can be implemented in a practical, distributed manner, and
-   helps bridge the gap between algorithmic- and computational-             with a radial basis function neural network. However, this
-   level models of cognition.                                               neural network used a localist representation, in which each
-   Keywords: Bayesian inference, importance sampling, rational              hypothesis considered by the model had to be represented
-   process models, associative memory models, sparse distributed            with a single neuron – a “grandmother cell.” While this might
-   memory
-                                                                            be plausible for modeling aspects of perception in which a
-                                                                            wide range of neurons prefer specific stimuli, it becomes less
-                            Introduction                                    plausible for modeling complex cognitive tasks in which hy-
-Probabilistic models of cognition can be used to explain the                potheses correspond to structured representations. For exam-
-complex inductive inferences people make every day, such                    ple, having separate neurons for each concept or causal struc-
-as identifying the content of images or learning new con-                   ture we consider seems implausible.
-cepts from limited evidence (Griffiths, Chater, Kemp, Per-
-fors, & Tenenbaum, 2010; Tenenbaum, Kemp, Griffiths, &                         We demonstrate that an associative memory that uses
-Goodman, 2011). However, these models are typically for-                    distributed representations – specifically, sparse distributed
-mulated at what Marr (1982) called the computational level,                 memory (SDM) (Kanerva, 1988, 1993) – can be used to ap-
-focusing on the abstract problems people have to solve and                  proximate Bayesian inference through importance sampling.
-their ideal solutions. As a result, they explain why people                 The underlying idea is simple: we use the associative mem-
-behave the way they do, rather than how cognitive and neu-                  ory to store and retrieve exemplars, allowing us to build on the
-ral processes support these behaviors. This approach is thus                equivalence between exemplar models and importance sam-
-quite different from previous work on modeling human cog-                   pling. The critical advance is that this is done using dis-
-nition, which focused on Marr’s algorithmic and implemen-                   tributed representations, meaning that arbitrary hypotheses
-tation levels, and has been criticized because it seems to im-              can be represented, and arbitrary distributions of exemplars
-ply that human minds and brains need to solve intractable                   encoded by a single architecture. We show that the SDM nat-
-computational problems and use structured representations                   urally implements one class of Bayesian models, and explain
-(Gigerenzer & Todd, 1999; McClelland et al., 2010).                         how to generalize it to implement a broader range of models.
-   Understanding           the     actual     commitments          that        The plan of the paper is as follows. First, we give a brief
-computational-level accounts of human cognition based                       overview of performing Bayesian inference with importance
-on probabilistic models make at the algorithmic and im-                     sampling and summarize how the sparse distributed memory
-plementation level requires considering how these levels                    system is implemented. Next, we formalize how importance
-of analysis could be bridged (Griffiths, Vul, & Sanborn,                    sampling can be performed using a SDM. We provide two
-2012). Identifying specific cognitive algorithms and neural                 case studies drawn from existing literature in which we use
-architectures that can approximate Bayesian inference is                    the SDM to approximate existing Bayesian models. The first
-a key step towards knowing whether it really poses an                       case study is a simple example involving reconstructing En-
-intractable problem for human minds, or whether structured                  glish letters from noisy inputs, and the second is a more so-
-representations need to be used to implement models that                    phisticated model of property induction. We conclude the pa-
-involve structured probability distributions. In this paper,                per with a discussion of implications and future directions.
-                                                                        1686
+eScholarship.org
 
-                           Background
-Our results depend on two important sets of mathematical                                                        AM
-ideas: approximating Bayesian inference by importance sam-                                   A1
-pling, and sparse distributed memories. We introduce these                                            A7                AM-1
-ideas in turn.                                                                                  A4          D
-                                                                                       A2             x                     AM-2
-Bayesian inference and importance sampling
-                                                                                                                   A8
-Probabilistic models of cognition provide rational solutions to                                       A6
-                                                                                             A3
-problems of inductive inference, where probability distribu-                                                          AM-3
-tions represent degrees of belief and are updated as more data
-                                                                                                   A5         A9
+Powered by the California Digital Library
+University of California
+
+Approximating Bayesian inference with a sparse distributed memory system
+Joshua T. Abbott (joshua.abbott@berkeley.edu)
+Jessica B. Hamrick (jhamrick@berkeley.edu)
+Thomas L. Griffiths (tom griffiths@berkeley.edu)
+Department of Psychology, University of California, Berkeley, CA 94720 USA
+Abstract
+
+we take on this challenge by showing that an associative
+memory using sparse distributed representations can be
+used to approximate Bayesian inference, producing behavior
+consistent with a structured statistical model while using
+distributed representations of the kind normally associated
+with artificial neural networks.
+
+Probabilistic models of cognition have enjoyed recent success
+in explaining how people make inductive inferences. Yet, the
+difficult computations over structured representations that are
+often required by these models seem incompatible with the
+continuous and distributed nature of human minds. To reconcile this issue, and to understand the implications of constraints
+on probabilistic models, we take the approach of formalizing
+the mechanisms by which cognitive and neural processes could
+approximate Bayesian inference. Specifically, we show that an
+associative memory system using sparse, distributed representations can be reinterpreted as an importance sampler, a Monte
+Carlo method of approximating Bayesian inference. This capacity is illustrated through two case studies: a simple letter
+reconstruction task, and the classic problem of property induction. Broadly, our work demonstrates that probabilistic models can be implemented in a practical, distributed manner, and
+helps bridge the gap between algorithmic- and computationallevel models of cognition.
+Keywords: Bayesian inference, importance sampling, rational
+process models, associative memory models, sparse distributed
+memory
+
+Introduction
+Probabilistic models of cognition can be used to explain the
+complex inductive inferences people make every day, such
+as identifying the content of images or learning new concepts from limited evidence (Griffiths, Chater, Kemp, Perfors, & Tenenbaum, 2010; Tenenbaum, Kemp, Griffiths, &
+Goodman, 2011). However, these models are typically formulated at what Marr (1982) called the computational level,
+focusing on the abstract problems people have to solve and
+their ideal solutions. As a result, they explain why people
+behave the way they do, rather than how cognitive and neural processes support these behaviors. This approach is thus
+quite different from previous work on modeling human cognition, which focused on Marr’s algorithmic and implementation levels, and has been criticized because it seems to imply that human minds and brains need to solve intractable
+computational problems and use structured representations
+(Gigerenzer & Todd, 1999; McClelland et al., 2010).
+Understanding
+the
+actual
+commitments
+that
+computational-level accounts of human cognition based
+on probabilistic models make at the algorithmic and implementation level requires considering how these levels
+of analysis could be bridged (Griffiths, Vul, & Sanborn,
+2012). Identifying specific cognitive algorithms and neural
+architectures that can approximate Bayesian inference is
+a key step towards knowing whether it really poses an
+intractable problem for human minds, or whether structured
+representations need to be used to implement models that
+involve structured probability distributions. In this paper,
+
+The associative memory that we use to approximate
+Bayesian inference implements a Monte Carlo algorithm
+known as importance sampling. Previous work has shown
+that this algorithm can be implemented in a common psychological process model – an exemplar model (Shi, Griffiths,
+Feldman, & Sanborn, 2010). Shi and Griffiths (2009) further
+demonstrated that importance sampling can be implemented
+with a radial basis function neural network. However, this
+neural network used a localist representation, in which each
+hypothesis considered by the model had to be represented
+with a single neuron – a “grandmother cell.” While this might
+be plausible for modeling aspects of perception in which a
+wide range of neurons prefer specific stimuli, it becomes less
+plausible for modeling complex cognitive tasks in which hypotheses correspond to structured representations. For example, having separate neurons for each concept or causal structure we consider seems implausible.
+We demonstrate that an associative memory that uses
+distributed representations – specifically, sparse distributed
+memory (SDM) (Kanerva, 1988, 1993) – can be used to approximate Bayesian inference through importance sampling.
+The underlying idea is simple: we use the associative memory to store and retrieve exemplars, allowing us to build on the
+equivalence between exemplar models and importance sampling. The critical advance is that this is done using distributed representations, meaning that arbitrary hypotheses
+can be represented, and arbitrary distributions of exemplars
+encoded by a single architecture. We show that the SDM naturally implements one class of Bayesian models, and explain
+how to generalize it to implement a broader range of models.
+The plan of the paper is as follows. First, we give a brief
+overview of performing Bayesian inference with importance
+sampling and summarize how the sparse distributed memory
+system is implemented. Next, we formalize how importance
+sampling can be performed using a SDM. We provide two
+case studies drawn from existing literature in which we use
+the SDM to approximate existing Bayesian models. The first
+case study is a simple example involving reconstructing English letters from noisy inputs, and the second is a more sophisticated model of property induction. We conclude the paper with a discussion of implications and future directions.
+
+1686
+
+Background
+AM
+
+Our results depend on two important sets of mathematical
+ideas: approximating Bayesian inference by importance sampling, and sparse distributed memories. We introduce these
+ideas in turn.
+
+A1
+A7
+A4
+
+Probabilistic models of cognition provide rational solutions to
+problems of inductive inference, where probability distributions represent degrees of belief and are updated as more data
 becomes available. Beliefs are updated by applying Bayes’
-rule, which says that the posterior probability of a hypothe-
-sis, h, given observed data, d, is proportional to the proba-        Figure 1: An illustration of the basic read and write opera-
-bility of observing d if h were the correct hypothesis (known        tions over SDMs. The outer dotted line represents the space
-as the likelihood) multiplied by the prior probability of that       of 2N possible addresses while the squares with labels Am
-hypothesis:                                                          represent the M sampled hard addresses used for storage. The
-                                    p(d|h)p(h)
-                   p(h|d) = R                                 (1)    address being requested for operation is the x in the center of
-                                 H p(d|h)p(h) dh                     the blue circle of radius D. The hard addresses selected for
-Unfortunately, computing the integral in the denominator is          operating correspond to the blue squares within the Hamming
-computationally expensive and often intractable. This has re-        radius of x.
-sulted in the development of many algorithms for approxi-
-mating Bayesian inference.                                              One possible choice for q(x∗ ) is the prior, p(x∗ ), which
-   For the sake of illustration, consider the case in which we       yields importance weights proportional to the likelihood,
-have noisy observations x of a stimulus x∗ . To recover the          p(x|x∗ ). Formally,
-value of x∗ , we use Bayes’ rule to compute the posterior dis-
-tribution over x∗ :                                                                              1 K              p(xk∗ |x)
-                                                                                 E[ f (x∗ )|x] ≈    ∑    f (xk∗ )
-                                                                                                 K k=1             p(xk∗ )
-                                    p(x|x∗ )p(x∗ )
-                 p(x∗ |x) = R              ∗       ∗      ∗
-                                                              (2)                                1 K              p(x|xk∗ )p(xk∗ )
-                                x∗ p(x|x )p(x )dx                                              =    ∑    f (xk∗ )
-                                                                                                 K k=1             p(xk∗ )p(x)
-It is often desirable to compute the expectation of the poste-                                          K
-rior distribution over some function f (x∗ ):                                                  = α(x) ∑ f (xk∗ )p(x|xk∗ )          (6)
-                                 Z                                                                     k=1
-                E[ f (x∗ )|x] =      f (x∗ )p(x∗ |x) dx∗      (3)    where we assume xk∗ is drawn from the prior, p(x∗ ), and α(x)
-                                                                     is a constant of proportionality that depends only on x. Re-
-where the choice of f (x∗ ) depends on the task. However,            turning to the general case of data d and hypotheses h, we can
-evaluating this expectation still requires computing the full        use the same approximation to compute the expectation of a
-posterior distribution.                                              function f (h) given observed data, with
-   To approximate expectations over posterior distributions,
-                                                                                                          K
-we can use a Monte Carlo method known as importance sam-
-                                                                                   E[ f (h)|d] ≈ α(d) ∑ f (hk )p(d|hk )            (7)
-pling (see, e.g., Neal, 1993), in which a finite set of samples                                          k=1
+rule, which says that the posterior probability of a hypothesis, h, given observed data, d, is proportional to the probability of observing d if h were the correct hypothesis (known
+as the likelihood) multiplied by the prior probability of that
+hypothesis:
+p(d|h)p(h)
+(1)
+p(h|d) = R
+H p(d|h)p(h) dh
+Unfortunately, computing the integral in the denominator is
+computationally expensive and often intractable. This has resulted in the development of many algorithms for approximating Bayesian inference.
+For the sake of illustration, consider the case in which we
+have noisy observations x of a stimulus x∗ . To recover the
+value of x∗ , we use Bayes’ rule to compute the posterior distribution over x∗ :
+p(x|x∗ )p(x∗ )
+∗
+∗
+∗
+x∗ p(x|x )p(x )dx
+
+p(x∗ |x) = R
+
+E[ f (x∗ )|x] =
+
+Z
+
+AM-3
+A9
+
+Figure 1: An illustration of the basic read and write operations over SDMs. The outer dotted line represents the space
+of 2N possible addresses while the squares with labels Am
+represent the M sampled hard addresses used for storage. The
+address being requested for operation is the x in the center of
+the blue circle of radius D. The hard addresses selected for
+operating correspond to the blue squares within the Hamming
+radius of x.
+One possible choice for q(x∗ ) is the prior, p(x∗ ), which
+yields importance weights proportional to the likelihood,
+p(x|x∗ ). Formally,
+E[ f (x∗ )|x] ≈
+=
+
+p(xk∗ |x)
+1 K
+f (xk∗ )
+∑
+K k=1
+p(xk∗ )
+p(x|xk∗ )p(xk∗ )
+1 K
+f (xk∗ )
+∑
+K k=1
+p(xk∗ )p(x)
+K
+
+= α(x) ∑ f (xk∗ )p(x|xk∗ )
+
+(6)
+
+k=1
+
+f (x∗ )p(x∗ |x) dx∗
+
+(3)
+
+f (x∗ )
+
+p(x∗ |x) ∗
+q(x ) dx∗
+q(x∗ )
+
+p(xk∗ |x)
+1 K
+f (xk∗ )
+∑
+K k=1
+q(xk∗ )
+
+where we assume xk∗ is drawn from the prior, p(x∗ ), and α(x)
+is a constant of proportionality that depends only on x. Returning to the general case of data d and hypotheses h, we can
+use the same approximation to compute the expectation of a
+function f (h) given observed data, with
+K
+
+E[ f (h)|d] ≈ α(d) ∑ f (hk )p(d|hk )
+
+(7)
+
+k=1
+
+where hk is drawn from the prior p(h), and α(d) is a constant
+of proportionality that depends only on d.
+
+Sparse distributed memory
+(4)
+
+Given a set of K samples {xk∗ } distributed according to q(x∗ ),
+this integral can be approximated by:
+E[ f (x∗ )|x] ≈
+
+A6
+A5
+
+(2)
+
+where the choice of f (x∗ ) depends on the task. However,
+evaluating this expectation still requires computing the full
+posterior distribution.
+To approximate expectations over posterior distributions,
+we can use a Monte Carlo method known as importance sampling (see, e.g., Neal, 1993), in which a finite set of samples
 are used to represent the posterior. These samples are drawn
-from a surrogate distribution q(x∗ ) and assigned weights pro-       where hk is drawn from the prior p(h), and α(d) is a constant
-portional to the ratio p(x∗ |x)/q(x∗ ):                              of proportionality that depends only on d.
-                             Z
-                                         p(x∗ |x) ∗                  Sparse distributed memory
-            E[ f (x∗ )|x] =      f (x∗ )            q(x ) dx∗ (4)    Sparse distributed memory (SDM) was developed as an
-                                          q(x∗ )
-                                                                     algorithmic-level model of human memory, designed to en-
-Given a set of K samples {xk∗ } distributed according to q(x∗ ),     capsulate the notion that distances between concepts in
-this integral can be approximated by:                                memory correspond to distances between points in high-
-                                                                     dimensional space (Kanerva, 1988, 1993). In particular, it
-                                  1 K              p(xk∗ |x)         has a natural interpretation as an artificial neural network that
-                E[ f (x∗ )|x] ≈      ∑    f (xk∗ )            (5)
-                                 K k=1              q(xk∗ )          uses distributed representations.
-                                                                        SDMs preserve distances between items in memory by
-with the approximation becoming more precise as K becomes            storing them in a distributed manner. Assume that items en-
-larger.                                                              ter memory as two strings of bits, with N bits indicating a
-                                                                 1687
+from a surrogate distribution q(x∗ ) and assigned weights proportional to the ratio p(x∗ |x)/q(x∗ ):
+E[ f (x∗ )|x] =
 
-location and L bits indicating its content. A conventional ap-          SDMs to perform Bayesian inference. Here, we show that
-proach would be to sequentially enumerate the set of 2N loca-           the output of SDMs approximates the expectation of a func-
-tions (more technically, addresses), storing items by setting           tion f (x∗ ) over the posterior distribution p(x∗ |x) by linking
-the content bits at the appropriate address in turn. In contrast,       its behavior to that of the importance sampler in Equation 6.
+AM-2
+A8
+
+A3
+
+It is often desirable to compute the expectation of the posterior distribution over some function f (x∗ ):
+Z
+
+x
+
+A2
+
+Bayesian inference and importance sampling
+
+AM-1
+D
+
+(5)
+
+with the approximation becoming more precise as K becomes
+larger.
+
+Sparse distributed memory (SDM) was developed as an
+algorithmic-level model of human memory, designed to encapsulate the notion that distances between concepts in
+memory correspond to distances between points in highdimensional space (Kanerva, 1988, 1993). In particular, it
+has a natural interpretation as an artificial neural network that
+uses distributed representations.
+SDMs preserve distances between items in memory by
+storing them in a distributed manner. Assume that items enter memory as two strings of bits, with N bits indicating a
+
+1687
+
+location and L bits indicating its content. A conventional approach would be to sequentially enumerate the set of 2N locations (more technically, addresses), storing items by setting
+the content bits at the appropriate address in turn. In contrast,
 a SDM samples M  N addresses a j to use as registers from
-                                                                        Writing Let w(a j , x∗ ) be the probability of writing to ad-
 the space of 2N possible addresses. Items are then stored by
-                                                                        dress a j given an input address x∗ . In the standard SDM, this
-changing the bits that encode the content associated with mul-
-                                                                        is 1 if the Hamming distance between a j and x∗ is less than
-tiple addresses, according to how close those addresses are to
-                                                                        or equal to D and 0 otherwise. In the limit, the number of
+changing the bits that encode the content associated with multiple addresses, according to how close those addresses are to
 the target location. The algorithms for writing to and reading
-                                                                        addresses increases to the point where we will always be able
 from a SDM are given below and are illustrated in Figure 1.
-                                                                        to write to exactly x∗ (i.e., to set D = 0). Thus, this writing
-Writing A SDM stores an L-bit vector, z, associated with                probability must satisfy the following constraint:
-an N-bit location x∗ by storing the pattern at multiple ad-
-                                                                                                                N
-dresses a j near x∗ . Since the set of M available addresses does                        lim w(a j , x∗ ) = ∏ δ(xi∗ − a ji )                (13)
-not enumerate the total space of 2N , there may be very few ad-                         M→2N                   i=1
-dresses near x∗ . Consequently, z is written to all addresses a j
-that are within a Hamming distance D of x∗ (i.e. those a j that         After writing K (address, data) pairs (x∗k , zk ), the value of the
-differ from x∗ in D or fewer bits). The contents of these se-           counter associated with bit i of address a j will be:
-lected addresses are modified to store the pattern z such that
-                                                                                                       K
-each bit in the contents is increased or decreased by 1 depend-
-ing on whether or not that bit in z is a 1 or 0, respectively.
-                                                                                               cj =  ∑ w(a j , x∗k ) zk                     (14)
-                                                                                                     k=1
-   A SDM can be constructed as a neural network with N
-units in the input layer, a hidden layer with M units for               Reading We are given a location x, which as before is a
-each sampled address, and an output layer with L units. The             corrupted version of x∗ . Let r(x, a j ) be the probability that
-weights between the input and hidden layer correspond to the            we read from address a j given input x. In the standard SDM,
-M × N matrix A = [a1 ; a2 ; . . . ; aM ] of hard addresses, and the     this is 1 if the Hamming distance between a j and x is less
-weights between the hidden and output layer correspond to               than or equal to D and 0 otherwise. Then, the output of the
-the M × L matrix C of contents stored at each address. The              SDM for a particular set of addresses A is:
+Writing A SDM stores an L-bit vector, z, associated with
+an N-bit location x∗ by storing the pattern at multiple addresses a j near x∗ . Since the set of M available addresses does
+not enumerate the total space of 2N , there may be very few addresses near x∗ . Consequently, z is written to all addresses a j
+that are within a Hamming distance D of x∗ (i.e. those a j that
+differ from x∗ in D or fewer bits). The contents of these selected addresses are modified to store the pattern z such that
+each bit in the contents is increased or decreased by 1 depending on whether or not that bit in z is a 1 or 0, respectively.
+A SDM can be constructed as a neural network with N
+units in the input layer, a hidden layer with M units for
+each sampled address, and an output layer with L units. The
+weights between the input and hidden layer correspond to the
+M × N matrix A = [a1 ; a2 ; . . . ; aM ] of hard addresses, and the
+weights between the hidden and output layer correspond to
+the M × L matrix C of contents stored at each address. The
 rule for writing z to memory address x∗ is expressed as:
-                                                                                                       M
-                           y = ΘD (A x∗ )                       (8)                             z=
-                                                                                                b     ∑ c j r(x, a j )                      (15)
-                                                                                                      j=1
-                          C = C+zy                              (9)
-                                                                        where c j is defined in Equation 14.
+y = ΘD (A x∗ )
+
+(8)
+
+C = C+zy
+
+(9)
+
 where ΘD is a function that converts its argument zeros and
-                                                                           To see how this output behaves for any SDM, we consider
 ones, with ΘD (w) = 1 if 21 (w − N) ≤ D and 0 otherwise. y
-                                                                        the expected value of b    z over sampled sets of addresses A.
-is thus a selection vector that picks out a particular set of ad-
-                                                                        We first substitute Equation 14 into Equation 15 and simplify
-dresses. The expected number of addresses selected in y is a
-                                                                        according to linearity of expectation:
+is thus a selection vector that picks out a particular set of addresses. The expected number of addresses selected in y is a
 function of N, M, and D:
-                                                                                             "                              !           #
-                                                                                                M      K
-                                 M D N
-                                            
-                         T
-                      E[y y] = N ∑
-                                 2 d=1 d
-                                                               (10)               z|x] = EA
-                                                                              EA [b            ∑ ∑ w(a j , x∗k ) zk           r(x, a j )    (16)
-                                                                                               j=1   k=1
-                                                                                                       "                             #
-                                                                                          K               M
+ 
+M D N
+T
+E[y y] = N ∑
+(10)
+2 d=1 d
 Reading To read a pattern out of memory from address x,
-                                                                                       = ∑    zk · EA    ∑    w(a j , x∗k )r(x, a j )       (17)
-the SDM again computes a M-bit selection vector y of ad-                                 k=1             j=1
-dresses within Hamming distance D of x. The contents of
-each address selected by this vector are summed, resulting in           As our address space grows larger (as in Equation 13), this
-a vector bz of length L. The rule for reading b    z from memory        approaches:
+the SDM again computes a M-bit selection vector y of addresses within Hamming distance D of x. The contents of
+each address selected by this vector are summed, resulting in
+a vector b
+z of length L. The rule for reading b
+z from memory
 address x is expressed as:
-                                                                                                K       Z
-                           y = ΘD (A x)                        (11)           lim EA [bz|x] =   ∑   zk       δ(x∗k − a j )r(x, a j ) da j   (18)
-                                                                             M→2N              k=1        aj
-                                   T
-                           z=C y
-                           b                                   (12)
-                                                                        Thus, in the limit, the expected value of b        z read from the SDM
-The output b  z can then be passed through a non-linearity to           will be:
-return a binary vector if desired.                                                                         K
-                                                                                            EA [bz|x] =   ∑     zk r(x, x∗k )               (19)
-             SDMs as importance samplers                                                                  k=1
-Previous work formalizing a probabilistic interpretation of                Comparing Equation 19 to Equation 6 yields our main re-
-SDMs (Anderson, 1989) lays the groundwork for using                     sult: SDMs can perform importance sampling by defining a
-                                                                    1688
+y = ΘD (A x)
+T
 
-reading density proportional to a likelihood function, approx-                                    3
-imating the posterior expectation of the items stored in mem-                                11        12
-ory. More formally, the expectation of b           z given x is propor-                2            8        4
-tional to the output of the importance sampling approxima-                                 7              9
-tion of the expectation of f (x∗ ) with respect to p(x|x∗ ):
-                                   K
-                                                                                            14          13
-                                                                                       1                     5
-                     EA [b z|x] ∝  ∑   f (x∗k )p(x|x∗ )            (20)                             10
-                                  k=1
-                                                                                                  6                ( 11111010100000 )
-provided zk ∝     f (x∗k ) and r(x, x∗k ) ∝ p(x|x∗ ).
-    The utility of this result is limited with the standard for-            Figure 2: The Rumelhart-Siple font feature map and the
-mulation of the SDM, as it only holds in the limit where the                Rumelhart-Siple representation for the letter “A” along with
-address size becomes large and D becomes small, meaning                     its binary feature pattern.
-that r(x, x∗ ) becomes a delta function. Instead, we can con-
-sider generalizations in which we use different values of D
-                                                                               In the SDM, we sample exemplars x∗ of the original letters
+b
+z=C y
+
+SDMs to perform Bayesian inference. Here, we show that
+the output of SDMs approximates the expectation of a function f (x∗ ) over the posterior distribution p(x∗ |x) by linking
+its behavior to that of the importance sampler in Equation 6.
+Writing Let w(a j , x∗ ) be the probability of writing to address a j given an input address x∗ . In the standard SDM, this
+is 1 if the Hamming distance between a j and x∗ is less than
+or equal to D and 0 otherwise. In the limit, the number of
+addresses increases to the point where we will always be able
+to write to exactly x∗ (i.e., to set D = 0). Thus, this writing
+probability must satisfy the following constraint:
+N
+
+lim w(a j , x∗ ) = ∏ δ(xi∗ − a ji )
+
+M→2N
+
+After writing K (address, data) pairs (x∗k , zk ), the value of the
+counter associated with bit i of address a j will be:
+K
+
+cj =
+
+(14)
+
+Reading We are given a location x, which as before is a
+corrupted version of x∗ . Let r(x, a j ) be the probability that
+we read from address a j given input x. In the standard SDM,
+this is 1 if the Hamming distance between a j and x is less
+than or equal to D and 0 otherwise. Then, the output of the
+SDM for a particular set of addresses A is:
+M
+
+b
+z=
+
+∑ c j r(x, a j )
+
+(15)
+
+j=1
+
+where c j is defined in Equation 14.
+To see how this output behaves for any SDM, we consider
+the expected value of b
+z over sampled sets of addresses A.
+We first substitute Equation 14 into Equation 15 and simplify
+according to linearity of expectation:
+"
+!
+#
+M
+
+K
+
+j=1
+
+k=1
+
+∑ ∑ w(a j , x∗k ) zk
+
+EA [b
+z|x] = EA
+
+"
+
+K
+
+=
+
+∑
+
+zk · EA
+
+r(x, a j )
+
+(16)
+
+#
+
+M
+
+∑
+
+w(a j , x∗k )r(x, a j )
+
+(17)
+
+j=1
+
+k=1
+
+As our address space grows larger (as in Equation 13), this
+approaches:
+K
+
+lim EA [b
+z|x] =
+
+M→2N
+
+(12)
+
+∑
+
+Z
+
+zk
+
+k=1
+
+aj
+
+δ(x∗k − a j )r(x, a j ) da j
+
+(18)
+
+Thus, in the limit, the expected value of b
+z read from the SDM
+will be:
+K
+
+EA [b
+z|x] =
+
+SDMs as importance samplers
+Previous work formalizing a probabilistic interpretation of
+SDMs (Anderson, 1989) lays the groundwork for using
+
+∑ w(a j , x∗k ) zk
+k=1
+
+(11)
+
+The output b
+z can then be passed through a non-linearity to
+return a binary vector if desired.
+
+(13)
+
+i=1
+
+∑
+
+zk r(x, x∗k )
+
+(19)
+
+k=1
+
+Comparing Equation 19 to Equation 6 yields our main result: SDMs can perform importance sampling by defining a
+
+1688
+
+3
+
+reading density proportional to a likelihood function, approximating the posterior expectation of the items stored in memory. More formally, the expectation of b
+z given x is proportional to the output of the importance sampling approximation of the expectation of f (x∗ ) with respect to p(x|x∗ ):
+K
+
+EA [b
+z|x] ∝
+
+∑
+
+f (x∗k )p(x|x∗ )
+
+11
+
+8
+
+2
+7
+1
+
+(20)
+
+12
+4
+9
+
+14
+
+13
+10
+
+5
+
+k=1
+
+provided zk ∝
+and r(x, x∗k ) ∝ p(x|x∗ ).
+The utility of this result is limited with the standard formulation of the SDM, as it only holds in the limit where the
+address size becomes large and D becomes small, meaning
+that r(x, x∗ ) becomes a delta function. Instead, we can consider generalizations in which we use different values of D
 for reading and writing (Dr and Dw , respectively), or where
-                                                                            from the prior p(x∗ ) and write them to the SDM at inputs x∗
 we choose r(x, x∗ ) more freely. These modifications allow us
-                                                                            (i.e., z = x∗ ). The likelihood defined for the Bayesian model
 to approximate a variety of Bayesian models using SDMs.
-                                                                            is naturally compatible with the standard read rule of a SDM,
-    We make a further note, which is that in most practical
-                                                                            where we only consider hypotheses x∗ which are within Ham-
+We make a further note, which is that in most practical
 applications, the address space will not approach the limit
-                                                                            ming distance Dr of x. Thus, we can set the read function
 (i.e. M  2N ). For any sampled set of addresses, we would
-                                                                            r(x∗ , x) of the SDM to be a variation of this likelihood:
-still expect the value of b       z to be near the posterior mean
+still expect the value of b
+z to be near the posterior mean
 Ek [ f (x∗ )|x], but we cannot make any statement about how
-                                                                                                       h
-                                                                                                        Dr N−d+1 −1
-                                                                                                                        i
-close. We leave it as an area for future work to place analytic                      ∗          ∗          ∑d=1   d            |x − x∗ | ≤ Dr
-                                                                              p(x|x ) ≈ r(x, x ) =
-bounds on the accuracy of the SDM’s approximation. For the                                             0                      otherwise
+close. We leave it as an area for future work to place analytic
+bounds on the accuracy of the SDM’s approximation. For the
 case studies we present here, we estimate the variance of the
-SDM using Monte Carlo approximations.                                       The corrupted images x are the inputs that we attempt to read
-    In the following two sections, we evaluate SDMs as a                    from and Dr is the SDM’s read radius; we additionally define
-scheme for approximating Bayesian inference in two tasks:                   Dw to be the write radius. The intuition is that we write the
-one where the Bayesian likelihood matches the standard                      original letters z = x∗ to input x∗ , and read from x outputs b   z
-SDM read rule, and one where the SDM read rule is adjusted                  which are similar to the mean of the Bayesian posterior.
-to match the Bayesian likelihood. The second case further il-
-                                                                            Analysis
-lustrates how SDMs can be applied to more general problems
-of Bayesian inference that go beyond simply removing noise                  To evaluate how well the SDM approximates the posterior
-from a stimulus.                                                            mean, we sampled 1000 exemplars from the prior distribution
-                                                                            p(x∗ ). We then created three images x for each letter in the
-                     Letter reconstruction                                  alphabet, each with two bits of corruption, yielding a total of
-As a simple illustration of approximating Bayesian inference                72 test images. We repeated this simulation – sampling from
-with a SDM, we consider the task of recovering images of                    the prior and generating test images – 20 times for each SDM
-English letters, x∗ , from noisy observations x. To solve this              with parameters Dr , Dw , and M, where each simulation used
-problem, we set up a Bayesian model loosely based on that                   a different set of sampled addresses A.
-presented in Rumelhart and Siple (1974). Each letter of the                    We determined the appropriate settings of the read and
-alphabet is encoded as a binary feature vector of length N =                write radii, Dr and Dw , by considering the constraints im-
-14 based on the Rumelhart-Siple font template (Figure 2).                   posed by the SDM and the specific problem of letter recon-
-                                                                            struction. The mean Hamming distance between pairs of let-
-SDM approximation                                                           ters was 5.4615, indicating that the read radius must lie some-
-In the Bayesian model, we wish to reconstruct the original                  where between 2 (the amount of corruption) and 5. Choosing
-letters x∗ from the exemplars x by computing the mean of                    a radius outside these bounds would have the effect of re-
-the posterior distribution over original letters, p(x∗ |x), i.e.            turning an inaccurate expectation, either because the noise
- f (x∗ ) = x∗ . Each of the original letters is associated with a           was greater than the signal (Dr < 2) or because too many hy-
-prior probability, p(x∗ ), set to be the relative letter frequency          potheses were considered (Dr > 5). So, we chose Dr = 2, thus
-of English text (Lewand, 2000). Following the generative                    ensuring that the true x∗ would always fall within this radius,
-model, a noisy image x is produced from the original letter x∗              and also minimizing the number of incorrect hypotheses con-
-via a noise process in which at most B bits are flipped (uni-               sidered. For the write radius, we considered three different
-formly). Given a noisy image vector x, we define the likeli-                values, Dw = {0, 1, 2}.
-hood p(x|x∗ ) to be uniformly distributed over the number of                   We stored all 1000 letters in each SDM, varying the num-
-possible bit strings in a hypersphere of radius Dr .                        ber of hard addresses, M, among eight evenly spaced values
-                                                                        1689
+SDM using Monte Carlo approximations.
+In the following two sections, we evaluate SDMs as a
+scheme for approximating Bayesian inference in two tasks:
+one where the Bayesian likelihood matches the standard
+SDM read rule, and one where the SDM read rule is adjusted
+to match the Bayesian likelihood. The second case further illustrates how SDMs can be applied to more general problems
+of Bayesian inference that go beyond simply removing noise
+from a stimulus.
 
-                            Correlations between Bayes and SDM                         Osherson, Smith, Wilkie, Lopez, and Shafir (1990), where
-                                  in letter recognition task                           judgments are made as to whether certain animals can get a
-               1
-                                                                                       disease knowing other animals that can catch it.
-              0.8                                                                      SDM approximation
-                                                                                       We solve this problem with a Bayesian model of property in-
+6
+
+f (x∗k )
+
+Letter reconstruction
+As a simple illustration of approximating Bayesian inference
+with a SDM, we consider the task of recovering images of
+English letters, x∗ , from noisy observations x. To solve this
+problem, we set up a Bayesian model loosely based on that
+presented in Rumelhart and Siple (1974). Each letter of the
+alphabet is encoded as a binary feature vector of length N =
+14 based on the Rumelhart-Siple font template (Figure 2).
+
+SDM approximation
+In the Bayesian model, we wish to reconstruct the original
+letters x∗ from the exemplars x by computing the mean of
+the posterior distribution over original letters, p(x∗ |x), i.e.
+f (x∗ ) = x∗ . Each of the original letters is associated with a
+prior probability, p(x∗ ), set to be the relative letter frequency
+of English text (Lewand, 2000). Following the generative
+model, a noisy image x is produced from the original letter x∗
+via a noise process in which at most B bits are flipped (uniformly). Given a noisy image vector x, we define the likelihood p(x|x∗ ) to be uniformly distributed over the number of
+possible bit strings in a hypersphere of radius Dr .
+
+( 11111010100000 )
+
+Figure 2: The Rumelhart-Siple font feature map and the
+Rumelhart-Siple representation for the letter “A” along with
+its binary feature pattern.
+In the SDM, we sample exemplars x∗ of the original letters
+from the prior p(x∗ ) and write them to the SDM at inputs x∗
+(i.e., z = x∗ ). The likelihood defined for the Bayesian model
+is naturally compatible with the standard read rule of a SDM,
+where we only consider hypotheses x∗ which are within Hamming distance Dr of x. Thus, we can set the read function
+r(x∗ , x) of the SDM to be a variation of this likelihood:
+h
+i
+ Dr N−d+1 −1
+|x − x∗ | ≤ Dr
+∑d=1
+∗
+∗
+d
+p(x|x ) ≈ r(x, x ) =
+0
+otherwise
+The corrupted images x are the inputs that we attempt to read
+from and Dr is the SDM’s read radius; we additionally define
+Dw to be the write radius. The intuition is that we write the
+original letters z = x∗ to input x∗ , and read from x outputs b
+z
+which are similar to the mean of the Bayesian posterior.
+
+Analysis
+To evaluate how well the SDM approximates the posterior
+mean, we sampled 1000 exemplars from the prior distribution
+p(x∗ ). We then created three images x for each letter in the
+alphabet, each with two bits of corruption, yielding a total of
+72 test images. We repeated this simulation – sampling from
+the prior and generating test images – 20 times for each SDM
+with parameters Dr , Dw , and M, where each simulation used
+a different set of sampled addresses A.
+We determined the appropriate settings of the read and
+write radii, Dr and Dw , by considering the constraints imposed by the SDM and the specific problem of letter reconstruction. The mean Hamming distance between pairs of letters was 5.4615, indicating that the read radius must lie somewhere between 2 (the amount of corruption) and 5. Choosing
+a radius outside these bounds would have the effect of returning an inaccurate expectation, either because the noise
+was greater than the signal (Dr < 2) or because too many hypotheses were considered (Dr > 5). So, we chose Dr = 2, thus
+ensuring that the true x∗ would always fall within this radius,
+and also minimizing the number of incorrect hypotheses considered. For the write radius, we considered three different
+values, Dw = {0, 1, 2}.
+We stored all 1000 letters in each SDM, varying the number of hard addresses, M, among eight evenly spaced values
+
+1689
+
+Osherson, Smith, Wilkie, Lopez, and Shafir (1990), where
+judgments are made as to whether certain animals can get a
+disease knowing other animals that can catch it.
+
+Correlations between Bayes and SDM
+in letter recognition task
+1
+
+SDM approximation
+
 Correlation
-              0.6
-                                                                                       duction based on Kemp and Tenenbaum (2009). Here, we
-                                                                                       observe a set of examples d of a concept C (known to have
-              0.4                                                                      property K) and we aim to calculate p(y ∈ C|d), the probabil-
-                                                                           Dw = 0
-                                                                                       ity that object y is also a member of C. Thus, averaging over
-                                                                           Dw = 1
-              0.2
-                                                                           Dw = 2
-                                                                                       all possible concepts, we compute:
-                                                                           Dw = 3
-               0
-                                                                                                     p(y ∈ C|d) =     ∑    p(y ∈ C|h)p(h|d)              (21)
-                    2048   4096     6144   8192    10240   12288   14336    16384                                    h∈H
-                                   Size of SDM address space (M)
-                                                                                       where the hypothesis space H is the set of all possible con-
-Figure 3: The average correlations between the Bayesian pos-                           cepts in a domain, p(y ∈ C|h) = 1 if y is in hypothesis h, and 0
-terior mean and pre-thresholded SDM outputs for the task of                            otherwise. The posterior probability p(h|d) can be computed
-recovering a Rumelhart-Siple letter from a noisy observation.                          via Bayes’ rule from Equation 1.
-Dr = 2 for each of the 4 values of Dw presented.                                          We explore two variations of likelihood functions based on
-                                                                                       assumptions of how the data were generated. If the data are
-between 2048 and 2N = 16384. We then read the value b     z for                        generated uniformly at random, the likelihood follows from
-each corrupted input x, for different address spaces A. For                            weak sampling: p(d|h) = 1 if all examples in d are in h and
-the Bayesian model, we analytically calculated the posterior                           p(d|h) = 0 otherwise. If the data are generated at random
-mean by evaluating the full posterior for each x∗ and then cal-                        from the true concept C, the likelihood follows from strong
-culating the average x∗ weighed by its posterior probability.                          sampling, where p(d|h) = 1/|h|n if all n examples in d be-
-We then computed the average correlation between the SDM                               long to h, and p(d|h) = 0 otherwise. This likelihood function
-values of bz and the Bayesian posterior mean across sampled                            incorporates the size principle, where hypotheses with fewer
-addresses A. These results are displayed in Figure 3.                                  items are given more weight than hypotheses with more items
-   The SDMs with Dw = 0 performed similarly to the                                     for the same set of data (Tenenbaum & Griffiths, 2001).
-Bayesian model only when M = 2N (ρ = 0.9628, se =                                         In the SDM, the location x∗ corresponds to a hypothesis h,
-0.0058), reflecting the intuition that it’s highly unlikely to                         and the content z corresponds to data d. For both weak and
-find an exact address from a random sample of 2N . Con-                                strong sampling assumptions, we set the read function of the
-versely, the SDMs with Dw = 2 and Dw = 3 had near-constant                             SDM, r(d, h), to be proportional to the Bayesian likelihood
-correlations with the Bayesian model (ρ ≈ 0.88 for Dw = 2                              by weighting the selection vector y by p(d|h).
-and ρ ≈ 0.79 for Dw = 3), regardless of the size of the hard                           Analysis
-address space. This behavior was also in line with our ex-
-                                                                                       To evaluate the performance of this modified SDM, we used
-pectations: with Dw = 2 and Dw = 3, the probability of hav-
-                                                                                       the category-based induction dataset from Osherson et al.
-ing no hard addresses within Dw of x∗ is extremely low for
-                                                                                       (1990), consisting of 36 two-premise arguments and 45 three-
-M = 2048; this probability only decreases as M increases.
-                                                                                       premise arguments ( e.g., “Cat, Dog, Horse can get disease
-   In summary, these results show SDMs can naturally ap-                               X”) for a domain of 10 animals. Thus, each observation d is
-proximate Bayesian models of noisy stimulus reconstruction.                            encoded as a binary feature vector of length N = 10. We used
-Here, we set the likelihood function to follow the standard                            a taxonomic hypothesis space following Kemp and Tenen-
-SDM read rule. In the next section we consider a more gen-                             baum (2009), constructed from human similarity judgments
-eral example of Bayesian inference and explore the conse-                              for each possible pairing of animals. As before, we stored
-quences of adjusting the SDM read rule to match the likeli-                            1000 exemplars sampled from p(h) in the SDM, and varied
-hood in question.                                                                      the number of hard addresses among eight evenly spaced val-
-                                                                                       ues between 128 and 2N = 1024. We evaluated this modified
-                                  Property induction                                   SDM against the Bayesian model of property induction for
-If you are told that a horse has a particular property, protein K,                     3 values of Dw over a constant reading radius Dr = 0. The
-what other animals do you think share this protein? Questions                          results are presented in Figure 41 .
-of this type are considered problems of property induction,                               We find the SDM approximates Bayesian inference for a
-where one or more categories in a domain are observed to                               variety of write radii and, as predicted, matches Bayes when
-have some novel property and the task is to determine how                                  1 We note that these correlations are not strictly monotonic as one
-the property is distributed over the domain. For our analyses                          might intuit, due to sampling error in the address space (most notable
-we explore the category-based induction task introduced by                             in the case when Dw = 0.)
-                                                                                    1690
 
-                                Correlations between Bayes and SDM                                                   Correlations between Bayes and SDM
-                           in property induction task with weak sampling                                        in property induction task with strong sampling
-                1                                                                                     1
-               0.8                                                                                  0.8
- Correlation                                                                          Correlation
-               0.6                                                                                  0.6
-               0.4                                                                                  0.4
-                                                                           Dw = 0                                                                               Dw = 0
-               0.2                                                                                  0.2
-                                                                           Dw = 1                                                                               Dw = 1
-                                                                           Dw = 2                                                                               Dw = 2
-                0                                                                                     0
-                     128      256    384     512      640     768    896    1024                          128       256    384     512     640     768    896     1024
-                                     Size of SDM address space (M)                                                        Size of SDM address space (M)
+0.8
+
+We solve this problem with a Bayesian model of property induction based on Kemp and Tenenbaum (2009). Here, we
+observe a set of examples d of a concept C (known to have
+property K) and we aim to calculate p(y ∈ C|d), the probability that object y is also a member of C. Thus, averaging over
+all possible concepts, we compute:
+
+0.6
+
+0.4
+
+Dw = 0
+Dw = 1
+
+0.2
+
+Dw = 2
+Dw = 3
+
+p(y ∈ C|d) =
+
+0
+2048
+
+4096
+
+6144
+
+8192
+
+10240
+
+12288
+
+14336
+
+Size of SDM address space (M)
+
+Figure 3: The average correlations between the Bayesian posterior mean and pre-thresholded SDM outputs for the task of
+recovering a Rumelhart-Siple letter from a noisy observation.
+Dr = 2 for each of the 4 values of Dw presented.
+between 2048 and 2N = 16384. We then read the value b
+z for
+each corrupted input x, for different address spaces A. For
+the Bayesian model, we analytically calculated the posterior
+mean by evaluating the full posterior for each x∗ and then calculating the average x∗ weighed by its posterior probability.
+We then computed the average correlation between the SDM
+values of b
+z and the Bayesian posterior mean across sampled
+addresses A. These results are displayed in Figure 3.
+The SDMs with Dw = 0 performed similarly to the
+Bayesian model only when M = 2N (ρ = 0.9628, se =
+0.0058), reflecting the intuition that it’s highly unlikely to
+find an exact address from a random sample of 2N . Conversely, the SDMs with Dw = 2 and Dw = 3 had near-constant
+correlations with the Bayesian model (ρ ≈ 0.88 for Dw = 2
+and ρ ≈ 0.79 for Dw = 3), regardless of the size of the hard
+address space. This behavior was also in line with our expectations: with Dw = 2 and Dw = 3, the probability of having no hard addresses within Dw of x∗ is extremely low for
+M = 2048; this probability only decreases as M increases.
+In summary, these results show SDMs can naturally approximate Bayesian models of noisy stimulus reconstruction.
+Here, we set the likelihood function to follow the standard
+SDM read rule. In the next section we consider a more general example of Bayesian inference and explore the consequences of adjusting the SDM read rule to match the likelihood in question.
+
+Property induction
+If you are told that a horse has a particular property, protein K,
+what other animals do you think share this protein? Questions
+of this type are considered problems of property induction,
+where one or more categories in a domain are observed to
+have some novel property and the task is to determine how
+the property is distributed over the domain. For our analyses
+we explore the category-based induction task introduced by
+
+∑
+
+p(y ∈ C|h)p(h|d)
+
+(21)
+
+h∈H
+
+16384
+
+where the hypothesis space H is the set of all possible concepts in a domain, p(y ∈ C|h) = 1 if y is in hypothesis h, and 0
+otherwise. The posterior probability p(h|d) can be computed
+via Bayes’ rule from Equation 1.
+We explore two variations of likelihood functions based on
+assumptions of how the data were generated. If the data are
+generated uniformly at random, the likelihood follows from
+weak sampling: p(d|h) = 1 if all examples in d are in h and
+p(d|h) = 0 otherwise. If the data are generated at random
+from the true concept C, the likelihood follows from strong
+sampling, where p(d|h) = 1/|h|n if all n examples in d belong to h, and p(d|h) = 0 otherwise. This likelihood function
+incorporates the size principle, where hypotheses with fewer
+items are given more weight than hypotheses with more items
+for the same set of data (Tenenbaum & Griffiths, 2001).
+In the SDM, the location x∗ corresponds to a hypothesis h,
+and the content z corresponds to data d. For both weak and
+strong sampling assumptions, we set the read function of the
+SDM, r(d, h), to be proportional to the Bayesian likelihood
+by weighting the selection vector y by p(d|h).
+
+Analysis
+To evaluate the performance of this modified SDM, we used
+the category-based induction dataset from Osherson et al.
+(1990), consisting of 36 two-premise arguments and 45 threepremise arguments ( e.g., “Cat, Dog, Horse can get disease
+X”) for a domain of 10 animals. Thus, each observation d is
+encoded as a binary feature vector of length N = 10. We used
+a taxonomic hypothesis space following Kemp and Tenenbaum (2009), constructed from human similarity judgments
+for each possible pairing of animals. As before, we stored
+1000 exemplars sampled from p(h) in the SDM, and varied
+the number of hard addresses among eight evenly spaced values between 128 and 2N = 1024. We evaluated this modified
+SDM against the Bayesian model of property induction for
+3 values of Dw over a constant reading radius Dr = 0. The
+results are presented in Figure 41 .
+We find the SDM approximates Bayesian inference for a
+variety of write radii and, as predicted, matches Bayes when
+1 We note that these correlations are not strictly monotonic as one
+might intuit, due to sampling error in the address space (most notable
+in the case when Dw = 0.)
+
+1690
+
+Correlations between Bayes and SDM
+in property induction task with strong sampling
+
+1
+
+1
+
+0.8
+
+0.8
+
+Correlation
+
+Correlation
+
+Correlations between Bayes and SDM
+in property induction task with weak sampling
+
+0.6
+
+0.4
+
+0.6
+
+0.4
+
+Dw = 0
+0.2
+
+Dw = 0
+0.2
+
+Dw = 1
+
+Dw = 1
+
+Dw = 2
+
+Dw = 2
+
+0
+
+0
+128
+
+256
+
+384
+
+512
+
+640
+
+768
+
+896
+
+1024
+
+128
+
+Size of SDM address space (M)
+
+256
+
+384
+
+512
+
+640
+
+768
+
+896
+
+1024
+
+Size of SDM address space (M)
+
 Figure 4: The average correlations between the Bayesian posterior and pre-thresholded SDM outputs assuming weak sampling
 (left panel), and assuming strong sampling (right panel) for the property induction task. Dr = 0 for each of the 3 values of Dw
 presented.
-Dw = 0 and M = 2N . Furthermore, the SDMs that use a                                                                             References
-weak or strong sampling read rule correlate equally well with                                       Anderson, C. H. (1989). A conditional probability interpretation
-the Bayesian models that use weak or strong sampling like-                                            of Kanerva’s sparse distributed memory. In International joint
-                                                                                                      conference on neural networks (pp. 415–417).
-lihoods, respectively. This nicely illustrates the correspon-                                       Gigerenzer, G., & Todd, P. (1999). Simple heuristics that make us
-dence between the SDM’s read rule and a Bayesian likeli-                                              smart. Oxford University Press, USA.
-hood, and implies that SDMs can approximate a broad range                                           Griffiths, T., Chater, N., Kemp, C., Perfors, A., & Tenenbaum, J.
-                                                                                                      (2010). Probabilistic models of cognition: exploring representa-
-of Bayesian models by adjusting the read rule to match the                                            tions and inductive biases. Trends in Cognitive Sciences, 14(8),
-likelihood function.                                                                                  357–364.
-                                                                                                    Griffiths, T., Vul, E., & Sanborn, A. (2012). Bridging levels of
-                                                                                                      analysis for probabilistic models of cognition. Current Directions
-                                      Conclusion                                                      in Psychological Science, 21(4), 263–268.
-What constraints do the algorithmic and implementation lev-                                         Kanerva, P. (1988). Sparse Distributed Memory Systems. MIT
-                                                                                                      Press.
-els impose on probabilistic models of cognition? We explored                                        Kanerva, P. (1993). Sparse Distributed Memory and Related Mod-
-this question by considering whether the computations em-                                             els. In M. Hassoun (Ed.), Associative neural memories: Theory
-ployed by a distributed representation of associative mem-                                            and implementation (pp. 50–76). Oxford University Press.
-                                                                                                    Kemp, C., & Tenenbaum, J. B. (2009). Structured statistical models
-ory could approximate Bayesian inference. By choosing the                                             of inductive reasoning. Psychological Review, 116(1), 20–58.
-SDM read rule to appropriately match the the likelihood func-                                       Lewand, R. (2000). Cryptological mathematics. Mathematical As-
-tion, we showed in two separate scenarios that SDMs can                                               sociation of America.
-                                                                                                    Marr, D. (1982). Vision. San Francisco, CA: W. H. Freeman.
-accurately implement a specific form of Bayesian inference                                          McClelland, J., Botvinick, M., Noelle, D., Plaut, D., Rogers, T.,
-called importance sampling.                                                                           Seidenberg, M., et al. (2010). Letting structure emerge: connec-
-   Future work will take our analyses one step further and                                            tionist and dynamical systems approaches to cognition. Trends in
-                                                                                                      Cognitive Sciences, 14(8), 348–356.
-investigate whether SDMs can approximate Bayesian infer-                                            Neal, R. (1993). Probabilistic inference using Markov chain Monte
-ence without modifying their read rule. Specifically, can we                                          Carlo methods (Tech. Rep. No. CRG-TR-93-1). Department of
-encode the data in a manner such that reading it from a stan-                                         Computer Science, University of Toronto.
-                                                                                                    Osherson, D., Smith, E., Wilkie, O., Lopez, A., & Shafir, E. (1990).
-dard SDM is still proportional to the likelihood? If so, it                                           Category-based induction. Psychological Review, 97(2), 185.
-would make SDMs an even more general and appealing ap-                                              Rumelhart, D., & Siple, P. (1974). Process of recognizing tachisto-
-proach to performing Bayesian inference. Regardless, the re-                                          scopically presented words. Psychological Review, 81(2), 99.
-                                                                                                    Shi, L., & Griffiths, T. (2009). Neural implementation of hierar-
-sults presented in this paper are an important step towards                                           chical Bayesian inference by importance sampling. Advances in
-an explanation of how the structured representations assumed                                          Neural Information Processing Systems, 22, 1669–1677.
-by probabilistic models of cognition could be expressed in                                          Shi, L., Griffiths, T. L., Feldman, N. H., & Sanborn, A. N. (2010).
-                                                                                                      Exemplar models as a mechanism for performing Bayesian infer-
-the distributed, continuous representations commonly used in                                          ence. Psychonomic Bulletin & Review, 17(4), 443–64.
-algorithmic-level models such as neural networks.                                                   Tenenbaum, J., & Griffiths, T. (2001). Generalization, similarity,
-                                                                                                      and Bayesian inference. Behavioral and Brain Sciences, 24(4),
-                                                                                                      629–640.
-Acknowledgments. This work was supported by grant number FA-                                        Tenenbaum, J., Kemp, C., Griffiths, T., & Goodman, N. (2011).
-9550-10-1-0232 from the Air Force Office of Scientific Research                                       How to grow a mind: Statistics, structure, and abstraction. Sci-
-                                                                                                      ence, 331(6022), 1279–1285.
-and a Berkeley Fellowship awarded to JBH.
-                                                                                    1691
+Dw = 0 and M = 2N . Furthermore, the SDMs that use a
+weak or strong sampling read rule correlate equally well with
+the Bayesian models that use weak or strong sampling likelihoods, respectively. This nicely illustrates the correspondence between the SDM’s read rule and a Bayesian likelihood, and implies that SDMs can approximate a broad range
+of Bayesian models by adjusting the read rule to match the
+likelihood function.
 
+References
+
+Conclusion
+What constraints do the algorithmic and implementation levels impose on probabilistic models of cognition? We explored
+this question by considering whether the computations employed by a distributed representation of associative memory could approximate Bayesian inference. By choosing the
+SDM read rule to appropriately match the the likelihood function, we showed in two separate scenarios that SDMs can
+accurately implement a specific form of Bayesian inference
+called importance sampling.
+Future work will take our analyses one step further and
+investigate whether SDMs can approximate Bayesian inference without modifying their read rule. Specifically, can we
+encode the data in a manner such that reading it from a standard SDM is still proportional to the likelihood? If so, it
+would make SDMs an even more general and appealing approach to performing Bayesian inference. Regardless, the results presented in this paper are an important step towards
+an explanation of how the structured representations assumed
+by probabilistic models of cognition could be expressed in
+the distributed, continuous representations commonly used in
+algorithmic-level models such as neural networks.
+Acknowledgments. This work was supported by grant number FA9550-10-1-0232 from the Air Force Office of Scientific Research
+and a Berkeley Fellowship awarded to JBH.
+
+Anderson, C. H. (1989). A conditional probability interpretation
+of Kanerva’s sparse distributed memory. In International joint
+conference on neural networks (pp. 415–417).
+Gigerenzer, G., & Todd, P. (1999). Simple heuristics that make us
+smart. Oxford University Press, USA.
+Griffiths, T., Chater, N., Kemp, C., Perfors, A., & Tenenbaum, J.
+(2010). Probabilistic models of cognition: exploring representations and inductive biases. Trends in Cognitive Sciences, 14(8),
+357–364.
+Griffiths, T., Vul, E., & Sanborn, A. (2012). Bridging levels of
+analysis for probabilistic models of cognition. Current Directions
+in Psychological Science, 21(4), 263–268.
+Kanerva, P. (1988). Sparse Distributed Memory Systems. MIT
+Press.
+Kanerva, P. (1993). Sparse Distributed Memory and Related Models. In M. Hassoun (Ed.), Associative neural memories: Theory
+and implementation (pp. 50–76). Oxford University Press.
+Kemp, C., & Tenenbaum, J. B. (2009). Structured statistical models
+of inductive reasoning. Psychological Review, 116(1), 20–58.
+Lewand, R. (2000). Cryptological mathematics. Mathematical Association of America.
+Marr, D. (1982). Vision. San Francisco, CA: W. H. Freeman.
+McClelland, J., Botvinick, M., Noelle, D., Plaut, D., Rogers, T.,
+Seidenberg, M., et al. (2010). Letting structure emerge: connectionist and dynamical systems approaches to cognition. Trends in
+Cognitive Sciences, 14(8), 348–356.
+Neal, R. (1993). Probabilistic inference using Markov chain Monte
+Carlo methods (Tech. Rep. No. CRG-TR-93-1). Department of
+Computer Science, University of Toronto.
+Osherson, D., Smith, E., Wilkie, O., Lopez, A., & Shafir, E. (1990).
+Category-based induction. Psychological Review, 97(2), 185.
+Rumelhart, D., & Siple, P. (1974). Process of recognizing tachistoscopically presented words. Psychological Review, 81(2), 99.
+Shi, L., & Griffiths, T. (2009). Neural implementation of hierarchical Bayesian inference by importance sampling. Advances in
+Neural Information Processing Systems, 22, 1669–1677.
+Shi, L., Griffiths, T. L., Feldman, N. H., & Sanborn, A. N. (2010).
+Exemplar models as a mechanism for performing Bayesian inference. Psychonomic Bulletin & Review, 17(4), 443–64.
+Tenenbaum, J., & Griffiths, T. (2001). Generalization, similarity,
+and Bayesian inference. Behavioral and Brain Sciences, 24(4),
+629–640.
+Tenenbaum, J., Kemp, C., Griffiths, T., & Goodman, N. (2011).
+How to grow a mind: Statistics, structure, and abstraction. Science, 331(6022), 1279–1285.
+
+1691
+
+

@@ -3,420 +3,678 @@ Proceedings of the Annual Meeting of the Cognitive Science
 Society
 Title
 Efficient codes for multi-modal pose regression
+
 Permalink
 https://escholarship.org/uc/item/8vm17219
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 35(35)
+
 Authors
 Johnson, Leif
 Cooper, Joseph
 Ballard, Dana
+
 Publication Date
 2013-01-01
 Peer reviewed
-  eScholarship.org                                Powered by the California Digital Library
-                                                                    University of California
 
-                        Efficient codes for multi-modal pose regression
-                                Leif Johnson           Joseph Cooper           Dana Ballard
-                        Department of Computer Science, The University of Texas at Austin, USA
-                                           {leif,jcooper,dana}@cs.utexas.edu
-                          Abstract                               (torque) data in human poses. While computationally
-                                                                 straightforward, the model allows us to compare and
-   Redundancy reduction, or sparsity, appears to be an
-   important information-theoretic principle for encoding        evaluate several possible approaches to this coding and
-   natural sensory data. While sparse codes have been            regression task. We show that, for the class of tech-
-   the subject of much recent research, they have primarily      niques captured by our model, sparsity is indeed useful
-   been evaluated using readily available datasets of natu-
-   ral images and sounds. In comparison, relatively little       for representing and manipulating pose data. In fact,
-   work has investigated the use of sparse codes for repre-      even though the absolute decoding error associated with
-   senting information about human movements and poses.          sparse codes can be larger than the corresponding ab-
-   This paper proposes a basic architecture for evaluating
-   the impact of sparsity when coding human poses, and           solute error for dense codes, the information captured
-   tests the performance of several coding methods within        by each coefficient in a sparse code is larger than for
-   this framework for the task of mapping from a kinematic       dense codes. In addition, sparse codes appear to facil-
-   (joint angle) modality to a dynamic (joint torque) one.
-   We show that sparse codes are indeed useful for effective     itate the task of mapping or regressing from one infor-
-   mappings between modalities and examine in detail the         mation modality to another, making these codes partic-
-   sources of error for each stage in the model.                 ularly interesting from the perspective of a whole organ-
-                                                                 ism, which must integrate information from many dif-
-                         Overview                                ferent sources of information to make effective survival
-Recent work from machine learning (Ranzato, Boureau,             decisions.
+eScholarship.org
+
+Powered by the California Digital Library
+University of California
+
+Efficient codes for multi-modal pose regression
+Leif Johnson
+Joseph Cooper
+Dana Ballard
+Department of Computer Science, The University of Texas at Austin, USA
+{leif,jcooper,dana}@cs.utexas.edu
+Abstract
+
+(torque) data in human poses. While computationally
+straightforward, the model allows us to compare and
+evaluate several possible approaches to this coding and
+regression task. We show that, for the class of techniques captured by our model, sparsity is indeed useful
+for representing and manipulating pose data. In fact,
+even though the absolute decoding error associated with
+sparse codes can be larger than the corresponding absolute error for dense codes, the information captured
+by each coefficient in a sparse code is larger than for
+dense codes. In addition, sparse codes appear to facilitate the task of mapping or regressing from one information modality to another, making these codes particularly interesting from the perspective of a whole organism, which must integrate information from many different sources of information to make effective survival
+decisions.
+
+Redundancy reduction, or sparsity, appears to be an
+important information-theoretic principle for encoding
+natural sensory data. While sparse codes have been
+the subject of much recent research, they have primarily
+been evaluated using readily available datasets of natural images and sounds. In comparison, relatively little
+work has investigated the use of sparse codes for representing information about human movements and poses.
+This paper proposes a basic architecture for evaluating
+the impact of sparsity when coding human poses, and
+tests the performance of several coding methods within
+this framework for the task of mapping from a kinematic
+(joint angle) modality to a dynamic (joint torque) one.
+We show that sparse codes are indeed useful for effective
+mappings between modalities and examine in detail the
+sources of error for each stage in the model.
+
+Overview
+Recent work from machine learning (Ranzato, Boureau,
 & LeCun, 2007; Lee, Battle, Raina, & Ng, 2007)
-and neuroscience (Olshausen & Field, 1996; Smith &                                 Problem setting
-Lewicki, 2006) has emphasized the role that sparsity, or         The human body is marvelously complex, with over 630
-redundancy reduction (Barlow, 1961), appears to play             muscles and, by some estimates, more than 240 degrees
-when coding sensory data. Sparse codes are well suited           of freedom (Winter, 2009; Zatsiorsky & Prilutsky, 2012).
-to represent natural sensory data because the space of           Despite this complexity, humans are skilled at control-
-all possible inputs (e.g., all possible 1000 × 1000 images)      ling their bodies to make movements that accomplish a
-is not uniformly covered by the samples (e.g., photos or         wide variety of tasks in the world. Humans also seem
-retinal inputs) that we tend to encounter in the natural         to be skilled at transforming information about move-
-world. In fact, many types of natural data are theo-             ment between different modalities. For example, a per-
-rized to lie along a low-dimensional manifold embedded           son can normally mimic the posture of another person
-in the larger space (Olshausen & Field, 2004). Sparse            without much conscious effort, even though this task re-
-codes are effective for representing data along such low-        quires some sort of conversion from the visual configu-
-dimensional manifolds because the basis vectors in the           ration of the conspecific’s body (possibly expressed in
-code can be used efficiently (i.e., using just a few nonzero     world or visual coordinates) to the kinematic configura-
-coefficients) to indicate, for a particular data point, its      tion of their own. Along these lines, it is conceivable that
-location along the manifold rather than its coordinates          the tasks of computing potential movements, evaluating
-in the higher-dimensional space.                                 proposed movements, and selecting and executing a par-
-   Many of the results in this area of research have fo-         ticular movement all require separate ways of looking at
-cused on codes for sensory information like images and           the movements.
-sounds. Concurrently, research in control theory has                Studying human movements is difficult: the param-
-suggested that human movements might also lie along              eters describing movements are high-dimensional and
-a relatively low-dimensional manifold embedded in the            time-varying, and, in addition, most of the quantities
-space of all possible movements (Scholz & Schöner, 1999;         that are relevant for describing the control of movement
-Latash, Scholz, & Schöner, 2002). Sparse codes might be          are invisible to an outside observer. Although we do
-useful, then, for representing information about move-           not have a practical way to observe the control signals
-ment and pose in humans. To our knowledge, however,              or even accurately measure all of the joint torques or
-such codes have not been evaluated extensively on nat-           angles during a complex, multijoint human movement,
-ural movement or pose data.                                      we can use technologies like motion capture (Figure 2)
-   This paper proposes a basic architecture for testing          to measure the external aspects of movement with high
-the effectiveness of a broad class of coding techniques          accuracy. Given motion capture data, Cooper and Bal-
-when mapping from kinematic (joint angle) to dynamic             lard (2012) proposed a technique to compute the angles
-                                                             680
+and neuroscience (Olshausen & Field, 1996; Smith &
+Lewicki, 2006) has emphasized the role that sparsity, or
+redundancy reduction (Barlow, 1961), appears to play
+when coding sensory data. Sparse codes are well suited
+to represent natural sensory data because the space of
+all possible inputs (e.g., all possible 1000 × 1000 images)
+is not uniformly covered by the samples (e.g., photos or
+retinal inputs) that we tend to encounter in the natural
+world. In fact, many types of natural data are theorized to lie along a low-dimensional manifold embedded
+in the larger space (Olshausen & Field, 2004). Sparse
+codes are effective for representing data along such lowdimensional manifolds because the basis vectors in the
+code can be used efficiently (i.e., using just a few nonzero
+coefficients) to indicate, for a particular data point, its
+location along the manifold rather than its coordinates
+in the higher-dimensional space.
+Many of the results in this area of research have focused on codes for sensory information like images and
+sounds. Concurrently, research in control theory has
+suggested that human movements might also lie along
+a relatively low-dimensional manifold embedded in the
+space of all possible movements (Scholz & Schöner, 1999;
+Latash, Scholz, & Schöner, 2002). Sparse codes might be
+useful, then, for representing information about movement and pose in humans. To our knowledge, however,
+such codes have not been evaluated extensively on natural movement or pose data.
+This paper proposes a basic architecture for testing
+the effectiveness of a broad class of coding techniques
+when mapping from kinematic (joint angle) to dynamic
 
-                                                              steps. Formally, we represent a sequence of raw joint
-                                                              angles as a matrix B ∈ Rn×m , where each column b(t)
-                                                              represents a single frame of angle data. Similarly, we
-                                                              represent a sequence of raw joint torques as a matrix
-                                                              U ∈ Rn×m whose columns u(t) each contain a frame of
-                                                              torque data. We define these matrices as complementary
-                                                              views of a single motion trajectory, so that for any frame
-                                                              t, the joint angles b(t) correspond to the torques u(t) .
-                                                                 As mentioned above, movement is complex to model
-                                                              because it is high-dimensional (n is often large) and
-                                                              varies over time (m is often large). Rather than at-
-                                                              tempt to tackle both of these challenges at once, we sim-
-                                                              plify the modeling task here by considering the task of
-Figure 1: Information processing architecture for multi-      mapping between these two modalities for single poses
-modal coding and regression. Information from a frame         (frames). Such a simplification makes the modeling task
-of one modality of pose data, such as angles (orange), is     obviously difficult, since a single frame of kinematic pose
-to be mapped onto information from another modality,          data, for instance, does not indicate the direction in
-such as torques (blue). This mapping is accomplished by       which the joint angles will be changing in subsequent
-coding a frame of angle data, augmented with its deriva-      frames. To address this issue, we make use of a com-
-tive ∆, using parameters P; likewise, torques augmented       mon technique from speech recognition (Picone, 1993)
-with derivatives ∆ are encoded using parameters Q. Fi-        and augment each of the raw data frames in our system
-nally, a parametric regression R is computed between          with its first derivative. This provides information about
-the codes (yellow and green).                                 the rates at which the angles and torques are changing,
-                                                              which could be useful when trying to compute torques
-                                                              on the basis of angles. The augmented data matrices
-and forces that would have been required for a simplified     A, V ∈ R2n×m are then defined as
-model of the human skeleton to effect the same move-
-                                                                               [      ]               [       ]
-ments. These computed angles and forces, while still a                            B                      U
-coarse proxy for some of the information that might be                   A=               and V =               ,
-                                                                                 ∆B                     ∆U
+Problem setting
+The human body is marvelously complex, with over 630
+muscles and, by some estimates, more than 240 degrees
+of freedom (Winter, 2009; Zatsiorsky & Prilutsky, 2012).
+Despite this complexity, humans are skilled at controlling their bodies to make movements that accomplish a
+wide variety of tasks in the world. Humans also seem
+to be skilled at transforming information about movement between different modalities. For example, a person can normally mimic the posture of another person
+without much conscious effort, even though this task requires some sort of conversion from the visual configuration of the conspecific’s body (possibly expressed in
+world or visual coordinates) to the kinematic configuration of their own. Along these lines, it is conceivable that
+the tasks of computing potential movements, evaluating
+proposed movements, and selecting and executing a particular movement all require separate ways of looking at
+the movements.
+Studying human movements is difficult: the parameters describing movements are high-dimensional and
+time-varying, and, in addition, most of the quantities
+that are relevant for describing the control of movement
+are invisible to an outside observer. Although we do
+not have a practical way to observe the control signals
+or even accurately measure all of the joint torques or
+angles during a complex, multijoint human movement,
+we can use technologies like motion capture (Figure 2)
+to measure the external aspects of movement with high
+accuracy. Given motion capture data, Cooper and Ballard (2012) proposed a technique to compute the angles
+
+680
+
+steps. Formally, we represent a sequence of raw joint
+angles as a matrix B ∈ Rn×m , where each column b(t)
+represents a single frame of angle data. Similarly, we
+represent a sequence of raw joint torques as a matrix
+U ∈ Rn×m whose columns u(t) each contain a frame of
+torque data. We define these matrices as complementary
+views of a single motion trajectory, so that for any frame
+t, the joint angles b(t) correspond to the torques u(t) .
+As mentioned above, movement is complex to model
+because it is high-dimensional (n is often large) and
+varies over time (m is often large). Rather than attempt to tackle both of these challenges at once, we simplify the modeling task here by considering the task of
+mapping between these two modalities for single poses
+(frames). Such a simplification makes the modeling task
+obviously difficult, since a single frame of kinematic pose
+data, for instance, does not indicate the direction in
+which the joint angles will be changing in subsequent
+frames. To address this issue, we make use of a common technique from speech recognition (Picone, 1993)
+and augment each of the raw data frames in our system
+with its first derivative. This provides information about
+the rates at which the angles and torques are changing,
+which could be useful when trying to compute torques
+on the basis of angles. The augmented data matrices
+A, V ∈ R2n×m are then defined as
+[
+]
+[
+]
+B
+U
+A=
+and V =
+,
+∆B
+∆U
+
+Figure 1: Information processing architecture for multimodal coding and regression. Information from a frame
+of one modality of pose data, such as angles (orange), is
+to be mapped onto information from another modality,
+such as torques (blue). This mapping is accomplished by
+coding a frame of angle data, augmented with its derivative ∆, using parameters P; likewise, torques augmented
+with derivatives ∆ are encoded using parameters Q. Finally, a parametric regression R is computed between
+the codes (yellow and green).
+
+and forces that would have been required for a simplified
+model of the human skeleton to effect the same movements. These computed angles and forces, while still a
+coarse proxy for some of the information that might be
 used by the central nervous system, constitute the data
-for this paper.                                               where ∆X(t) = (x(t+1) − x(t−1) )/2 represents a secant
-   Theoretically, one could transform information from        approximation to the derivative at each frame.
-one modality into another by amassing a large quan-              Having created a set of kinematic and matched dy-
-tity of corresponding data from these two modalities and      namic data describing sequences of human poses, we
-computing regression coefficients directly. However, this     propose an information processing architecture for com-
-is inefficient for at least two reasons. First, computing     puting regressions from angles to torques. In this frame-
-a regression between two datasets becomes increasingly        work (see Figure 1), a single frame of n input angles,
-problematic as the dimensionality of the data increases;      augmented with its derivative, is encoded first into k
-this difficulty is compounded when there is noise in the      angle-code coefficients using a coding model character-
-data. Second, if the manifold hypothesis is accurate,         ized by parameters P ∈ Rk×2n . Then a regression model
-then each modality of the raw data will have statistical      characterized by parameters R ∈ Rk×k transforms the k
-redundancies that would need to be captured by the re-        angle-code coefficients into a k torque-code coefficients.
-gression process. Rather than working in the space of         Finally, this torque encoding is converted back into a
-raw measurements, then, we hypothesize that manipu-           frame of n torques, augmented with its first derivative,
-lating or combining movement information is more effi-        by inverting the torque coding model characterized by
-cient in a space defined by codes that somehow repre-         parameters Q ∈ R2n×k . If the manifold hypothesis holds
-sent the raw signals (Srivastava & Salakhutdinov, 2012).      for human pose data, then code parameters P and Q can
-The question addressed by this paper is, which types of       be learned independently, because these parameters will
-codes are most efficient for processing information about     describe the structure of the manifold for each modal-
-movement?                                                     ity of pose data; codes for each manifold should then be
-                                                              useful for a wide variety of other information processing
-            Pose coding and regression                        tasks (Vincent, Larochelle, Lajoie, Bengio, & Manzagol,
-We assume that we have a set of data that represents          2010). Regression parameters R can then be learned
-kinematic and dynamic views of human motion, modeled          using the encoded data from each modality.
-using an articulated body with n degrees of freedom, and         Given our parametric framework for coding and re-
-measured over a consecutive sequence of m discrete time       gression, the coding approaches considered here all as-
-                                                          681
+for this paper.
+Theoretically, one could transform information from
+one modality into another by amassing a large quantity of corresponding data from these two modalities and
+computing regression coefficients directly. However, this
+is inefficient for at least two reasons. First, computing
+a regression between two datasets becomes increasingly
+problematic as the dimensionality of the data increases;
+this difficulty is compounded when there is noise in the
+data. Second, if the manifold hypothesis is accurate,
+then each modality of the raw data will have statistical
+redundancies that would need to be captured by the regression process. Rather than working in the space of
+raw measurements, then, we hypothesize that manipulating or combining movement information is more efficient in a space defined by codes that somehow represent the raw signals (Srivastava & Salakhutdinov, 2012).
+The question addressed by this paper is, which types of
+codes are most efficient for processing information about
+movement?
 
-sume a finite “codebook” D ∈ R2n×k whose columns di              tors (which are orthogonal to each other), there can be
-each represent a “basis vector” that is used in some way         at most as many codebook vectors as dimensions in the
-to encode data. This paper does not focus specifically           input data.
+where ∆X(t) = (x(t+1) − x(t−1) )/2 represents a secant
+approximation to the derivative at each frame.
+Having created a set of kinematic and matched dynamic data describing sequences of human poses, we
+propose an information processing architecture for computing regressions from angles to torques. In this framework (see Figure 1), a single frame of n input angles,
+augmented with its derivative, is encoded first into k
+angle-code coefficients using a coding model characterized by parameters P ∈ Rk×2n . Then a regression model
+characterized by parameters R ∈ Rk×k transforms the k
+angle-code coefficients into a k torque-code coefficients.
+Finally, this torque encoding is converted back into a
+frame of n torques, augmented with its first derivative,
+by inverting the torque coding model characterized by
+parameters Q ∈ R2n×k . If the manifold hypothesis holds
+for human pose data, then code parameters P and Q can
+be learned independently, because these parameters will
+describe the structure of the manifold for each modality of pose data; codes for each manifold should then be
+useful for a wide variety of other information processing
+tasks (Vincent, Larochelle, Lajoie, Bengio, & Manzagol,
+2010). Regression parameters R can then be learned
+using the encoded data from each modality.
+Given our parametric framework for coding and regression, the coding approaches considered here all as-
+
+Pose coding and regression
+We assume that we have a set of data that represents
+kinematic and dynamic views of human motion, modeled
+using an articulated body with n degrees of freedom, and
+measured over a consecutive sequence of m discrete time
+
+681
+
+sume a finite “codebook” D ∈ R2n×k whose columns di
+each represent a “basis vector” that is used in some way
+to encode data. This paper does not focus specifically
 on learning the codebook, though it does mention a few
-                                                                 K-means K-means (MacQueen et al., 1967) can be
 approaches to codebook learning below.
-                                                                 seen as an extremely sparse coding technique that rep-
-   Separating the model into coding and regression stages
-                                                                 resents a data point x using only the closest basis vector
-brings three advantages to the problem at hand. First,                                                                 T
-                                                                 in the codebook: for this approach, z = [ξ1 . . . ξk ] such
+Separating the model into coding and regression stages
+brings three advantages to the problem at hand. First,
 it allows us to manipulate the number of parameters in
-                                                                 that
 the model in a controlled way. The multistage model
-                                                                             {
-contains k 2 + 4kn parameters, while direct regression re-                     1 if ∥x − di ∥2 < ∥x − dj ∥2 for j ̸= i
-quires 4n2 parameters. When k < 2n, the multistage                      ξi =
-                                                                               0 otherwise.
+contains k 2 + 4kn parameters, while direct regression requires 4n2 parameters. When k < 2n, the multistage
 model has fewer parameters than direct regression, but
-when k exceeds the dimensionality of the data, the mul-             The codebook corresponding to this coding approach
-tistage model has more parameters. Models with more              is learned from the data by setting the di to random
-parameters tend to be more accurate, but they might              elements from the training data, and then iteratively
-overfit the data and capture more noise than desired.            adjusting the columns of D so that the sum of the Eu-
-Second, separate modules for coding in each modality,            clidean distances from each data point to its closest code-
-and regression between codes, allows for in-depth anal-          book vector is minimized.
-ysis of the performance of each module: codes for one
-modality that provide for low decoding error could also          Sparse coding Sparse coding (Tibshirani, 1996), also
-be ones that do not permit easy regression, for example.         called lasso regression, computes the coefficients z for
-Finally, defining distinct coding modules permit an anal-        data point x by minimizing a least-squares cost function
-ysis of the degree to which coding, in isolation, provides       with a regularization penalty on the magnitude of the
-an efficient representation of the data.                         code coefficients:
-                                                                                                      2
-Coding algorithms                                                             z = arg min ∥Dζ − x∥2 + λ ∥ζ∥1 .
-                                                                                      ζ
+when k exceeds the dimensionality of the data, the multistage model has more parameters. Models with more
+parameters tend to be more accurate, but they might
+overfit the data and capture more noise than desired.
+Second, separate modules for coding in each modality,
+and regression between codes, allows for in-depth analysis of the performance of each module: codes for one
+modality that provide for low decoding error could also
+be ones that do not permit easy regression, for example.
+Finally, defining distinct coding modules permit an analysis of the degree to which coding, in isolation, provides
+an efficient representation of the data.
+
+tors (which are orthogonal to each other), there can be
+at most as many codebook vectors as dimensions in the
+input data.
+K-means K-means (MacQueen et al., 1967) can be
+seen as an extremely sparse coding technique that represents a data point x using only the closest basis vector
+T
+in the codebook: for this approach, z = [ξ1 . . . ξk ] such
+that
+{
+1 if ∥x − di ∥2 < ∥x − dj ∥2 for j ̸= i
+ξi =
+0 otherwise.
+The codebook corresponding to this coding approach
+is learned from the data by setting the di to random
+elements from the training data, and then iteratively
+adjusting the columns of D so that the sum of the Euclidean distances from each data point to its closest codebook vector is minimized.
+Sparse coding Sparse coding (Tibshirani, 1996), also
+called lasso regression, computes the coefficients z for
+data point x by minimizing a least-squares cost function
+with a regularization penalty on the magnitude of the
+code coefficients:
+2
+
+z = arg min ∥Dζ − x∥2 + λ ∥ζ∥1 .
+
+Coding algorithms
+
+ζ
+
 Mathematically, this paper treats coding as a general
-term for transforming a vector of raw data x ∈ R2n               λ is a parameter that controls the tradeoff between accu-
-into another vector of coefficients z ∈ Rk , such that z         rate representation and sparsity;     following results from
-                                                                                                 √
-contains sufficient information to recover x with some           the literature, we set λ ∝ 1/ n.
-tolerated level of error. More formally, coding is often            Coates and Ng (2011) reported that sparse coding
-defined in terms of minimizing a cost function                   worked well across many types of codebooks for their
-                                                                 tasks (image classification). For this coding algorithm,
-                  ∥g(D, z) − x∥22 + λR(z)                        then, we tested several different codebooks: random,
-where g(D, z) refers to a decoding operation that con-           sampled, and learned. The random codebook consisted
-verts coefficients z into an estimate of the raw data x̂,        of IID vectors drawn from the standard normal distribu-
-and R is a regularizer that can be chosen to prevent over-       tion, normalized to unit length. The sampled codebook
-fitting, promote sparsity in the code, etc. For this paper,      contained samples drawn uniformly from the training
-we evaluate several approaches to coding, each described         data, also normalized to unit length. The learned code-
-briefly below.                                                   book used a fast, online algorithm developed by Mairal,
-                                                                 Bach, Ponce, and Sapiro (2009) to tune the codebook
-PCA Principal component analysis (PCA) is widely                 to the data. Briefly, the general algorithm is a variation
-used as a data preprocessing technique, but here we use          of coordinate descent, where sparse encoding computa-
-PCA to refer to an encoding that simply computes the             tions are alternated with codebook updates. The code-
-inner product of a data point x with each of the codebook        book learning process attempts to minimize the lasso
-vectors di : that is, z = DT x.                                  cost function above, both with respect to the codes z
-   The PCA codebook consists of the eigenvectors of the          and also with respect to the codebook D.
-covariance matrix of the data, sorted in decreasing or-
-der of magnitude of the corresponding eigenvalue. By             Regression
-retaining only the first k eigenvectors in the codebook,         Once codes have been computed for the source and tar-
-PCA retains the maximally varying components of the              get datasets, the next task is to compute a regression
-data first, and progressively refines the error by retaining     matrix R that will convert coefficients from one modality
-smaller components.                                              into coefficients from another. We used ridge regression
-   Used in this way, PCA implicitly models the under-            (Hoerl & Kennard, 1970) to compute the best parame-
-lying data as a multivariate normal distribution. Be-            ters for inferring coefficients across coded modalities. We
-cause the codebook for PCA is composed of eigenvec-              can express the regression task between codes zα and zβ
-                                                             682
+term for transforming a vector of raw data x ∈ R2n
+into another vector of coefficients z ∈ Rk , such that z
+contains sufficient information to recover x with some
+tolerated level of error. More formally, coding is often
+defined in terms of minimizing a cost function
 
-                                                                representing the positions of the segments of the artic-
-                                                                ulated model [ over time;] the sequence of observed an-
-                                                                gles A = a(1) . . . a(N ) for each of the 54 degrees of
-                                                                freedom
-                                                                      [ in the model; ]    and the corresponding torques
-                                                                V = v(1) . . . v(N ) that were necessary to cause those
-                                                                angles to move through the observed dynamic trajectory
-                                                                of the model.
-                                                                Preprocessing
-                                                                For this paper, we were concerned with mapping angles
-                                                                to torques, so we discarded the marker data X. To ob-
-                                                                tain datasets for training and testing the coding and re-
-                                                                gression models, we needed to perform some preprocess-
-                                                                ing to obtain matched sets of frames that would permit
-                                                                a fair comparison.
-                                                                   First, the sequences obtained from the model were
-                                                                smoothed by convolving each channel in each modal-
-                                                                ity with a 5-sample (42 millisecond) rectangular window
-                                                                over time. After smoothing, each channel of the data was
-Figure 2: The motion capture environment consists of            normalized by subtracting out the mean value and divid-
-a full-body motion capture suit (black, with red LEDs),         ing by the standard deviation. These steps ensured that
-and a treadmill centered in the motion capture space.           the data did not contain residual noise due to marker
-                                                                dropouts, and also that the data values were all approx-
-                                                                imately the same scale.
-as optimizing the cost function                                    Each frame of data was then augmented with an ap-
-                                                                proximation of its first derivative by calculating the se-
-                  ∥Rzα − zβ ∥22 + λ∥R∥2F
-                                                                cant approximation of these quantities using the neigh-
-where λ captures the degree to which the modeler is             boring two frames.2
-willing to tolerate large values in R when explaining the          Next, the smoothed, normalized, derivative-
-observed data. Essentially, ridge regression is the same        augmented frames were segmented into three distinct
-as linear regression, but it adds a penalty on large values     regions, each containing 24000 frames (200 seconds)
-of the coefficients that are used to describe the data. In      of data: the first (segment A) consisted of slow walks,
-our experiments, the value of λ was set empirically by          the second (segment B) consisted of fast walks, and
-cross-validation on the training set.                           the third (segment C) consisted of running movements.
-                                                                To evaluate the coding and regression models, each
-                     Experiments                                segment was further partitioned into disjoint training,
-To measure and collect human movement data, we used             validation, and test sets such that 10% of frames from
-a 16–camera Phasespace1 motion capture system in con-           each segment were used for validation, 10% were used
-junction with a standard treadmill (Figure 2). Human            only for testing, and the remainder were available for
-subjects in the motion tracking area wore a full-body suit      training.
-equipped with active-pulse LED motion tracking mark-            Coding efficiency
-ers and were recorded as they walked and ran on the             We first analyzed the performance of the different cod-
-treadmill at a variety of speeds.                               ing techniques discussed above when reconstructing the
-   For the results reported here, we recorded the posi-         raw torque data using the torque codes. Formally, after
-tions of L = 48 markers from one subject as he walked           training the dictionaries as needed, we computed z for
-at speeds ranging from 0.22 to 2.68 m/s. The record-            each frame of augmented torque data v in the test set,
-ing lasted twenty minutes. The Phasespace system pro-           and then computed the decoding operation to obtain an
-duces frames of motion capture data at a rate of 120Hz,         estimate v̂. The decoding error ev was then defined as
-so this recording resulted in more than 120,000 frames          the RMS value of the residual:
-of raw motion-capture data. These frames were pro-                                        √
-cessed using the articulated forward model proposed by                                       1
-                                                                                     ev =      ∥v̂ − v∥22 .
-Cooper and Ballard (2012), resulting in three sequences                                      n
+λ is a parameter that controls the tradeoff between accurate representation and sparsity;
+following results from
+√
+the literature, we set λ ∝ 1/ n.
+Coates and Ng (2011) reported that sparse coding
+worked well across many types of codebooks for their
+tasks (image classification). For this coding algorithm,
+then, we tested several different codebooks: random,
+sampled, and learned. The random codebook consisted
+of IID vectors drawn from the standard normal distribution, normalized to unit length. The sampled codebook
+contained samples drawn uniformly from the training
+data, also normalized to unit length. The learned codebook used a fast, online algorithm developed by Mairal,
+Bach, Ponce, and Sapiro (2009) to tune the codebook
+to the data. Briefly, the general algorithm is a variation
+of coordinate descent, where sparse encoding computations are alternated with codebook updates. The codebook learning process attempts to minimize the lasso
+cost function above, both with respect to the codes z
+and also with respect to the codebook D.
+
+∥g(D, z) − x∥22 + λR(z)
+where g(D, z) refers to a decoding operation that converts coefficients z into an estimate of the raw data x̂,
+and R is a regularizer that can be chosen to prevent overfitting, promote sparsity in the code, etc. For this paper,
+we evaluate several approaches to coding, each described
+briefly below.
+PCA Principal component analysis (PCA) is widely
+used as a data preprocessing technique, but here we use
+PCA to refer to an encoding that simply computes the
+inner product of a data point x with each of the codebook
+vectors di : that is, z = DT x.
+The PCA codebook consists of the eigenvectors of the
+covariance matrix of the data, sorted in decreasing order of magnitude of the corresponding eigenvalue. By
+retaining only the first k eigenvectors in the codebook,
+PCA retains the maximally varying components of the
+data first, and progressively refines the error by retaining
+smaller components.
+Used in this way, PCA implicitly models the underlying data as a multivariate normal distribution. Because the codebook for PCA is composed of eigenvec-
+
+Regression
+Once codes have been computed for the source and target datasets, the next task is to compute a regression
+matrix R that will convert coefficients from one modality
+into coefficients from another. We used ridge regression
+(Hoerl & Kennard, 1970) to compute the best parameters for inferring coefficients across coded modalities. We
+can express the regression task between codes zα and zβ
+
+682
+
+representing the positions of the segments of the articulated model
+[ over time;] the sequence of observed angles A = a(1) . . . a(N ) for each of the 54 degrees of
+freedom
+and the corresponding torques
+[ in the model;
+]
+V = v(1) . . . v(N ) that were necessary to cause those
+angles to move through the observed dynamic trajectory
+of the model.
+
+Preprocessing
+For this paper, we were concerned with mapping angles
+to torques, so we discarded the marker data X. To obtain datasets for training and testing the coding and regression models, we needed to perform some preprocessing to obtain matched sets of frames that would permit
+a fair comparison.
+First, the sequences obtained from the model were
+smoothed by convolving each channel in each modality with a 5-sample (42 millisecond) rectangular window
+over time. After smoothing, each channel of the data was
+normalized by subtracting out the mean value and dividing by the standard deviation. These steps ensured that
+the data did not contain residual noise due to marker
+dropouts, and also that the data values were all approximately the same scale.
+Each frame of data was then augmented with an approximation of its first derivative by calculating the secant approximation of these quantities using the neighboring two frames.2
+Next, the smoothed, normalized, derivativeaugmented frames were segmented into three distinct
+regions, each containing 24000 frames (200 seconds)
+of data: the first (segment A) consisted of slow walks,
+the second (segment B) consisted of fast walks, and
+the third (segment C) consisted of running movements.
+To evaluate the coding and regression models, each
+segment was further partitioned into disjoint training,
+validation, and test sets such that 10% of frames from
+each segment were used for validation, 10% were used
+only for testing, and the remainder were available for
+training.
+
+Figure 2: The motion capture environment consists of
+a full-body motion capture suit (black, with red LEDs),
+and a treadmill centered in the motion capture space.
+as optimizing the cost function
+∥Rzα − zβ ∥22 + λ∥R∥2F
+where λ captures the degree to which the modeler is
+willing to tolerate large values in R when explaining the
+observed data. Essentially, ridge regression is the same
+as linear regression, but it adds a penalty on large values
+of the coefficients that are used to describe the data. In
+our experiments, the value of λ was set empirically by
+cross-validation on the training set.
+
+Experiments
+To measure and collect human movement data, we used
+a 16–camera Phasespace1 motion capture system in conjunction with a standard treadmill (Figure 2). Human
+subjects in the motion tracking area wore a full-body suit
+equipped with active-pulse LED motion tracking markers and were recorded as they walked and ran on the
+treadmill at a variety of speeds.
+For the results reported here, we recorded the positions of L = 48 markers from one subject as he walked
+at speeds ranging from 0.22 to 2.68 m/s. The recording lasted twenty minutes. The Phasespace system produces frames of motion capture data at a rate of 120Hz,
+so this recording resulted in more than 120,000 frames
+of raw motion-capture data. These frames were processed using the articulated forward model proposed by
+Cooper and Ballard (2012), resulting in three sequences
 of measurements for the observed motion:[ the sequence]
-of interpolated marker positions X = x(1) . . . x(N )              2
-                                                                     The first frame was dropped from each dataset to match
-                                                                the number of frames of data with the number of frames of
-   1
-     phasespace.com/impulse_motion_capture.html                 derivative.
-                                                            683
+of interpolated marker positions X = x(1) . . . x(N )
+1
 
-                10
-                     0                                                                             0.9
-                                                                                                   0.8                                                PCA
-                                                                                                                                                      K-means
-                                                                                                   0.7                                                Sparse, random
-                                                                                                                                                      Sparse, sampled
-                                                                                                                                                      Sparse, learned
-Decoding RMSE                                                                     Decoding RMSE
-                                                                                                   0.6
-                 -1
-                                                                                                   0.5
-                10
-                                                                                                   0.4
-                              PCA                                                                  0.3
-                              K-means
-                              Sparse, random
-                              Sparse, sampled                                                      0.2
-                              Sparse, learned
-                                                                                                   0.1
-                 -2
-                10                                                                                 0.0
-                          0           1               2          3    4
-                         10         10              10          10   10                                     0       10         20        30           40           50
-                                                Codebook Size                                                                 Nonzero Coefficients
-Figure 3: Mean RMS decoding error for joint torques,                            Figure 4: Mean RMS decoding error for joint torques,
-measured with respect to the size of the codebook.                              measured per nonzero coefficient in the encoding. Sparse
-Larger codebooks result in codes that capture more of                           codes like lasso regression were more effective, per coef-
-the variance in the data, even when the codebook is cre-                        ficient, than dense codes like PCA, but only when the
-ated using IID standard normal samples. A log scale has                         codebook was tuned to the dataset.
+Coding efficiency
+We first analyzed the performance of the different coding techniques discussed above when reconstructing the
+raw torque data using the torque codes. Formally, after
+training the dictionaries as needed, we computed z for
+each frame of augmented torque data v in the test set,
+and then computed the decoding operation to obtain an
+estimate v̂. The decoding error ev was then defined as
+the RMS value of the residual:
+√
+1
+∥v̂ − v∥22 .
+ev =
+n
+2
+The first frame was dropped from each dataset to match
+the number of frames of data with the number of frames of
+derivative.
+
+phasespace.com/impulse_motion_capture.html
+
+683
+
+0.9
+
+0
+
+10
+
+0.8
+
+PCA
+K-means
+Sparse, random
+Sparse, sampled
+Sparse, learned
+
+Decoding RMSE
+
+Decoding RMSE
+
+0.7
+
+-1
+
+10
+
+PCA
+K-means
+Sparse, random
+Sparse, sampled
+Sparse, learned
+
+1
+
+10
+
+0.4
+0.3
+
+0.1
+
+-2
+0
+
+0.5
+
+0.2
+
+10
+
+10
+
+0.6
+
+2
+
+10
+Codebook Size
+
+3
+
+10
+
+0.0
+
+4
+
+10
+
+0
+
+Figure 3: Mean RMS decoding error for joint torques,
+measured with respect to the size of the codebook.
+Larger codebooks result in codes that capture more of
+the variance in the data, even when the codebook is created using IID standard normal samples. A log scale has
 been used on both axes to reveal trends more clearly.
-                                                                                                        1
-                                                                                                   10
-   Figure 3 shows the mean RMSE for each coding ap-
-                                                                                                                                                     PCA
-proach, measured with various sizes of codebooks, and                                                                                                K-means
-                                                                                                                                                     Sparse, random
-applied solely to the torque data. (Results for the                                                                                                  Sparse, sampled
-                                                                                 Regression RMSE
-                                                                                                        0                                            Sparse, learned
-angle data were similar.) Unsurprisingly, larger code-                                             10
-books were able to capture more of the variance in
-the data than smaller codebooks, regardless of the cod-
-ing method. Perhaps more interesting, however, was                                                 10
-                                                                                                     -1
+
+10
+
+20
+30
+Nonzero Coefficients
+
+40
+
+50
+
+Figure 4: Mean RMS decoding error for joint torques,
+measured per nonzero coefficient in the encoding. Sparse
+codes like lasso regression were more effective, per coefficient, than dense codes like PCA, but only when the
+codebook was tuned to the dataset.
+
+1
+
+10
+
+Regression RMSE
+
+Figure 3 shows the mean RMSE for each coding approach, measured with various sizes of codebooks, and
+applied solely to the torque data. (Results for the
+angle data were similar.) Unsurprisingly, larger codebooks were able to capture more of the variance in
+the data than smaller codebooks, regardless of the coding method. Perhaps more interesting, however, was
 the finding shown in Figure 4: when measured by
 the number of nonzero coefficients used in the code,
-sparse codes produced more accurate reconstructions                                                  -2
-                                                                                                   10
+sparse codes produced more accurate reconstructions
 than dense codes. This was somewhat vacuously true
-                                                                                                                0         1            2               3                4
-of K-means, since it only uses 1 coefficient for each z; in                                                 10           10         10               10                10
-                                                                                                                                Codebook Size
+of K-means, since it only uses 1 coefficient for each z; in
 comparison, however, this was not true for sparse coding
 combined with the random codebook.
-                                                                                Figure 5: RMS regression error, measured with respect
-Predicting torques from angles                                                  to encoded torque values.
+
+PCA
+K-means
+Sparse, random
+Sparse, sampled
+Sparse, learned
+
+0
+
+10
+
+-1
+
+10
+
+-2
+
+10
+
+0
+
+10
+
+1
+
+10
+
+2
+
+10
+Codebook Size
+
+3
+
+10
+
+4
+
+10
+
+Figure 5: RMS regression error, measured with respect
+to encoded torque values.
+
+Predicting torques from angles
 In addition to comparing the effectiveness of different
-coding schemes for torque data, we also used our frame-
-work to compare the encoding methods in a larger con-
-                                                                                relatively large errors.
-text, namely predicting torque values on the basis of
-angle values. This task could be seen as a coarse ap-                              Finally, we compared the overall torque regression er-
-proximation for a control task: given a target kinematic                        ror for all components of the model together, as mea-
-pose, what might be the torques that would be associ-                           sured by comparing the outputs from our processing
-ated with that pose?                                                            model with the true torques measured during the exper-
-   Because the analysis framework proposed in this pa-                          iment (Figure 6). As a baseline, we computed a direct
-per breaks down this task into three separate stages—                           regression from angle to torque data: this resulted in an
-encoding, regression, and decoding—we can analyze the                           RMS error of 0.65 on the test set. PCA performed at
-regression component of the task separately from the                            baseline for complete codebooks, which is unsurprising
-other components. In general, RMS error for the regres-                         since PCA simply rescales the data. However, some of
-sion task alone (Figure 5) followed the same pattern as                         the sparse coding approaches did outperform PCA by a
-errors for the encoding and decoding components: larger                         large margin (up to 30% reduction in error). In partic-
-codebooks tended to yield lower errors. However, spar-                          ular, using lasso coding combined with a large, learned
-sity played a critical role in this task, since K-means                         dictionary produced lower RMS errors than any of the
-yielded the lowest regression errors, while PCA yielded                         other approaches examined here.
-                                                                          684
+coding schemes for torque data, we also used our framework to compare the encoding methods in a larger context, namely predicting torque values on the basis of
+angle values. This task could be seen as a coarse approximation for a control task: given a target kinematic
+pose, what might be the torques that would be associated with that pose?
+Because the analysis framework proposed in this paper breaks down this task into three separate stages—
+encoding, regression, and decoding—we can analyze the
+regression component of the task separately from the
+other components. In general, RMS error for the regression task alone (Figure 5) followed the same pattern as
+errors for the encoding and decoding components: larger
+codebooks tended to yield lower errors. However, sparsity played a critical role in this task, since K-means
+yielded the lowest regression errors, while PCA yielded
 
-              0.90                                                                     nometrics, 12 (1), 55–67.
-              0.85                                PCA                            Latash, M., Scholz, J., & Schöner, G. (2002). Motor
-                                                  K-means
-              0.80                                Sparse, random                       control strategies revealed in the structure of motor
-                                                  Sparse, sampled
-                                                  Sparse, learned                      variability. Exercise and Sport Sciences Reviews,
-              0.75
-                                                                                       30 (1), 26–31.
- Total RMSE
-              0.70                                                               Lee, H., Battle, A., Raina, R., & Ng, A. (2007). Effi-
-              0.65                                                                     cient sparse coding algorithms. Advances in neural
-              0.60                                                                     information processing systems, 19 , 801.
-              0.55                                                               MacQueen, J., et al. (1967). Some methods for classi-
-                                                                                       fication and analysis of multivariate observations.
-              0.50
-                                                                                       In Proc. 5th Berkeley Symposium on Mathematical
-              0.45
-                                                                                       Statistics and Probability (Vol. 1, p. 14).
-                     0   500     1000      1500     2000            2500
-                                  Codebook Size                                  Mairal, J., Bach, F., Ponce, J., & Sapiro, G. (2009).
-                                                                                       Online dictionary learning for sparse coding. In
-Figure 6: Mean RMS reconstruction error, measured                                      Proc. 26th Intl. Conf. on Machine Learning (pp.
-with respect to true torque values for each frame. Note                                689–696).
-that the RMS reconstruction error for direct regression                          Olshausen, B., & Field, D. (1996). Emergence of simple-
-between true angles and true torques is 0.652, which is                                cell receptive field properties by learning a sparse
-approximately at the asymptote shown for PCA.                                          code for natural images. Nature, 381 (6583), 607–
-                                                                                       609.
-                                                                                 Olshausen, B., & Field, D. (2004). Sparse coding of
-                               Discussion                                              sensory inputs. Current Opinion in Neurobiology,
-                                                                                       14 (4), 481–487.
+relatively large errors.
+Finally, we compared the overall torque regression error for all components of the model together, as measured by comparing the outputs from our processing
+model with the true torques measured during the experiment (Figure 6). As a baseline, we computed a direct
+regression from angle to torque data: this resulted in an
+RMS error of 0.65 on the test set. PCA performed at
+baseline for complete codebooks, which is unsurprising
+since PCA simply rescales the data. However, some of
+the sparse coding approaches did outperform PCA by a
+large margin (up to 30% reduction in error). In particular, using lasso coding combined with a large, learned
+dictionary produced lower RMS errors than any of the
+other approaches examined here.
+
+684
+
+nometrics, 12 (1), 55–67.
+Latash, M., Scholz, J., & Schöner, G. (2002). Motor
+control strategies revealed in the structure of motor
+variability. Exercise and Sport Sciences Reviews,
+30 (1), 26–31.
+Lee, H., Battle, A., Raina, R., & Ng, A. (2007). Efficient sparse coding algorithms. Advances in neural
+information processing systems, 19 , 801.
+MacQueen, J., et al. (1967). Some methods for classification and analysis of multivariate observations.
+In Proc. 5th Berkeley Symposium on Mathematical
+Statistics and Probability (Vol. 1, p. 14).
+Mairal, J., Bach, F., Ponce, J., & Sapiro, G. (2009).
+Online dictionary learning for sparse coding. In
+Proc. 26th Intl. Conf. on Machine Learning (pp.
+689–696).
+Olshausen, B., & Field, D. (1996). Emergence of simplecell receptive field properties by learning a sparse
+code for natural images. Nature, 381 (6583), 607–
+609.
+Olshausen, B., & Field, D. (2004). Sparse coding of
+sensory inputs. Current Opinion in Neurobiology,
+14 (4), 481–487.
+Picone, J. (1993). Signal modeling techniques in speech
+recognition. Proc. IEEE , 81 (9), 1215–1247.
+Ranzato, M., Boureau, Y., & LeCun, Y. (2007). Sparse
+feature learning for deep belief networks. Advances in neural information processing systems,
+20 , 1185–1192.
+Scholz, J., & Schöner, G. (1999). The uncontrolled
+manifold concept: identifying control variables for
+a functional task. Experimental Brain Research,
+126 (3), 289–306.
+Smith, E., & Lewicki, M. (2006). Efficient auditory
+coding. Nature, 439 (7079), 978–982.
+Srivastava, N., & Salakhutdinov, R. (2012). Multimodal
+learning with deep boltzmann machines. In Advances in neural information processing systems 25
+(pp. 2231–2239).
+Tibshirani, R. (1996). Regression shrinkage and selection via the lasso. Journal of the Royal Statistical
+Society: Series B (Methodological), 267–288.
+Vincent, P., Larochelle, H., Lajoie, I., Bengio, Y., &
+Manzagol, P. (2010). Stacked denoising autoencoders: Learning useful representations in a deep
+network with a local denoising criterion. The Journal of Machine Learning Research, 11 , 3371–3408.
+Winter, D. (2009). Biomechanics and Motor Control of
+Human Movement. Wiley.
+Zatsiorsky, V., & Prilutsky, B. (2012). Biomechanics of
+Skeletal Muscles. Human Kinetics.
+
+0.90
+0.85
+
+PCA
+K-means
+Sparse, random
+Sparse, sampled
+Sparse, learned
+
+Total RMSE
+
+0.80
+0.75
+0.70
+0.65
+0.60
+0.55
+0.50
+0.45
+0
+
+500
+
+1000
+1500
+Codebook Size
+
+2000
+
+2500
+
+Figure 6: Mean RMS reconstruction error, measured
+with respect to true torque values for each frame. Note
+that the RMS reconstruction error for direct regression
+between true angles and true torques is 0.652, which is
+approximately at the asymptote shown for PCA.
+
+Discussion
 This paper presented an efficient coding and regression
-                                                                                 Picone, J. (1993). Signal modeling techniques in speech
 model for human pose information, and used this model
-                                                                                       recognition. Proc. IEEE , 81 (9), 1215–1247.
 to examine the performance of several coding algorithms
-                                                                                 Ranzato, M., Boureau, Y., & LeCun, Y. (2007). Sparse
-on human pose information. The model allowed us to ex-
-                                                                                       feature learning for deep belief networks. Ad-
-amine separately the errors in coding information about
-                                                                                       vances in neural information processing systems,
+on human pose information. The model allowed us to examine separately the errors in coding information about
 poses and in regressing from one modality to another.
-                                                                                       20 , 1185–1192.
 We learned that even though some approaches produce
-                                                                                 Scholz, J., & Schöner, G. (1999). The uncontrolled
-extremely low coding and decoding errors, and other ap-
-                                                                                       manifold concept: identifying control variables for
-proaches were conducive to learning regressions between
-                                                                                       a functional task. Experimental Brain Research,
-codes, in order to perform well on the task of predict-
-                                                                                       126 (3), 289–306.
-ing information across information modalities, a coding
-                                                                                 Smith, E., & Lewicki, M. (2006). Efficient auditory
+extremely low coding and decoding errors, and other approaches were conducive to learning regressions between
+codes, in order to perform well on the task of predicting information across information modalities, a coding
 approach must have extremely low error on both tasks.
-                                                                                       coding. Nature, 439 (7079), 978–982.
-   In several ways this paper is just a first look at this sort                  Srivastava, N., & Salakhutdinov, R. (2012). Multimodal
-of modeling on human pose information. In particular,                                  learning with deep boltzmann machines. In Ad-
-we limited our examination of human pose information                                   vances in neural information processing systems 25
-to snapshots of single moments in time. Movement, how-                                 (pp. 2231–2239).
-ever, is fundamentally dynamic, so we plan to expand                             Tibshirani, R. (1996). Regression shrinkage and selec-
-the techniques presented here to temporal sequences of                                 tion via the lasso. Journal of the Royal Statistical
-poses, by learning codes for entire movements.                                         Society: Series B (Methodological), 267–288.
-                                                                                 Vincent, P., Larochelle, H., Lajoie, I., Bengio, Y., &
-                               References
-                                                                                       Manzagol, P. (2010). Stacked denoising autoen-
-Barlow, H. (1961). Possible principles underlying the                                  coders: Learning useful representations in a deep
-     transformation of sensory messages. Sensory Com-                                  network with a local denoising criterion. The Jour-
-     munication, 217–234.                                                              nal of Machine Learning Research, 11 , 3371–3408.
-Coates, A., & Ng, A. (2011). The importance of encod-                            Winter, D. (2009). Biomechanics and Motor Control of
-     ing versus training with sparse coding and vector                                 Human Movement. Wiley.
-     quantization. In Proc. 28th Intl. Conf. on Machine                          Zatsiorsky, V., & Prilutsky, B. (2012). Biomechanics of
-     Learning (Vol. 8, p. 10).                                                         Skeletal Muscles. Human Kinetics.
-Cooper, J., & Ballard, D. (2012). Realtime, physics-
-     based marker following. In Proc. Motion in Games
-     (pp. 350–361). Springer.
-Hoerl, A., & Kennard, R. (1970). Ridge regression: Bi-
-     ased estimation for nonorthogonal problems. Tech-
-                                                                           685
+In several ways this paper is just a first look at this sort
+of modeling on human pose information. In particular,
+we limited our examination of human pose information
+to snapshots of single moments in time. Movement, however, is fundamentally dynamic, so we plan to expand
+the techniques presented here to temporal sequences of
+poses, by learning codes for entire movements.
 
+References
+Barlow, H. (1961). Possible principles underlying the
+transformation of sensory messages. Sensory Communication, 217–234.
+Coates, A., & Ng, A. (2011). The importance of encoding versus training with sparse coding and vector
+quantization. In Proc. 28th Intl. Conf. on Machine
+Learning (Vol. 8, p. 10).
+Cooper, J., & Ballard, D. (2012). Realtime, physicsbased marker following. In Proc. Motion in Games
+(pp. 350–361). Springer.
+Hoerl, A., & Kennard, R. (1970). Ridge regression: Biased estimation for nonorthogonal problems. Tech-
+
+685
+
+

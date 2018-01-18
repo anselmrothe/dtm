@@ -1,423 +1,749 @@
-                                Attention dynamics in multiple object tracking
-             Nisheeth Srivastava (nsrivastava@ucsd.edu)                         Edward Vul (edwardvul@ucsd.edu)
-                  Department of Psychology, UC San Diego                       Department of Psychology, UC San Diego
-                            La Jolla, CA 92093 USA                                       La Jolla, CA 92093 USA
-                               Abstract                                    under uncertainty. Our aim in this paper is to unify ideal
-                                                                           observer models of object tracking with cognitive resource
-   We present a computational model of multiple object track-
-   ing that makes trial-level predictions about the allocation of          limitations and allocation to capture both classes of object
-   visual attention and the resulting performance. This model              tracking phenomena, and more generally, to generate insights
-   follows the intuition of allocated resources modulating spatial         about how cognitive constraints and low-level uncertainty are
-   resolution, but it implements it in a specific way that leads to
-   accurate predictions in multiple task manipulations. Experi-            coupled in human cognition.
-   ments on human subjects, guided by the model’s predictions,                We propose a hierarchical model of human performance
-   demonstrate that observers tracking multiple objects use low-           on the MOT task that uses recursive Bayesian estimation of
-   level computations of target confusability to adjust the spatial
-   resolution at which the target needs to be tracked, and that the        position coordinates to model the consequences of perceptual
-   resulting allocation closely approximates the rational solution.        uncertainty, and controls the effective length scales on which
-   Whereas earlier models of multiple object tracking have pre-            these estimators work as a function of the amount of atten-
-   dicted the big picture relationship between stimulus complex-
-   ity and response accuracy, our approach makes accurate pre-             tion resource allocated to them by a higher-level controller.
-   dictions of both the aggregate effect of target number and ve-          Our model follows the phenomenological intuition that hu-
-   locity and of the variations in difficulty across individual trials     mans are able to make finer-grained judgments of relative po-
-   and targets arising from the idiosyncratic within-trial interac-
-   tions of targets and distractors.                                       sition when they attend more to a particular location, and that
-   Keywords: multiple object tracking; visual cognition; atten-            such targeted covert attention is a scarce resource - resolution
-   tion; hierarchical Bayesian models                                      gain in the attended patch is bought at the expense of coarser-
-                                                                           grained resolution elsewhere. We demonstrate that adding a
-                          Introduction                                     hierarchical controller that assigns spatial resolution to each
-A wealth of multiple object tracking (Z. Pylyshyn & Storm,                 of the lower-level trackers out of a common pool of attention
-1988) experiments have documented a rich set of phenom-                    resource permits us to model MOT phenomena that reflect
-ena that have yet to be explained in a unified manner. Many                flexible cognitive resources, e.g. the number of objects that
-behavioral patterns of object tracking arise when the load                 can be tracked, and the profile of most common errors made
-(the number of targets to be tracked) is constant: objects                 by subjects. Furthermore, we show that people track differ-
-are harder to track when they move faster (Alvarez & Fran-                 ent targets with variable spatial precision over time, following
-coneri, 2007), are closer together (Franconeri, Lin, Pylyshyn,             our models’ predictions of strategic and dynamic allocation
-Fisher, & Enns, 2008), have less reliable identifying features             of cognitive resources, and that our model distinguishes be-
-(Makovski & Jiang, 2009), are intermixed among more dis-                   tween “dropping” and “swapping” errors (Drew, Horowitz, &
-tracters (Feria, 2012), or must be tracked for longer periods              Vogel, 2013) in a novel behavioral characterization.
+Attention dynamics in multiple object tracking
+Nisheeth Srivastava (nsrivastava@ucsd.edu)
+
+Edward Vul (edwardvul@ucsd.edu)
+
+Department of Psychology, UC San Diego
+La Jolla, CA 92093 USA
+
+Department of Psychology, UC San Diego
+La Jolla, CA 92093 USA
+
+Abstract
+We present a computational model of multiple object tracking that makes trial-level predictions about the allocation of
+visual attention and the resulting performance. This model
+follows the intuition of allocated resources modulating spatial
+resolution, but it implements it in a specific way that leads to
+accurate predictions in multiple task manipulations. Experiments on human subjects, guided by the model’s predictions,
+demonstrate that observers tracking multiple objects use lowlevel computations of target confusability to adjust the spatial
+resolution at which the target needs to be tracked, and that the
+resulting allocation closely approximates the rational solution.
+Whereas earlier models of multiple object tracking have predicted the big picture relationship between stimulus complexity and response accuracy, our approach makes accurate predictions of both the aggregate effect of target number and velocity and of the variations in difficulty across individual trials
+and targets arising from the idiosyncratic within-trial interactions of targets and distractors.
+Keywords: multiple object tracking; visual cognition; attention; hierarchical Bayesian models
+
+Introduction
+A wealth of multiple object tracking (Z. Pylyshyn & Storm,
+1988) experiments have documented a rich set of phenomena that have yet to be explained in a unified manner. Many
+behavioral patterns of object tracking arise when the load
+(the number of targets to be tracked) is constant: objects
+are harder to track when they move faster (Alvarez & Franconeri, 2007), are closer together (Franconeri, Lin, Pylyshyn,
+Fisher, & Enns, 2008), have less reliable identifying features
+(Makovski & Jiang, 2009), are intermixed among more distracters (Feria, 2012), or must be tracked for longer periods
 of time. These effects can be explained by a simple ideal
-observer model solving the tracking correspondence problem                  Overview of flexible-resolution spatial tracking
-under uncertainty (Vul, Frank, Alvarez, & Tenenbaum, 2009),                We work within the framework of rational analysis, wherein
-and reflect the information available for the task, rather than            models are strongly characterized by their computational
-the limitations of human cognitive resources. However, such                goals. Thus, our tracking model is based on a low-level con-
-ideal observer models cannot account for a second class of                 troller that iteratively solves the correspondence problem of
-phenomena that arise when varying the number of targets to                 observed objects across the movie, and a higher-level con-
-be tracked: under fixed conditions, participants can only track            troller that allocates a finite resource that improves localiza-
-a small number of objects (Z. Pylyshyn & Storm, 1988), but                 tion precision. The overall outline of the model we use is
-more can be tracked when they move slower (Alvarez & Fran-                 shown in graphical form in Figure 1b.
-coneri, 2007). These effects provide a glimpse at the limita-                 The computational goal of the lower-level controllers is to
-tions and tradeoffs imposed by the cognitive machinery that                estimate individual object positions with statistical optimal-
-humans employ to track objects, and theories designed to cap-              ity given the noise/uncertainty of localizing objects in indi-
-ture these phenomena postulate either a limited pool of point-             vidual frames (Vul et al., 2009). This assumption is entirely
-ers to tracked objects (“slot” models (Luck & Vogel, 1997))                in line with existing ideas in Bayesian studies of visual per-
-or a finite pool of resources that is spread thin when too many            ception (Knill & Richards, 1996) and simply suggests that
-objects must be tracked (Alvarez & Cavanagh, 2004) (“re-                   the low-level controllers behave as ideal Bayesian observers.
-source” models). To date, these models have been largely                   We supplement this low-level controller with a finite resource
-descriptive and do not engage with the phenomena that arise                the allocation of which modulates the behavior of the ideal
-from the difficulty of solving the correspondence problem                  observer by changing localization uncertainty.
-                                                                       2266
+observer model solving the tracking correspondence problem
+under uncertainty (Vul, Frank, Alvarez, & Tenenbaum, 2009),
+and reflect the information available for the task, rather than
+the limitations of human cognitive resources. However, such
+ideal observer models cannot account for a second class of
+phenomena that arise when varying the number of targets to
+be tracked: under fixed conditions, participants can only track
+a small number of objects (Z. Pylyshyn & Storm, 1988), but
+more can be tracked when they move slower (Alvarez & Franconeri, 2007). These effects provide a glimpse at the limitations and tradeoffs imposed by the cognitive machinery that
+humans employ to track objects, and theories designed to capture these phenomena postulate either a limited pool of pointers to tracked objects (“slot” models (Luck & Vogel, 1997))
+or a finite pool of resources that is spread thin when too many
+objects must be tracked (Alvarez & Cavanagh, 2004) (“resource” models). To date, these models have been largely
+descriptive and do not engage with the phenomena that arise
+from the difficulty of solving the correspondence problem
 
-   The finite “resource” in our model is based on the as-            Rational attention allocation
-sumption that humans can actively control the spatial resolu-
-                                                                     The top-level attention model assumes that subjects possess a
-tion/uncertainty of individual percepts. Intuitively, if we want
-                                                                     fixed amount of total attention, which can be represented as
+under uncertainty. Our aim in this paper is to unify ideal
+observer models of object tracking with cognitive resource
+limitations and allocation to capture both classes of object
+tracking phenomena, and more generally, to generate insights
+about how cognitive constraints and low-level uncertainty are
+coupled in human cognition.
+We propose a hierarchical model of human performance
+on the MOT task that uses recursive Bayesian estimation of
+position coordinates to model the consequences of perceptual
+uncertainty, and controls the effective length scales on which
+these estimators work as a function of the amount of attention resource allocated to them by a higher-level controller.
+Our model follows the phenomenological intuition that humans are able to make finer-grained judgments of relative position when they attend more to a particular location, and that
+such targeted covert attention is a scarce resource - resolution
+gain in the attended patch is bought at the expense of coarsergrained resolution elsewhere. We demonstrate that adding a
+hierarchical controller that assigns spatial resolution to each
+of the lower-level trackers out of a common pool of attention
+resource permits us to model MOT phenomena that reflect
+flexible cognitive resources, e.g. the number of objects that
+can be tracked, and the profile of most common errors made
+by subjects. Furthermore, we show that people track different targets with variable spatial precision over time, following
+our models’ predictions of strategic and dynamic allocation
+of cognitive resources, and that our model distinguishes between “dropping” and “swapping” errors (Drew, Horowitz, &
+Vogel, 2013) in a novel behavioral characterization.
+
+Overview of flexible-resolution spatial tracking
+We work within the framework of rational analysis, wherein
+models are strongly characterized by their computational
+goals. Thus, our tracking model is based on a low-level controller that iteratively solves the correspondence problem of
+observed objects across the movie, and a higher-level controller that allocates a finite resource that improves localization precision. The overall outline of the model we use is
+shown in graphical form in Figure 1b.
+The computational goal of the lower-level controllers is to
+estimate individual object positions with statistical optimality given the noise/uncertainty of localizing objects in individual frames (Vul et al., 2009). This assumption is entirely
+in line with existing ideas in Bayesian studies of visual perception (Knill & Richards, 1996) and simply suggests that
+the low-level controllers behave as ideal Bayesian observers.
+We supplement this low-level controller with a finite resource
+the allocation of which modulates the behavior of the ideal
+observer by changing localization uncertainty.
+
+2266
+
+Rational attention allocation
+
+The finite “resource” in our model is based on the assumption that humans can actively control the spatial resolution/uncertainty of individual percepts. Intuitively, if we want
 to be able to make finer discriminations of spatial position for
-                                                                     the scalar integer A. Following indexing-based ideas of object
-an object, we will ‘attend’ to it more than if we were sim-
-                                                                     tracking (Z. Pylyshyn, 1989), the model assigns indices p to
-ply concerned with coarse estimates of its position relative to
-                                                                     all objects on the screen; and the amount of attention assigned
+an object, we will ‘attend’ to it more than if we were simply concerned with coarse estimates of its position relative to
 other objects. We incorporate this intuition into a hierarchical
-                                                                     to each object location at time t is a function at (p), where
-model of inference (as illustrated in Figure 1(b)), where low-
-                                                                     ∑Pp at (p) = A.
-level percept-tracking controllers learn the dynamics of in-
-                                                                         In every iteration, the model first determines the list of
-dividual objects and emits bottom-up signals identifying the
-                                                                     targets for which it will preferentially allocate attention1 by
+model of inference (as illustrated in Figure 1(b)), where lowlevel percept-tracking controllers learn the dynamics of individual objects and emits bottom-up signals identifying the
 likelihood of their tracking labels being lost, and a high-level
-                                                                     propagating the list of particles marked as targets (henceforth,
-meta-cognitive module uses these signals to rationally allo-
-                                                                     the “target list”) forward across time.
-cate attention to these controllers from a limited global pool,
-with the constraint that greater attention allocation permits            At every time step, the model evaluates the potential con-
-finer spatial resolution. The top-down attention allocation, in      fusability of all targets based on the object states the low-level
-turn, determines the uncertainty associated with lower-level         Kalman filters. We approximate the probability of confusion
-position measurements.                                               as a logistic sigmoid decreasing with the distance between
-                                                                     the target and its nearest distracter, but critically, this dis-
-   The computational goal of the higher-level controller is to
-                                                                     tance is scaled by the spatial resolution that each tracker’s
+meta-cognitive module uses these signals to rationally allocate attention to these controllers from a limited global pool,
+with the constraint that greater attention allocation permits
+finer spatial resolution. The top-down attention allocation, in
+turn, determines the uncertainty associated with lower-level
+position measurements.
+The computational goal of the higher-level controller is to
 greedily reduce correspondence uncertainty, constrained by
-                                                                     allocated attention resource permits it to have. These conver-
 the total amount of attention resource available. While this is
-                                                                     gent desiderata inform our formal definition of confusability
-certainly not the only possible goal for metacognitive atten-
-                                                                     as,
-tion dynamics, constrained greedy optimization is rational in
-the context of dynamic resource allocation when the underly-                        c(p) = exp(−K × at−1 (p) × dt∗ (p)),                   (3)
-ing demand distribution is non-stationary.
-                                                                     where, K is a scaling parameter, and dt∗ (p) = min dt (p), and
-Bayesian object tracking                                             dt (p) is the estimated distance at model iteration t between p
-                                                                     and all distracters if p is a target or between p and all targets
-We model individual object tracking as an ideal Bayesian ob-         if p is a distracter.
-server learning a linear dynamical system. Given a state equa-           If a target is easily confusable with a distracter and vice
-tion,                                                                versa, the two will swap target/distracter labels with a prob-
-                     xt+1 = Hxt + N (0, Q),                   (1)    ability determined by the magnitude of their confusability.
-                                                                     Once all possible swaps have been resolved, the particle pos-
-and a measurement equation,                                          sesses a new list of targets (which could be the same as the
-                                                                     old list if no swaps occurred).
-                       zt = Cxt + N (0, R),                   (2)        Since the model’s current top-level attention allocation to
-                                                                     all trackers is based on the previous iteration’s distance esti-
-where Q is process noise, and R is measurement noise, we             mates, it now determines a new attention allocation for each
-implemented a Kalman filter that learns {H,C, Q, R} at ev-           of A ‘units’ of attention. Each unit is assigned to an object
-ery time step using expectation-maximization based param-            p by sampling an object index from a mixture model: With
-eter estimation (Ghahramani & Hinton, 1996). This filter             probability τ an object index is sampled from a distribution
-serves as our perceptual ideal Bayesian observer for a sin-          obtained by normalizing the confusability of all objects, and
-gle moving object. It takes the two dimensional coordinates          with probability 1 − τ an object index is sampled from the tar-
-as the state observation {x, y}, predicts the future value of the    gets with probability proportional to their confusability. The
-latent state variable s, and thus generates predictions about        parameter τ controls the extent of inhibition of distracter par-
-future coordinates x, y.                                             ticles. A value of 1 would mean that the model treats targets
-   A model completely faithful to the computational require-         and distracters equally while dividing up attention. A value
-ments of the MOT task would explicitly solve the correspon-          of 0 would mean that the model ignores all distracters and
-dence problem: which observation should be associated with           attends only to the targets2 .
-which filter, as in (Vul et al., 2009). However, to account
-                                                                          1 While earlier indexing-based models of MOT have tried to re-
-for human behavior, a simplification is possible: rather than
-                                                                     tain the individual identities of each of the target particles, empirical
-solving the correspondence problem at every time step, we            results (Z. Pylyshyn, 2004) show that humans find it much easier to
-can simply predict the ambiguity of correspondence at each           track target/non-target compared to tracking numbered target iden-
-time-step, and swap labels accordingly. This approach per-           tities across the same trial duration. In light of this observation, we
-                                                                     use a binary target/non-target identification for all particles.
-mits us to treat particle-filter bindings as known, instead of            2 A very rough grid search in parameter space suggested that
-unknown, by default at every iteration, which greatly reduces        a useful value of τ would be 0.4; this is the value we have used
-the computational complexity of the model.                           throughout our experiments.
-                                                                 2267
+certainly not the only possible goal for metacognitive attention dynamics, constrained greedy optimization is rational in
+the context of dynamic resource allocation when the underlying demand distribution is non-stationary.
 
-                                                                     (a)                                                                                            (b)
-                        t=0
-                                                                                                                                            co pe
-                                                                                                                                 a0           nf rce
-                                                                                                                                                us iv
-                                                                                                                                                                    a1                   a2
-                                                                      t=1                                                                         ab ed
-              720 px                                                                                                                                 ili            attention
-                                                                                                                                                         ty         allocation
-                         720 px                                                                  t=n                             s0                                 s1                   s2
-                                                                                                                                                           ﬁlter
-                                                                                                 ?
-                                                                                                                                                         estimate
-                                                                                                                    {x0,y0}                                   {x1,y1}                  {x2,y2}
-                                                                                                                                       N                                  N                      N
-                                                                                                       (C)
-                                                      Simple spatial tracking                                                                   Attended spatial tracking
-                                                                                Not confusable                                                                                 Not confusable
-                                                                                                                 More
-                                                          Spatial crowding strongly predicts                   confusable                         Humans attend selectively to speciﬁc
-                                                          MOT performance                                                                         locations to do better
-                            Less
-                         confusable                                                                                              Unattended
-                                                                                                                                   location
-                           Confusability
-                                                                                                                                              Attended
-                                                                                                                 Confusability
-                                                                       More                                                                   location                   Less
-                                                                     confusable                                                                                       confusable
-                                           Distance
-                                                                                                                                 Distance
-Figure 1: (a) Schematic representation of a typical multiple object tracking (MOT) task. (b) Graphical description of a hier-
-archical model for tracking N objects simultaneously. The lower level state estimate s is computed using a bank of Kalman
+The top-level attention model assumes that subjects possess a
+fixed amount of total attention, which can be represented as
+the scalar integer A. Following indexing-based ideas of object
+tracking (Z. Pylyshyn, 1989), the model assigns indices p to
+all objects on the screen; and the amount of attention assigned
+to each object location at time t is a function at (p), where
+∑Pp at (p) = A.
+In every iteration, the model first determines the list of
+targets for which it will preferentially allocate attention1 by
+propagating the list of particles marked as targets (henceforth,
+the “target list”) forward across time.
+At every time step, the model evaluates the potential confusability of all targets based on the object states the low-level
+Kalman filters. We approximate the probability of confusion
+as a logistic sigmoid decreasing with the distance between
+the target and its nearest distracter, but critically, this distance is scaled by the spatial resolution that each tracker’s
+allocated attention resource permits it to have. These convergent desiderata inform our formal definition of confusability
+as,
+c(p) = exp(−K × at−1 (p) × dt∗ (p)),
+(3)
+
+Bayesian object tracking
+We model individual object tracking as an ideal Bayesian observer learning a linear dynamical system. Given a state equation,
+xt+1 = Hxt + N (0, Q),
+
+(1)
+
+and a measurement equation,
+zt = Cxt + N (0, R),
+
+(2)
+
+where Q is process noise, and R is measurement noise, we
+implemented a Kalman filter that learns {H,C, Q, R} at every time step using expectation-maximization based parameter estimation (Ghahramani & Hinton, 1996). This filter
+serves as our perceptual ideal Bayesian observer for a single moving object. It takes the two dimensional coordinates
+as the state observation {x, y}, predicts the future value of the
+latent state variable s, and thus generates predictions about
+future coordinates x, y.
+A model completely faithful to the computational requirements of the MOT task would explicitly solve the correspondence problem: which observation should be associated with
+which filter, as in (Vul et al., 2009). However, to account
+for human behavior, a simplification is possible: rather than
+solving the correspondence problem at every time step, we
+can simply predict the ambiguity of correspondence at each
+time-step, and swap labels accordingly. This approach permits us to treat particle-filter bindings as known, instead of
+unknown, by default at every iteration, which greatly reduces
+the computational complexity of the model.
+
+where, K is a scaling parameter, and dt∗ (p) = min dt (p), and
+dt (p) is the estimated distance at model iteration t between p
+and all distracters if p is a target or between p and all targets
+if p is a distracter.
+If a target is easily confusable with a distracter and vice
+versa, the two will swap target/distracter labels with a probability determined by the magnitude of their confusability.
+Once all possible swaps have been resolved, the particle possesses a new list of targets (which could be the same as the
+old list if no swaps occurred).
+Since the model’s current top-level attention allocation to
+all trackers is based on the previous iteration’s distance estimates, it now determines a new attention allocation for each
+of A ‘units’ of attention. Each unit is assigned to an object
+p by sampling an object index from a mixture model: With
+probability τ an object index is sampled from a distribution
+obtained by normalizing the confusability of all objects, and
+with probability 1 − τ an object index is sampled from the targets with probability proportional to their confusability. The
+parameter τ controls the extent of inhibition of distracter particles. A value of 1 would mean that the model treats targets
+and distracters equally while dividing up attention. A value
+of 0 would mean that the model ignores all distracters and
+attends only to the targets2 .
+1 While earlier indexing-based models of MOT have tried to retain the individual identities of each of the target particles, empirical
+results (Z. Pylyshyn, 2004) show that humans find it much easier to
+track target/non-target compared to tracking numbered target identities across the same trial duration. In light of this observation, we
+use a binary target/non-target identification for all particles.
+2 A very rough grid search in parameter space suggested that
+a useful value of τ would be 0.4; this is the value we have used
+throughout our experiments.
+
+2267
+
+(b)
+
+a0
+
+t=1
+
+720 px
+
+co pe
+nf rce
+us iv
+ab ed
+ili
+ty
+
+(a)
+
+t=0
+
+{x0,y0}
+
+{x1,y1}
+
+N
+
+{x2,y2}
+
+N
+
+(C)
+
+N
+
+Attended spatial tracking
+
+Simple spatial tracking
+
+Not confusable
+
+Not confusable
+
+More
+confusable
+
+Spatial crowding strongly predicts
+MOT performance
+Less
+confusable
+
+Humans attend selectively to speciﬁc
+locations to do better
+
+Unattended
+location
+
+Confusability
+
+Confusability
+
+s2
+
+ﬁlter
+estimate
+
+s1
+
+?
+
+Distance
+
+attention
+allocation
+
+s0
+
+t=n
+
+720 px
+
+a2
+
+a1
+
+More
+confusable
+
+Attended
+location
+
+Less
+confusable
+
+Distance
+
+Figure 1: (a) Schematic representation of a typical multiple object tracking (MOT) task. (b) Graphical description of a hierarchical model for tracking N objects simultaneously. The lower level state estimate s is computed using a bank of Kalman
 filters which predict particle locations with an accuracy that is influenced by their spatial resolution. (c) The scale of spatial
 resolution for a filter at any time step is determined by the attention allocated to it by the top-level model of attention dynamics.
 This model obtains information about the confusability of tracking targets from the filter predictions and rationally allocates
 attention to minimize overall confusability constrained by its attention budget.
-   Finally, reflecting sensitivity to cognitive processing costs,                                              Position and velocity for x and y of each object evolve in-
-we assumed the model would possess some degree of inertia                                                    dependently according to an Ornstein-Uhlenbeck process:
+Finally, reflecting sensitivity to cognitive processing costs,
+we assumed the model would possess some degree of inertia
 to changing its attention allocation, so that,
-                                                                                                                                                                               xt = xt−1 + vt ,
-                 at (p) = λat−1 (p) + (1 − λ)ât (p),                                                (4)                                                      vt = λvt−1 − kxt−1 + wt ,              (5)
-                                                                                                                                                                               wt ∼ N(0, σw )
+
+Position and velocity for x and y of each object evolve independently according to an Ornstein-Uhlenbeck process:
+xt = xt−1 + vt ,
+
+at (p) = λat−1 (p) + (1 − λ)ât (p),
+
+vt = λvt−1 − kxt−1 + wt ,
+
+(4)
+
 where ât is the allocation computed for the present iteration
-as above.                                                                                                    where x and v are the position and velocity at time t; λ is a
-                                                                                                             friction parameter constrained to be between 0 and 1; k is a
-Experiment design                                                                                            spring constant which pulls the particles mildly to the center
-The basic MOT task is illustrated in Figure 1a. After initial                                                of the screen; and wt is random acceleration noise added at
-presentation of 12 objects, k of which were red (targets) and                                                each time point which is distributed as a zero-mean Gaussian
-the rest (distracters) blue at the beginning of each trial, the                                              with standard deviation σw .
-subject presses a key to set them in motion. The objects all                                                    In two dimensions, this stochastic process describes a ran-
-turn blue and move on the screen following the dynamics out-                                                 domly moving cloud of objects; the spring constant assures
-lined in Equation 5. After 5 seconds, the objects stop moving                                                that the objects will not drift off to infinity, and the friction pa-
-and one of them, sampled from among the set of targets and                                                   rameter assures that they will not accelerate to infinity. Within
-set of distracters with equal probability, turns red. The sub-                                               the range of parameters we consider, this process converges
-ject must indicate, by pressing ‘y’ or ‘n’, if the red object was                                            to a stable distribution of positions and velocities.
+as above.
+
+Experiment design
+The basic MOT task is illustrated in Figure 1a. After initial
+presentation of 12 objects, k of which were red (targets) and
+the rest (distracters) blue at the beginning of each trial, the
+subject presses a key to set them in motion. The objects all
+turn blue and move on the screen following the dynamics outlined in Equation 5. After 5 seconds, the objects stop moving
+and one of them, sampled from among the set of targets and
+set of distracters with equal probability, turns red. The subject must indicate, by pressing ‘y’ or ‘n’, if the red object was
 red at the beginning of the trial too.
-                                                                                                                                                                              Results
-   Participants were allowed to practice the task they were to
-perform until they verified that they understood the objective                                               More targets become harder to track
-and were accustomed to the keyboard controls. Practice data                                                  We replicate the finding that object tracking becomes harder
-was discarded from subsequent analysis in all cases. All ex-                                                 both with increasing velocity of the particle swarm, and with
-periments were IRB-approved and 50 undergraduate students                                                    increasing number of targets (Alvarez & Franconeri, 2007).
-volunteered as subjects for course credit. Participants viewed                                               Unlike the original experiment, where subjects were allowed
-the MOT display on a 17-inch PC monitor, and used mouse                                                      to adjust their own speed to what they felt was subjectively
-and keyboard for inputs.                                                                                     comfortable, we used a 3-up-1-down staircase, varying the
-                                                                                                       2268
+Participants were allowed to practice the task they were to
+perform until they verified that they understood the objective
+and were accustomed to the keyboard controls. Practice data
+was discarded from subsequent analysis in all cases. All experiments were IRB-approved and 50 undergraduate students
+volunteered as subjects for course credit. Participants viewed
+the MOT display on a 17-inch PC monitor, and used mouse
+and keyboard for inputs.
 
-parameter σw from Equation 5 in steps of 0.5, thereby objec-                                                                  0.7
-                                                                                                                                                                (a)                                                                                  (b)
-                                                                                                                                                                                                                      1
-                                                                                                                                                                                       True positive
-                                                                                                                                                                                            True positive rate rate
-tively measuring a ∼ 79% accuracy threshold for participants.                                                                 0.6                              Empirical upper bound
-                                                                                                                                                                                                              0.8
-                                                                                                               F measure
-                                                                                                                              0.5
-                            Human                                                Model
-                                                                                                                  F measure
-                                                                                                                                                                                                              0.6
-                                                                                                                              0.4
-                                                                 3.2
-                                                                                                                              0.3
-                                                                                                                                                                                                              0.4
-   Velocity threshold                       Velocity threshold
-                                                                  3
-                                                                                                                              0.2                                                                                                                                  Static
-                                                                 2.8
-                                                                                                                                                                                                              0.2
-                                                                                                                                                                                                                                                                   Attention
-                                                                                                                              0.1
-                                                                 2.6                                                                                                                                                                                               Random
-                                                                                                                                  0                                                                                   0
-                                                                                                                                                     Spatial              Attention                                    0                    0.2     0.4      0.6      0.8      1
-                                                                 2.4
-                                                                                                                                                    Static              Attention
-                                                                 2.2
-                                                                                                                                                                Model                                                                     False False positive rate
-                                                                                                                                                                                                                                                 positive           rate
-                                                                                                                                                                (c)                                                                                  (d)
-                                                                                                                              Human error count                                                                       Human error count
-                                                                  2
-                                                                                                                                                                  False negatives                                                          False positives
-                                                                 1.8
-                                                                    0   1    2    3   4   5     6   7
-                        Number of targets                                   Number of targets
-Figure 2: The speed at which observers can maintain a partic-
-ular accuracy threshold decreases as the number of objects to
+(5)
+
+wt ∼ N(0, σw )
+where x and v are the position and velocity at time t; λ is a
+friction parameter constrained to be between 0 and 1; k is a
+spring constant which pulls the particles mildly to the center
+of the screen; and wt is random acceleration noise added at
+each time point which is distributed as a zero-mean Gaussian
+with standard deviation σw .
+In two dimensions, this stochastic process describes a randomly moving cloud of objects; the spring constant assures
+that the objects will not drift off to infinity, and the friction parameter assures that they will not accelerate to infinity. Within
+the range of parameters we consider, this process converges
+to a stable distribution of positions and velocities.
+
+Results
+More targets become harder to track
+We replicate the finding that object tracking becomes harder
+both with increasing velocity of the particle swarm, and with
+increasing number of targets (Alvarez & Franconeri, 2007).
+Unlike the original experiment, where subjects were allowed
+to adjust their own speed to what they felt was subjectively
+comfortable, we used a 3-up-1-down staircase, varying the
+
+2268
+
+2.8
+
+0.3
+
+0.4
+
+0.2
+
+0
+
+2.4
+2.2
+
+1.8
+0
+
+0.6
+
+0.4
+
+1
+
+2
+
+3
+
+4
+
+5
+
+Number of targets
+
+6
+
+7
+
+Figure 2: The speed at which observers can maintain a particular accuracy threshold decreases as the number of objects to
 be tracked increases both for Left: 14 human subjects tested
-using a 3 up-1 down staircase experiment varying object ve-                                                                                       Target set membership                                                                   Target set membership
-locity and Right: simulations of our model performing the
-same staircase task.                                                                                       Figure 3: Treating model performance (correct/incorrect) per
-   Results for 14 subjects are shown in Figure 2a and qualita-                                             trial as a binary classifier of human performance shows that
-tively match those from (Alvarez & Franconeri, 2007). An in                                                attention-gated spatial tracking predicts trial-level human ac-
-silico replication of this experiment using a same-sized agent                                             curacy better than static spatial interference based models, (a)
-pool yields identical results, shown in figure 2b, demonstrat-                                             with a considerably greater F-measure and (b) higher area un-
-ing that our model replicates aggregate human performance                                                  der the ROC curve. Not only does our model make mistakes
-limitations arising out of both increasing velocity and target                                             on the same trials as humans do, it also makes substantially
-count. This overall pattern of behavior cannot be captured by                                              the same mistakes that humans do, both for (c) trials where
-a simple ideal observer without a constrained resource.                                                    humans mistakenly identify a distractor is a target and (d) tri-
-                                                                                                           als where they mistakenly identify a target as a distractor.
+using a 3 up-1 down staircase experiment varying object velocity and Right: simulations of our model performing the
+same staircase task.
+Results for 14 subjects are shown in Figure 2a and qualitatively match those from (Alvarez & Franconeri, 2007). An in
+silico replication of this experiment using a same-sized agent
+pool yields identical results, shown in figure 2b, demonstrating that our model replicates aggregate human performance
+limitations arising out of both increasing velocity and target
+count. This overall pattern of behavior cannot be captured by
+a simple ideal observer without a constrained resource.
+
+Static
+
+0.2
+
+0.1
+
+2.6
+
+2
+
+Number of targets
+
+0.8
+
+0.5
+
+Human error count
+
+Velocity threshold
+
+Velocity threshold
+
+3
+
+True positive rate rate
+True positive
+
+Model
+3.2
+
+(b)
+
+1
+
+Empirical upper bound
+
+0.6
+
+F measure
+F measure
+
+Human
+
+(a)
+
+0.7
+
+Spatial
+Static
+
+Model
+
+Attention
+Attention
+
+(c)
+False negatives
+
+Target set membership
+
+0
+0
+
+Human error count
+
+parameter σw from Equation 5 in steps of 0.5, thereby objectively measuring a ∼ 79% accuracy threshold for participants.
+
+Attention
+Random
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+positive rate
+False False
+positive
+rate
+(d)
+
+1
+
+False positives
+
+Target set membership
+
+Figure 3: Treating model performance (correct/incorrect) per
+trial as a binary classifier of human performance shows that
+attention-gated spatial tracking predicts trial-level human accuracy better than static spatial interference based models, (a)
+with a considerably greater F-measure and (b) higher area under the ROC curve. Not only does our model make mistakes
+on the same trials as humans do, it also makes substantially
+the same mistakes that humans do, both for (c) trials where
+humans mistakenly identify a distractor is a target and (d) trials where they mistakenly identify a target as a distractor.
+
 Predicting individual trial errors
-While replicating aggregate predictions forms a useful base-
-line for assessing model validity, our model provides perfor-                                              performance of half the subjects on a trial predicted that of
-mance predictions for individual MOT trials, thereby provid-                                               the other half, thereby obtaining a theoretical upper bound
-ing a way to examine the limitations that humans face in do-                                               on classification performance (illustrated in Figure 3a). This
-ing this task at a much finer resolution. Pursuant to our in-                                              upper bound places the extent of improvement in within-trial
-terest in limitations to MOT performance, we are interested                                                prediction performance engendered by our model in proper
-more in examining if our model gets the same trials wrong                                                  perspective - our model is clearly a considerable improve-
-as humans. An algorithm that has difficulty solving the same                                               ment over the static case.
-MOT trials that humans find difficult to solve is more interest-                                              Finally, since our model simulates objects movements
-ing from a scientific standpoint than one that merely captures                                             throughout the trial, it generates predictions for which ob-
-overall performance trends.                                                                                jects it considers to be targets at the end of each simulation
-   We conducted this analysis in the form of a binary classi-                                              run. By measuring the congruence of these final target sets
-fication study - using multiple (N=11) simulations of model                                                predicted by the model with the frequency with which hu-
-performance on an individual trial as a predictor for human                                                mans made mistakes on probed objects, we can get a sense
-performance. Perfect correlation between human and model                                                   for whether the model makes the same mistakes the humans
-predictions would equivalent to perfect binary classification                                              did, not just mistakes on the same trials the humans did. Pan-
-of human errors/non-errors using model predictions. As il-                                                 els (c)-(d) in Figure 3 present quantitative evidence for con-
-lustrated in Figure 3, our model outperforms a static spatial                                              gruence between human and model errors. In both figures,
-tracking model on two comprehensive criteria of classifica-                                                the x-axis plots the probability rank with which the model as-
-tion performance: F-measure and area under the ROC curve.                                                  signs a probed object to the target set, measured across 11
-We obtained the ROC for our analysis by varying the thresh-                                                simulation runs; the y-axis counts the number of times the
-old count of number of times the model got a trial correct (out                                            probed object occurred in all error trials across 30 subjects.
-of N) for us to label it positive between 1 and 11. The F-score                                            For false negative trials, where humans, when probed with a
-reported is from the middle of the ROC, corresponding to a                                                 target, said that it wasn’t, panel (c) shows that the targets that
-threshold count of 6.                                                                                      humans mistook for distractors were less likely to be mem-
-   In a separate experiment, we asked 22 students to perform                                               bers of the model’s target set. For false positive trials, where
-the MOT task on 150 pre-set trials, with object velocity set                                               humans, when probed with a distractor, said it was a target,
-at the average of our earlier sample. We then used classifi-                                               panel (d) shows that such distractors were more likely to be
-cation with 20-fold cross-validation to calculate how well the                                             members of the target set in our simulation runs.
-                                                                                                        2269
+While replicating aggregate predictions forms a useful baseline for assessing model validity, our model provides performance predictions for individual MOT trials, thereby providing a way to examine the limitations that humans face in doing this task at a much finer resolution. Pursuant to our interest in limitations to MOT performance, we are interested
+more in examining if our model gets the same trials wrong
+as humans. An algorithm that has difficulty solving the same
+MOT trials that humans find difficult to solve is more interesting from a scientific standpoint than one that merely captures
+overall performance trends.
+We conducted this analysis in the form of a binary classification study - using multiple (N=11) simulations of model
+performance on an individual trial as a predictor for human
+performance. Perfect correlation between human and model
+predictions would equivalent to perfect binary classification
+of human errors/non-errors using model predictions. As illustrated in Figure 3, our model outperforms a static spatial
+tracking model on two comprehensive criteria of classification performance: F-measure and area under the ROC curve.
+We obtained the ROC for our analysis by varying the threshold count of number of times the model got a trial correct (out
+of N) for us to label it positive between 1 and 11. The F-score
+reported is from the middle of the ROC, corresponding to a
+threshold count of 6.
+In a separate experiment, we asked 22 students to perform
+the MOT task on 150 pre-set trials, with object velocity set
+at the average of our earlier sample. We then used classification with 20-fold cross-validation to calculate how well the
 
-                                                                                               45                                                 0.7
-Assessing meta-cognitive attention control                                                                                                                        **
-                                                                         Localization error (px)                             Critical confusability
-                                                                                                                                                  0.6
-                                                                                               40
-                                                                                                                                                  0.5
-The model we have proposed augments flexibility in spa-                                        35                                                 0.4
-tial resolution to existing Bayesian accounts of multiple ob-
-                                                                                                                                                  0.3
-ject tracking, and our simulation experiments show that it                                     30
-                                                                                                                                                  0.2
-does indeed improve trial-level predictions. Here we further                                   25
-                                                                                                                                                  0.1
-test some more specific predictions of the strategic-allocation                                                                                       0
-                                                                                               20                                                         Swaps        Drops
-                                                                                                    15   35   55   75   95
-MOT model: does precision of tracking follow the predic-                                   DIstance to nearest neighbor (px)                              Human response
-tions our model makes about allocated resources? and does            Figure 4: Indirect measurements supporting the role of
-the model distinguish between qualitatively different types of       metacognitive attention dynamics in the MOT task. Left:
-target-identification errors?                                        Subjects were more precise in localizing objects that were in
-Crowded locations are tracked better The key non-trivial             crowded locations than those that were more isolated. Right:
-prediction of our strategic allocation model of multiple object      The model’s overall confusability load was significantly (p =
-tracking is that subjects will localize easily confusable objects    0.0017) higher at peak confusability in ‘drop’ trials than in
-with greater precision, because they will selectively attend to      ‘swap’ trials as measured behaviorally, suggesting that ‘drop-
-them more to resolve the possible ambiguity. In contrast, a          ping’ could be a rational response in such situations. All error
-bottom-up theory of tracking would predict no relationship           bars represent ±1 s.e.m.
+performance of half the subjects on a trial predicted that of
+the other half, thereby obtaining a theoretical upper bound
+on classification performance (illustrated in Figure 3a). This
+upper bound places the extent of improvement in within-trial
+prediction performance engendered by our model in proper
+perspective - our model is clearly a considerable improvement over the static case.
+Finally, since our model simulates objects movements
+throughout the trial, it generates predictions for which objects it considers to be targets at the end of each simulation
+run. By measuring the congruence of these final target sets
+predicted by the model with the frequency with which humans made mistakes on probed objects, we can get a sense
+for whether the model makes the same mistakes the humans
+did, not just mistakes on the same trials the humans did. Panels (c)-(d) in Figure 3 present quantitative evidence for congruence between human and model errors. In both figures,
+the x-axis plots the probability rank with which the model assigns a probed object to the target set, measured across 11
+simulation runs; the y-axis counts the number of times the
+probed object occurred in all error trials across 30 subjects.
+For false negative trials, where humans, when probed with a
+target, said that it wasn’t, panel (c) shows that the targets that
+humans mistook for distractors were less likely to be members of the model’s target set. For false positive trials, where
+humans, when probed with a distractor, said it was a target,
+panel (d) shows that such distractors were more likely to be
+members of the target set in our simulation runs.
+
+2269
+
+45
+
+0.7
+0.6
+
+40
+
+The model we have proposed augments flexibility in spatial resolution to existing Bayesian accounts of multiple object tracking, and our simulation experiments show that it
+does indeed improve trial-level predictions. Here we further
+test some more specific predictions of the strategic-allocation
+MOT model: does precision of tracking follow the predictions our model makes about allocated resources? and does
+the model distinguish between qualitatively different types of
+target-identification errors?
+
+0.4
+0.3
+
+30
+
+0.2
+
+25
+
+0.1
+0
+
+15
+
+35
+
+55
+
+75
+
+95
+
+DIstance to nearest neighbor (px)
+
+Crowded locations are tracked better The key non-trivial
+prediction of our strategic allocation model of multiple object
+tracking is that subjects will localize easily confusable objects
+with greater precision, because they will selectively attend to
+them more to resolve the possible ambiguity. In contrast, a
+bottom-up theory of tracking would predict no relationship
 between crowding and localization error - location errors in
-                                                                     al., 2013). For our purposes, swaps are erroneous identifi-
-such models would reflect either constant perceptual uncer-
-                                                                     cations of target-distracter labels, as uncovered in the probe
-tainty or might even increase for more confusable objects due
-                                                                     trials. Drops are erroneous identifications that participants
+such models would reflect either constant perceptual uncertainty or might even increase for more confusable objects due
 to crowding (Whitney & Levi, 2011).
-                                                                     knew would likely be erroneous before responding because
-   We directly tested this prediction by making a simple ma-         they knew they had dropped a target. Therefore, we can es-
-nipulation to the basic design. We interleaved trials probing        timate whether a given error was a swap or a drop by asking
-the identity of one of 4 targets with ones wherein, once the         participants if they were surprised by the error. When an error
-dots stop moving, one of them disappears, and participants           arises from a participant swapping the probed target for a dis-
-were prompted to click on its latest position using a mouse.         tracter, or vice versa, they would be surprised when told that
-Participants were instructed to focus on getting the probe tri-      they are wrong. Conversely, participants who knew that they
-als correct, and respond on the location trials as best they         had dropped one or more targets would express little surprise
-could. This was done to ensure that subjects did not stop            at being wrong.
+We directly tested this prediction by making a simple manipulation to the basic design. We interleaved trials probing
+the identity of one of 4 targets with ones wherein, once the
+dots stop moving, one of them disappears, and participants
+were prompted to click on its latest position using a mouse.
+Participants were instructed to focus on getting the probe trials correct, and respond on the location trials as best they
+could. This was done to ensure that subjects did not stop
 attending to targets in order to focus more generally on the
-                                                                        We attempted to elicit precisely this information in a third
-entire viewing area to better minimize location errors. We fur-
-                                                                     experiment. The protocol for this study followed the same
-ther expect that the randomly interleaved presentation of both
-                                                                     staircase design used in the first experiment; we collected data
+entire viewing area to better minimize location errors. We further expect that the randomly interleaved presentation of both
 types of trials (controlled by a Bernoulli parameter p = 0.5)
-                                                                     only for 14 subjects and with trials involving 4 targets amidst
 also dissuaded such task switching.
-                                                                     8 distracters. Also, every time a subject responded incorrectly
-   Unlike in the other experiments, where trials were gen-           to the probed particle, they were required to indicate with a
-erated de novo for each participant, all 29 participants             keypress whether they were surprised at being wrong before
-saw the same 150 pre-selected trials in this experiment.             proceeding to the next trial.
-These trials were selected to hold the distance between the             Even though our model does not include an explicit mecha-
-probed/disappearing particle and its nearest neighbor fixed at       nism for dropping targets, it is possible to construct hypothe-
-five separate values, 30 trials per distance value.                  ses about situations within trials that would promote drops,
-   While the data are noisy, the results in Figure 4a, plotting      and operationalize them testably. In particular, we expect that
-the localization error (in pixels) that subjects make against        subjects would drop objects from the target list if their atten-
-the category of trial (sorted by distance to nearest neighbor),      tion resources were over-stretched, causing irreducible con-
-show a clear trend favoring our hypothesis (ρ = 0.91, p =            fusability among objects. In our model the overall demand
-0.03), and supporting related observations from (Iordanescu,         for attention might exceed capacity if there are many poten-
-Grabowecky, & Suzuki, 2009). Objects that disappeared in             tially confusable targets. Therefore, sensitivity to the drop-
-crowded locations were localized with greater precision than         swap distinction in our model would predict that the cumula-
-objects in less crowded locations. This empirical result sup-        tive confusability of all the targets would be larger at critical
-ports our work’s basic assumption - that rational attention al-      points in the trial for instances where errors would occur due
-location influences MOT performance via flexibility in spatial       to drops than for instances where errors would occur due to
-resolution.                                                          swaps. This prediction is borne out in our data, as shown in
-Drop/swap predictions People do not always track all of              Figure 4b, where we show that the critical3 confusability for
-the objects they were asked to, with errors arising from                 3 Since errors in MOT happen at critical junctures, and cannot be
-swapped labels between targets and distracters, instead, they        characterized by statistics averaged across the trial, we have used the
-sometimes simply drop a target and stop tracking it (Drew et         largest value of confusability obtained within a trial as our definition
-                                                                  2270
+Unlike in the other experiments, where trials were generated de novo for each participant, all 29 participants
+saw the same 150 pre-selected trials in this experiment.
+These trials were selected to hold the distance between the
+probed/disappearing particle and its nearest neighbor fixed at
+five separate values, 30 trials per distance value.
+While the data are noisy, the results in Figure 4a, plotting
+the localization error (in pixels) that subjects make against
+the category of trial (sorted by distance to nearest neighbor),
+show a clear trend favoring our hypothesis (ρ = 0.91, p =
+0.03), and supporting related observations from (Iordanescu,
+Grabowecky, & Suzuki, 2009). Objects that disappeared in
+crowded locations were localized with greater precision than
+objects in less crowded locations. This empirical result supports our work’s basic assumption - that rational attention allocation influences MOT performance via flexibility in spatial
+resolution.
+Drop/swap predictions People do not always track all of
+the objects they were asked to, with errors arising from
+swapped labels between targets and distracters, instead, they
+sometimes simply drop a target and stop tracking it (Drew et
 
-trials labeled as ‘drop’ errors from our behavioral characteri-                                   References
-zation is consistently higher than for trials labeled as ‘swap’         Alvarez, G., & Cavanagh, P. (2004). The capacity of visual
-errors.                                                                   short-term memory is set both by visual information load
-                                                                          and by number of objects. Psychological Science, 15, 106-
-                           Discussion                                     111.
-                                                                        Alvarez, G., & Franconeri, S. (2007). How many objects
-Patterns of aggregate behavior in multiple object tracking as             can you attentively track?: Evidence for a resource-limited
-a function of the average speed and spacing of objects, the               tracking mechanism. Journal of Vision, 7(13), 1-10.
-duration of tracking, and the number of distractors can be              Drew, T., Horowitz, T., & Vogel, E. (2013). Swapping or
-explained by an ideal observer iteratively solving the corre-             dropping? electrophysiological measures of difficulty dur-
-spondence problem (Vul et al., 2009). However, such ideal                 ing multiple object tracking. Cognition, 126, 213-223.
-observers cannot capture the critical effects of tracking load –        Feria, C. (2012). The effects of distractors in multiple object
-how many targets must be tracked – indicating that some sort              tracking are modulated by the similarity of distractor and
-of cognitive resource constraints limit human performance.                target features. Perception, 41, 287-304.
-We combined these two features to model human object                    Franconeri, S., Lin, J., Pylyshyn, Z., Fisher, B., & Enns, J.
-tracking performance as Bayesian ideal tracking with a re-                (2008). Evidence against a speed limit in multiple object
-source constraint, and showed that such an agent exhibits the             tracking. Psychonomic Bulletin & Review, 15, 802-808.
-same tradeoffs between speed and number of targets tracked              Ghahramani, Z., & Hinton, G. E. (1996). Parameter esti-
-as people. We go further to show that this limited resource               mation for linear dynamical systems (Tech. Rep.). Techni-
-is not allocated to targets according to a fixed, static divi-            cal Report CRG-TR-96-2, University of Totronto, Dept. of
-sion, but is instead allocated strategically depending on the             Computer Science.
-prospective costs and benefits of possible allocations.                 Iordanescu, L., Grabowecky, M., & Suzuki, S. (2009).
-   Strategic, dynamic allocation of cognitive resources can               Demand-based dynamic distribution of attention and mon-
-better predict across-trial variation in performance. Further-            itoring of velocities during multiple-object tracking. Jour-
-more, such strategic meta-cognitive allocation accounts for               nal of Vision, 9(4), 1.
-differences between trials when targets are dropped from con-           Knill, D., & Richards, W. (1996). Perception as bayesian
-sideration, rather than merely mis-associated and swapped                 inference. Cambridge: MIT Press.
-with distracters, differences that we were able to behaviorally         Luck, S., & Vogel, E. (1997). The capacity of visual working
-elicit using a novel experimental manipulation. Finally, the              memory for features and conjunctions. Nature, 390, 279-
-specific combination of our presumed resource (spatial reso-              281.
-lution – potentially mediated by attention), and our dynamic            Makovski, T., & Jiang, Y. (2009). Feature binding in attentive
-allocation policy, predicts that variation in the precision of            tracking of distinct objects. Visual Cognition, 17, 180-194.
-position estimates for individual targets (localization errors          Pylyshyn, Z. (1989). The role of location indexes in spa-
-increase for less crowded objects), and we show that this                 tial perception: A sketch of the finst spatial index model.
-holds for human observers. Together, these results represent              Cognition, 32, 65-97.
-proof-of-concept for how we can capture the interaction be-             Pylyshyn, Z. (2004). Some puzzling findings in multiple
-tween bottom-up uncertainty and human cognitive resources                 object tracking (mot): I. tracking without keeping track of
-using task-sensitive meta-cognitive policies: in multiple ob-             object identities. Visual Cognition, 11, 801-822.
-ject tracking, spatial resolution is allocated to reduce uncer-         Pylyshyn, Z., & Storm, R. W. (1988). Tracking multiple in-
-tainty for the correspondence problem.                                    dependent targets: Evidence for a parallel tracking mecha-
-   Since our computational model is strongly predicated upon              nism. Spatial Vision, 3, 179-197.
-the ability of observers to consistently index objects, it fails in     Pylyshyn, Z. W. (2006). Some puzzling findings in multiple
-the same directions as indexing theory, e.g. it cannot explain            object tracking (MOT): II. inhibition of moving nontargets.
-why humans find it easier to differentiate targets from distrac-          Visual Cognition, 14(2), 175–198.
-tors than to identify which target is which (Z. W. Pylyshyn,            Trommershäuser, J., Maloney, L. T., & Landy, M. S. (2003).
-2006). Future work could replace our indexing assumption                  Statistical decision theory and the selection of rapid, goal-
-with more realistic models of generating attention foci given             directed movements. JOSA A, 20(7), 1419–1433.
-visual stimulus (Trommershäuser, Maloney, & Landy, 2003)               Vul, E., Frank, M., Alvarez, G., & Tenenbaum, J. (2009).
-to accommodate these results.                                             Explaining human multiple object tracking as resource-
-                                                                          constrained approximate inference in a dynamic probabilis-
-                                                                          tic model. In Advances in neural information processing
-                      Acknowledgments                                     systems (Vol. 22).
-NS and EV are both supported by NSF CPS grant #1239323.                 Whitney, D., & Levi, D. (2011). Visual crowding: a funda-
-                                                                          mental limit on conscious perception and object recogni-
-                                                                          tion. Trends in Cognitive Sciences, 15, 160-168.
+0.5
+
+35
+
+20
+
+**
+
+Critical confusability
+
+Localization error (px)
+
+Assessing meta-cognitive attention control
+
+Swaps
+
+Drops
+
+Human response
+
+Figure 4: Indirect measurements supporting the role of
+metacognitive attention dynamics in the MOT task. Left:
+Subjects were more precise in localizing objects that were in
+crowded locations than those that were more isolated. Right:
+The model’s overall confusability load was significantly (p =
+0.0017) higher at peak confusability in ‘drop’ trials than in
+‘swap’ trials as measured behaviorally, suggesting that ‘dropping’ could be a rational response in such situations. All error
+bars represent ±1 s.e.m.
+al., 2013). For our purposes, swaps are erroneous identifications of target-distracter labels, as uncovered in the probe
+trials. Drops are erroneous identifications that participants
+knew would likely be erroneous before responding because
+they knew they had dropped a target. Therefore, we can estimate whether a given error was a swap or a drop by asking
+participants if they were surprised by the error. When an error
+arises from a participant swapping the probed target for a distracter, or vice versa, they would be surprised when told that
+they are wrong. Conversely, participants who knew that they
+had dropped one or more targets would express little surprise
+at being wrong.
+We attempted to elicit precisely this information in a third
+experiment. The protocol for this study followed the same
+staircase design used in the first experiment; we collected data
+only for 14 subjects and with trials involving 4 targets amidst
+8 distracters. Also, every time a subject responded incorrectly
+to the probed particle, they were required to indicate with a
+keypress whether they were surprised at being wrong before
+proceeding to the next trial.
+Even though our model does not include an explicit mechanism for dropping targets, it is possible to construct hypotheses about situations within trials that would promote drops,
+and operationalize them testably. In particular, we expect that
+subjects would drop objects from the target list if their attention resources were over-stretched, causing irreducible confusability among objects. In our model the overall demand
+for attention might exceed capacity if there are many potentially confusable targets. Therefore, sensitivity to the dropswap distinction in our model would predict that the cumulative confusability of all the targets would be larger at critical
+points in the trial for instances where errors would occur due
+to drops than for instances where errors would occur due to
+swaps. This prediction is borne out in our data, as shown in
+Figure 4b, where we show that the critical3 confusability for
+3 Since errors in MOT happen at critical junctures, and cannot be
+characterized by statistics averaged across the trial, we have used the
+largest value of confusability obtained within a trial as our definition
+
+2270
+
+References
+
+trials labeled as ‘drop’ errors from our behavioral characterization is consistently higher than for trials labeled as ‘swap’
+errors.
+
+Discussion
+Patterns of aggregate behavior in multiple object tracking as
+a function of the average speed and spacing of objects, the
+duration of tracking, and the number of distractors can be
+explained by an ideal observer iteratively solving the correspondence problem (Vul et al., 2009). However, such ideal
+observers cannot capture the critical effects of tracking load –
+how many targets must be tracked – indicating that some sort
+of cognitive resource constraints limit human performance.
+We combined these two features to model human object
+tracking performance as Bayesian ideal tracking with a resource constraint, and showed that such an agent exhibits the
+same tradeoffs between speed and number of targets tracked
+as people. We go further to show that this limited resource
+is not allocated to targets according to a fixed, static division, but is instead allocated strategically depending on the
+prospective costs and benefits of possible allocations.
+Strategic, dynamic allocation of cognitive resources can
+better predict across-trial variation in performance. Furthermore, such strategic meta-cognitive allocation accounts for
+differences between trials when targets are dropped from consideration, rather than merely mis-associated and swapped
+with distracters, differences that we were able to behaviorally
+elicit using a novel experimental manipulation. Finally, the
+specific combination of our presumed resource (spatial resolution – potentially mediated by attention), and our dynamic
+allocation policy, predicts that variation in the precision of
+position estimates for individual targets (localization errors
+increase for less crowded objects), and we show that this
+holds for human observers. Together, these results represent
+proof-of-concept for how we can capture the interaction between bottom-up uncertainty and human cognitive resources
+using task-sensitive meta-cognitive policies: in multiple object tracking, spatial resolution is allocated to reduce uncertainty for the correspondence problem.
+Since our computational model is strongly predicated upon
+the ability of observers to consistently index objects, it fails in
+the same directions as indexing theory, e.g. it cannot explain
+why humans find it easier to differentiate targets from distractors than to identify which target is which (Z. W. Pylyshyn,
+2006). Future work could replace our indexing assumption
+with more realistic models of generating attention foci given
+visual stimulus (Trommershäuser, Maloney, & Landy, 2003)
+to accommodate these results.
+
+Acknowledgments
+NS and EV are both supported by NSF CPS grant #1239323.
 of critical confusability.
-                                                                    2271
 
+Alvarez, G., & Cavanagh, P. (2004). The capacity of visual
+short-term memory is set both by visual information load
+and by number of objects. Psychological Science, 15, 106111.
+Alvarez, G., & Franconeri, S. (2007). How many objects
+can you attentively track?: Evidence for a resource-limited
+tracking mechanism. Journal of Vision, 7(13), 1-10.
+Drew, T., Horowitz, T., & Vogel, E. (2013). Swapping or
+dropping? electrophysiological measures of difficulty during multiple object tracking. Cognition, 126, 213-223.
+Feria, C. (2012). The effects of distractors in multiple object
+tracking are modulated by the similarity of distractor and
+target features. Perception, 41, 287-304.
+Franconeri, S., Lin, J., Pylyshyn, Z., Fisher, B., & Enns, J.
+(2008). Evidence against a speed limit in multiple object
+tracking. Psychonomic Bulletin & Review, 15, 802-808.
+Ghahramani, Z., & Hinton, G. E. (1996). Parameter estimation for linear dynamical systems (Tech. Rep.). Technical Report CRG-TR-96-2, University of Totronto, Dept. of
+Computer Science.
+Iordanescu, L., Grabowecky, M., & Suzuki, S. (2009).
+Demand-based dynamic distribution of attention and monitoring of velocities during multiple-object tracking. Journal of Vision, 9(4), 1.
+Knill, D., & Richards, W. (1996). Perception as bayesian
+inference. Cambridge: MIT Press.
+Luck, S., & Vogel, E. (1997). The capacity of visual working
+memory for features and conjunctions. Nature, 390, 279281.
+Makovski, T., & Jiang, Y. (2009). Feature binding in attentive
+tracking of distinct objects. Visual Cognition, 17, 180-194.
+Pylyshyn, Z. (1989). The role of location indexes in spatial perception: A sketch of the finst spatial index model.
+Cognition, 32, 65-97.
+Pylyshyn, Z. (2004). Some puzzling findings in multiple
+object tracking (mot): I. tracking without keeping track of
+object identities. Visual Cognition, 11, 801-822.
+Pylyshyn, Z., & Storm, R. W. (1988). Tracking multiple independent targets: Evidence for a parallel tracking mechanism. Spatial Vision, 3, 179-197.
+Pylyshyn, Z. W. (2006). Some puzzling findings in multiple
+object tracking (MOT): II. inhibition of moving nontargets.
+Visual Cognition, 14(2), 175–198.
+Trommershäuser, J., Maloney, L. T., & Landy, M. S. (2003).
+Statistical decision theory and the selection of rapid, goaldirected movements. JOSA A, 20(7), 1419–1433.
+Vul, E., Frank, M., Alvarez, G., & Tenenbaum, J. (2009).
+Explaining human multiple object tracking as resourceconstrained approximate inference in a dynamic probabilistic model. In Advances in neural information processing
+systems (Vol. 22).
+Whitney, D., & Levi, D. (2011). Visual crowding: a fundamental limit on conscious perception and object recognition. Trends in Cognitive Sciences, 15, 160-168.
+
+2271
+
+

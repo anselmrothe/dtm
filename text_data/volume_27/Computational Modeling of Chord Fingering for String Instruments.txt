@@ -3,411 +3,864 @@ Proceedings of the Annual Meeting of the Cognitive Science
 Society
 Title
 Computational Modeling of Chord Fingering for String Instruments
+
 Permalink
 https://escholarship.org/uc/item/7cp5z258
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 27(27)
+
 Author
 Lombrozo, Tania
+
 Publication Date
 2005-01-01
 Peer reviewed
- eScholarship.org                                 Powered by the California Digital Library
-                                                                    University of California
 
-                                        Computational Modeling of
-                             Chord Fingering for String Instruments
-                                   Daniele P. Radicioni (radicion@di.unito.it)
-                              Centro di Scienza Cognitiva - Università e Politecnico di Torino
-                                              Via Po, 14 - 10123 Torino, Italy
-                                   Vincenzo Lombardo (vincenzo@di.unito.it)
-                                    Dipartimento di Informatica - Università di Torino
-                                          Corso Svizzera, 185 - 10149 Torino, Italy
-                           Abstract                                 Moreover, modeling the fingering process can con-
-                                                                 tribute to the development of automatic performance en-
-   Fingering is a cognitive process that maps each note          vironments (Parncutt, 1997). In fact, despite its central
-   on a music score to a fingered position on some instru-       role in music performance, scores often lack of finger-
-   ment. This paper presents a computational model for           ing indications, considered unnecessary (being common
-   the fingering process with string instruments, based on
-   a constraint satisfaction approach. The model is imple-       knowledge within a certain musical practice) or an ex-
-   mented in a computer program, which has been tested           ecution choice (Gilardino, 1975a, 1975b). Therefore, a
-   in an experiment in comparison with three human ex-           cognitive model may supply this fundamental informa-
-   perts. The results have confirmed the predictions based       tion.
-   on a set of constraints that encode the bio-mechanical
-   aspects of the performer’s hand in its interaction with          The fingering problem consists in determining for each
-   the musical instrument.                                       note in the score, a position <string, fret> on the fin-
-                                                                 gerboard and a finger of the left hand that presses it.
-                                                                 The notion of position provides a unique identifier for the
-                       Introduction                              correspondence between the note and the fingerboard. A
-Music performance involves the transformation of sym-            fingered position is the triple <string, fret, finger>,
-bolic representations of a score into physical gestures          combining a position with one of the four available fin-
-that can operate a music instrument. A model of music            gers. Provided that guitarists do use four fingers of the
-performance consists of the interpretation of the score          left hand (from the index to the little finger), n notes
-and the application of the gestures to some sound syn-           generate up to 4n different fingerings in the worst case.
-thesis device that represents the instrument. Gesture            Since the same note can be found on up to 4 positions
-modeling is favorably coupled with a physical model of           (i.e., pairs <string, fret>) (Figure 1), this number
-the instrument, since the latter permits a natural repre-        might grow up to 16n .
-sentation of the performer/instrument interaction.                  From the temporal point of view, fingering can be
-   Fingering is an essential part of gesture modeling,           decomposed into two subproblems: the fingering of
-since it significantly affects the technical and expressive      melodies, where the notes to be played form a sequence,
-qualities of the sounds being produced (Traube et al.,           and the fingering of chords, where multiple notes (2 to
-2003). Since fingering defines for each note in the score        6 in the case of guitar) have to be played simultane-
-both the position on the keyboard/fingerboard and the            ously. The two subproblems are addressed differently. In
-(left hand) finger involved in playing, it sets the param-       melody fingering, the fingered position of one note de-
-eters that influence the final timbre of the sound during        pends on the application of constraints over a sequence
-performance. In this paper, we address the modeling              of notes, and the model must account for the consis-
-of the fingering process for the guitar. The case of gui-        tency of subsequent positions; in chord fingering, the
-tar, and of string instruments in general, is particularly       fingered position of one note depends on the other notes
-relevant, since the same note can be played in several           of the chord, and all the positions must satisfy the con-
-positions on the fingerboard.                                    straints applied at the same time. We must also consider
-   Fingering is a complex cognitive process of music pro-        that a whole account of fingering includes both melody
-duction that relates a score, together with the techni-          and chord fingerings, since a melody can consist of both
-cal and ”idiomatic” aspects of the instrument for which          chords and individual notes.
-that score has been conceived, and a performer, with                In previous papers we have addressed the melody
-all her/his knowledge upon the piece, the composer’s             fingering problem in the reduced case of individual
-intentions and the execution style (Clarke et al., 1997;         notes (Radicioni et al., 2004); in this paper we ap-
-Parncutt et al., 1997). So, fingering involves several com-      proach the chord fingering problem by introducing a
-petences: musical analysis, for the interpretation of the        novel model based on the constraint satisfaction problem
-notes in input, physical constraints, posed by the instru-       (CSP) framework. CSP framework has been successful
-ment where the notes have to be played, bio-mechanical           in modeling several problems, like map coloring, vision,
-constraints, which characterize the possible figures of the      robotics, job-shop scheduling, diagnosis, spatiotemporal
-hand.                                                            reasoning, etc. (Dechter, 1998). A constraint satisfac-
-                                                            1791
+eScholarship.org
 
-    frets      0    I    II   III   IV   V    VI VII VIII IX      X    XI XII           The models in (Sayegh, 1989), (Parncutt et al., 1997)
-           1   64   65   66   67    68   69   70   71   72   73   74   75   76       and (Radicioni et al., 2004) are fully functional computa-
-           2   59        61   62    63   64
-                    60                        65   66   67   68   69   70   71
-                                                                                     tional models. In this case the models have been imple-
- strings
-           3   55   56   57   58    59   60   61   62   63   64   65   66   67
-               50
-                                                                                     mented in systems that are able to take in input a score
-           4        51   52   53    54   55   56   57   58   59   60   61   62
-           5   45   46   47   48    49   50   51   52   53   54   55   56   57
-                                                                                     and return a sequence of fingered positions (consider, in
-           6   40   41   42   43    44   45   46   47   48   49   50   51   52       fact, that both models addressed the melody fingering
-                                                                                     problem). These models share the principle of penaliz-
-                                                                                     ing difficulties: fingering is represented like a search for a
-Figure 1: Outline of the notes (indicated as MIDI num-
-                                                                                     combination of positions that pursues an overall effort-
-bers) on a guitar fingerboard, showing that the same                                 saving behavior. The model in (Parncutt et al., 1997)
-tone can be found on up to 4 different positions, i.e.,                              addresses the main ergonomic constraints that pianists
-the case of E treble (MIDI number 64), that lies at <1,                              meet while playing melodies. The fingering is computed
-0>, <2, 5>, <3, 9>, <4,14> (the figure displays only                                 in two steps, with a “generate and test” approach: enu-
-the first XII frets). The fret labelled 0 indicates an open                          meration of all possible fingerings, and weighting of fin-
-string: i.e., the note produced by plucking the string                               gerings according to the degree of difficulty. Weighting
-without pressing any fret.                                                           is conducted on the basis of a set of 12 rules, each one
-                                                                                     determining the contribution of some source to an over-
-                                                                                     all difficulty score (e.g., rule 6 slightly discourages the
-tion problem consists in assigning values to variables,                              use of ring and little fingers by penalizing their use with
-which satisfy a set of constraints. Here we cast the                                 a heavier score). In such setting, the lowest rated fin-
-chord fingering problem by representing each note that                               gering is ”the one that [...] will be used most often in
-composes a chord as a variable; each variable may then                               performance” (Parncutt et al., 1997).
-be assigned up to 16 values given by the possible fin-                                  The algorithmic approach proposed by Sayegh (1989)
-gered positions (triples <string, fret, finger>), and                                exploits a graph-based representation, with the vertices
-physical and bio-mechanical constraints restrict the vi-                             grouped in layers; for each note, the possible fingered
-able instantiations. To the best of our knowledge, this                              positions, each encoded by a vertex, form a layer; each
-is the first modeling attempt that addresses specifically                            vertex of a layer is connected to all the vertices of the
-the chord fingering problem.                                                         following layer. Weights on the edges represent the dif-
-   The paper is organized as follows: we first review the                            ficulties of a transition from a fingered position to the
-existing approaches to general fingering; then we intro-                             next. The problem of finding a suitable fingering is repre-
-duce the CSP methodology and we show that the fin-                                   sented as the problem of finding a path in the graph, such
-gering problem can be cast in CSP terms together with                                that the difficulties are minimized. Unfortunately, nei-
-the search strategy. Finally, we present and discuss the                             ther the sources of difficulty (in the form of constraints
-results of an experimental test in which we compare the                              on bio-mechanical, ergonomic or cognitive factors) nor
-output of the implemented model on 34 chords with the                                experimental results on the viability of this approach
-fingerings provided by 3 expert guitarists.                                          have been provided by Sayegh. Recent evidence support
-                                                                                     the fact that performers pursue an overall effort-saving
-                                Related work                                         behavior (Parncutt et al., 1997; Parlitz et al., 1998; Hei-
-                                                                                     jink & Meulenbroek, 2002). The graph-based Sayegh’s
-The interdisciplinary nature of the fingering problem has                            approach has been recently improved by Radicioni et al.
-been addressed from several points of view, both in the                              (2004) by introducing the relevant notion of segmenta-
-music practice and the scientific research. In the mu-                               tion of a music score and a characterization of the biome-
-sic practice, the importance of fingering is acknowledged                            chanical constraints (see also below).
-in music performance (Gilardino, 1975a; 1975b), com-                                    The present work proposes a model which attempts to
-position (see e.g., Aguado, 1843), education (Gellrich &                             grasp the main physical and bio-mechanical difficulties
-Parncutt, 1998) and theory (Duarte, 1966). In the scien-                             implied in chord fingering. The overall approach is sim-
-tific research, motor behavior in the fingering process has                          ilar to Parncutt & colleagues’ for the case of keyboard
-been investigated in (Palmer & Meyer, 2000), sometimes                               instruments in melody fingering. The novelties of our
-with a focus on keyboard and fingerboard instruments                                 approach are the framework in which the problem is en-
-(Jacobs, 2001; Heijink & Meulenbroek, 2002). Physical                                coded, namely the CSP framework, the application to
-parameters that result from fingering have been taken                                the chord fingering problem and an experimental vali-
-into account in the physical model of the classical guitar                           dation. We now introduce the CSP framework and the
-by Cuzzucoli and Lombardo (1999), while others have in-                              encoding of the fingering problem.
-ferred some aspects of the instrumental gesture, includ-
-ing fingering, by analyzing the signal that results from                                Chord fingering modeled as a constraint
+Powered by the California Digital Library
+University of California
+
+Computational Modeling of
+Chord Fingering for String Instruments
+Daniele P. Radicioni (radicion@di.unito.it)
+Centro di Scienza Cognitiva - Università e Politecnico di Torino
+Via Po, 14 - 10123 Torino, Italy
+
+Vincenzo Lombardo (vincenzo@di.unito.it)
+Dipartimento di Informatica - Università di Torino
+Corso Svizzera, 185 - 10149 Torino, Italy
+Abstract
+Fingering is a cognitive process that maps each note
+on a music score to a fingered position on some instrument. This paper presents a computational model for
+the fingering process with string instruments, based on
+a constraint satisfaction approach. The model is implemented in a computer program, which has been tested
+in an experiment in comparison with three human experts. The results have confirmed the predictions based
+on a set of constraints that encode the bio-mechanical
+aspects of the performer’s hand in its interaction with
+the musical instrument.
+
+Introduction
+Music performance involves the transformation of symbolic representations of a score into physical gestures
+that can operate a music instrument. A model of music
+performance consists of the interpretation of the score
+and the application of the gestures to some sound synthesis device that represents the instrument. Gesture
+modeling is favorably coupled with a physical model of
+the instrument, since the latter permits a natural representation of the performer/instrument interaction.
+Fingering is an essential part of gesture modeling,
+since it significantly affects the technical and expressive
+qualities of the sounds being produced (Traube et al.,
+2003). Since fingering defines for each note in the score
+both the position on the keyboard/fingerboard and the
+(left hand) finger involved in playing, it sets the parameters that influence the final timbre of the sound during
+performance. In this paper, we address the modeling
+of the fingering process for the guitar. The case of guitar, and of string instruments in general, is particularly
+relevant, since the same note can be played in several
+positions on the fingerboard.
+Fingering is a complex cognitive process of music production that relates a score, together with the technical and ”idiomatic” aspects of the instrument for which
+that score has been conceived, and a performer, with
+all her/his knowledge upon the piece, the composer’s
+intentions and the execution style (Clarke et al., 1997;
+Parncutt et al., 1997). So, fingering involves several competences: musical analysis, for the interpretation of the
+notes in input, physical constraints, posed by the instrument where the notes have to be played, bio-mechanical
+constraints, which characterize the possible figures of the
+hand.
+
+Moreover, modeling the fingering process can contribute to the development of automatic performance environments (Parncutt, 1997). In fact, despite its central
+role in music performance, scores often lack of fingering indications, considered unnecessary (being common
+knowledge within a certain musical practice) or an execution choice (Gilardino, 1975a, 1975b). Therefore, a
+cognitive model may supply this fundamental information.
+The fingering problem consists in determining for each
+note in the score, a position <string, fret> on the fingerboard and a finger of the left hand that presses it.
+The notion of position provides a unique identifier for the
+correspondence between the note and the fingerboard. A
+fingered position is the triple <string, fret, finger>,
+combining a position with one of the four available fingers. Provided that guitarists do use four fingers of the
+left hand (from the index to the little finger), n notes
+generate up to 4n different fingerings in the worst case.
+Since the same note can be found on up to 4 positions
+(i.e., pairs <string, fret>) (Figure 1), this number
+might grow up to 16n .
+From the temporal point of view, fingering can be
+decomposed into two subproblems: the fingering of
+melodies, where the notes to be played form a sequence,
+and the fingering of chords, where multiple notes (2 to
+6 in the case of guitar) have to be played simultaneously. The two subproblems are addressed differently. In
+melody fingering, the fingered position of one note depends on the application of constraints over a sequence
+of notes, and the model must account for the consistency of subsequent positions; in chord fingering, the
+fingered position of one note depends on the other notes
+of the chord, and all the positions must satisfy the constraints applied at the same time. We must also consider
+that a whole account of fingering includes both melody
+and chord fingerings, since a melody can consist of both
+chords and individual notes.
+In previous papers we have addressed the melody
+fingering problem in the reduced case of individual
+notes (Radicioni et al., 2004); in this paper we approach the chord fingering problem by introducing a
+novel model based on the constraint satisfaction problem
+(CSP) framework. CSP framework has been successful
+in modeling several problems, like map coloring, vision,
+robotics, job-shop scheduling, diagnosis, spatiotemporal
+reasoning, etc. (Dechter, 1998). A constraint satisfac-
+
+1791
+
+strings
+
+frets
+
+0
+
+I
+
+II
+
+III
+
+IV
+
+V
+
+1
+
+64
+
+65
+
+66
+
+67
+
+68
+
+69
+
+70
+
+71
+
+72
+
+73
+
+74
+
+75
+
+76
+
+2
+
+59
+
+60
+
+61
+
+62
+
+63
+
+64
+
+65
+
+66
+
+67
+
+68
+
+69
+
+70
+
+71
+
+3
+
+55
+
+56
+
+57
+
+58
+
+59
+
+60
+
+61
+
+62
+
+63
+
+64
+
+65
+
+66
+
+67
+
+4
+
+50
+
+51
+
+52
+
+53
+
+54
+
+55
+
+56
+
+57
+
+58
+
+59
+
+60
+
+61
+
+62
+
+5
+
+45
+
+46
+
+47
+
+48
+
+49
+
+50
+
+51
+
+52
+
+53
+
+54
+
+55
+
+56
+
+57
+
+6
+
+40
+
+41
+
+42
+
+43
+
+44
+
+45
+
+46
+
+47
+
+48
+
+49
+
+50
+
+51
+
+52
+
+VI VII VIII IX
+
+X
+
+XI XII
+
+Figure 1: Outline of the notes (indicated as MIDI numbers) on a guitar fingerboard, showing that the same
+tone can be found on up to 4 different positions, i.e.,
+the case of E treble (MIDI number 64), that lies at <1,
+0>, <2, 5>, <3, 9>, <4,14> (the figure displays only
+the first XII frets). The fret labelled 0 indicates an open
+string: i.e., the note produced by plucking the string
+without pressing any fret.
+
+The models in (Sayegh, 1989), (Parncutt et al., 1997)
+and (Radicioni et al., 2004) are fully functional computational models. In this case the models have been implemented in systems that are able to take in input a score
+and return a sequence of fingered positions (consider, in
+fact, that both models addressed the melody fingering
+problem). These models share the principle of penalizing difficulties: fingering is represented like a search for a
+combination of positions that pursues an overall effortsaving behavior. The model in (Parncutt et al., 1997)
+addresses the main ergonomic constraints that pianists
+meet while playing melodies. The fingering is computed
+in two steps, with a “generate and test” approach: enumeration of all possible fingerings, and weighting of fingerings according to the degree of difficulty. Weighting
+is conducted on the basis of a set of 12 rules, each one
+determining the contribution of some source to an overall difficulty score (e.g., rule 6 slightly discourages the
+use of ring and little fingers by penalizing their use with
+a heavier score). In such setting, the lowest rated fingering is ”the one that [...] will be used most often in
+performance” (Parncutt et al., 1997).
+The algorithmic approach proposed by Sayegh (1989)
+exploits a graph-based representation, with the vertices
+grouped in layers; for each note, the possible fingered
+positions, each encoded by a vertex, form a layer; each
+vertex of a layer is connected to all the vertices of the
+following layer. Weights on the edges represent the difficulties of a transition from a fingered position to the
+next. The problem of finding a suitable fingering is represented as the problem of finding a path in the graph, such
+that the difficulties are minimized. Unfortunately, neither the sources of difficulty (in the form of constraints
+on bio-mechanical, ergonomic or cognitive factors) nor
+experimental results on the viability of this approach
+have been provided by Sayegh. Recent evidence support
+the fact that performers pursue an overall effort-saving
+behavior (Parncutt et al., 1997; Parlitz et al., 1998; Heijink & Meulenbroek, 2002). The graph-based Sayegh’s
+approach has been recently improved by Radicioni et al.
+(2004) by introducing the relevant notion of segmentation of a music score and a characterization of the biomechanical constraints (see also below).
+The present work proposes a model which attempts to
+grasp the main physical and bio-mechanical difficulties
+implied in chord fingering. The overall approach is similar to Parncutt & colleagues’ for the case of keyboard
+instruments in melody fingering. The novelties of our
+approach are the framework in which the problem is encoded, namely the CSP framework, the application to
+the chord fingering problem and an experimental validation. We now introduce the CSP framework and the
+encoding of the fingering problem.
+
+tion problem consists in assigning values to variables,
+which satisfy a set of constraints. Here we cast the
+chord fingering problem by representing each note that
+composes a chord as a variable; each variable may then
+be assigned up to 16 values given by the possible fingered positions (triples <string, fret, finger>), and
+physical and bio-mechanical constraints restrict the viable instantiations. To the best of our knowledge, this
+is the first modeling attempt that addresses specifically
+the chord fingering problem.
+The paper is organized as follows: we first review the
+existing approaches to general fingering; then we introduce the CSP methodology and we show that the fingering problem can be cast in CSP terms together with
+the search strategy. Finally, we present and discuss the
+results of an experimental test in which we compare the
+output of the implemented model on 34 chords with the
+fingerings provided by 3 expert guitarists.
+
+Related work
+The interdisciplinary nature of the fingering problem has
+been addressed from several points of view, both in the
+music practice and the scientific research. In the music practice, the importance of fingering is acknowledged
+in music performance (Gilardino, 1975a; 1975b), composition (see e.g., Aguado, 1843), education (Gellrich &
+Parncutt, 1998) and theory (Duarte, 1966). In the scientific research, motor behavior in the fingering process has
+been investigated in (Palmer & Meyer, 2000), sometimes
+with a focus on keyboard and fingerboard instruments
+(Jacobs, 2001; Heijink & Meulenbroek, 2002). Physical
+parameters that result from fingering have been taken
+into account in the physical model of the classical guitar
+by Cuzzucoli and Lombardo (1999), while others have inferred some aspects of the instrumental gesture, including fingering, by analyzing the signal that results from
 the sound production process (Traube et al., 2003). The
-cognitive issues involved in fingering have been raised                                          satisfaction problem
-in the introductive work of Sloboda (1985), refined by                               The fingering model takes in input chords described by
-Clarke et al. (1997) for the case of keyboard fingering,                             a score in the traditional western music notation (called
-and modeled with a computational approach by Parn-                                   common practice notation – CPN) and returns in out-
-cutt (1997) and Parncutt et al. (1997).                                              put all the fingerings that satisfy a set of constraints that
-                                                                                 1792
+cognitive issues involved in fingering have been raised
+in the introductive work of Sloboda (1985), refined by
+Clarke et al. (1997) for the case of keyboard fingering,
+and modeled with a computational approach by Parncutt (1997) and Parncutt et al. (1997).
 
-     Table 1: The set of bio-mechanical constraints.
-                                                                                                                   ≠      V4
-                                                                                              V4              V1
-   Set of constraints
-                                                                                  V1
-                                                                                                          ≠                  ≠
-   One note per string: on each string it is possible to play at
-                                                                                  V2
-                                                                                              V3                   ≠
-   most one note at a time                                                                                                 V3
-   NoOverlaps: higher fingers press higher frets                                                            V2     ≠
-   Max span over finger pairs: for each finger pair, there exists
-   a maximum span that can never be exceeded:                                            a)                        b)
-         maxSpan        index     middle     ring     little          Figure 2: Frame a): The map-coloring problem, consist-
-           little         4          3         1         -            ing of assigning a color (from a set of colors) to each
-            ring          3          0         -                      region of the map, such that no two adjacent regions
-          middle          2          -                                have the same color. Frame b): its equivalent graph.
-           index          -
-   Barré index : all the positions of the barré are on the same     that all the positions of the barré are on the same fret
-   fret and all the other positions in the chord are in higher-       and all the other positions in the chord are in higher
-   numbered frets
-                                                                      numbered frets.
-                                                                         Given such a set of constraints, the fingering prob-
-                                                                      lem can be encoded as a CSP: a CSP consists of
-are derived from the instrument shape and the anatomy                 the assignment of values to variables, which satisfy
-of the hand. The problem is cast in CSP terms, where                  a set of constraints. A constraint satisfaction prob-
-the variables are the notes indicated in the score, the               lem P = {X , D, C} is defined by a set of variables,
-domains of the variables are the fingered positions (i.e.             X1 , X2 , ..., Xn , and a set of constraints, C1 , C2 , ..., Cm .
-position on the fingerboard plus a finger of the left hand)           Each variable Xi has a domain Di of possible values.
-and the set of constraints that restrict the possible com-            Each constraint Ci involves a subset of the variables and
-binations of fingered positions. In the case several fin-             specifies the allowed combinations of values for the cur-
-gerings satisfy such a set of constraints, the model also             rent subset. An assignment that satisfies all the con-
-provides a ranking on comfort accounts. We now intro-                 straints is a consistent assignment, and a solution to a
-duce the problem cast in CSP and the search strategy                  CSP is an assignment to all the variables so that all con-
-that computes the suitable fingerings.                                straints are satisfied (Kumar, 1992). In order to repre-
-                                                                      sent graphically a CSP, one can build the equivalent con-
+Chord fingering modeled as a constraint
+satisfaction problem
+
+1792
+
+The fingering model takes in input chords described by
+a score in the traditional western music notation (called
+common practice notation – CPN) and returns in output all the fingerings that satisfy a set of constraints that
+
+Table 1: The set of bio-mechanical constraints.
+
+V1
+
+Set of constraints
+One note per string: on each string it is possible to play at
+most one note at a time
+
+V3
+
+V2
+
+Max span over finger pairs: for each finger pair, there exists
+a maximum span that can never be exceeded:
+
+index
+
+middle
+
+ring
+
+little
+
+little
+
+4
+
+3
+
+1
+
+-
+
+-
+
+ring
+
+3
+
+0
+
+middle
+
+2
+
+-
+
+index
+
+-
+
+≠
+V2
+
+NoOverlaps: higher fingers press higher frets
+
+maxSpan
+
+V1
+
+V4
+
+a)
+
+≠
+≠
+≠
+
+V4
+
+≠
+V3
+
+b)
+
+Figure 2: Frame a): The map-coloring problem, consisting of assigning a color (from a set of colors) to each
+region of the map, such that no two adjacent regions
+have the same color. Frame b): its equivalent graph.
+
+Barré index : all the positions of the barré are on the same
+fret and all the other positions in the chord are in highernumbered frets
+
+are derived from the instrument shape and the anatomy
+of the hand. The problem is cast in CSP terms, where
+the variables are the notes indicated in the score, the
+domains of the variables are the fingered positions (i.e.
+position on the fingerboard plus a finger of the left hand)
+and the set of constraints that restrict the possible combinations of fingered positions. In the case several fingerings satisfy such a set of constraints, the model also
+provides a ranking on comfort accounts. We now introduce the problem cast in CSP and the search strategy
+that computes the suitable fingerings.
+
 Problem representation
-                                                                      straint graph, in which each vertex represents a variable,
-Given that CSP variables are the notes and the domains                and each arc represents a constraint between variables
-are the fingered positions, we need to define a suitable set          standing at the end points of the arc. A typical example
-of constraints. Based on guitar handbooks from histori-               of CSP is the map-coloring problem, depicted in Figure 2:
-cal composers (Aguado, 1843) and contemporary teach-                  four regions on a map have to be colored in such a way
-ers (Duarte, 1966), on a review of some of the didactic               that no two adjacent regions have the same color. In
-opuses of the early 19th century guitar composers (Giu-               the CSP formulation, we have a variable for each region
-liani, 1812; Sor, 1815) and on our musical experience, we             and its domain is the whole set of colors. For each pair
-devised a set of bio-mechanical constraints that express              of variables corresponding to adjacent regions there is a
-which combinations of fingered positions could actually               binary constraint that prevents from assigning the same
-be played by a human performer (see Table 1). One                     value to adjacent vertices.
-note per string expresses the constraint that it is possi-               Our formulation of the fingering problem for chords
-ble to play at most one note at a time on each string,                can be stated as follows: we are given 1) a set of vari-
-so any position prevents from other placements on the                 ables: the notes composing the chord; 2) a finite and dis-
-same string; no overlaps ensures that higher-numbered                 crete domain for each variable: from 1 up to 16 fingered
-fingers press higher-numbered frets1 ; max spans over fin-            positions (that is, 4 positions combined with the 4 avail-
-ger pairs expresses a maximum span of frets for each pair             able fingers) per note; 3) a set of constraints defined over
-of fingers, that can never be exceeded2 . Finally, since a            each pair of the original set of variables plus the barré
-chord can be composed by 2 to 6 fingered positions and                specific constraint. The goal is to find one assignment
-the available fingers are only four, we can apply the barré          to the variables such that the assignment satisfies all the
-technique, in which a single finger can press more than               constraints; yet, if more than a unique assignment arises,
-one position simultaneously. We restrict the use of barré            the goal is to rank them in order to predict which will
-to the index finger: the constraint Barré index states               be preferred by human performers.
-   1                                                                     The graph in Figure 3 represents a chord fingering
-     Recall that we start numbering fingers from index, num-          problem. For example, the note F2, corresponding to the
-bered 1, to little finger, numbered 4, and frets from I to XVII
-(see Figure 1).                                                       variable x in the graph, could be played on <6,1,1> i.e.
-   2
-     There also exists a minimum span, which is not reported          on the 6th string, 1st fret, by index finger; on <6,1,2>, by
-here for space reasons.                                               middle finger; and so forth. Each vertex is connected to
-                                                                  1793
+Given that CSP variables are the notes and the domains
+are the fingered positions, we need to define a suitable set
+of constraints. Based on guitar handbooks from historical composers (Aguado, 1843) and contemporary teachers (Duarte, 1966), on a review of some of the didactic
+opuses of the early 19th century guitar composers (Giuliani, 1812; Sor, 1815) and on our musical experience, we
+devised a set of bio-mechanical constraints that express
+which combinations of fingered positions could actually
+be played by a human performer (see Table 1). One
+note per string expresses the constraint that it is possible to play at most one note at a time on each string,
+so any position prevents from other placements on the
+same string; no overlaps ensures that higher-numbered
+fingers press higher-numbered frets1 ; max spans over finger pairs expresses a maximum span of frets for each pair
+of fingers, that can never be exceeded2 . Finally, since a
+chord can be composed by 2 to 6 fingered positions and
+the available fingers are only four, we can apply the barré
+technique, in which a single finger can press more than
+one position simultaneously. We restrict the use of barré
+to the index finger: the constraint Barré index states
+1
+Recall that we start numbering fingers from index, numbered 1, to little finger, numbered 4, and frets from I to XVII
+(see Figure 1).
+2
+There also exists a minimum span, which is not reported
+here for space reasons.
 
-                                Dz = {<6,13,1>,<6,13,2>,<6,13,3> <6,13,4>,
-                                     <5,8,1>,<5,8,2>,<5,8,3>,<5,8,4>,              In particular, the algorithm that checks the directional
-                          z          <4,3,1> <4,3,2> <4,3,3> <4,3,4>}          path-consistency scans the variables in order and re-
-                                                                               trieves, for each note, the relative domain. Once reached
-                                  Dy = {<6,8,1>,<6,8,2>,<6,8,3> <6,8,4>,       the k -th variable, the algorithm restricts the domains
-                          y          <5,3,1>,<5,3,2>,<5,3,3>,<5,3,4>}
-                                                                               of the lower variables on the basis of the constraints
-                                                                               that involve any xi ≤ xk and xk ; the algorithm then
-                                  Dx = {<6,1,1>,<6,1,2>,<6,1,3> <6,1,4>}        iterates the restriction taking as reference the variable
-                          x                                                     xk−1 and restricting the domains of xi ≤ xk−1 ; and so
-                                                                                on. The same iterative process is executed on pairs of
-Figure 3: A chord in input and the domains related to                           linked variables, thus restricting the combined domains
-each note of the chord. Each triple in the note domains                         on the basis of the constraints with respect to a higher
-indicates <string,fret,finger>.                                                 variable. So, the combined domains of xi and xj are
-                                                                                restricted with respect to the domain of some variable
-                                                                                xk ≥ xi and xj . Once the graph has been made di-
-all the other vertices: an edge connecting two vertices,                        rectional path-consistent, a depth-first search with back-
-e.g. x and y, indicates that while pressing a fingered                          tracking occurs. The search follows the natural order,
-position related to y, the performer is constrained by                          and starts by combining pairs of fingered positions from
-pressing a fingered position related to x.                                      higher strings (namely, the basses: the sixth and fifth
-                                                                                string in Fig. 1), lower frets and lower fingers. Under-
-The search strategy                                                             pinned by the didactic guitar literature (Aguado, 1843;
-                                                                                Duarte, 1966), we assume that playing at the lower frets
-Given a representation in CSP terms, a search strat-                            is more comfortable; yet, the first fingers (index, middle)
-egy is applied to find the assignments to variables that                        are stronger, and then they are expected to press the
-satisfy the constraints. A CSP search strategy propa-                           strings with more ease (see also Parncutt et al., 1997):
-gates constraints statically to yield a simpler problem                         the first fingerings that the search finds are expected to
-and then proceeds with a standard depth-first algorithm                         be more comfortable than the last ones.
-to ground the variables. In case the algorithm reaches                             So the search strategy implements a preference for
-a dead end, backtracking resorts to the last instantiated                       comfortable fingerings, given the evidence that, in ab-
-variable that has alternatives open.                                            sence of higher cognitive constraints like phrasing, per-
-   Constraint propagation reduces the size of the variable                      formers choose the bio-mechanically easiest solutions
-domains while not affecting the final set of solutions. The                     (Heijink & Meulenbroek, 2002). This is immediately ap-
-graph of the simplified problem satisfies the properties                        plicable to cases of chord fingering on spot (out of any
-of arc-consistency and path-consistency. Arc-consistency                        musical context), like in pedagogical situations. These
-means that given an arc (Vx , Vy ) −i.e., connecting the                        cases are considered for the experimental validation de-
-variable x to the variable y−, it is arc consistent if for                      scribed below.
+that all the positions of the barré are on the same fret
+and all the other positions in the chord are in higher
+numbered frets.
+Given such a set of constraints, the fingering problem can be encoded as a CSP: a CSP consists of
+the assignment of values to variables, which satisfy
+a set of constraints. A constraint satisfaction problem P = {X , D, C} is defined by a set of variables,
+X1 , X2 , ..., Xn , and a set of constraints, C1 , C2 , ..., Cm .
+Each variable Xi has a domain Di of possible values.
+Each constraint Ci involves a subset of the variables and
+specifies the allowed combinations of values for the current subset. An assignment that satisfies all the constraints is a consistent assignment, and a solution to a
+CSP is an assignment to all the variables so that all constraints are satisfied (Kumar, 1992). In order to represent graphically a CSP, one can build the equivalent constraint graph, in which each vertex represents a variable,
+and each arc represents a constraint between variables
+standing at the end points of the arc. A typical example
+of CSP is the map-coloring problem, depicted in Figure 2:
+four regions on a map have to be colored in such a way
+that no two adjacent regions have the same color. In
+the CSP formulation, we have a variable for each region
+and its domain is the whole set of colors. For each pair
+of variables corresponding to adjacent regions there is a
+binary constraint that prevents from assigning the same
+value to adjacent vertices.
+Our formulation of the fingering problem for chords
+can be stated as follows: we are given 1) a set of variables: the notes composing the chord; 2) a finite and discrete domain for each variable: from 1 up to 16 fingered
+positions (that is, 4 positions combined with the 4 available fingers) per note; 3) a set of constraints defined over
+each pair of the original set of variables plus the barré
+specific constraint. The goal is to find one assignment
+to the variables such that the assignment satisfies all the
+constraints; yet, if more than a unique assignment arises,
+the goal is to rank them in order to predict which will
+be preferred by human performers.
+The graph in Figure 3 represents a chord fingering
+problem. For example, the note F2, corresponding to the
+variable x in the graph, could be played on <6,1,1> i.e.
+on the 6th string, 1st fret, by index finger; on <6,1,2>, by
+middle finger; and so forth. Each vertex is connected to
+
+1793
+
+z
+
+Dz = {<6,13,1>,<6,13,2>,<6,13,3> <6,13,4>,
+<5,8,1>,<5,8,2>,<5,8,3>,<5,8,4>,
+<4,3,1> <4,3,2> <4,3,3> <4,3,4>}
+
+y
+
+Dy = {<6,8,1>,<6,8,2>,<6,8,3> <6,8,4>,
+<5,3,1>,<5,3,2>,<5,3,3>,<5,3,4>}
+
+x
+
+Dx = {<6,1,1>,<6,1,2>,<6,1,3> <6,1,4>}
+
+Figure 3: A chord in input and the domains related to
+each note of the chord. Each triple in the note domains
+indicates <string,fret,finger>.
+
+all the other vertices: an edge connecting two vertices,
+e.g. x and y, indicates that while pressing a fingered
+position related to y, the performer is constrained by
+pressing a fingered position related to x.
+
+The search strategy
+Given a representation in CSP terms, a search strategy is applied to find the assignments to variables that
+satisfy the constraints. A CSP search strategy propagates constraints statically to yield a simpler problem
+and then proceeds with a standard depth-first algorithm
+to ground the variables. In case the algorithm reaches
+a dead end, backtracking resorts to the last instantiated
+variable that has alternatives open.
+Constraint propagation reduces the size of the variable
+domains while not affecting the final set of solutions. The
+graph of the simplified problem satisfies the properties
+of arc-consistency and path-consistency. Arc-consistency
+means that given an arc (Vx , Vy ) −i.e., connecting the
+variable x to the variable y−, it is arc consistent if for
 every value i in Dx , there is some value j in Dy such
-that the instantiations Vx = i and Vy = j are permit-                           Example
-ted by the binary constraint between Vx and Vy . Path-
-consistency (or k-consistency) means that it is possible                        Let us consider the chord presented in Figure 3. The
-to instantiate up to k-variables consistently. Since path-                      order of variables is {x, y, z}. The directional path-
-consistency has an exponential complexity, it is custom-                        consistency algorithm performs two steps: a) the domain
-ary to trade-off between the consistency degree and the                         of each variable i < z is revised (that is, restricted) rel-
-computational effort via the introduction of the direc-                         atively to z; b) each binary constraint (combining the
-tional arc-consistency and directional path-consistency                         allowed pairs of values from i and j) Rij , i, j ≤ z is
-(Dechter, 2003). Directionality limits consistency to ap-                       further revised relative to z. The combinations that are
-ply only along a given order on variables: in the case of                       still available after running the algorithm are in Table 2.
-directional path-consistency that is adopted in this pa-                        Step a: DPC revises (that is, restricts the domain of)
-per, given the order < x1 , x2 , ..., xn >, the requirement                     y relatively to z, yielding Dy = {<6,8,1>; <6,8,2>;
-is that for all i, j ≤ k we have that {xi , xj } is path-                       <6,8,3>; <5,3,1>; <5,3,2>; <5,3,3> };
-consistent relatively to xk . Directional path-consistency                      then it revises x relative to z and x relative to y, yielding
-is useful in the modeling of the fingering process since the                    Dx = { <6,1,1>; <6,1,2>; <6,1,3> }.
-search intuitively starts from one fingered position and                        Step b: inconsistencies are deleted from Rxy , obtaining
-then proceeds through the order given by the increasing                         Rxy = { [<6,1,1>,<5,3,2>]; [<6,1,1>,<5,3,3>] }.
-pitch. Increasing pitch provides a natural order over the                      When DPC terminates, the graph is directional path-
-notes of a chord; the whole western classical harmony                          consistent relatively to the order, and the combinations
-theory is grounded on this principle. The application of                       of fingered positions which satisfy the constraints are
-directional path-consistency to the chord fingering prob-                      presented in Table 2: on this new and simpler problem
-lem implies that the performer considers only a subset of                      we perform the search.
-the cartesian product of the fingered positions available                          The depth-first search takes the first entry of the fin-
-for each note of the chord as s/he proceeds in order of                        gered positions in Rxy , and searches in Ryz for a com-
-increasing pitch.                                                               bination such that y ∈ Rxy = y ∈ Ryz . Then it is
-                                                                           1794
+that the instantiations Vx = i and Vy = j are permitted by the binary constraint between Vx and Vy . Pathconsistency (or k-consistency) means that it is possible
+to instantiate up to k-variables consistently. Since pathconsistency has an exponential complexity, it is customary to trade-off between the consistency degree and the
+computational effort via the introduction of the directional arc-consistency and directional path-consistency
+(Dechter, 2003). Directionality limits consistency to apply only along a given order on variables: in the case of
+directional path-consistency that is adopted in this paper, given the order < x1 , x2 , ..., xn >, the requirement
+is that for all i, j ≤ k we have that {xi , xj } is pathconsistent relatively to xk . Directional path-consistency
+is useful in the modeling of the fingering process since the
+search intuitively starts from one fingered position and
+then proceeds through the order given by the increasing
+pitch. Increasing pitch provides a natural order over the
+notes of a chord; the whole western classical harmony
+theory is grounded on this principle. The application of
+directional path-consistency to the chord fingering problem implies that the performer considers only a subset of
+the cartesian product of the fingered positions available
+for each note of the chord as s/he proceeds in order of
+increasing pitch.
 
-                                                                   the fingerings computed by the model are recognized to
-Table 2: ”Legal” combinations after DPC algorthm has               be practicable by the experts (the set of constraints is
-terminated. The search is then performed on this sim-              adequate); 2) the fingerings provided by human experts
-plified problem.                                                   (that had to indicate only three fingerings) must be a
-                                                                   subset of those computed by the model (human perform-
-        Rxy               Ryz                Rxz                   ers have further constraints that are not related to bio-
-  <6, 1,1>,<5, 3,2> <5, 3,1>, <4, 3,1> <6, 1,1>, <4, 3,2>          mechanical issues). 3) A weak prediction concerns the
-  <6, 1,1>,<5, 3,3> <5, 3,1>, <4, 3,2> <6, 1,1>, <4, 3,3>          order of the control strategy in terms of strings, frets
-                    <5, 3,2>, <4, 3,1> <6, 1,1>, <4, 3,4>          and fingers, which is consistent with the instrumental
-                    <5, 3,2>, <4, 3,3> <6, 1,2>, <4, 3,4>          practice. In this case we predict that the highest ranked
-                    <5, 3,3>, <4, 3,4>                             fingerings of the model and the experts coincide.
-                    <6, 8,1>, <5, 8,1>                             Results. 1) All the fingerings computed by the model
-                    <6, 8,1>, <5, 8,2>                             have been found viable (100% precision), and 2) include
-                    <6, 8,2>, <5, 8,2>
-                                                                   those provided by the experts, except for overall 6 cases
-                                                                   (over 218 fingerings computed in total by the model, so
-                    <6, 8,2>, <5, 8,3>
-                                                                   2.75% missing – 97.25% recall); 3) on average over the
-                    <6, 8,3>, <5, 8,4>
-                                                                   three experts, the 66.6% of the highest ranked fingerings
-                                                                   computed by the model matched the highest ranked by
-                                                                   the experts (67.6% of the first expert, 70.6% of the sec-
-checked whether the tuple {x, z} ∈ Rxz , (it is a solu-            ond, 61.7% of the third); making the comparison over
-tion) or not (it is a dead-end). Whenever the search               the first three fingerings, on average over the three ex-
-reaches a dead end, it performs backtracking to the                perts 48% of the triplet found by the model matched
-last instantiated variable that still has alternatives avail-      exactly the triplet provided by the experts (47%, 47%,
-able. In the case exemplified, the search leads to the so-         50%).
-lutions {<6,1,1>, <5,3,2>, <4,3,3>} and {<6,1,1>,
+In particular, the algorithm that checks the directional
+path-consistency scans the variables in order and retrieves, for each note, the relative domain. Once reached
+the k -th variable, the algorithm restricts the domains
+of the lower variables on the basis of the constraints
+that involve any xi ≤ xk and xk ; the algorithm then
+iterates the restriction taking as reference the variable
+xk−1 and restricting the domains of xi ≤ xk−1 ; and so
+on. The same iterative process is executed on pairs of
+linked variables, thus restricting the combined domains
+on the basis of the constraints with respect to a higher
+variable. So, the combined domains of xi and xj are
+restricted with respect to the domain of some variable
+xk ≥ xi and xj . Once the graph has been made directional path-consistent, a depth-first search with backtracking occurs. The search follows the natural order,
+and starts by combining pairs of fingered positions from
+higher strings (namely, the basses: the sixth and fifth
+string in Fig. 1), lower frets and lower fingers. Underpinned by the didactic guitar literature (Aguado, 1843;
+Duarte, 1966), we assume that playing at the lower frets
+is more comfortable; yet, the first fingers (index, middle)
+are stronger, and then they are expected to press the
+strings with more ease (see also Parncutt et al., 1997):
+the first fingerings that the search finds are expected to
+be more comfortable than the last ones.
+So the search strategy implements a preference for
+comfortable fingerings, given the evidence that, in absence of higher cognitive constraints like phrasing, performers choose the bio-mechanically easiest solutions
+(Heijink & Meulenbroek, 2002). This is immediately applicable to cases of chord fingering on spot (out of any
+musical context), like in pedagogical situations. These
+cases are considered for the experimental validation described below.
+
+Example
+Let us consider the chord presented in Figure 3. The
+order of variables is {x, y, z}. The directional pathconsistency algorithm performs two steps: a) the domain
+of each variable i < z is revised (that is, restricted) relatively to z; b) each binary constraint (combining the
+allowed pairs of values from i and j) Rij , i, j ≤ z is
+further revised relative to z. The combinations that are
+still available after running the algorithm are in Table 2.
+Step a: DPC revises (that is, restricts the domain of)
+y relatively to z, yielding Dy = {<6,8,1>; <6,8,2>;
+<6,8,3>; <5,3,1>; <5,3,2>; <5,3,3> };
+then it revises x relative to z and x relative to y, yielding
+Dx = { <6,1,1>; <6,1,2>; <6,1,3> }.
+Step b: inconsistencies are deleted from Rxy , obtaining
+Rxy = { [<6,1,1>,<5,3,2>]; [<6,1,1>,<5,3,3>] }.
+When DPC terminates, the graph is directional pathconsistent relatively to the order, and the combinations
+of fingered positions which satisfy the constraints are
+presented in Table 2: on this new and simpler problem
+we perform the search.
+The depth-first search takes the first entry of the fingered positions in Rxy , and searches in Ryz for a combination such that y ∈ Rxy = y ∈ Ryz . Then it is
+
+1794
+
+the fingerings computed by the model are recognized to
+be practicable by the experts (the set of constraints is
+adequate); 2) the fingerings provided by human experts
+(that had to indicate only three fingerings) must be a
+subset of those computed by the model (human performers have further constraints that are not related to biomechanical issues). 3) A weak prediction concerns the
+order of the control strategy in terms of strings, frets
+and fingers, which is consistent with the instrumental
+practice. In this case we predict that the highest ranked
+fingerings of the model and the experts coincide.
+Results. 1) All the fingerings computed by the model
+have been found viable (100% precision), and 2) include
+those provided by the experts, except for overall 6 cases
+(over 218 fingerings computed in total by the model, so
+2.75% missing – 97.25% recall); 3) on average over the
+three experts, the 66.6% of the highest ranked fingerings
+computed by the model matched the highest ranked by
+the experts (67.6% of the first expert, 70.6% of the second, 61.7% of the third); making the comparison over
+the first three fingerings, on average over the three experts 48% of the triplet found by the model matched
+exactly the triplet provided by the experts (47%, 47%,
+50%).
+
+Table 2: ”Legal” combinations after DPC algorthm has
+terminated. The search is then performed on this simplified problem.
+Rxy
+
+Ryz
+
+Rxz
+
+<6, 1,1>,<5, 3,2>
+
+<5, 3,1>, <4, 3,1>
+
+<6, 1,1>, <4, 3,2>
+
+<6, 1,1>,<5, 3,3>
+
+<5, 3,1>, <4, 3,2>
+
+<6, 1,1>, <4, 3,3>
+
+<5, 3,2>, <4, 3,1>
+
+<6, 1,1>, <4, 3,4>
+
+<5, 3,2>, <4, 3,3>
+
+<6, 1,2>, <4, 3,4>
+
+<5, 3,3>, <4, 3,4>
+<6, 8,1>, <5, 8,1>
+<6, 8,1>, <5, 8,2>
+<6, 8,2>, <5, 8,2>
+<6, 8,2>, <5, 8,3>
+<6, 8,3>, <5, 8,4>
+
+checked whether the tuple {x, z} ∈ Rxz , (it is a solution) or not (it is a dead-end). Whenever the search
+reaches a dead end, it performs backtracking to the
+last instantiated variable that still has alternatives available. In the case exemplified, the search leads to the solutions {<6,1,1>, <5,3,2>, <4,3,3>} and {<6,1,1>,
 <5,3,3>, <4,3,4>}.
-   In general, the higher the connectivity of the prob-
-                                                                               Discussion and conclusion
-lem, the smaller the number of solutions, thus more                The analysis of the results informs that the set of con-
-notes compose the chord, the more the performer is con-            straints, given the restricted conditions of the experi-
-strained: e.g., if the entire F Major chord (F2-C3-F3-             ment that does not take into account any musical con-
-A3-C4-F4) spanning over the 6 strings was examined, a              text, performs well. The 6 missed fingerings are due to
-single solution would have been found, despite a widely            a heavy restriction of the Max span constraint, which
-larger number of possible combinations.                            forbids large stretches between the middle and ring fin-
-                                                                   gers although these seem realizable by human experts.
-               Experimental validation                             In fact, the current model does not take into account the
-To the ends of providing a first experimental validation           diminishing width of frets towards the body end of the
-of the model described, we have developed a computer               fingerboard, thus making the difficulty associated with
-program to evaluate the set of constraints (What is the            stretching constant all along.
-degree of predictive power of the set of constraints? Does            The control strategy only makes a weak prediction.
-it actually allow to find all the fingering(s) that human          However, this is more controversial even in the human
-performers provide? What is the relation between the               experts data. In fact, there is a poor homogeneity of
-model and the experts’ results?) and the control strat-            the first fingerings provided by the human performers
-egy (Does the pruning strategy miss any solution given             (only in the 67% of the cases they agree on the preferred
-by the human performers? Does the control strategy                 fingering). If we neglect the finger component of the
-consider fingered positions in the same order as the hu-           triple (<string, fret, finger>), we can compare the
-man performers?)                                                   results on the basis of the pairs (<string, fret>). Now
-Material. Written fingerings of 3 guitarists, bachelor in          we find that they agree in the 97% of the cases, and the
-guitar performance, were considered. Thirty-four chords            model agreement raises to the 92.1%. So, the model and
-composed by 3 to 6 notes were selected: they all ad-               the human experts tend to choose the same places on
-mit at least two different fingerings. To avoid ambiguity,         the fingerboard, whereas not always they use the same
-each fingered position had to be expressed in the nota-            fingers. Similarly, if we restrict the comparison between
-tion <string, fret, finger>.                                       experts and model to the cases where the experts exactly
-Procedure. Human performers were requested to                      agreed on the triplets, the success ratio of the model
-write, when possible, three different fingerings for each          raises to 75%. A further analysis over the difficult cases
-chord, in the order of preference. The same set of chords          of fingering, namely those that have received only two
-was given in input to the implemented model. After the             fingerings (instead of three) by at least one of the experts
-guitarists ended their task, they were requested to indi-          (14 over 34), reveals that the model produces exactly the
-cate whether any fingering computed by the model was               same data in the 71% of cases (against the 48% above).
-not practicable.                                                      Several complexity factors were disregarded, which
-Predictions. On the bases of previous literature, we               may complete the assessment of the results and help ex-
-make the following predictions. We expect that 1) all              plaining the limitations of the model and suggesting a
-                                                              1795
+In general, the higher the connectivity of the problem, the smaller the number of solutions, thus more
+notes compose the chord, the more the performer is constrained: e.g., if the entire F Major chord (F2-C3-F3A3-C4-F4) spanning over the 6 strings was examined, a
+single solution would have been found, despite a widely
+larger number of possible combinations.
 
-guideline for future work. First, chords have been con-          Gellrich, M., & Parncutt, R. (1998). Piano techique and
-sidered as spots, without a context, while we know that            fingering in the eighteenth and nineteenth centuries:
-fingering is also an expressive mean (Gilardino, 1975a,            bringing a forgotten method back to life, British Jour-
-1975b; Parncutt et al., 1997; Traube et al., 2003): the            nal of Music Education, 15, 5–23.
-experiment has tackled exactly this condition, but the           Gilardino, A. (1975a;b). Il problema della diteggiatura
-model would perform worse in realistic conditions. Also,           nelle musiche per chitarra, Il Fronimo, 10, 11–14; 13,
-tempo plays an important role: fast tempi may deter-               5–12, in Italian.
-mine situations of high task load, which increases the
-demand for economic fingerings, thus compelling per-             Giuliani, M. (1812). Opus 1, Wien, Artaria, 1812,
-formers towards ’ingrained finger habits’ (Clarke et al.,          Reprint: in Chiesa, R. (Eds), Studi per chitarra, Vol.I,
-1997); slow tempi -and even more the case considered-              Milano, Suvini Zerboni, 1985.
-would make easier achieving an intended expressive or            Heijink, H., & Meulenbroek, R.G.J. (2002). On the
-timbral effect. Familiar fingerings may be adopted for             Complexity of Classical Guitar Playing: Functional
-new chords (e.g., we refer to the practice of the trans-           Adaptations to Task Constraints, Journal of Motor
-position, which on fretted instruments is a widespread             Behaviour, 34, 339–351.
-habit). Chords may also be part of musical patterns to-          Jacobs, J.P. (2001). Refinements to the ergonomic model
-gether with melodic fragments, and such patterns may               for keyboard fingering of Parncutt, Sloboda, Clarke,
-be learned, stored and retrieved as a block (Drake &               Raekellio, and Desain, Music Perception, 18, 505–511.
-Palmer, 2000). This may help explaining some differ-
-ences, where fingerings provided by performers under the         Kumar, V. (1992).          Algorithms for Constraint-
-exclusive bio-mechanical aspect are not always prefer-             Satisfaction Problems: A Survey, AI Magazine, 13,
-able. Lastly, it is reasonable to suppose that skilled per-        32–44.
-formers are able to distinguish between more/less salient        Parlitz, D., Peschel, T., Altenmüller, E. (1998). Assess-
-constraints; for the present, a preference for some sorts          ment of dynamic finger forces in pianists: effects of
-of fingerings is implemented by the search strategy.               training and expertise, Journal of biomechanics, 31,
-   Although in this paper we report experimental data              1063–1067.
-for the chord fingering subproblem, we are confident that        Parncutt, R. (1997). Modeling piano performance:
-the CSP approach can be successful on modeling the                 Physics and cognition of a virtual pianist, Proceed-
-whole of the fingering problem. Future work will address           ings of Int. Computer Music Conference (Thessa-
-the merging of chord and melody fingering, which leads             lonki/GK, 1997), 15–18. San Francisco/CA.
+Discussion and conclusion
+
+Experimental validation
+
+The analysis of the results informs that the set of constraints, given the restricted conditions of the experiment that does not take into account any musical context, performs well. The 6 missed fingerings are due to
+a heavy restriction of the Max span constraint, which
+forbids large stretches between the middle and ring fingers although these seem realizable by human experts.
+In fact, the current model does not take into account the
+diminishing width of frets towards the body end of the
+fingerboard, thus making the difficulty associated with
+stretching constant all along.
+The control strategy only makes a weak prediction.
+However, this is more controversial even in the human
+experts data. In fact, there is a poor homogeneity of
+the first fingerings provided by the human performers
+(only in the 67% of the cases they agree on the preferred
+fingering). If we neglect the finger component of the
+triple (<string, fret, finger>), we can compare the
+results on the basis of the pairs (<string, fret>). Now
+we find that they agree in the 97% of the cases, and the
+model agreement raises to the 92.1%. So, the model and
+the human experts tend to choose the same places on
+the fingerboard, whereas not always they use the same
+fingers. Similarly, if we restrict the comparison between
+experts and model to the cases where the experts exactly
+agreed on the triplets, the success ratio of the model
+raises to 75%. A further analysis over the difficult cases
+of fingering, namely those that have received only two
+fingerings (instead of three) by at least one of the experts
+(14 over 34), reveals that the model produces exactly the
+same data in the 71% of cases (against the 48% above).
+Several complexity factors were disregarded, which
+may complete the assessment of the results and help explaining the limitations of the model and suggesting a
+
+To the ends of providing a first experimental validation
+of the model described, we have developed a computer
+program to evaluate the set of constraints (What is the
+degree of predictive power of the set of constraints? Does
+it actually allow to find all the fingering(s) that human
+performers provide? What is the relation between the
+model and the experts’ results?) and the control strategy (Does the pruning strategy miss any solution given
+by the human performers? Does the control strategy
+consider fingered positions in the same order as the human performers?)
+Material. Written fingerings of 3 guitarists, bachelor in
+guitar performance, were considered. Thirty-four chords
+composed by 3 to 6 notes were selected: they all admit at least two different fingerings. To avoid ambiguity,
+each fingered position had to be expressed in the notation <string, fret, finger>.
+Procedure. Human performers were requested to
+write, when possible, three different fingerings for each
+chord, in the order of preference. The same set of chords
+was given in input to the implemented model. After the
+guitarists ended their task, they were requested to indicate whether any fingering computed by the model was
+not practicable.
+Predictions. On the bases of previous literature, we
+make the following predictions. We expect that 1) all
+1795
+
+guideline for future work. First, chords have been considered as spots, without a context, while we know that
+fingering is also an expressive mean (Gilardino, 1975a,
+1975b; Parncutt et al., 1997; Traube et al., 2003): the
+experiment has tackled exactly this condition, but the
+model would perform worse in realistic conditions. Also,
+tempo plays an important role: fast tempi may determine situations of high task load, which increases the
+demand for economic fingerings, thus compelling performers towards ’ingrained finger habits’ (Clarke et al.,
+1997); slow tempi -and even more the case consideredwould make easier achieving an intended expressive or
+timbral effect. Familiar fingerings may be adopted for
+new chords (e.g., we refer to the practice of the transposition, which on fretted instruments is a widespread
+habit). Chords may also be part of musical patterns together with melodic fragments, and such patterns may
+be learned, stored and retrieved as a block (Drake &
+Palmer, 2000). This may help explaining some differences, where fingerings provided by performers under the
+exclusive bio-mechanical aspect are not always preferable. Lastly, it is reasonable to suppose that skilled performers are able to distinguish between more/less salient
+constraints; for the present, a preference for some sorts
+of fingerings is implemented by the search strategy.
+Although in this paper we report experimental data
+for the chord fingering subproblem, we are confident that
+the CSP approach can be successful on modeling the
+whole of the fingering problem. Future work will address
+the merging of chord and melody fingering, which leads
 to consider real pieces from the classical repertoire, and
-to explore the automatic expressive performance, where           Parncutt, R., Sloboda, J.A., Clarke, E., Raekallio, M.,
-the modeling of instrument/performer interactions plays            Desain, P.(1997). An ergonomic model of keyboard
-a central role.                                                    fingering for melodic fragments, Music Perception, 14,
-                                                                   341–382.
-                  Acknowledgments                                Radicioni, D., Anselma, L., Lombardo, V. (2004).
-We’d like to thank Luca Anselma, Diego Magro, Davide               A prototype to compute string instruments fin-
-Ruzza and three anonymous reviewers for their valuable             gering, In R. Parncutt, A. Kessler & F. Zim-
-advices.                                                           mer (Eds.) Proceedings of the Conference on In-
-                                                                   terdisciplinary Musicology (CIM04), Graz, Austria,
-                       References                                  http://gewi.uni-graz.at/∼cim04/.
-Aguado D. (1843).         Nuevo método para Guitarra,           Sayegh, S. (1989). Fingering for String Instrument with
-   Madrid, 1843. New guitar method, London, Tecla.                 the Optimum Path Paradigm, Computer Music Jour-
-Clarke, E.F., Parncutt, R., Raekallio, M., Sloboda J.A.            nal, 13, 76–84, Fall 1989.
-   (1997). Talking fingers: an interview study of pianists’      Sloboda, J.A. (1985). The musical mind: The cognitive
-   view on fingering, Musicae Scientiae, 1, 87–107.                psychology of music, Oxford, Clarendon Press.
-Cuzzucoli, G., & Lombardo, V. (1999). Physical model
-                                                                 Sloboda, J.A., Clarke, E., Parncutt, R., Raekallio, M.
-   of the played classical guitar, including the player’s
-                                                                   (1998). Determinants of finger choice in Piano Sight-
-   touch, Computer Music Journal, 23, 52–69.
-                                                                   Reading, Journal of Experimental Psychology: Human
-Dechter, R. (1998). Constraint Satisfaction, MIT Ency-             Perception and Performance, 24, 185–203.
-   clopedia of the Cognitive Sciences (MTECS).
-                                                                 Sor, F. (1815). Opus 6, Paris, 1815-17, Reprint: in
-Dechter, R. (2003). Constraint processing, Morgan                  Chiesa, R. (Eds), Studi per chitarra, Vol.I, Milano,
-   Kaufmann, San Francisco, CA.                                    Suvini Zerboni, 1985.
-Drake, C., & Palmer, C. (2000). Skill acquisition in             Traube, C., Depalle, P., Wanderley, M. (2003). Indirect
-   music performance: relations between planning and               Acquisition of Instrumental Gesture Based on Signal,
-   temporal control, Cognition, 74, 1–32.                          Physical and Perceptual Information, Proceedings of
-Duarte, J. (1966). Foundation studies in classical guitar          the 2003 Conference on New Interfaces for Musical
-   technique, Novello, Borough Green, Sevenoaks, Kent,             Expression (NIME-03), Montreal, Canada.
-   (UK).
-                                                            1796
+to explore the automatic expressive performance, where
+the modeling of instrument/performer interactions plays
+a central role.
 
+Acknowledgments
+
+Gellrich, M., & Parncutt, R. (1998). Piano techique and
+fingering in the eighteenth and nineteenth centuries:
+bringing a forgotten method back to life, British Journal of Music Education, 15, 5–23.
+Gilardino, A. (1975a;b). Il problema della diteggiatura
+nelle musiche per chitarra, Il Fronimo, 10, 11–14; 13,
+5–12, in Italian.
+Giuliani, M. (1812). Opus 1, Wien, Artaria, 1812,
+Reprint: in Chiesa, R. (Eds), Studi per chitarra, Vol.I,
+Milano, Suvini Zerboni, 1985.
+Heijink, H., & Meulenbroek, R.G.J. (2002). On the
+Complexity of Classical Guitar Playing: Functional
+Adaptations to Task Constraints, Journal of Motor
+Behaviour, 34, 339–351.
+Jacobs, J.P. (2001). Refinements to the ergonomic model
+for keyboard fingering of Parncutt, Sloboda, Clarke,
+Raekellio, and Desain, Music Perception, 18, 505–511.
+Kumar, V. (1992).
+Algorithms for ConstraintSatisfaction Problems: A Survey, AI Magazine, 13,
+32–44.
+Parlitz, D., Peschel, T., Altenmüller, E. (1998). Assessment of dynamic finger forces in pianists: effects of
+training and expertise, Journal of biomechanics, 31,
+1063–1067.
+Parncutt, R. (1997). Modeling piano performance:
+Physics and cognition of a virtual pianist, Proceedings of Int. Computer Music Conference (Thessalonki/GK, 1997), 15–18. San Francisco/CA.
+Parncutt, R., Sloboda, J.A., Clarke, E., Raekallio, M.,
+Desain, P.(1997). An ergonomic model of keyboard
+fingering for melodic fragments, Music Perception, 14,
+341–382.
+Radicioni, D., Anselma, L., Lombardo, V. (2004).
+A prototype to compute string instruments fingering, In R. Parncutt, A. Kessler & F. Zimmer (Eds.) Proceedings of the Conference on Interdisciplinary Musicology (CIM04), Graz, Austria,
+http://gewi.uni-graz.at/∼cim04/.
+Sayegh, S. (1989). Fingering for String Instrument with
+the Optimum Path Paradigm, Computer Music Journal, 13, 76–84, Fall 1989.
+Sloboda, J.A. (1985). The musical mind: The cognitive
+psychology of music, Oxford, Clarendon Press.
+Sloboda, J.A., Clarke, E., Parncutt, R., Raekallio, M.
+(1998). Determinants of finger choice in Piano SightReading, Journal of Experimental Psychology: Human
+Perception and Performance, 24, 185–203.
+Sor, F. (1815). Opus 6, Paris, 1815-17, Reprint: in
+Chiesa, R. (Eds), Studi per chitarra, Vol.I, Milano,
+Suvini Zerboni, 1985.
+Traube, C., Depalle, P., Wanderley, M. (2003). Indirect
+Acquisition of Instrumental Gesture Based on Signal,
+Physical and Perceptual Information, Proceedings of
+the 2003 Conference on New Interfaces for Musical
+Expression (NIME-03), Montreal, Canada.
+
+We’d like to thank Luca Anselma, Diego Magro, Davide
+Ruzza and three anonymous reviewers for their valuable
+advices.
+
+References
+Aguado D. (1843).
+Nuevo método para Guitarra,
+Madrid, 1843. New guitar method, London, Tecla.
+Clarke, E.F., Parncutt, R., Raekallio, M., Sloboda J.A.
+(1997). Talking fingers: an interview study of pianists’
+view on fingering, Musicae Scientiae, 1, 87–107.
+Cuzzucoli, G., & Lombardo, V. (1999). Physical model
+of the played classical guitar, including the player’s
+touch, Computer Music Journal, 23, 52–69.
+Dechter, R. (1998). Constraint Satisfaction, MIT Encyclopedia of the Cognitive Sciences (MTECS).
+Dechter, R. (2003). Constraint processing, Morgan
+Kaufmann, San Francisco, CA.
+Drake, C., & Palmer, C. (2000). Skill acquisition in
+music performance: relations between planning and
+temporal control, Cognition, 74, 1–32.
+Duarte, J. (1966). Foundation studies in classical guitar
+technique, Novello, Borough Green, Sevenoaks, Kent,
+(UK).
+1796
+
+

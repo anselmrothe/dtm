@@ -1,373 +1,599 @@
-         Feature-based Joint Planning and Norm Learning in Collaborative Games
-           Mark K Ho1 (mark_ho@brown.edu), James MacGlashan2 (james_macglashan@brown.edu),
-              Amy Greenwald2 (amy@cs.brown.edu), Michael L. Littman2 (mlittman@cs.brown.edu),
-             Elizabeth M. Hilliard2 (betsy@cs.brown.edu), Carl Trimbach2 (ctrimbac@cs.brown.edu),
-                Stephen Brawner2 (sbrawner@cs.brown.edu), Joshua B. Tenenbaum3 (jbt@mit.edu),
-       Max Kleiman-Weiner3 (maxkw@mit.edu), Joseph L. Austerweil1 (joseph_austerweil@brown.edu)
-         1
-           Department of Cognitive, Linguistic, and Psychological Sciences, 190 Thayer St., Providence, RI 02912 USA
-                           2
-                             Computer Science Department, 115 Waterman St., Providence, RI 02912 USA
-                   3
-                     Brain and Cognitive Sciences, Massachusetts Institute of Technology, Cambridge, MA 02139
-                              Abstract                                  instance, people take a group perspective when choosing
-   People often use norms to coordinate behavior and
-                                                                        their actions in coordination games using focal points
-   accomplish shared goals. But how do people learn and                 (Schelling, 1960; Bardsley et al., 2010). Similarly, norms
-   represent norms? Here, we formalize the process by which             like “curb your dog” seem to rely on learned abstract
-   collaborating individuals (1) reason about group plans during        representations that are applied flexibly to new situations.
-   interaction, and (2) use task features to abstractly represent       With this in mind, we have formulated a computational
-   norms. In Experiment 1, we test the assumptions of our model         model that incorporates two novel properties:
-   in a gridworld that requires coordination and contrast it with a     (1) Agents reason as if they were part of a single agent
-   “best response” model. In Experiment 2, we use our model to
-   test whether group members’ joint planning relies more on                   with joint mental states like beliefs, desires, and plans.
-   state features independent of other agents (landmark-based                  For instance, a postal worker does not simply reason
-   features) or state features determined by the configuration of              in terms of “I-intentions” (e.g. I will bring these letters
-   agents (agent-relative features).                                           to this address), but also in terms of “we-intentions”
-   Keywords: joint intentionality; norms; team reasoning;                      (e.g. I will deliver these letters so we can deliver the
-   reinforcement learning; features; computational modeling                    mail) (Searle, 1995; Bacharach, 2006).
-                                                                        (2) Norms are represented as joint planning biases that
-                          Introduction                                         reflect instructions to perform (or avoid) actions.
-                                                                               Following Biccheri (2006), agents both follow these
+Feature-based Joint Planning and Norm Learning in Collaborative Games
+Mark K Ho1 (mark_ho@brown.edu), James MacGlashan2 (james_macglashan@brown.edu),
+Amy Greenwald2 (amy@cs.brown.edu), Michael L. Littman2 (mlittman@cs.brown.edu),
+Elizabeth M. Hilliard2 (betsy@cs.brown.edu), Carl Trimbach2 (ctrimbac@cs.brown.edu),
+Stephen Brawner2 (sbrawner@cs.brown.edu), Joshua B. Tenenbaum3 (jbt@mit.edu),
+Max Kleiman-Weiner3 (maxkw@mit.edu), Joseph L. Austerweil1 (joseph_austerweil@brown.edu)
+1
+
+Department of Cognitive, Linguistic, and Psychological Sciences, 190 Thayer St., Providence, RI 02912 USA
+2
+Computer Science Department, 115 Waterman St., Providence, RI 02912 USA
+3
+Brain and Cognitive Sciences, Massachusetts Institute of Technology, Cambridge, MA 02139
+Abstract
+
+People often use norms to coordinate behavior and
+accomplish shared goals. But how do people learn and
+represent norms? Here, we formalize the process by which
+collaborating individuals (1) reason about group plans during
+interaction, and (2) use task features to abstractly represent
+norms. In Experiment 1, we test the assumptions of our model
+in a gridworld that requires coordination and contrast it with a
+“best response” model. In Experiment 2, we use our model to
+test whether group members’ joint planning relies more on
+state features independent of other agents (landmark-based
+features) or state features determined by the configuration of
+agents (agent-relative features).
+Keywords: joint intentionality; norms; team reasoning;
+reinforcement learning; features; computational modeling
+
+Introduction
 From driving to running institutions like the U.S. Postal
-                                                                               instructions and expect others to as well. Formally,
 Service, groups need to coordinate their behaviors to
-                                                                               these are feature-based reward functions for when an
 accomplish shared goals. Key to this is that agents learn and
-                                                                               agent plans actions. This provides a compact
 use norms to guide individual and collective behavior. But
-                                                                               representation for norms that enables generalization.
 how do people (or more generally, how can any intelligent
-                                                                           This model represents a first step towards understanding
 agent) represent and learn norms?
-                                                                        how norms are learned through joint reasoning and
-   One approach is to treat coordination as emerging through
-                                                                        represented abstractly, aspects of human norm learning not
+One approach is to treat coordination as emerging through
 the ego-centric behavior of individual agents. For instance,
-                                                                        captured in previous formulations.
 norms can emerge when agents have other-regarding or
-                                                                           To study how people learn norms, we focus on multi-
 aligned preferences (Binmore, 2010). Other approaches use
-                                                                        state, multi-round coordination games. In our tasks, payoffs
 off-the-shelf algorithms, like Q-learning, to show how under
-                                                                        are always shared and depend on multi-state planning to
 certain reward structures, “socially-blind” learning
-                                                                        reach individual goals simultaneously. In two experiments,
 mechanisms can produce social norms (Sen & Airiau, 2007;
-                                                                        we examine the extent to which our model captures how
 Claus & Boutilier, 1998). More sophisticated approaches
-                                                                        people learn norms. Experiment 1 compares people’s
 allow agents to model others and best respond to the
-                                                                        behavior to our Norm-Learning model and a Best-Response
 predictions of those models. For example, agents can
-                                                                        model that plans actions optimally according to a learned
 recursively reason about one another in cognitive
-                                                                        model of its partner. Experiment 2 uses the Norm-Learning
 hierarchies (Camerer et al., 2004; Wunder et al., 2011).
-                                                                        model to examine how people generalize norms across
-   These computational approaches generally make two key
-                                                                        situations and the extent to which they use landmark-based
+These computational approaches generally make two key
 assumptions: First, norms are modeled as emergent
-                                                                        or agent-relative features.
 behavioral by-products rather than intended outcomes of
 agents’ learning mechanisms. Second, the space of possible
 norms is generally constrained to a small set of singular
-                                                                                          Computational Models
-actions (e.g. cooperate or defect in Flood and Dresher’s                Norms are instructions that individuals follow and expect
-Prisoner’s Dilemma). As a result, the representation of a               others to follow. We formalize this notion and describe how
-norm is never distinguished from the low-level actions that             a group of norm-following agents can converge on norms in
-instantiate the norm.                                                   a decentralized manner.
-   Unfortunately, psychological research and intuition raise
+actions (e.g. cooperate or defect in Flood and Dresher’s
+Prisoner’s Dilemma). As a result, the representation of a
+norm is never distinguished from the low-level actions that
+instantiate the norm.
+Unfortunately, psychological research and intuition raise
 doubts about applying these assumptions to people. For
-                                                                    1158
 
-Multi-Agent Decision Making
-Markov Decision Processes (MDPs) and Stochastic                        where 𝜃 ! is the transpose of a feature weighting vector. This
-Games MDPs model single-agent decision making and are                  allows the model to learn that certain state features (e.g.
-defined by the tuple (𝑆, 𝐴, 𝑇, 𝑅): a set of states in the world,       being on the right) is preferable during joint planning.
-𝑆; a set of actions the agent can take, 𝐴; transition dynamics,           Second, we incorporate the motivational influence of
-𝑇(𝑠 ! |𝑠, 𝑎), which assign a probability of transitioning to a         norms directly into individual agents’ reward functions that
-state 𝑠 ! ∈ 𝑆 after an agent takes action 𝑎 ∈ 𝐴 in state 𝑠 ∈ 𝑆;        are used to calculate a reward-maximizing policy. Formally,
-and a reward function 𝑅 𝑠, 𝑎, 𝑠 ! , which returns a real               for the 𝑖-th agent in a community, their total reward function
-                                                                       will combine their private reward function and a norm bias:
+instance, people take a group perspective when choosing
+their actions in coordination games using focal points
+(Schelling, 1960; Bardsley et al., 2010). Similarly, norms
+like “curb your dog” seem to rely on learned abstract
+representations that are applied flexibly to new situations.
+With this in mind, we have formulated a computational
+model that incorporates two novel properties:
+(1) Agents reason as if they were part of a single agent
+with joint mental states like beliefs, desires, and plans.
+For instance, a postal worker does not simply reason
+in terms of “I-intentions” (e.g. I will bring these letters
+to this address), but also in terms of “we-intentions”
+(e.g. I will deliver these letters so we can deliver the
+mail) (Searle, 1995; Bacharach, 2006).
+(2) Norms are represented as joint planning biases that
+reflect instructions to perform (or avoid) actions.
+Following Biccheri (2006), agents both follow these
+instructions and expect others to as well. Formally,
+these are feature-based reward functions for when an
+agent plans actions. This provides a compact
+representation for norms that enables generalization.
+This model represents a first step towards understanding
+how norms are learned through joint reasoning and
+represented abstractly, aspects of human norm learning not
+captured in previous formulations.
+To study how people learn norms, we focus on multistate, multi-round coordination games. In our tasks, payoffs
+are always shared and depend on multi-state planning to
+reach individual goals simultaneously. In two experiments,
+we examine the extent to which our model captures how
+people learn norms. Experiment 1 compares people’s
+behavior to our Norm-Learning model and a Best-Response
+model that plans actions optimally according to a learned
+model of its partner. Experiment 2 uses the Norm-Learning
+model to examine how people generalize norms across
+situations and the extent to which they use landmark-based
+or agent-relative features.
+
+Computational Models
+Norms are instructions that individuals follow and expect
+others to follow. We formalize this notion and describe how
+a group of norm-following agents can converge on norms in
+a decentralized manner.
+
+1158
+
+Multi-Agent Decision Making
+Markov Decision Processes (MDPs) and Stochastic
+Games MDPs model single-agent decision making and are
+defined by the tuple (𝑆, 𝐴, 𝑇, 𝑅): a set of states in the world,
+𝑆; a set of actions the agent can take, 𝐴; transition dynamics,
+𝑇(𝑠 ! |𝑠, 𝑎), which assign a probability of transitioning to a
+state 𝑠 ! ∈ 𝑆 after an agent takes action 𝑎 ∈ 𝐴 in state 𝑠 ∈ 𝑆;
+and a reward function 𝑅 𝑠, 𝑎, 𝑠 ! , which returns a real
 valued reward when transitioning to state 𝑠′ after the agent
-has taken action 𝑎 in state 𝑠 ! . An agent in an MDP has a                                        !
-policy (a mapping from states to actions) 𝜋: 𝑆 → 𝐴. An                                𝑅 ! 𝑠 = 𝑅individual   𝑠 + 𝑅norm 𝑠 .
+has taken action 𝑎 in state 𝑠 ! . An agent in an MDP has a
+policy (a mapping from states to actions) 𝜋: 𝑆 → 𝐴. An
 agent’s policy relates directly to the value, or expected
-future discounted reward, of each state: 𝑉 𝑠! =                        All agents in the community will have the same norm bias,
-𝐸! !         !                                                         𝑅norm , and know other agents will follow it. Thus, norms are
-       !!! 𝛾 𝑅 𝑠! , 𝑎! , 𝑠!!! , where 𝛾 ∈ 0,1 is a discount
-factor specifying the value of immediate rewards relative to           joint reward function biases that agents follow and expect
-temporally distant ones. Here, 𝛾 = .95.                                other agents to follow.
-   To find an optimal policy, an agent needs to calculate the
-optimal state (𝑉 ∗ 𝑠 ) and state-action (𝑄 ∗ (𝑠, 𝑎)) value             Inferring Norms We implement learning norms as group
-functions. Given these functions, the optimal policy can be            inverse reinforcement learning (IRL). In single-agent IRL
-derived by taking the action with the highest value:                   one observes an agent behaving in an MDP and based on
-                                                                       those observations infers the goals or reward function of the
+future discounted reward, of each state: 𝑉 𝑠! =
+!
+𝐸! !
+!!! 𝛾 𝑅 𝑠! , 𝑎! , 𝑠!!! , where 𝛾 ∈ 0,1 is a discount
+factor specifying the value of immediate rewards relative to
+temporally distant ones. Here, 𝛾 = .95.
+To find an optimal policy, an agent needs to calculate the
+optimal state (𝑉 ∗ 𝑠 ) and state-action (𝑄 ∗ (𝑠, 𝑎)) value
+functions. Given these functions, the optimal policy can be
+derived by taking the action with the highest value:
 𝜋 ∗ (𝑠) ∈ argmax!∈! 𝑄(𝑠, 𝑎) (Sutton & Barto, 1998).
-                                                                       agent (Abbeel & Ng, 2004; Baker et al., 2009).
-   MDPs can be extended to include multiple agents using
-                                                                          A Norm-Learning agent attempts to infer the norm that a
+MDPs can be extended to include multiple agents using
 game theoretic tools (Littman, 1994). A stochastic game is
-                                                                       group follows given some history of group interaction. That
 defined by the tuple (𝐼, 𝑆, 𝐴! , 𝑇, 𝑅 ! ), where 𝐼 is an index set
-                                                                       is, each agent estimates the most likely norm given a history
 of agents in the environment, 𝑆 is the set of states; 𝐴! is the
-                                                                       of interaction, ℋ = 𝑠! , 𝑗! , 𝑠! , … , 𝑠!!! , 𝑗!!! , 𝑠! :
 set of actions for each of the agents with 𝐴! denoting the
 action set of agent 𝑖 ∈ 𝐼; 𝑇 𝑠 ! 𝑠, 𝑗 defines the task
-dynamics by specifying transition probabilities given a joint                          𝑅norm = argmax 𝑃 𝑅norm ℋ ).
-                                                                                                    !norm
+dynamics by specifying transition probabilities given a joint
 action, 𝑗 ∈×! 𝐴! , of all agents taken in state 𝑠 ∈ 𝑆; and 𝑅 ! is
-a set of reward functions for each agent, with 𝑅 ! 𝑠, 𝑗, 𝑠 !           Since the norm bias function is a linear weighting of
-denoting the reward received by agent 𝑖 ∈ 𝐼 when agents in             features, this corresponds to finding the most likely
-state 𝑠 ∈ 𝑆 take joint action 𝑗 ∈×! 𝐴! and the environment             weights, 𝜃.
-transitions to state 𝑠 ! ∈ 𝑆.                                             Here, we focus on norm learning in collaborative games.
-   Because multiple agents with individual reward functions            That is, we assume that all agents all have the same goal
-are involved, there is no direct analogue of an ‘optimal                                        !
-                                                                       (i.e. have the same 𝑅individual    ) but must figure out how to
-policy’ in stochastic games. Rather, solution concepts can             work together to accomplish it. This simplifies inferring the
-be posited (e.g. Nash equilibria) or a learning mechanism              norm bias. Other work should investigate how norm
-can determine how the multi-agent system converges.                    learning interacts in competitive scenarios (e.g. see
-                                                                       Kleiman-Weiner et al. in this year’s proceedings).
-Norm-Learning Model
-Norms as reward function biases We assume that norms                   Features for Learning Norms Our representation of norms
-are instructions that an agent (a) follows, and (b) expects            and implementation of norm learning depends on the
-others to follow. More formally, we first represent the                features available to individuals in the group. The specific
-instructional content of norms as reward biases that cause a           features are important for several reasons. First, to converge
-group of agents to prefer certain types of actions or states.          on a norm, individuals must have sufficiently similar
-For example, a norm to “drive on the right” would be                   features available to them to determine which norm the
-represented as a collective preference for states that satisfy         group uses. Second, features must be sufficiently expressive
-that description. This provides a natural, flexible way to             to allow individuals to pin down the norm that they
-represent the content of norms. To simplify the problem, we            collectively use to solve a task. Third, learning norms in
-assume the norm bias is based on a linear combination of               terms of features allows generalization to novel situations.
-state features. Assuming agents have a feature function, 𝛷,            Without a concise, abstract representation of a norm, people
-that maps states to feature vectors, the norm bias is                  would not be able to apply a learned norm to a new context
-represented as:                                                        and would need to learn an appropriate norm from scratch.
-                                                                       For the tasks in the experiments reported, we describe which
-                         𝑅norm 𝑠 = 𝜃 ! 𝛷 𝑠                             types of features are used for constructing norms.
-                                                                   1159
+a set of reward functions for each agent, with 𝑅 ! 𝑠, 𝑗, 𝑠 !
+denoting the reward received by agent 𝑖 ∈ 𝐼 when agents in
+state 𝑠 ∈ 𝑆 take joint action 𝑗 ∈×! 𝐴! and the environment
+transitions to state 𝑠 ! ∈ 𝑆.
+Because multiple agents with individual reward functions
+are involved, there is no direct analogue of an ‘optimal
+policy’ in stochastic games. Rather, solution concepts can
+be posited (e.g. Nash equilibria) or a learning mechanism
+can determine how the multi-agent system converges.
 
-   We consider two types of features: landmark-based
-features, such as “Agent X is north of its goal”, and agent-
-relative features, such as “Agent X is north of Agent Y”.
+Norm-Learning Model
+Norms as reward function biases We assume that norms
+are instructions that an agent (a) follows, and (b) expects
+others to follow. More formally, we first represent the
+instructional content of norms as reward biases that cause a
+group of agents to prefer certain types of actions or states.
+For example, a norm to “drive on the right” would be
+represented as a collective preference for states that satisfy
+that description. This provides a natural, flexible way to
+represent the content of norms. To simplify the problem, we
+assume the norm bias is based on a linear combination of
+state features. Assuming agents have a feature function, 𝛷,
+that maps states to feature vectors, the norm bias is
+represented as:
+𝑅norm 𝑠 = 𝜃 ! 𝛷 𝑠
+
+where 𝜃 ! is the transpose of a feature weighting vector. This
+allows the model to learn that certain state features (e.g.
+being on the right) is preferable during joint planning.
+Second, we incorporate the motivational influence of
+norms directly into individual agents’ reward functions that
+are used to calculate a reward-maximizing policy. Formally,
+for the 𝑖-th agent in a community, their total reward function
+will combine their private reward function and a norm bias:
+!
+𝑅 ! 𝑠 = 𝑅individual
+𝑠 + 𝑅norm 𝑠 .
+
+All agents in the community will have the same norm bias,
+𝑅norm , and know other agents will follow it. Thus, norms are
+joint reward function biases that agents follow and expect
+other agents to follow.
+Inferring Norms We implement learning norms as group
+inverse reinforcement learning (IRL). In single-agent IRL
+one observes an agent behaving in an MDP and based on
+those observations infers the goals or reward function of the
+agent (Abbeel & Ng, 2004; Baker et al., 2009).
+A Norm-Learning agent attempts to infer the norm that a
+group follows given some history of group interaction. That
+is, each agent estimates the most likely norm given a history
+of interaction, ℋ = 𝑠! , 𝑗! , 𝑠! , … , 𝑠!!! , 𝑗!!! , 𝑠! :
+𝑅norm = argmax 𝑃 𝑅norm ℋ ).
+!norm
+
+Since the norm bias function is a linear weighting of
+features, this corresponds to finding the most likely
+weights, 𝜃.
+Here, we focus on norm learning in collaborative games.
+That is, we assume that all agents all have the same goal
+!
+(i.e. have the same 𝑅individual
+) but must figure out how to
+work together to accomplish it. This simplifies inferring the
+norm bias. Other work should investigate how norm
+learning interacts in competitive scenarios (e.g. see
+Kleiman-Weiner et al. in this year’s proceedings).
+Features for Learning Norms Our representation of norms
+and implementation of norm learning depends on the
+features available to individuals in the group. The specific
+features are important for several reasons. First, to converge
+on a norm, individuals must have sufficiently similar
+features available to them to determine which norm the
+group uses. Second, features must be sufficiently expressive
+to allow individuals to pin down the norm that they
+collectively use to solve a task. Third, learning norms in
+terms of features allows generalization to novel situations.
+Without a concise, abstract representation of a norm, people
+would not be able to apply a learned norm to a new context
+and would need to learn an appropriate norm from scratch.
+For the tasks in the experiments reported, we describe which
+types of features are used for constructing norms.
+
+1159
+
+We consider two types of features: landmark-based
+features, such as “Agent X is north of its goal”, and agentrelative features, such as “Agent X is north of Agent Y”.
 These two types were chosen because the former are an
 ‘asocial’ representation, while the latter explicitly involve
 social others. Moreover, they lead to different predictions in
 the tasks we use.
+
 Best-Response Model
-   Best-response agents individually plan using a model of
+Best-response agents individually plan using a model of
 other agents. This means that instead of reasoning about a
 joint-policy directly, an agent i uses a predictive model of
 another agent j’s policy, 𝜋! , to predict what j will do in a
-certain state. That is, an agent i will construct a transition               Figure 1: Hallway Task examples where (a) agents pass on
-function that includes predictions about the behavior of the                 top and bottom rows, and (b) they pass on middle and top
-other agent, 𝑇! (𝑠 ! |𝑠, 𝑎! ) = 𝑇 𝑠 ! 𝑠, 𝑎! , 𝜋 𝑠 .                          rows. Smaller circles indicate the agent waited a step.
-   Here, we use a level-1 cognitive hierarchy planner as our                and pass one another. Critically, at least one of the two
-Best-Response model. It models its partner’s behavior                       agents has to deviate from the center row of the grid and
-directly by counting its partner’s actions and decaying past                return to the center for the two to successfully complete the
-counts by a parameter 𝛿. Additionally, to accelerate                        task. The other agent will either have to do the same, but on
-learning, the model assigns a pseudocount, 𝛼, to joint states               a different row, or wait two time-steps for the other agent.
-in which the partner’s location on the grid is the same1.                   Figure 1 displays two joint plans that successfully complete
-Although we could have modeled a higher level of                            the task in the minimal number of steps (6). Note though
-reasoning (e.g. best responding to a level-1 planner) we did                that there are many other possible joint actions that the two
-not for two reasons. First, previous experimental work has                  agents can take to pass one another.
-shown that people do not typically reason beyond one or                        In a given round, we can consider the row that each player
-two levels (Camerer et al., 2004). Second, in non-                          is on when the two pass. Each player can be either on the
-competitive contexts, strategies often converge at higher                   top, bottom, or center row when attempting to move closer
-levels in the cognitive hierarchy, and even level-1 reasoning               to their own goal. Clearly, successful passing requires that
-provides a good estimate of this converged behavior                         the two agents be on different rows while attempting to
-(Bardsley et al., 2010).                                                    pass. Figure 2 visualizes this as an outcome matrix.
-                                                                            Executing a successful joint policy, defined as both agents
-               Experiment 1: Hallway Task                                   reaching their goal in the minimal number of steps, requires
-                                                                                                                 Player 2’s
-Task Description
-                                                                                                                Passing Row
-To test whether people best respond or learn norms, we                                                    Top      Center Bottom
-designed the 2-person Hallway task shown in Figure 1. Two                       Player 1’s    Top         Fail     Success Success
-agents (circles) start at opposite ends of a 5x3 grid and on                     Passing     Center Success         Fail    Success
-each turn simultaneously move up, down, left, right, or wait.                      Row       Bottom Success Success           Fail
-The two agents cannot enter the same state or immediately                   that both agents select different passing rows.
-switch positions – if they attempt this, then they collide and
-remain in the same location as in the previous time-step.                       Figure 2: Matrix representing passing success as a
-Each agent has its own goal tile, indicated by a matching                    function of each player’s row in the gridworld. Note that
-color, and the two agents start the task on one another’s                    “Success” means the game was solved optimally.
-goals. Whenever either agent enters its own goal state, the
-round ends. However, to succeed in a round (and in the                      Model Simulations
-human case win a bonus), the agents must simultaneously
-enter their respective goals. This necessitates collaboration.              Best-Response Suppose two Best-Response agents succeed
-   At the beginning of a round, each agent is exactly 4 tiles               where player 1 passes through the center and player 2 passes
-away from its goal. But they cannot both take a direct route                along the top ({center, top, success}). Having observed
-to their goals without colliding. Rather, they must choose a                player 2’s behavior, player 1’s predicts that player 2 will
-series of actions that enables them to “break the symmetry”                 again choose top. From player 1’s perspective, it is equally
-                                                                            optimal to choose center as it is to choose bottom. However,
-                                                                            if player 2 reasons similarly about player 1, then player 2
-   1
-     For example, if the agent is at (1,1) and the partner is at (0,0),     will treat top or bottom as equally optimal. If the players
-then the partner’s behavior will be generalized to other joint states       choose their respective pairs of equally optimal actions at
-where it is at (0,0). In this paper 𝛿 = 0.5, 𝛼 = 0.5.
-                                                                        1160
+certain state. That is, an agent i will construct a transition
+function that includes predictions about the behavior of the
+other agent, 𝑇! (𝑠 ! |𝑠, 𝑎! ) = 𝑇 𝑠 ! 𝑠, 𝑎! , 𝜋 𝑠 .
+Here, we use a level-1 cognitive hierarchy planner as our
+Best-Response model. It models its partner’s behavior
+directly by counting its partner’s actions and decaying past
+counts by a parameter 𝛿. Additionally, to accelerate
+learning, the model assigns a pseudocount, 𝛼, to joint states
+in which the partner’s location on the grid is the same1.
+Although we could have modeled a higher level of
+reasoning (e.g. best responding to a level-1 planner) we did
+not for two reasons. First, previous experimental work has
+shown that people do not typically reason beyond one or
+two levels (Camerer et al., 2004). Second, in noncompetitive contexts, strategies often converge at higher
+levels in the cognitive hierarchy, and even level-1 reasoning
+provides a good estimate of this converged behavior
+(Bardsley et al., 2010).
 
-Figure 3: Human (experimental), Norm-Learning (simulation), and Best-Response (simulation) results for (a) number of
+Experiment 1: Hallway Task
+Task Description
+To test whether people best respond or learn norms, we
+designed the 2-person Hallway task shown in Figure 1. Two
+agents (circles) start at opposite ends of a 5x3 grid and on
+each turn simultaneously move up, down, left, right, or wait.
+The two agents cannot enter the same state or immediately
+switch positions – if they attempt this, then they collide and
+remain in the same location as in the previous time-step.
+Each agent has its own goal tile, indicated by a matching
+color, and the two agents start the task on one another’s
+goals. Whenever either agent enters its own goal state, the
+round ends. However, to succeed in a round (and in the
+human case win a bonus), the agents must simultaneously
+enter their respective goals. This necessitates collaboration.
+At the beginning of a round, each agent is exactly 4 tiles
+away from its goal. But they cannot both take a direct route
+to their goals without colliding. Rather, they must choose a
+series of actions that enables them to “break the symmetry”
+1
+
+For example, if the agent is at (1,1) and the partner is at (0,0),
+then the partner’s behavior will be generalized to other joint states
+where it is at (0,0). In this paper 𝛿 = 0.5, 𝛼 = 0.5.
+
+Figure 1: Hallway Task examples where (a) agents pass on
+top and bottom rows, and (b) they pass on middle and top
+rows. Smaller circles indicate the agent waited a step.
+and pass one another. Critically, at least one of the two
+agents has to deviate from the center row of the grid and
+return to the center for the two to successfully complete the
+task. The other agent will either have to do the same, but on
+a different row, or wait two time-steps for the other agent.
+Figure 1 displays two joint plans that successfully complete
+the task in the minimal number of steps (6). Note though
+that there are many other possible joint actions that the two
+agents can take to pass one another.
+In a given round, we can consider the row that each player
+is on when the two pass. Each player can be either on the
+top, bottom, or center row when attempting to move closer
+to their own goal. Clearly, successful passing requires that
+the two agents be on different rows while attempting to
+pass. Figure 2 visualizes this as an outcome matrix.
+Executing a successful joint policy, defined as both agents
+reaching their goal in the minimal number of steps, requires
+Player 2’s
+Passing Row
+Top
+Center Bottom
+Player 1’s
+Top
+Fail
+Success Success
+Passing
+Center Success
+Fail
+Success
+Row
+Bottom Success Success
+Fail
+that both agents select different passing rows.
+Figure 2: Matrix representing passing success as a
+function of each player’s row in the gridworld. Note that
+“Success” means the game was solved optimally.
+
+Model Simulations
+Best-Response Suppose two Best-Response agents succeed
+where player 1 passes through the center and player 2 passes
+along the top ({center, top, success}). Having observed
+player 2’s behavior, player 1’s predicts that player 2 will
+again choose top. From player 1’s perspective, it is equally
+optimal to choose center as it is to choose bottom. However,
+if player 2 reasons similarly about player 1, then player 2
+will treat top or bottom as equally optimal. If the players
+choose their respective pairs of equally optimal actions at
+
+1160
+
+Figure 3: Human (experimental), Norm-Learning (simulation), and Best-Response (simulation) results for (a) number of
 rounds (out of 20) in which both agents scored, (b) number of rounds in which agents collided at least once, and (c)
 proportion of rounds in which agents switched their strategy from the previous round (averaged over both agents). These
 results suggest that human collaboration relies on jointly learned norms rather than best-responding to one’s partner.
-random (i.e. 0.5 each), then they will stay at {center, top,       demo tasks that familiarized them with the grid game
-success} with .25 probability, switch to the {bottom, top,         interface and task dynamics. They received a $2.00 base
-success} or {center, bottom, success} cells with 0.5               payment and an additional $0.10 bonus when they
-probability, or switch to {bottom, bottom, fail} with .25          simultaneously reached their goals. Afterwards, each
-probability. In our implementation, the probabilities differ       participant completed a post-task survey that included
-from this ideal due to the decaying memory. Nonetheless,           questions about the task and demographics. One dyad was
-this illustrates the central prediction of best-response           excluded from analysis due to missing data.
-decision making in this collaborative game: that there will          For the simulations, agent dyads played 20 rounds and
-be high row-passing switching as well as a moderate amount         only learned at the end of each round. The Best-Response
-of collisions from agents simultaneously switching.                model updated its model of its partner based on the play the
-  Note also that the memoryless, mixed-strategy Nash               previous round, while the Norm-Learning model updated its
-equilibrium is itself a type of best-response solution             distribution over possible norm biases. To simplify
-concept. In this particular coordination game it is                inference, we considered the space of feature weights to be
- 1 3 , 1 3 , 1 3 , which leads to an even higher proportion        𝜃 ∈ −1,0,1 !! .
+random (i.e. 0.5 each), then they will stay at {center, top,
+success} with .25 probability, switch to the {bottom, top,
+success} or {center, bottom, success} cells with 0.5
+probability, or switch to {bottom, bottom, fail} with .25
+probability. In our implementation, the probabilities differ
+from this ideal due to the decaying memory. Nonetheless,
+this illustrates the central prediction of best-response
+decision making in this collaborative game: that there will
+be high row-passing switching as well as a moderate amount
+of collisions from agents simultaneously switching.
+Note also that the memoryless, mixed-strategy Nash
+equilibrium is itself a type of best-response solution
+concept. In this particular coordination game it is
+1 3 , 1 3 , 1 3 , which leads to an even higher proportion
 of collisions – 1 3 – as well as switching – 2 3.
-                                                                   Results and Discussion Participants reported the task being
-Norm-Learning In the Norm-Learning model, two agents               relatively easy where 1 = Very Difficult to 7 = Very Easy
-observe the same history of interaction, and use this to infer     (Mean = 5.67; SE = .19). Additionally, participants reported
-the most likely norm that a hypothetical collective agent is       that they were skilled at the task on a scale from 1 = Very
-using. By using their shared observations and reasoning            Bad to 7 = Very Good (Mean = 5.64; SE = .18).
-processes to deduce the most likely norm that they as a              The dyads were successful at collaborating on the task
-group have, they converge on and stay with a particular            and winning the bonus. For our analysis, we focused on
-norm. For the Hallway task, we use a set of landmark-based         dyads that scored more than half of the rounds (23 of 24
-features to define the space of norm reward biases.                dyads). These dyads, on average, jointly scored 17.5 out of
-Specifically, for each of the two agents, we represent which       20 rounds (SE = 0.50) and jointly scored in the minimum
-row they are on relative to the row that their goal is on:         number of steps possible (6) 15.22 out of 20 rounds (SE =
-above (top), on (center), or below their goal’s row (bottom).      0.85). Human rounds scored did not differ from the Norm-
-This gives us a total of 6 binary goal-based features.             Learning model (t(35.307) = 1.82, p = 0.07) but did differ
-  Unlike the Best-Response model, the Norm-Learning                from the Best-Response model (t(38.0) = 4.98, p < .001)
-model predicts that people will stick with a combination of        (Figure 3a). However, direct comparison by scoring is
-rows when performing the task. That is, in dyads that              difficult since the simulations update only once a round
-collaborate successfully, participants will not change which       completes. This leads the Best-Response model to
-row they pass on and there will be few, if any, collisions.        potentially collide indefinitely and never reach its goal.
-                                                                     Overall, the experimental results resemble the predictions
-Experiment                                                         of the Norm-Learning model over the Best-Response model.
-Design and Procedure We recruited 50 MTurk participants            To compare human behavior in the collaborative Hallway
-(25 dyads). They signed a consent form and then completed          task to the models, we focused on two measures: the
-                                                                   number of rounds in which the agents collided at least once,
-                                                               1161
+Norm-Learning In the Norm-Learning model, two agents
+observe the same history of interaction, and use this to infer
+the most likely norm that a hypothetical collective agent is
+using. By using their shared observations and reasoning
+processes to deduce the most likely norm that they as a
+group have, they converge on and stay with a particular
+norm. For the Hallway task, we use a set of landmark-based
+features to define the space of norm reward biases.
+Specifically, for each of the two agents, we represent which
+row they are on relative to the row that their goal is on:
+above (top), on (center), or below their goal’s row (bottom).
+This gives us a total of 6 binary goal-based features.
+Unlike the Best-Response model, the Norm-Learning
+model predicts that people will stick with a combination of
+rows when performing the task. That is, in dyads that
+collaborate successfully, participants will not change which
+row they pass on and there will be few, if any, collisions.
 
-and the proportion of rounds in which agents switched their            entrances. In Indirect Courtyard, agents must first move
-strategy from the previous round.                                      upwards towards entrances to cross. But both versions
-   Figure 3b plots the number of rounds in which at least one          require agents to devise a way to pass. In our simulations
-collision occurred for a dyad. Human collisions fell directly          and experiment, agents first play 10 rounds of Direct
-in between the Norm-Learning model and Best-Response                   Courtyard, followed by 10 rounds of Indirect Courtyard.
-model and significantly differed from the numbers in both                 If the agents have no means of generalizing learned joint
-models (Best-Response: t(34.7) = -2.67, p = 0.01; Norm-                plans, then they will have to find a new one when moving
-Learning: t(33.2) = 2.49, p = 0.02). While this fails to               from Direct to Indirect Courtyard. On the other hand, if they
-distinguish between the two idealized models presented, it is          learned a norm as a feature-based reward bias, then they can
-consistent with a noisy or imperfect norm learning process.            use it to guide their strategy choice on Indirect Courtyard.
-   To determine what strategy human and simulated agents
-used in a given round, we used the following heuristic: the            Models
-first time a dyad collided in a round, the respective rows of          We tested three sets of binary feature-based reward biases:
-the agents were coded as their strategies (note that agent             goal-relative features – is agent X’s current row above,
-locations after a collision remain the same as before). If a           below, or the same as the goal row? (fn = 2 agents x 3
-dyad never collided in a round we looked at the first step in          features = 6 total features) –, entrance-relative features – is
-which they were in the same column or switched columns --              agent X’s current row above, below, or the same as the
-i.e. the step at which they passed one another. Their                  entrances? (fn = 6) –, and agent-relative features – is agent
-respective rows after passing were coded as their strategy.            X above, below, or on the same row as agent Y? (fn = 3). 40
-   The amount of trial-to-trial strategy-switching provides a          simulations of each model were run.
+Experiment
+Design and Procedure We recruited 50 MTurk participants
+(25 dyads). They signed a consent form and then completed
+
+demo tasks that familiarized them with the grid game
+interface and task dynamics. They received a $2.00 base
+payment and an additional $0.10 bonus when they
+simultaneously reached their goals. Afterwards, each
+participant completed a post-task survey that included
+questions about the task and demographics. One dyad was
+excluded from analysis due to missing data.
+For the simulations, agent dyads played 20 rounds and
+only learned at the end of each round. The Best-Response
+model updated its model of its partner based on the play the
+previous round, while the Norm-Learning model updated its
+distribution over possible norm biases. To simplify
+inference, we considered the space of feature weights to be
+𝜃 ∈ −1,0,1 !! .
+Results and Discussion Participants reported the task being
+relatively easy where 1 = Very Difficult to 7 = Very Easy
+(Mean = 5.67; SE = .19). Additionally, participants reported
+that they were skilled at the task on a scale from 1 = Very
+Bad to 7 = Very Good (Mean = 5.64; SE = .18).
+The dyads were successful at collaborating on the task
+and winning the bonus. For our analysis, we focused on
+dyads that scored more than half of the rounds (23 of 24
+dyads). These dyads, on average, jointly scored 17.5 out of
+20 rounds (SE = 0.50) and jointly scored in the minimum
+number of steps possible (6) 15.22 out of 20 rounds (SE =
+0.85). Human rounds scored did not differ from the NormLearning model (t(35.307) = 1.82, p = 0.07) but did differ
+from the Best-Response model (t(38.0) = 4.98, p < .001)
+(Figure 3a). However, direct comparison by scoring is
+difficult since the simulations update only once a round
+completes. This leads the Best-Response model to
+potentially collide indefinitely and never reach its goal.
+Overall, the experimental results resemble the predictions
+of the Norm-Learning model over the Best-Response model.
+To compare human behavior in the collaborative Hallway
+task to the models, we focused on two measures: the
+number of rounds in which the agents collided at least once,
+
+1161
+
+and the proportion of rounds in which agents switched their
+strategy from the previous round.
+Figure 3b plots the number of rounds in which at least one
+collision occurred for a dyad. Human collisions fell directly
+in between the Norm-Learning model and Best-Response
+model and significantly differed from the numbers in both
+models (Best-Response: t(34.7) = -2.67, p = 0.01; NormLearning: t(33.2) = 2.49, p = 0.02). While this fails to
+distinguish between the two idealized models presented, it is
+consistent with a noisy or imperfect norm learning process.
+To determine what strategy human and simulated agents
+used in a given round, we used the following heuristic: the
+first time a dyad collided in a round, the respective rows of
+the agents were coded as their strategies (note that agent
+locations after a collision remain the same as before). If a
+dyad never collided in a round we looked at the first step in
+which they were in the same column or switched columns -i.e. the step at which they passed one another. Their
+respective rows after passing were coded as their strategy.
+The amount of trial-to-trial strategy-switching provides a
 critical contrast between the Norm-Learning model and
-Best-Response model. Individuals in the human dyads                    Experiment
+Best-Response model. Individuals in the human dyads
 switched their strategies rarely (14% of rounds) (Figure 3c).
-                                                                       Procedure 90 MTurkers (45 dyads) participated. 3 dyads
 This closely matches the predictions of the Norm-Learning
-                                                                       were excluded due to technical error. The procedure
 model (t(38.8) = 0.66, p = .51) and deviates significantly
-                                                                       matched Experiment 1 except participants played 2 games.
 from the Best-Response model (t(40.9) = -6.14, p < .001). A
 related measure of joint strategy diversity tells us about
-                                                                       Results and Discussion To determine whether and how
 global rather than local variability. To measure this, we
-                                                                       participants generalized from Direct to Indirect Courtyard,
 calculated the entropy of the frequency distributions of joint
-                                                                       we analyzed individual strategies within dominant joint
 strategies. Although the joint strategy entropy for humans
-                                                                       strategies. Each round, we identified the strategy used with
 significantly differed from both models (Norm-Learning:
-                                                                       the same heuristic as in Experiment 1. For each dyad, we
 t(36.6) = 2.81, p < .001; Best-Response: t(36.2) = -5.55, p <
-                                                                       then identified the most frequent strategies in the Direct
 .001), human entropy was closer to Norm-Learner entropy
-                                                                       Courtyard and Indirect Courtyard phases. We then identified
 (Human: M = 0.68, SE = 0.10; Norm-Learning: M = 0.34,
-                                                                       each agent’s individual strategy in the two phases. Figure 5a
 SE = 0.06; Best-Response: M = 1.34, SE = 0.06). Overall
-                                                                       shows individual strategy counts in the two phases. Note
 then, people displayed behavior more consistent with
-                                                                       that if people were forming new joint plans from scratch, the
 learning a jointly understood norm rather than best
-                                                                       strategies in the two phases would be uncorrelated. This was
 responding to their partner’s behavior.2
-                                                                       not the case (𝜒 ! (4) = 27.45, p < .001).
-                                                                          To explain the systematicity in how joint plans were
-         Experiment 2: Feature-Based Norm                              generalized to the Indirect Courtyard, we compared this
-                         Generalization                                distribution to the simulation results of our three models
-In our model, feature-based norms allow agents to converge             (Figure 5b, 5c, and 5d). A visual analysis of these tables
-on a joint strategy quickly, but they also enable individuals          suggested that the participant results reflect a mixture of
-to generalize norms to new contexts. Here, we present the              goal-relative and entrance-relative features. We confirmed
+
+Experiment 2: Feature-Based Norm
+Generalization
+In our model, feature-based norms allow agents to converge
+on a joint strategy quickly, but they also enable individuals
+to generalize norms to new contexts. Here, we present the
 predictions of two sets of landmark-based features and one
 set of agent-relative features. We show that human norm
 learning better resembles landmark-based features assuming
 people learn norms like the Norm-Learning model.
+
+entrances. In Indirect Courtyard, agents must first move
+upwards towards entrances to cross. But both versions
+require agents to devise a way to pass. In our simulations
+and experiment, agents first play 10 rounds of Direct
+Courtyard, followed by 10 rounds of Indirect Courtyard.
+If the agents have no means of generalizing learned joint
+plans, then they will have to find a new one when moving
+from Direct to Indirect Courtyard. On the other hand, if they
+learned a norm as a feature-based reward bias, then they can
+use it to guide their strategy choice on Indirect Courtyard.
+
+Models
+We tested three sets of binary feature-based reward biases:
+goal-relative features – is agent X’s current row above,
+below, or the same as the goal row? (fn = 2 agents x 3
+features = 6 total features) –, entrance-relative features – is
+agent X’s current row above, below, or the same as the
+entrances? (fn = 6) –, and agent-relative features – is agent
+X above, below, or on the same row as agent Y? (fn = 3). 40
+simulations of each model were run.
+
+Experiment
+Procedure 90 MTurkers (45 dyads) participated. 3 dyads
+were excluded due to technical error. The procedure
+matched Experiment 1 except participants played 2 games.
+Results and Discussion To determine whether and how
+participants generalized from Direct to Indirect Courtyard,
+we analyzed individual strategies within dominant joint
+strategies. Each round, we identified the strategy used with
+the same heuristic as in Experiment 1. For each dyad, we
+then identified the most frequent strategies in the Direct
+Courtyard and Indirect Courtyard phases. We then identified
+each agent’s individual strategy in the two phases. Figure 5a
+shows individual strategy counts in the two phases. Note
+that if people were forming new joint plans from scratch, the
+strategies in the two phases would be uncorrelated. This was
+not the case (𝜒 ! (4) = 27.45, p < .001).
+To explain the systematicity in how joint plans were
+generalized to the Indirect Courtyard, we compared this
+distribution to the simulation results of our three models
+(Figure 5b, 5c, and 5d). A visual analysis of these tables
+suggested that the participant results reflect a mixture of
+goal-relative and entrance-relative features. We confirmed
+
 Task Description
 We designed the Courtyard tasks shown in Figure 4 to test
 norm generalization. In Direct Courtyard, agents can
 immediately move towards their respective goals through
 2
-  We assume that best responders do not default to the previous          Figure 4: (a) Direct and (b) Indirect Courtyard Tasks
-choice if indifferent between options. Future studies will need to       with example optimal joint plans. The bold lines are
-rule this out in people.                                                 walls that agents cannot pass through.
-                                                                   1162
 
- Figure 5: Individual agents’ most frequent strategies (counts) by Direct and Indirect Courtyard phases for (a) experimental
- participants, (b) our Norm-Learning agent with Agent-Relative features, (c) Goal-Based features, and (d) Entrance-Based
- features. The distribution indicates which row an agent is likely to take in the Indirect Courtyard grid given what row was
- taken in the Direct Courtyard. Human results are best explained as a mixture of the two landmark-based feature sets (Goal-
- based and Entrance-based; see text). Grayed out rows in the gridworlds indicate the most frequent individual strategy.
-this by calculating maximum likelihood mixture values for          Bardsley, N., Mehta, J., Starmer, C., & Sugden, R. (2010).
-the three models: pEntrance = 0.21, pGoal = 0.79, and pAgent =       Explaining Focal Points: Cognitive Hierarchy Theory
-0.0. Thus, participants tended to generalize norms using             versus Team Reasoning*. The Economic Journal,
-landmark-based rather than agent-relative features.                  120(543), 40–79.
-                                                                   Bicchieri, C. (2005). The grammar of society: The nature
-                        Conclusion                                   and dynamics of social norms. Cambridge University
-Here, we have presented a novel model of norm learning               Press.
-based on inferring joint reward biases. We compared the            Binmore, K. (2010). Social norms or social preferences?
-predictions of this model to those of a best response model          Mind & Society, 9(2), 139–157.
-in the Hallway task, and used the same model to show that          Camerer, C. F., Ho, T.-H., & Chong, J.-K. (2004). A
-people use landmark-based rather than agent-relative                 cognitive hierarchy model of games. The Quarterly
-features to generalize norms across the two Courtyard tasks.         Journal of Economics, 861–898.
-   A central aspect of human sociality is engaging in shared       Claus, C., & Boutilier, C. (1998). The dynamics of
-intentions and joint plans with others (Searle, 1995). Using         reinforcement learning in cooperative multiagent systems.
-the formal tools of multi-agent MDPs, we are able to make            In J. Mostow, C. Rich, B. Buchanan (Eds.) Proc. of the
-quantitative predictions about how collaborating individuals         15th national conf. on artificial intelligence (pp. 746-752).
-represent and reason about themselves as part of a larger          Littman, M. L. (1994). Markov games as a framework for
-entity. Future work should explore how individuals learn             multi-agent reinforcement learning. In W. Cohen (Ed.),
-norms over particular types of features, what happens when           Proc. of 11th international conf. on machine learning (pp.
-agents’ feature sets differ from one another, and how                157–163). San Francisco, CA: Morgan Kaufmann.
-learned norms interact in competitive scenarios.                   Schelling, T. C. (1980). The strategy of conflict. Harvard
-                                                                     university press.
-                                                                   Searle, J. R. (1995). The construction of social reality.
-                    Acknowledgments
-                                                                     Simon and Schuster.
-This material is based upon work supported by the NSF              Sen, S., & Airiau, S. (2007). Emergence of Norms Through
-GRF under Grant No. (DGE-1058262).                                   Social Learning. In R. Sangal, H. Mehta, R. K. Bagga
-                                                                     (Eds.), Proc. of the 20th international joint conference on
-                         References                                  artificial intelligence (pp. 1507–1512). San Francisco,
-Abbeel, P., & Ng, A. Y. (2004). Apprenticeship learning via          CA: Morgan Kaufmann.
-   inverse reinforcement learning. In C. Brodley (Ed.), Proc.       Sutton, R. S., & Barto, A. G. (1998). Reinforcement
-   of twenty-first international conference on machine               learning: An introduction. MIT press.
-   learning (p. 1). New York, NY: ACM.                             Wunder, M., Kaisers, M., Yaros, J. R., & Littman, M.
-Bacharach, M., Gold, N., & Sugden, R. (2006). Beyond                 (2011). Using Iterated Reasoning to Predict Opponent
-   individual choice: teams and frames in game theory.               Strategies. In L. Sonenberg, P. Stone (Eds.), 10th
-   Princeton University Press.                                       international conference on autonomous agents and
-Baker, C. L., Saxe, R., & Tenenbaum, J. B. (2009). Action            multiagent systems (Vol 2, pp. 593–600). Richland, SC:
-   understanding as inverse planning. Cognition, 113(3),             IFAAMS.
-   329–349.
-                                                               1163
+Figure 4: (a) Direct and (b) Indirect Courtyard Tasks
+with example optimal joint plans. The bold lines are
+walls that agents cannot pass through.
 
+We assume that best responders do not default to the previous
+choice if indifferent between options. Future studies will need to
+rule this out in people.
+
+1162
+
+Figure 5: Individual agents’ most frequent strategies (counts) by Direct and Indirect Courtyard phases for (a) experimental
+participants, (b) our Norm-Learning agent with Agent-Relative features, (c) Goal-Based features, and (d) Entrance-Based
+features. The distribution indicates which row an agent is likely to take in the Indirect Courtyard grid given what row was
+taken in the Direct Courtyard. Human results are best explained as a mixture of the two landmark-based feature sets (Goalbased and Entrance-based; see text). Grayed out rows in the gridworlds indicate the most frequent individual strategy.
+this by calculating maximum likelihood mixture values for
+the three models: pEntrance = 0.21, pGoal = 0.79, and pAgent =
+0.0. Thus, participants tended to generalize norms using
+landmark-based rather than agent-relative features.
+
+Conclusion
+Here, we have presented a novel model of norm learning
+based on inferring joint reward biases. We compared the
+predictions of this model to those of a best response model
+in the Hallway task, and used the same model to show that
+people use landmark-based rather than agent-relative
+features to generalize norms across the two Courtyard tasks.
+A central aspect of human sociality is engaging in shared
+intentions and joint plans with others (Searle, 1995). Using
+the formal tools of multi-agent MDPs, we are able to make
+quantitative predictions about how collaborating individuals
+represent and reason about themselves as part of a larger
+entity. Future work should explore how individuals learn
+norms over particular types of features, what happens when
+agents’ feature sets differ from one another, and how
+learned norms interact in competitive scenarios.
+
+Acknowledgments
+This material is based upon work supported by the NSF
+GRF under Grant No. (DGE-1058262).
+
+References
+Abbeel, P., & Ng, A. Y. (2004). Apprenticeship learning via
+inverse reinforcement learning. In C. Brodley (Ed.), Proc.
+of twenty-first international conference on machine
+learning (p. 1). New York, NY: ACM.
+Bacharach, M., Gold, N., & Sugden, R. (2006). Beyond
+individual choice: teams and frames in game theory.
+Princeton University Press.
+Baker, C. L., Saxe, R., & Tenenbaum, J. B. (2009). Action
+understanding as inverse planning. Cognition, 113(3),
+329–349.
+
+Bardsley, N., Mehta, J., Starmer, C., & Sugden, R. (2010).
+Explaining Focal Points: Cognitive Hierarchy Theory
+versus Team Reasoning*. The Economic Journal,
+120(543), 40–79.
+Bicchieri, C. (2005). The grammar of society: The nature
+and dynamics of social norms. Cambridge University
+Press.
+Binmore, K. (2010). Social norms or social preferences?
+Mind & Society, 9(2), 139–157.
+Camerer, C. F., Ho, T.-H., & Chong, J.-K. (2004). A
+cognitive hierarchy model of games. The Quarterly
+Journal of Economics, 861–898.
+Claus, C., & Boutilier, C. (1998). The dynamics of
+reinforcement learning in cooperative multiagent systems.
+In J. Mostow, C. Rich, B. Buchanan (Eds.) Proc. of the
+15th national conf. on artificial intelligence (pp. 746-752).
+Littman, M. L. (1994). Markov games as a framework for
+multi-agent reinforcement learning. In W. Cohen (Ed.),
+Proc. of 11th international conf. on machine learning (pp.
+157–163). San Francisco, CA: Morgan Kaufmann.
+Schelling, T. C. (1980). The strategy of conflict. Harvard
+university press.
+Searle, J. R. (1995). The construction of social reality.
+Simon and Schuster.
+Sen, S., & Airiau, S. (2007). Emergence of Norms Through
+Social Learning. In R. Sangal, H. Mehta, R. K. Bagga
+(Eds.), Proc. of the 20th international joint conference on
+artificial intelligence (pp. 1507–1512). San Francisco,
+CA: Morgan Kaufmann.
+Sutton, R. S., & Barto, A. G. (1998). Reinforcement
+learning: An introduction. MIT press.
+Wunder, M., Kaisers, M., Yaros, J. R., & Littman, M.
+(2011). Using Iterated Reasoning to Predict Opponent
+Strategies. In L. Sonenberg, P. Stone (Eds.), 10th
+international conference on autonomous agents and
+multiagent systems (Vol 2, pp. 593–600). Richland, SC:
+IFAAMS.
+
+1163
+
+

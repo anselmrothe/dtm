@@ -3,426 +3,893 @@ Proceedings of the Annual Meeting of the Cognitive Science
 Society
 Title
 Online learning of causal structure in a dynamic game situation
+
 Permalink
 https://escholarship.org/uc/item/4tk33276
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 34(34)
+
 Authors
 Gao, Yue
 Nitzany, Eyal
 Edelman, Shimon
+
 Publication Date
 2012-01-01
 Peer reviewed
- eScholarship.org                                  Powered by the California Digital Library
-                                                                    University of California
 
-        Online learning of causal structure in a dynamic game situation
-                                            Yue Gao (ygao@cs.cornell.edu)
-                                    Department of Computer Science, Cornell University
-                                                     Ithaca, NY, 14853 USA
-                                          Eyal Nitzany (ein3@cornell.edu)
-                          Program in Computational Biology and Medicine, Cornell University
-                                                     Ithaca, NY, 14853 USA
-                                     Shimon Edelman (edelman@cornell.edu)
-                                       Department of Psychology, Cornell University
-                                                     Ithaca, NY, 14853 USA
-                          Abstract                                 the special appeal of temporal proximity as a cue to
-                                                                   causal structure and strength, a simple, incremental,
-   Agents situated in a dynamic environment with an ini-
-   tially unknown causal structure, which, moreover, links         heuristic approach to causal learning based on this cue
-   certain behavioral choices to rewards, must be able to          is, however, worth exploring — particularly if such an
-   learn such structure incrementally on the fly. We report        approach proves effective in dealing with dynamical sce-
-   an experimental study that characterizes human learn-
-   ing in a controlled dynamic game environment, and de-           narios where irrelevant variables abound and where the
-   scribe a computational model that is capable of similar         model may need to be modifiable on the fly. In this
-   learning. The model learns by building up a represen-           paper, we describe a dynamical causal Bayesian model
-   tation of the hypothesized causes and effects, including
-   estimates of the strength of each causal interaction. It is     that uses temporal proximity among cues to learn its
-   driven initially by simple guesses regarding such inter-        structure and parameters from a continuous stream of
-   actions, inspired by events occurring in close temporal         observations and action-related rewards in a computer
-   succession. The model maintains its structure dynam-
-   ically (including omitting or even reversing the current        game-related scenario.
-   best-guess dependencies, if warranted by new evidence),
-   and estimates the projected probability of possible out-             Dynamic causal Bayesian modeling
-   comes by performing inference on the resulting Bayesian
-   network. The model reproduces the human performance             Consider a dynamic situation described by a set of binary
-   in the present dynamical task.                                  variables X = {X1 , X2 , . . . , Xn }, whose values occasion-
-   Keywords: Temporal learning, causality, structure               ally change over time, and where Xi = 1 indicates the
-   learning, Dynamic Bayesian graphical model, STDP.
-                                                                   presence of some item or feature and Xi = 0 its absence.
-                                                                   The causal relationships among the variables in X , if
-                       Introduction                                any, are initially unknown; each one could be a cause,
-There are many types of cues that an agent can use to              an effect, or neither. Our approach integrates bottom-
-learn the causal structure of its interactions with the            up, event-driven learning with top-down revisions as dic-
-environment, such as prior knowledge (which constrains             tated by the model’s self-maintained track record in pre-
-the hypothesis space), statistical relations, intervention,        dicting impending events or the outcomes of actions.
-and temporal ordering (Lagnado et al., 2007). Among                   The graph representing the model’s current hypothe-
-these, temporal ordering is particularly intriguing. First,        sis regarding the causal relationships over the members
-proximity among cues appears to play a central role in             of X , which serve as its vertices, has initially no edges.
-learning structure in time and space (Goldstein et al.,            As time progresses, edges are added to the graph ac-
-2010). Second, in causal learning, temporal ordering,              cording to the temporal order of the observed events and
-similarly to intervention, carries with it information re-         any interventions (the outcomes of model’s own actions).
-garding the direction of causality, which is crucial for pre-      As new edges, corresponding to pairwise hypothesized
-diction. Finally, putative causal relationships between            causal dependencies, are added, the model attempts to
-ordered events that occur in close temporal proximity              integrate the subgraphs they form — “twigs” (Figure 1,
-can be registered by relatively well-understood compu-             left) each consisting of a pair of vertices joined by a di-
-tational mechanisms akin to those that support synaptic            rected edge — into a larger (eventually, global) structure.
-modification in nervous systems.                                      Note that the twigs are supposed to capture causal
-   Both the learning of causal structure (as in model se-          “strength,” which we operationalize via a Hebb-like
-lection) and the modification of its parameters (as in             learning mechanism (detailed below), while the final
-classical schemes such as ∆P , P owerP C, and Rescorla-            causal model is intended to support probabilistic in-
-Wagner) can be put on a rational basis (Griffiths and              ference, by being treated as a Bayesian network. The
-Tenenbaum, 2009; Holyoak and Cheng, 2011). Given                   U nion operation (Figure 2, left), which combines twigs
-                                                               372
+eScholarship.org
 
-                                                                 exist. Similarly to how humans seem to handle causal
-                                                                 cues such as temporal ordering and proximity of notable
-                                                                 events (Lagnado et al., 2007), the model only seeks to
-                                                                 form a T wig when some item or feature appears on the
-                                                                 scene (i.e., a variable changes state from 0 to 1). The
-                                                                 model then scans the recent past, up to a duration of
-Figure 1: Left: the two possible T wig structures for two        ∆T , for a potential cause of the event at hand, in the
-variables Xi and Xj . The weights wi represent causal            form of the change in some other variable’s value. Any
-strength. Right: a new T wig is added to the model if            variable that is on the record as having changed its value
-a prior event involving some Xi is found within a short          (either from 0 to 1 or from 1 to 0) is labeled as a potential
-time window ∆t of a triggering event involving Xj .              causes for the event, forming a T wig (Figure 1).
-                                                                    The weight w is modified via Hebbian learning, specif-
-                                                                 ically, spike timing dependent plasticity (STDP; Capo-
-                                                                 rale and Dan, 2008). This family of temporally asym-
-                                                Xi      Xj       metric Hebbian rules affords quick (exponential) learn-
-                                                   wi    wj      ing, as well as unlearning (in “negative” trials, in which
-                                                                 the purported effect precedes the cause):
-                                                Ri      Rj
-                                                                                ∆w+ = A+ exp(−∆t/∆T )                     (1)
-                                                                                ∆w− = A− exp(∆t/∆T )
-                                                    E                        w(t + 1) = min (w (t) + ∆w, wmax )
-                                                                 where the + and − subscripts denote positive and
-Figure 2: Left: the U nion operation. In this example,           negative trials (E following or preceding C, respec-
-there are four possible DCBN outcomes: causal chains             tively). We set A+ = 1 and A− = 0.5, thus giving
-U1 and U2 , a common effect structure U3 , and a com-            more weight to positive evidence. If some T wig ele-
-mon cause structure U4 . Right: for each case where a            ments share a common variable, the model attempts to
-binary effect is driven by a real-valued “strength” link,        combine them S   by applying the U nion operation, as in
-the U nion operation adds a hidden softmax node, as il-          T wig(Xi , Xj )     T wig(Xi , Xk ) ⇒ DCBN (Xi , Xj , Xk )
-lustrated here for U3 by the frame drawn around Ri,j             (Figure 2), adding, as needed, hidden variables, as de-
-and E (Lu et al., 2008).                                         scribed below.
-                                                                 Learning the softmax parameters. To integrate
-into a dynamic causal Bayesian network (DCBN ), me-
-                                                                 a representation of causal strength into a probabilistic
-diates between these two aspects of the model by in-
-                                                                 (Bayesian) model, we follow Lu et al. (2008) by endow-
-serting as needed “hidden” variables that convert real-
-                                                                 ing the model with internal states, or hidden variables:
-valued strength variables into probability distributions
-                                                                 Ri and Rj in Figure 2, right. The state of each Ri is
+Powered by the California Digital Library
+University of California
+
+Online learning of causal structure in a dynamic game situation
+Yue Gao (ygao@cs.cornell.edu)
+Department of Computer Science, Cornell University
+Ithaca, NY, 14853 USA
+
+Eyal Nitzany (ein3@cornell.edu)
+Program in Computational Biology and Medicine, Cornell University
+Ithaca, NY, 14853 USA
+
+Shimon Edelman (edelman@cornell.edu)
+Department of Psychology, Cornell University
+Ithaca, NY, 14853 USA
+Abstract
+
+the special appeal of temporal proximity as a cue to
+causal structure and strength, a simple, incremental,
+heuristic approach to causal learning based on this cue
+is, however, worth exploring — particularly if such an
+approach proves effective in dealing with dynamical scenarios where irrelevant variables abound and where the
+model may need to be modifiable on the fly. In this
+paper, we describe a dynamical causal Bayesian model
+that uses temporal proximity among cues to learn its
+structure and parameters from a continuous stream of
+observations and action-related rewards in a computer
+game-related scenario.
+
+Agents situated in a dynamic environment with an initially unknown causal structure, which, moreover, links
+certain behavioral choices to rewards, must be able to
+learn such structure incrementally on the fly. We report
+an experimental study that characterizes human learning in a controlled dynamic game environment, and describe a computational model that is capable of similar
+learning. The model learns by building up a representation of the hypothesized causes and effects, including
+estimates of the strength of each causal interaction. It is
+driven initially by simple guesses regarding such interactions, inspired by events occurring in close temporal
+succession. The model maintains its structure dynamically (including omitting or even reversing the current
+best-guess dependencies, if warranted by new evidence),
+and estimates the projected probability of possible outcomes by performing inference on the resulting Bayesian
+network. The model reproduces the human performance
+in the present dynamical task.
+
+Dynamic causal Bayesian modeling
+Consider a dynamic situation described by a set of binary
+variables X = {X1 , X2 , . . . , Xn }, whose values occasionally change over time, and where Xi = 1 indicates the
+presence of some item or feature and Xi = 0 its absence.
+The causal relationships among the variables in X , if
+any, are initially unknown; each one could be a cause,
+an effect, or neither. Our approach integrates bottomup, event-driven learning with top-down revisions as dictated by the model’s self-maintained track record in predicting impending events or the outcomes of actions.
+The graph representing the model’s current hypothesis regarding the causal relationships over the members
+of X , which serve as its vertices, has initially no edges.
+As time progresses, edges are added to the graph according to the temporal order of the observed events and
+any interventions (the outcomes of model’s own actions).
+As new edges, corresponding to pairwise hypothesized
+causal dependencies, are added, the model attempts to
+integrate the subgraphs they form — “twigs” (Figure 1,
+left) each consisting of a pair of vertices joined by a directed edge — into a larger (eventually, global) structure.
+Note that the twigs are supposed to capture causal
+“strength,” which we operationalize via a Hebb-like
+learning mechanism (detailed below), while the final
+causal model is intended to support probabilistic inference, by being treated as a Bayesian network. The
+U nion operation (Figure 2, left), which combines twigs
+
+Keywords: Temporal learning, causality, structure
+learning, Dynamic Bayesian graphical model, STDP.
+
+Introduction
+There are many types of cues that an agent can use to
+learn the causal structure of its interactions with the
+environment, such as prior knowledge (which constrains
+the hypothesis space), statistical relations, intervention,
+and temporal ordering (Lagnado et al., 2007). Among
+these, temporal ordering is particularly intriguing. First,
+proximity among cues appears to play a central role in
+learning structure in time and space (Goldstein et al.,
+2010). Second, in causal learning, temporal ordering,
+similarly to intervention, carries with it information regarding the direction of causality, which is crucial for prediction. Finally, putative causal relationships between
+ordered events that occur in close temporal proximity
+can be registered by relatively well-understood computational mechanisms akin to those that support synaptic
+modification in nervous systems.
+Both the learning of causal structure (as in model selection) and the modification of its parameters (as in
+classical schemes such as ∆P , P owerP C, and RescorlaWagner) can be put on a rational basis (Griffiths and
+Tenenbaum, 2009; Holyoak and Cheng, 2011). Given
+
+372
+
+exist. Similarly to how humans seem to handle causal
+cues such as temporal ordering and proximity of notable
+events (Lagnado et al., 2007), the model only seeks to
+form a T wig when some item or feature appears on the
+scene (i.e., a variable changes state from 0 to 1). The
+model then scans the recent past, up to a duration of
+∆T , for a potential cause of the event at hand, in the
+form of the change in some other variable’s value. Any
+variable that is on the record as having changed its value
+(either from 0 to 1 or from 1 to 0) is labeled as a potential
+causes for the event, forming a T wig (Figure 1).
+The weight w is modified via Hebbian learning, specifically, spike timing dependent plasticity (STDP; Caporale and Dan, 2008). This family of temporally asymmetric Hebbian rules affords quick (exponential) learning, as well as unlearning (in “negative” trials, in which
+the purported effect precedes the cause):
+
+Figure 1: Left: the two possible T wig structures for two
+variables Xi and Xj . The weights wi represent causal
+strength. Right: a new T wig is added to the model if
+a prior event involving some Xi is found within a short
+time window ∆t of a triggering event involving Xj .
+
+Xj
+
+Xi
+wi
+
+wj
+
+Rj
+
+Ri
+
+∆w+ = A+ exp(−∆t/∆T )
+
+(1)
+
+∆w− = A− exp(∆t/∆T )
+
+E
+
+w(t + 1) = min (w (t) + ∆w, wmax )
+where the + and − subscripts denote positive and
+negative trials (E following or preceding C, respectively). We set A+ = 1 and A− = 0.5, thus giving
+more weight to positive evidence. If some T wig elements share a common variable, the model attempts to
+combine them S
+by applying the U nion operation, as in
+T wig(Xi , Xj )
+T wig(Xi , Xk ) ⇒ DCBN (Xi , Xj , Xk )
+(Figure 2), adding, as needed, hidden variables, as described below.
+
+Figure 2: Left: the U nion operation. In this example,
+there are four possible DCBN outcomes: causal chains
+U1 and U2 , a common effect structure U3 , and a common cause structure U4 . Right: for each case where a
+binary effect is driven by a real-valued “strength” link,
+the U nion operation adds a hidden softmax node, as illustrated here for U3 by the frame drawn around Ri,j
+and E (Lu et al., 2008).
+
+Learning the softmax parameters. To integrate
+a representation of causal strength into a probabilistic
+(Bayesian) model, we follow Lu et al. (2008) by endowing the model with internal states, or hidden variables:
+Ri and Rj in Figure 2, right. The state of each Ri is
+related to that of its parent node Xi through a Gaussian
+distribution parameterized by the weight wi :
+
+into a dynamic causal Bayesian network (DCBN ), mediates between these two aspects of the model by inserting as needed “hidden” variables that convert realvalued strength variables into probability distributions
 (Figure 2, right).
-                                                                 related to that of its parent node Xi through a Gaussian
-   As the network forms, the model becomes ready for
-                                                                 distribution parameterized by the weight wi :
+As the network forms, the model becomes ready for
 generating predictions (inference). Given the state of
-observations at time t, it can be used to predict the                                                              2
-most likely value for variables of interest at a later time.                  P (Ri | wi , Xi ) ∝ e−(Ri −wi Xi )/2σi      (2)
-During this phase, inference is alternated with learning,        The binary effect variable E = ei , ei being the ith dis-
-with the latter being driven by the model’s monitoring           crete value of E, is driven, in turn, by R through a
-of its own predictions and by comparing those to the             softmax function:
-observed outcomes. The resulting changes may include                                                                
-                                                                                                         T
-the model’s representation of the causal structure of the                                   exp w (:, i) R + b (i)
-environment: for instance, the direction of some of the              P (E = ei | R) = P                                 (3)
-                                                                                                           T
-twigs (cause-and-effect subgraphs) may be reversed.                                         j exp w (:, j) R + b (j)
-                                                                 where R is the vector that comprises Ri and Rj , and
-Structure and strength learning. We now proceed                  w and b are parameters that are learned as the model
-to describe the operation of the model in some detail,           is exposed to data, using an iteratively reweighted least
-starting with twig learning. Every elementary subgraph,          squares (IRLS) algorithm (Green, 1984).
-or T wig = {C, E, w}, consists of a single cause C, a sin-
-gle effect E, and the strength or weight w of their causal       Inference. We illustrate the inference process, in
-connection. Initially, no connections between variables          which the model is used to generate predictions for some
-                                                             373
+observations at time t, it can be used to predict the
+most likely value for variables of interest at a later time.
+During this phase, inference is alternated with learning,
+with the latter being driven by the model’s monitoring
+of its own predictions and by comparing those to the
+observed outcomes. The resulting changes may include
+the model’s representation of the causal structure of the
+environment: for instance, the direction of some of the
+twigs (cause-and-effect subgraphs) may be reversed.
 
-Algorithm 1 Dynamic causal Bayesian model (DCBN)                      and lower and upper bounds set to L = minXi (−4σi )
- 1: initial learning                                                  and U = maxXi (wi Xi + 4σi ), respectively:
- 2: Given: variables X ; window ∆T .
- 3: Note: |X | = n is the number of variables.
-                                                                        P (E | w1 , w2 , X1 , X2 ) =                                (5)
-                                                                               U    U                      2
- 4: Note: t is the current time.                                              X     X                     Y
- 5: for i = 1 → n do                                                     =               P (E | R1 , R2 )     P (Ri | wi , Xi ) P (Xi )
- 6:     if Xit == 1 and Xit−1 == 0 then                                      R1 =L R2 =L                  i=1
- 7:         for j = 1 → n do                                          When the predicted value of E yielded by the inference
- 8:              if Xj preceded Xi by ∆t < ∆T then                    step matches the observed value with a high confidence,
- 9:                  if No T wig(Xi , Xj , wij ) exists then          the model is not modified. Every time the prediction
-10:                      Compute wij (eq. 1);                         falters, the model learns; both its structure and its pa-
-11:                      Create T wig(Xi , Xj , wij );                rameters can be modified, as described in Algorithm 1.
-12:                  else
-13:                      Update wij (eq. 1);                                              The experiments
-14:                  end if
-15:              end if                                               To evaluate the model, we tested it in an experiment
-16:         end for                                                   that involved learning in a dynamically unfolding game
-17:     end if                                                        situation.1 For the same experiment, we also collected
-18:     Compute U nion over T wigs to form DCBN;                      performance data from human subjects.
-19:     Train softmax (eq. 3) for hidden variables;                      Most of the published studies of causal learning to
+2
+
+P (Ri | wi , Xi ) ∝ e−(Ri −wi Xi )/2σi
+
+(2)
+
+The binary effect variable E = ei , ei being the ith discrete value of E, is driven, in turn, by R through a
+softmax function:
+
+
+T
+exp w (:, i) R + b (i)
+
+
+(3)
+P (E = ei | R) = P
+T
+j exp w (:, j) R + b (j)
+where R is the vector that comprises Ri and Rj , and
+w and b are parameters that are learned as the model
+is exposed to data, using an iteratively reweighted least
+squares (IRLS) algorithm (Green, 1984).
+
+Structure and strength learning. We now proceed
+to describe the operation of the model in some detail,
+starting with twig learning. Every elementary subgraph,
+or T wig = {C, E, w}, consists of a single cause C, a single effect E, and the strength or weight w of their causal
+connection. Initially, no connections between variables
+
+Inference. We illustrate the inference process, in
+which the model is used to generate predictions for some
+
+373
+
+and lower and upper bounds set to L = minXi (−4σi )
+and U = maxXi (wi Xi + 4σi ), respectively:
+
+Algorithm 1 Dynamic causal Bayesian model (DCBN)
+1: initial learning
+2: Given: variables X ; window ∆T .
+3: Note: |X | = n is the number of variables.
+4: Note: t is the current time.
+5: for i = 1 → n do
+6:
+if Xit == 1 and Xit−1 == 0 then
+7:
+for j = 1 → n do
+8:
+if Xj preceded Xi by ∆t < ∆T then
+9:
+if No T wig(Xi , Xj , wij ) exists then
+10:
+Compute wij (eq. 1);
+11:
+Create T wig(Xi , Xj , wij );
+12:
+else
+13:
+Update wij (eq. 1);
+14:
+end if
+15:
+end if
+16:
+end for
+17:
+end if
+18:
+Compute U nion over T wigs to form DCBN;
+19:
+Train softmax (eq. 3) for hidden variables;
 20: end for
-                                                                      date have been conducted in somewhat artificial behav-
 21: inference and further learning
-                                                                      ioral settings. In many studies, the task consists of a
 22: while True do
-                                                                      series of trials, in each of which the subject is presented
-23:     Perform inference on DCBN;                                    with a few stimuli — often just two or three items on a
-24:     if inference deviates from observation then                   blank screen, along with choices that can be made via
-25:         Modify T wig weights w (eq. 1);                           a key press (e.g., Steyvers, Tenenbaum, Wagenmakers,
-26:         for every T wig do                                        and Blum, 2003). More elaborate tasks may involve a
-27:              if w < 0 then                                        contraption that displays a few objects whose behaviors
-28:                  Reverse the edge;                                may be causally interlinked (e.g., Kushnir, Gopnik, Lu-
-29:                  Re-learn w;                                      cas, and Schulz, 2010). The narrative context that de-
-30:              end if                                               fines the task for the subjects is often couched in causal
-31:         end for                                                   language (as in “Can you tell what makes the box go?”).
-32:         If structure changed, recompute U nion;                   In comparison, in the present study the behavioral task
-33:     end if                                                        involved an arguably more natural situation: playing a
-34:     Retrain softmax parameters;                                   computer game, which unfolds in real time, and requires
+23:
+Perform inference on DCBN;
+24:
+if inference deviates from observation then
+25:
+Modify T wig weights w (eq. 1);
+26:
+for every T wig do
+27:
+if w < 0 then
+28:
+Reverse the edge;
+29:
+Re-learn w;
+30:
+end if
+31:
+end for
+32:
+If structure changed, recompute U nion;
+33:
+end if
+34:
+Retrain softmax parameters;
 35: end while
-                                                                      that the subject drive down a track surrounded by vari-
-                                                                      ous objects, while attempting to accumulate rewards.
-                                                                         The experimental platform we used is an adaptation of
-variable values, given others, on an example with an ef-
-                                                                      a car-racing computer game.2 The virtual environment
-fect E that depends on two causes, X1,2 (Figure 2, right).
-                                                                      through which the subject is driving consists of tracks
+
+P (E | w1 , w2 , X1 , X2 ) =
+=
+
+U
+X
+
+U
+X
+
+R1 =L R2 =L
+
+P (E | R1 , R2 )
+
+(5)
+2
+Y
+
+P (Ri | wi , Xi ) P (Xi )
+
+i=1
+
+When the predicted value of E yielded by the inference
+step matches the observed value with a high confidence,
+the model is not modified. Every time the prediction
+falters, the model learns; both its structure and its parameters can be modified, as described in Algorithm 1.
+
+The experiments
+To evaluate the model, we tested it in an experiment
+that involved learning in a dynamically unfolding game
+situation.1 For the same experiment, we also collected
+performance data from human subjects.
+Most of the published studies of causal learning to
+date have been conducted in somewhat artificial behavioral settings. In many studies, the task consists of a
+series of trials, in each of which the subject is presented
+with a few stimuli — often just two or three items on a
+blank screen, along with choices that can be made via
+a key press (e.g., Steyvers, Tenenbaum, Wagenmakers,
+and Blum, 2003). More elaborate tasks may involve a
+contraption that displays a few objects whose behaviors
+may be causally interlinked (e.g., Kushnir, Gopnik, Lucas, and Schulz, 2010). The narrative context that defines the task for the subjects is often couched in causal
+language (as in “Can you tell what makes the box go?”).
+In comparison, in the present study the behavioral task
+involved an arguably more natural situation: playing a
+computer game, which unfolds in real time, and requires
+that the subject drive down a track surrounded by various objects, while attempting to accumulate rewards.
+The experimental platform we used is an adaptation of
+a car-racing computer game.2 The virtual environment
+through which the subject is driving consists of tracks
+surrounded by scenes whose composition is controlled.
+It is flexible enough to support various types of cues
+to causal structure, including interventions (Lagnado
+et al., 2007). Moreover, because the game can be played
+against another subject or against a computer program,
+it affords the study of social effects in learning (Goldstein
+et al., 2010).3
+
+variable values, given others, on an example with an effect E that depends on two causes, X1,2 (Figure 2, right).
 Given the values of X1,2 , inference requires integration
-                                                                      surrounded by scenes whose composition is controlled.
 over the hidden variables:
-                                                                      It is flexible enough to support various types of cues
-P (E | w1 , w2 , X1 , X2 ) =                                  (4)     to causal structure, including interventions (Lagnado
-    ZZ                      2                                         et al., 2007). Moreover, because the game can be played
-                                                                      against another subject or against a computer program,
-                           Y
- =       P (E | R1 , R2 )      P (Ri | wi , Xi ) P (Xi ) dR1 dR2
-                           i=1                                        it affords the study of social effects in learning (Goldstein
-                                                                      et al., 2010).3
+P (E | w1 , w2 , X1 , X2 ) =
+(4)
+ZZ
+2
+Y
+=
+P (E | R1 , R2 )
+P (Ri | wi , Xi ) P (Xi ) dR1 dR2
+i=1
+
 Because Ri are unobserved and continuous and their
 descendants are discrete, exact inference is impossible
-                                                                          1
-(Lerner et al., 2001; Murphy, 1999). As an approxima-                       In a separate study, we used the model to replicate
-                                                                      successfully some of the standard effects in causal learning,
-tion, we sample each Ri , conditioned on its parent Xi                such as forward and backward blocking (Holyoak and Cheng,
-and weight wi . Specifically, if Xi = 1, we sample from               2011).
-                                                                          2
-the Gaussian distribution associated with it (eq. 2); if                    http://supertuxkart.sourceforge.net/ (public domain). We
-                                                                      modified the game to support Wiimote and to incorporate our
-Xi = 0, we sample from a zero-mean Gaussian distribu-                 tracks, scenes, and reporting. The modified code is available
-tion, which is the same for all the variables.                        upon request.
-                                                                          3
-   We then discretize the integral, with a step size of 0.1                 Note that instructions that the subject receives from the
-                                                                      experimenter may be considered a kind of social cue.
-                                                                  374
+(Lerner et al., 2001; Murphy, 1999). As an approximation, we sample each Ri , conditioned on its parent Xi
+and weight wi . Specifically, if Xi = 1, we sample from
+the Gaussian distribution associated with it (eq. 2); if
+Xi = 0, we sample from a zero-mean Gaussian distribution, which is the same for all the variables.
+We then discretize the integral, with a step size of 0.1
 
-                                                                   or causal (rather than an undirected or merely associa-
-                                                                   tive) relationship, for two reasons: the asymmetry in
-                                                                   the temporal structure of each scene encounter and in
-                                                                   the functional significance of its components. First, the
-                                                                   reward never co-occurred with any of the other vari-
-                                                                   ables: rather, it always followed them temporally, and
-                                                                   then only if the subject actively intervened by opening
-                                                                   the surprise box. Second, it made no sense for the sub-
-                                                                   jects to hypothesize symmetrical functional roles for the
-                                                                   reward and for the other variables, given that their goal
-                                                                   was formulated exclusively in terms of the reward. In
-                                                                   any case, no causal language was used in the instruc-
-                                                                   tions given to subjects, which makes the present exper-
-                                                                   imental set up arguably more natural as a platform for
-Figure 3: A typical game scene, as presented to the sub-
-                                                                   exploring simple learning in the wild than those that ex-
-jects as part of the instructions for the experiment.
-                                                                   plicitly require the subjects to seek causal explanations
-                                                                   for behavioral outcomes.
-  scene type      crate   dog   cat   fox   box contents              Eighteen subjects, recruited online from the Cornell
-  1                 1     [0]    1     0    [plunger ]t+           University subject pool, participated in the study for
-  2                 1     [1]    1     0    [cake]t+               course credit. The dependent variable, Correct, was de-
-  3                 1     [0]    1     1    [plunger ]t+           fined as equal to 1 in trials where the subject opened
-  4                 1     [1]    1     1    [cake]t+               a box with cake or refrained from opening a box with
-  5                 0      0     1     0    [plunger ]t+           plunger. A mixed model analysis using the lmer pack-
-  6                 0      1     1     0    [cake]t+               age (Bates, 2005), with a binomial linking function,
-                                                                   and with Subject, Track, and Scene as random factors,
-Table 1: The six scene types in the experiment, with the           yielded a significant effect of Lap on Correct (z = 7.53,
-presence or absence of various objects indicated by 1/0.           p = 5.1 × 10−14 ). Averaged over tracks, the subjects’
-When crate is present, dog is hidden inside it (bracketed,         Correct rate reached 0.61 in the third lap. The far from
-[·]). The contents of the surprise box (cake or plunger )          perfect performance is understandable, given that the
-become visible only if the subject actively “takes” it (sig-       inconsequential parts of the game environment (such as
-nified by [·]t+ ). Note that dog perfectly predicts [cake]t+ ,     a stable with horses, bales of hay, etc.), as well as of the
-but subjects who miss the significance of crate will be            surprise-box scenes themselves, made it difficult for sub-
-unable to distinguish between scenes 1 and 2, or 3 and 4.          jects to home in on the truly predictive variable (dog).
-                                                                   Moreover, in scene types 1 through 4, the dog appears
-The behavioral experiment                                          inside a crate and is thus not visible, unless the subject
-Given the novelty and the potential difficulty of the dy-          drives through the crate (something that few subjects
-namical learning scenario, in this study we opted for a            ventured to do).
-maximally simple dependency to be learned: a single                   The evolution of subjects’ performance over time is il-
-causal link between two variables. Each scene in the               lustrated for each scene type in Figure 4, right. Debrief-
-experiment could include any or all of the following ob-           ing indicated that subjects generally assumed correctly
-jects: a dog, a cat, a fox, and a crate (Figure 3). In ad-         that the contents of the surprise box could be antici-
-dition, in each scene there was a “surprise” box which,            pated by noting which of the other objects were present
-if the subject chose to “take” it, revealed the reward: a          in the scene. Many of the subjects did not, however, al-
-cake or a plunger, depending on the appearance of other            low for the possibility that a cause may be hidden, which
-objects in the scene. The subjects were instructed to              prompted them to invent incorrect explanations for the
-collect as many cakes as possible, while refraining from           difference between scene types (1,2) and (3,4). Some
-taking plungers. Altogether, each subject encountered              subjects also tried to find patterns in the irrelevant vari-
-252 scenes: 6 different racetracks × 3 laps × 14 scenes            ables such as the distances among objects, the curving
-drawn at random for each track from among the scene                of the track, and the location of the box with respect to
-types listed in Table 1.                                           other items.
-   The subjects’ task is best seen 4 as learning a directed
-                                                                   Modeling results
-    4
-      The question of what the relationship between dog and        We simulated the behavioral experiment by feeding the
-cake in this simple scenario really is, causal or associative,     model incrementally the same sequence of observations
+1
+In a separate study, we used the model to replicate
+successfully some of the standard effects in causal learning,
+such as forward and backward blocking (Holyoak and Cheng,
+2011).
+2
+http://supertuxkart.sourceforge.net/ (public domain). We
+modified the game to support Wiimote and to incorporate our
+tracks, scenes, and reporting. The modified code is available
+upon request.
+3
+Note that instructions that the subject receives from the
+experimenter may be considered a kind of social cue.
+
+374
+
+or causal (rather than an undirected or merely associative) relationship, for two reasons: the asymmetry in
+the temporal structure of each scene encounter and in
+the functional significance of its components. First, the
+reward never co-occurred with any of the other variables: rather, it always followed them temporally, and
+then only if the subject actively intervened by opening
+the surprise box. Second, it made no sense for the subjects to hypothesize symmetrical functional roles for the
+reward and for the other variables, given that their goal
+was formulated exclusively in terms of the reward. In
+any case, no causal language was used in the instructions given to subjects, which makes the present experimental set up arguably more natural as a platform for
+exploring simple learning in the wild than those that explicitly require the subjects to seek causal explanations
+for behavioral outcomes.
+Eighteen subjects, recruited online from the Cornell
+University subject pool, participated in the study for
+course credit. The dependent variable, Correct, was defined as equal to 1 in trials where the subject opened
+a box with cake or refrained from opening a box with
+plunger. A mixed model analysis using the lmer package (Bates, 2005), with a binomial linking function,
+and with Subject, Track, and Scene as random factors,
+yielded a significant effect of Lap on Correct (z = 7.53,
+p = 5.1 × 10−14 ). Averaged over tracks, the subjects’
+Correct rate reached 0.61 in the third lap. The far from
+perfect performance is understandable, given that the
+inconsequential parts of the game environment (such as
+a stable with horses, bales of hay, etc.), as well as of the
+surprise-box scenes themselves, made it difficult for subjects to home in on the truly predictive variable (dog).
+Moreover, in scene types 1 through 4, the dog appears
+inside a crate and is thus not visible, unless the subject
+drives through the crate (something that few subjects
+ventured to do).
+The evolution of subjects’ performance over time is illustrated for each scene type in Figure 4, right. Debriefing indicated that subjects generally assumed correctly
+that the contents of the surprise box could be anticipated by noting which of the other objects were present
+in the scene. Many of the subjects did not, however, allow for the possibility that a cause may be hidden, which
+prompted them to invent incorrect explanations for the
+difference between scene types (1,2) and (3,4). Some
+subjects also tried to find patterns in the irrelevant variables such as the distances among objects, the curving
+of the track, and the location of the box with respect to
+other items.
+
+Figure 3: A typical game scene, as presented to the subjects as part of the instructions for the experiment.
+scene type
+1
+2
+3
+4
+5
+6
+
+crate
+1
+1
+1
+1
+0
+0
+
+dog
+[0]
+[1]
+[0]
+[1]
+0
+1
+
+cat
+1
+1
+1
+1
+1
+1
+
+fox
+0
+0
+1
+1
+0
+0
+
+box contents
+[plunger ]t+
+[cake]t+
+[plunger ]t+
+[cake]t+
+[plunger ]t+
+[cake]t+
+
+Table 1: The six scene types in the experiment, with the
+presence or absence of various objects indicated by 1/0.
+When crate is present, dog is hidden inside it (bracketed,
+[·]). The contents of the surprise box (cake or plunger )
+become visible only if the subject actively “takes” it (signified by [·]t+ ). Note that dog perfectly predicts [cake]t+ ,
+but subjects who miss the significance of crate will be
+unable to distinguish between scenes 1 and 2, or 3 and 4.
+
+The behavioral experiment
+Given the novelty and the potential difficulty of the dynamical learning scenario, in this study we opted for a
+maximally simple dependency to be learned: a single
+causal link between two variables. Each scene in the
+experiment could include any or all of the following objects: a dog, a cat, a fox, and a crate (Figure 3). In addition, in each scene there was a “surprise” box which,
+if the subject chose to “take” it, revealed the reward: a
+cake or a plunger, depending on the appearance of other
+objects in the scene. The subjects were instructed to
+collect as many cakes as possible, while refraining from
+taking plungers. Altogether, each subject encountered
+252 scenes: 6 different racetracks × 3 laps × 14 scenes
+drawn at random for each track from among the scene
+types listed in Table 1.
+The subjects’ task is best seen 4 as learning a directed
+
+Modeling results
+We simulated the behavioral experiment by feeding the
+model incrementally the same sequence of observations
+
+4
+
+The question of what the relationship between dog and
+cake in this simple scenario really is, causal or associative,
 is best avoided, given the philosophical issues surrounding
-causality (Schaffer, 2009). Somewhat paradoxically, the dis-       among variables, such as those explored by Blaisdell et al.
-tinction is easier for more complex networks of dependencies       (2006).
-                                                               375
+causality (Schaffer, 2009). Somewhat paradoxically, the distinction is easier for more complex networks of dependencies
 
-            Type 1: algorithm, ground truth          Type 1: human vs algorithm            in [0, 1]) and used that outcome to learn.6
-accuracy
-             1                                       1
-           0.5                                     0.5
-                                                                                              As can be seen in Figure 4, left, when fed ground-truth
-             0                                       0                                     data, the model learned quickly and reliably.7 More to
-                 0   10     20    30     40   50         0   10    20    30     40   50
-                           encounter #                            encounter #
-                                                                                           the point, when presented with the real sequence of ob-
-                             Type 2                                Type 2                  servations, it generally behaved similarly to human sub-
-accuracy
-             1                                       1
-           0.5                                     0.5
-                                                                                           jects (Figure 4, right), reaching a comparable level of
-             0                                       0                                     performance: 0.66 accuracy in the third lap. As with
-                 0   10     20    30     40   50         0   10    20    30     40   50
-                           encounter #                            encounter #              the human subjects, the effect of Lap was significant
-                             Type 3                                Type 3                  (z = 2.56, p = 0.01). In Figure 4, right, in those
-accuracy
-             1                                       1
-           0.5                                     0.5
-                                                                                           cases where the dog was hidden from view (scene types 1
-             0                                       0                                     through 4; see Table 1), the human subjects performed
-                 0   10     20    30     40   50         0   10    20    30     40   50
-                           encounter #                            encounter #              poorly, and the algorithm too converged to a chance-level
-                             Type 4                                Type 4                  performance.
-accuracy
-             1                                       1
-           0.5                                     0.5
-             0                                       0                                                           Conclusions
-                 0   10     20    30     40   50         0   10    20    30     40   50
-                           encounter #                            encounter #              Similarly to some other recent studies and models of
-                             Type 5                                Type 5                  causal learning (Lu et al., 2008; Lagnado and Speeken-
-accuracy
-             1                                       1
-           0.5                                     0.5                                     brink, 2010; Bonawitz et al., 2011), the present work
-             0                                       0                                     focuses on sequential learning and inference. There are
-                 0   10     20    30     40   50         0   10    20    30     40   50
-                           encounter #                            encounter #              also important differences. First, our behavioral setup
-                             Type 6                                Type 6                  uses a dynamic video game that subjects readily relate
-accuracy
-             1                                       1
-           0.5                                     0.5                                     to. Second, the model we develop is rooted in some
-             0                                       0                                     basic intuitions regarding how animals learn the causal
-                 0   10     20    30     40   50         0   10    20    30     40   50
-                           encounter #                            encounter #              structure of dynamic situation: (1) the importance of
-                          algorithm performance
-                                                                  algorithm performance    close temporal succession of events and outcomes, (2)
-                                                                  human performance        the utility of neural-like mechanisms that may register
-                                                                                           it, and (3) a heuristic approach to bootstrapping causal
-Figure 4: Left: the performance of the algorithm on                                        learning from very simple pairwise dependencies gleaned
-ground-truth data, for each of the six scene types. Right:                                 from the data. In those respects, the algorithm we offer
-the performance of 18 runs of the algorithm (filled cir-                                   is a special-purpose model rather than a general learner.
-cles) and of the 18 subjects subjects in a real run (means                                    To ascertain that subjects in our game scenario engage
-with 95% confidence intervals). The ups and downs in                                       in causal learning and inference, rather than in memo-
-the algorithm’s performance over time are due to its                                       rization of contextual cues they believe to be associated
-sensitivity to the order of scene appearance (batch al-                                    with particular outcomes, future experiments will need
-gorithms do not exhibit this behavior).                                                    to include explicit intervention-based tests (cf. Blaisdell,
-                                                                                           Sawa, Leising, and Waldmann, 2006), including having
-encountered by the human subjects, namely, the values                                      the subjects manipulate the variables of their choice to
-of the four variables listed in Table 1, plus, in the cases                                test any hypotheses that they may have formed. It would
-where the model decided to open the surprise box, the                                      also be interesting to analyze the evolution over time
-value of reward. In the first lap (14 scenes; the “initial                                 of the subjects’ choices in opening or avoiding reward
-learning” phase in Algorithm 1), the model was set to                                      boxes: early in the experiment, it is rational to open
-open every box. Subsequently, if the model’s decision                                      boxes, so as to gather data; as the subjects develop an
-whether or not to open the box could be made with 95%                                      ability to predict the reward, they should become more
-confidence,5 it chose the recommended action; otherwise                                    choosy. This sequential behavior can then be compared
-it flipped a coin. If the decision was to open the box, the                                to that of the model (Bonawitz et al., 2011).
-model used the outcome to adjust its parameters; if not,                                      The model itself can be improved and extended in
-it simulated an outcome by adding to the predicted value                                   several ways. For instance, as it is tested on learning
-of the reward a random number (distributed uniformly                                          6
-                                                                                                Without some such mechanism, the model would have no
-                                                                                           way of recovering from a string of “don’t open” decisions —
-                                                                                           a problem that is peculiar to models that intersperse learning
-    5                                                                                      with inference.
-      As decided
-              p by a binomial test with a confidence interval                                 7
-                                                                                                In comparison, a straightforward model selection ap-
-of p̂ ± z1−α/2 p̂(1 − p̂)/n, where p̂ is the sample proportion                             proach based on maximum likelihood or AIC/BIC optimiza-
-of successes in the observed sequence of trials and z1−α/2 is                              tion, implemented with the Bayes Network Toolbox for Mat-
-the 1−α/2 percentile of a standard normal distribution, with                               lab (Murphy, 2001), trained incrementally on the ground
-α being the error percentile and n the sample size. For a 95%                              truth data, did not converge to the right causal graph for
-confidence level, α = 5% and z1−α/2 = 1.96.                                                this experiment.
-                                                                                     376
+among variables, such as those explored by Blaisdell et al.
+(2006).
 
-tasks that involve more complex causal structure than          Hosoya, H. (2009). A motor learning neural model based
-that in the present study, it may be necessary to in-            on Bayesian network and reinforcement learning. In
-clude methods for detecting and “defusing” loops that            Proceedings of International Joint Conference on Neu-
-would otherwise complicate inference. Furthermore, the           ral Networks, Atlanta, GA. IEEE.
-model can be made to incorporate additional cues to            Izhikevich, E. M. (2007). Solving the distal reward prob-
-causal structure, in particular, interventions (Steyvers         lem through linkage of STDP and dopamine signaling.
-et al., 2003), global contextual cues, and factors such as       Cerebral Cortex 17, 2443–2452.
-eligibility traces (Izhikevich, 2007) that would allow it      Kushnir, T., A. Gopnik, C. Lucas, and L. Schulz
-to learn from such cues across multiple time scales. Fi-         (2010). Inferring hidden causal structure. Cognitive
-nally, if equipped with a vision front end and real-valued       science 34 (1), 148–160.
+375
+
+accuracy
+
+1
+0.5
+0
+
+accuracy
+
+1
+0.5
+0
+
+accuracy
+
+1
+0.5
+0
+
+accuracy
+
+Type 1: algorithm, ground truth
+
+1
+0.5
+0
+
+0
+
+10
+
+20
+30
+encounter #
+
+40
+
+50
+
+Type 1: human vs algorithm
+1
+0.5
+0
+
+0
+
+10
+
+Type 2
+
+0
+
+10
+
+20
+30
+encounter #
+
+10
+
+20
+30
+encounter #
+
+40
+
+50
+
+0
+
+10
+
+10
+
+20
+30
+encounter #
+
+40
+
+50
+
+0
+
+10
+
+accuracy
+accuracy
+
+1
+0.5
+0
+
+0
+
+10
+
+20
+30
+encounter #
+
+40
+
+50
+
+10
+
+20
+30
+encounter #
+
+40
+
+50
+
+20
+30
+encounter #
+
+40
+
+50
+
+40
+
+50
+
+Conclusions
+0
+
+10
+
+20
+30
+encounter #
+
+Type 5
+
+40
+
+50
+
+1
+0.5
+0
+
+0
+
+10
+
+Type 6
+
+0
+
+20
+30
+encounter #
+
+Type 4
+1
+0.5
+0
+
+Type 5
+1
+0.5
+0
+
+50
+
+Type 3
+1
+0.5
+0
+
+Type 4
+
+0
+
+40
+
+Type 2
+1
+0.5
+0
+
+Type 3
+
+0
+
+20
+30
+encounter #
+
+20
+30
+encounter #
+
+40
+
+50
+
+40
+
+50
+
+Type 6
+
+40
+
+50
+
+algorithm performance
+
+1
+0.5
+0
+
+in [0, 1]) and used that outcome to learn.6
+As can be seen in Figure 4, left, when fed ground-truth
+data, the model learned quickly and reliably.7 More to
+the point, when presented with the real sequence of observations, it generally behaved similarly to human subjects (Figure 4, right), reaching a comparable level of
+performance: 0.66 accuracy in the third lap. As with
+the human subjects, the effect of Lap was significant
+(z = 2.56, p = 0.01). In Figure 4, right, in those
+cases where the dog was hidden from view (scene types 1
+through 4; see Table 1), the human subjects performed
+poorly, and the algorithm too converged to a chance-level
+performance.
+
+0
+
+10
+
+20
+30
+encounter #
+
+algorithm performance
+human performance
+
+Figure 4: Left: the performance of the algorithm on
+ground-truth data, for each of the six scene types. Right:
+the performance of 18 runs of the algorithm (filled circles) and of the 18 subjects subjects in a real run (means
+with 95% confidence intervals). The ups and downs in
+the algorithm’s performance over time are due to its
+sensitivity to the order of scene appearance (batch algorithms do not exhibit this behavior).
+encountered by the human subjects, namely, the values
+of the four variables listed in Table 1, plus, in the cases
+where the model decided to open the surprise box, the
+value of reward. In the first lap (14 scenes; the “initial
+learning” phase in Algorithm 1), the model was set to
+open every box. Subsequently, if the model’s decision
+whether or not to open the box could be made with 95%
+confidence,5 it chose the recommended action; otherwise
+it flipped a coin. If the decision was to open the box, the
+model used the outcome to adjust its parameters; if not,
+it simulated an outcome by adding to the predicted value
+of the reward a random number (distributed uniformly
+
+Similarly to some other recent studies and models of
+causal learning (Lu et al., 2008; Lagnado and Speekenbrink, 2010; Bonawitz et al., 2011), the present work
+focuses on sequential learning and inference. There are
+also important differences. First, our behavioral setup
+uses a dynamic video game that subjects readily relate
+to. Second, the model we develop is rooted in some
+basic intuitions regarding how animals learn the causal
+structure of dynamic situation: (1) the importance of
+close temporal succession of events and outcomes, (2)
+the utility of neural-like mechanisms that may register
+it, and (3) a heuristic approach to bootstrapping causal
+learning from very simple pairwise dependencies gleaned
+from the data. In those respects, the algorithm we offer
+is a special-purpose model rather than a general learner.
+To ascertain that subjects in our game scenario engage
+in causal learning and inference, rather than in memorization of contextual cues they believe to be associated
+with particular outcomes, future experiments will need
+to include explicit intervention-based tests (cf. Blaisdell,
+Sawa, Leising, and Waldmann, 2006), including having
+the subjects manipulate the variables of their choice to
+test any hypotheses that they may have formed. It would
+also be interesting to analyze the evolution over time
+of the subjects’ choices in opening or avoiding reward
+boxes: early in the experiment, it is rational to open
+boxes, so as to gather data; as the subjects develop an
+ability to predict the reward, they should become more
+choosy. This sequential behavior can then be compared
+to that of the model (Bonawitz et al., 2011).
+The model itself can be improved and extended in
+several ways. For instance, as it is tested on learning
+6
+Without some such mechanism, the model would have no
+way of recovering from a string of “don’t open” decisions —
+a problem that is peculiar to models that intersperse learning
+with inference.
+7
+In comparison, a straightforward model selection approach based on maximum likelihood or AIC/BIC optimization, implemented with the Bayes Network Toolbox for Matlab (Murphy, 2001), trained incrementally on the ground
+truth data, did not converge to the right causal graph for
+this experiment.
+
+5
+As decided
+p by a binomial test with a confidence interval
+of p̂ ± z1−α/2 p̂(1 − p̂)/n, where p̂ is the sample proportion
+of successes in the observed sequence of trials and z1−α/2 is
+the 1−α/2 percentile of a standard normal distribution, with
+α being the error percentile and n the sample size. For a 95%
+confidence level, α = 5% and z1−α/2 = 1.96.
+
+376
+
+tasks that involve more complex causal structure than
+that in the present study, it may be necessary to include methods for detecting and “defusing” loops that
+would otherwise complicate inference. Furthermore, the
+model can be made to incorporate additional cues to
+causal structure, in particular, interventions (Steyvers
+et al., 2003), global contextual cues, and factors such as
+eligibility traces (Izhikevich, 2007) that would allow it
+to learn from such cues across multiple time scales. Finally, if equipped with a vision front end and real-valued
 outputs, a model rooted in the present approach may
-                                                               Lagnado, D. A. and M. Speekenbrink (2010). The influ-
 employ reinforcement learning (Fox et al., 2008; Hosoya,
-                                                                 ence of delays in real-time causal learning. The Open
 2009) to master driving around the track and competing
-                                                                 Psychology Journal 3, 184–195.
 directly with a human participant.
-                                                               Lagnado, D. A., M. R. Waldmann, Y. Hagmayer, and
-                                                                 S. A. Sloman (2007). Beyond covariation: cues to
-Acknowledgments. We thank Tamar Kushnir and
-                                                                 causal structure. In A. Gopnik and L. Schulz (Eds.),
-the members of her lab for valuable comments on the
-                                                                 Structure, pp. 1–48. Oxford University Press.
-present project. EN was supported by Cornell Univer-
-sity’s Tri-Institutional Training Program in Computa-          Lerner, U., E. Segal, and D. Koller (2001). Exact infer-
-tional Biology and Medicine.                                     ence in networks with discrete children of continuous
-                                                                 parents. In Proc. 17th Conf. on Uncertainty in Arti-
-                       References                                ficial Intelligence, pp. 319–238.
-Bates, D. (2005). Fitting linear mixed models in R. R          Lu, H., R. R. Rojas, T. Beckers, and A. Yuille (2008). Se-
-   News 5, 27–30.                                                quential causal learning in humans and rats. In B. C.
-Blaisdell, A. P., K. Sawa, K. J. Leising, and M. R. Wald-        Love, K. McRae, and V. M. Sloutsky (Eds.), Proceed-
-   mann (2006). Causal reasoning in rats. Science 311,           ings of the 30th Annual Conference of the Cognitive
-   1020–1022.                                                    Science Society, pp. 188–195.
-Bonawitz, E., S. Denison, A. Chen, A. Gopnik, and              Murphy, K. (1999). A variational approximation for
-   T. L. Griffiths (2011). A simple sequential algorithm         bayesian networks with discrete and continuous latent
-   for approximating bayesian inference. In L. Carlson,          variables. In Proc. UAI, Volume 99, pp. 457–466.
-   C. Hölscher, and T. F. Shipley (Eds.), Proceedings of      Murphy, K. P. (2001). The Bayes Net Toolbox for Mat-
-   the 33rd Annual Conference of the Cognitive Science           lab. Computing Science and Statistics 33, 331–351.
-   Society, pp. 2463–2468.                                     Schaffer, J. (2009). The metaphysics of causation. In
-Caporale, N. and Y. Dan (2008). Spike timing-dependent           E. N. Zalta (Ed.), The Stanford Encyclopedia of Phi-
-   plasticity: A Hebbian learning rule. Annual Review of         losophy (Spring 2009 ed.).
-   Neuroscience 31, 25–46.                                     Steyvers, M., J. B. Tenenbaum, E. J. Wagenmakers, and
-Fox, C. N., N. Girdhar, and K. N. Gurney (2008). A               B. Blum (2003). Inferring causal networks from obser-
-   causal Bayesian network view of reinforcement learn-          vations and interventions. Cognitive Science 27, 453–
-   ing. In Proceedings of the 21th International Florida         489.
-   Artificial Intelligence Research Society Conference,
-   FLAIRS-21, pp. 109–110.
-Goldstein, M. H., H. R. Waterfall, A. Lotem, J. Halpern,
-   J. Schwade, L. Onnis, and S. Edelman (2010). General
-   cognitive principles for learning structure in time and
-   space. Trends in Cognitive Sciences 14, 249–258.
-Green, P. J. (1984). Iteratively reweighted least squares
-   for maximum likelihood estimation, and some robust
-   and resistant alternatives. J. Royal Stat. Soc. Ser.
-   B 46, 149–192.
-Griffiths, T. L. and J. B. Tenenbaum (2009). Theory-
-   based causal induction. Psychological Review 116,
-   661–716.
-Holyoak, K. J. and P. W. Cheng (2011). Causal learning
-   and inference as a rational process: the new synthesis.
-   Annual Review of Psychology 62, 135–163.
-                                                           377
 
+Hosoya, H. (2009). A motor learning neural model based
+on Bayesian network and reinforcement learning. In
+Proceedings of International Joint Conference on Neural Networks, Atlanta, GA. IEEE.
+Izhikevich, E. M. (2007). Solving the distal reward problem through linkage of STDP and dopamine signaling.
+Cerebral Cortex 17, 2443–2452.
+Kushnir, T., A. Gopnik, C. Lucas, and L. Schulz
+(2010). Inferring hidden causal structure. Cognitive
+science 34 (1), 148–160.
+Lagnado, D. A. and M. Speekenbrink (2010). The influence of delays in real-time causal learning. The Open
+Psychology Journal 3, 184–195.
+Lagnado, D. A., M. R. Waldmann, Y. Hagmayer, and
+S. A. Sloman (2007). Beyond covariation: cues to
+causal structure. In A. Gopnik and L. Schulz (Eds.),
+Structure, pp. 1–48. Oxford University Press.
+Lerner, U., E. Segal, and D. Koller (2001). Exact inference in networks with discrete children of continuous
+parents. In Proc. 17th Conf. on Uncertainty in Artificial Intelligence, pp. 319–238.
+Lu, H., R. R. Rojas, T. Beckers, and A. Yuille (2008). Sequential causal learning in humans and rats. In B. C.
+Love, K. McRae, and V. M. Sloutsky (Eds.), Proceedings of the 30th Annual Conference of the Cognitive
+Science Society, pp. 188–195.
+Murphy, K. (1999). A variational approximation for
+bayesian networks with discrete and continuous latent
+variables. In Proc. UAI, Volume 99, pp. 457–466.
+Murphy, K. P. (2001). The Bayes Net Toolbox for Matlab. Computing Science and Statistics 33, 331–351.
+Schaffer, J. (2009). The metaphysics of causation. In
+E. N. Zalta (Ed.), The Stanford Encyclopedia of Philosophy (Spring 2009 ed.).
+Steyvers, M., J. B. Tenenbaum, E. J. Wagenmakers, and
+B. Blum (2003). Inferring causal networks from observations and interventions. Cognitive Science 27, 453–
+489.
+
+Acknowledgments. We thank Tamar Kushnir and
+the members of her lab for valuable comments on the
+present project. EN was supported by Cornell University’s Tri-Institutional Training Program in Computational Biology and Medicine.
+
+References
+Bates, D. (2005). Fitting linear mixed models in R. R
+News 5, 27–30.
+Blaisdell, A. P., K. Sawa, K. J. Leising, and M. R. Waldmann (2006). Causal reasoning in rats. Science 311,
+1020–1022.
+Bonawitz, E., S. Denison, A. Chen, A. Gopnik, and
+T. L. Griffiths (2011). A simple sequential algorithm
+for approximating bayesian inference. In L. Carlson,
+C. Hölscher, and T. F. Shipley (Eds.), Proceedings of
+the 33rd Annual Conference of the Cognitive Science
+Society, pp. 2463–2468.
+Caporale, N. and Y. Dan (2008). Spike timing-dependent
+plasticity: A Hebbian learning rule. Annual Review of
+Neuroscience 31, 25–46.
+Fox, C. N., N. Girdhar, and K. N. Gurney (2008). A
+causal Bayesian network view of reinforcement learning. In Proceedings of the 21th International Florida
+Artificial Intelligence Research Society Conference,
+FLAIRS-21, pp. 109–110.
+Goldstein, M. H., H. R. Waterfall, A. Lotem, J. Halpern,
+J. Schwade, L. Onnis, and S. Edelman (2010). General
+cognitive principles for learning structure in time and
+space. Trends in Cognitive Sciences 14, 249–258.
+Green, P. J. (1984). Iteratively reweighted least squares
+for maximum likelihood estimation, and some robust
+and resistant alternatives. J. Royal Stat. Soc. Ser.
+B 46, 149–192.
+Griffiths, T. L. and J. B. Tenenbaum (2009). Theorybased causal induction. Psychological Review 116,
+661–716.
+Holyoak, K. J. and P. W. Cheng (2011). Causal learning
+and inference as a rational process: the new synthesis.
+Annual Review of Psychology 62, 135–163.
+
+377
+
+

@@ -4,453 +4,951 @@ Society
 Title
 The `Ah Ha!' Moment : When Possible, Answering the Currently Unanswerable using
 Focused Reasoning
+
 Permalink
 https://escholarship.org/uc/item/2z9930j2
+
 Journal
 Proceedings of the Annual Meeting of the Cognitive Science Society, 36(36)
+
 Authors
 Schlegel, Daniel
 Shapiro, Stuart
+
 Publication Date
 2014-01-01
 Peer reviewed
- eScholarship.org                                 Powered by the California Digital Library
-                                                                    University of California
 
-  The ‘Ah Ha!’ Moment : When Possible, Answering the Currently Unanswerable
-                                                  using Focused Reasoning
-                                            Daniel R. Schlegel and Stuart C. Shapiro
-                       Department of Computer Science and Engineering, and Center for Cognitive Science
-                                                University at Buffalo, Buffalo, NY 14260
-                                                    <drschleg,shapiro>@buffalo.edu
-                             Abstract                                   driven programs where events interact in complex ways, re-
-                                                                        quiring complex state management, such as spreadsheets.
-   Focused reasoning is a method for continuing a specific in-
-   ference task as soon as rules or facts which may assist in the          In Section 2 we will discuss the issue of FR itself. In Sec-
-   reasoning are added to the knowledge base without repeat-            tion 32 we will discuss IGs in only the required amount of de-
-   ing completed inference, re-posing queries, or performing un-        tail to further our discussion, and in Section 4 we will return
-   necessary inference. Determining if focused reasoning should
-   commence uses very few computational resources above those           to the issue at hand to discuss the different types of FR with
-   used normally to add a term to a knowledge base. We have             examples, along with an algorithm to unify the three types of
-   developed three focused reasoning procedures – backward-in-          FR discussed. Finally, we will conclude with Section 5.
-   forward, forward, and forward-in-backward – built upon Infer-
-   ence Graphs, a graph-based concurrent reasoning mechanism.
-                                                                                           2    Focused Reasoning
-                      1    Introduction                                 Humans often consider problems they may not yet have an-
-                                                                        swers for, and push those problems to the “back of their
-When an inference process has stopped before its natural con-           mind.” In this state, a human is still looking for a solution
-clusion because of a lack of information, any new assertion             to a problem, but is doing so somewhat passively – allowing
-which is relevant should immediately be used to continue that           the environment and new information to influence the prob-
-inference, but not derive anything unrelated to the inference           lem solving process, and hopefully eventually reaching some
-task. Focused reasoning (FR) has been developed to do just              conclusion. That is, the examination of the problem persists
-this. Methods for performing focused reasoning have been                beyond the time when it is actively being worked on.3 We
-developed for using forward, and bi-directional (Shapiro,               wish to add a similar capability to a reasoning system.
-Martins, & McKay, 1982) inference. To accomplish this, In-
-                                                                           There are three types of FR possible within a reasoning
-ference Graphs (IGs) (Schlegel & Shapiro, 2013b, 2014), a
-                                                                        system: forward FR, where all possible derivations are per-
-concurrent graph-based method for natural deduction reason-
-                                                                        formed only from some specific new piece of knowledge,
-ing, are extended to recognize when new connections in the
-                                                                        and continued upon the addition of relevant rules to the KB;
+eScholarship.org
+
+Powered by the California Digital Library
+University of California
+
+The ‘Ah Ha!’ Moment : When Possible, Answering the Currently Unanswerable
+using Focused Reasoning
+Daniel R. Schlegel and Stuart C. Shapiro
+Department of Computer Science and Engineering, and Center for Cognitive Science
+University at Buffalo, Buffalo, NY 14260
+<drschleg,shapiro>@buffalo.edu
+Abstract
+
+driven programs where events interact in complex ways, requiring complex state management, such as spreadsheets.
+In Section 2 we will discuss the issue of FR itself. In Section 32 we will discuss IGs in only the required amount of detail to further our discussion, and in Section 4 we will return
+to the issue at hand to discuss the different types of FR with
+examples, along with an algorithm to unify the three types of
+FR discussed. Finally, we will conclude with Section 5.
+
+Focused reasoning is a method for continuing a specific inference task as soon as rules or facts which may assist in the
+reasoning are added to the knowledge base without repeating completed inference, re-posing queries, or performing unnecessary inference. Determining if focused reasoning should
+commence uses very few computational resources above those
+used normally to add a term to a knowledge base. We have
+developed three focused reasoning procedures – backward-inforward, forward, and forward-in-backward – built upon Inference Graphs, a graph-based concurrent reasoning mechanism.
+
+1
+
+2
+
+Introduction
+
+When an inference process has stopped before its natural conclusion because of a lack of information, any new assertion
+which is relevant should immediately be used to continue that
+inference, but not derive anything unrelated to the inference
+task. Focused reasoning (FR) has been developed to do just
+this. Methods for performing focused reasoning have been
+developed for using forward, and bi-directional (Shapiro,
+Martins, & McKay, 1982) inference. To accomplish this, Inference Graphs (IGs) (Schlegel & Shapiro, 2013b, 2014), a
+concurrent graph-based method for natural deduction reasoning, are extended to recognize when new connections in the
 graph are relevant to incomplete inference procedures.
-                                                                        forward-in-backward FR, in which backward inference oc-
-   Inference Graphs are propositional graphs with message-              curs to try to answer a query, and as new facts or rules rel-
-passing channels added, allowing related terms to commu-                evant to the query are added to the KB, they are used in at-
-nicate about the results of inference, or to control inference.         tempting to answer the query; and backward-in-forward FR,
-IGs implement LA , a Logic of Arbitrary and Indefinite Ob-              which combines the previous two FR mechanisms.
-jects (Shapiro, 2004), which uses structured quantified terms.
-                                                                           Forward FR can be thought of as a kind of full-forward
-   One type of FR using IGs was briefly proposed in (Schlegel           reasoning carried out only for a single asserted term. Full-
-& Shapiro, 2013b), but unimplemented. Here we discuss the               forward reasoning is used most notably in production sys-
-issue in detail, including two other types of FR, in an imple-          tems, and especially RETE networks (Forgy, 1979, 1982). In
-mented system.                                                          a RETE net, all new information is filtered through a graph
-   While our primary interest is in building a mind, any large          generated from a set of production rules. Nodes in the graph
-knowledge base (KB) which allows for interleaved assertions             perform comparisons against accepted values, and combine
-and queries may benefit from FR. For example,1 web services             pieces of compatible information together. When a piece of
-which perform frequent queries for users, such as eBay’s                information reaches some leaf node in the graph, the rule that
-saved searches (eBay, Inc., 2013) which email new match-                leaf node represents is said to have matched. Full-forward
-ing items to users daily, could use FR to send updates as soon          inference produces the logical closure of a KB, but this is
-as they are available, avoiding batch processing. Diagnostic            horribly wasteful in both time and space, so we favor doing
+Inference Graphs are propositional graphs with messagepassing channels added, allowing related terms to communicate about the results of inference, or to control inference.
+IGs implement LA , a Logic of Arbitrary and Indefinite Objects (Shapiro, 2004), which uses structured quantified terms.
+One type of FR using IGs was briefly proposed in (Schlegel
+& Shapiro, 2013b), but unimplemented. Here we discuss the
+issue in detail, including two other types of FR, in an implemented system.
+While our primary interest is in building a mind, any large
+knowledge base (KB) which allows for interleaved assertions
+and queries may benefit from FR. For example,1 web services
+which perform frequent queries for users, such as eBay’s
+saved searches (eBay, Inc., 2013) which email new matching items to users daily, could use FR to send updates as soon
+as they are available, avoiding batch processing. Diagnostic
 tasks may also benefit: one may start with a problem they
-wish to solve, and then do diagnostic tests. The results could              2 Portions of the material in Sections 2 and 3 are adapted from
-be added to the KB, where they are automatically applied to             (Schlegel & Shapiro, 2013a, 2014).
-                                                                            3 Understanding this type of problem solving in humans is still
+wish to solve, and then do diagnostic tests. The results could
+be added to the KB, where they are automatically applied to
 only the focused problem, without deriving other, unrelated,
-                                                                        active research, what has been discussed is only an intuitive expla-
-conclusions. Another application might be within event-                 nation. It is distinct from the “Eureka effect” (Auble, Franks, &
-                                                                        Soraci, 1979) which deals with insight, and limitations of memory
-    1 We have not done significant study on these applications yet.     recall in humans.
-                                                                    1371
+conclusions. Another application might be within event1 We
 
-this only when it’s explicitly asked for. RETE nets are also                 member itself can be reasoned about. Indefinite individuals
-limited in that no new rules can be added once the system is                 are essentially Skolem functions, replacing FOPL’s existen-
-started, which is not the case with IGs.                                     tial quantifier. We will only deal with arbitrary terms for the
-   For reasoning systems capable of backward and bi-                         remainder of this paper.
-directional inference (BDI), the issue of FR is seldom tack-                     Quantified terms are structured – they consist of a quan-
-led. SNePS 2’s Active Connection Graph (ACG) (McKay &                        tifier indicating whether they are arbitrary or indefinite, a
-Shapiro, 1981) has a concept of “activating” a path of nodes                 syntactic variable, and a set of restrictions. The range of
-when backward inference does not result in an answer. Later                  a quantified term is dictated by its set of restrictions, taken
-assertions meant to use this path must be asserted with for-                 conjunctively. A quantified term qi has a set of restrictions
-ward inference (that is, the new term is asserted, and forward               R(qi ) = {ri1 , . . . , rik }, each of which make use of qi ’s vari-
-inference is carried out for that term only), and that forward               able, vi . The syntax used throughout this paper for LA will
-inference process will use activated paths exclusively when-                 be a version of CLIF (ISO/IEC, 2007). We will write an arbi-
-ever they are available (Shapiro et al., 1982). The ACG is un-               trary term as (every vi R(qi )). Quantified terms take wide
-able to later deactivate the path of nodes, so the conflation of             scope, meaning within a logical expression vi may be used
-the specialized forward inference using activated paths with                 instead of re-defining a quantified term. For example, the
-the usual forward inference which ignores activated paths re-                arbitrary Person, written (every x (Isa x Person)), can
-sults in the need to occasionally throw the graph away as it                 be referred to later within the same rule by using x, as in the
-could interfere with future inference tasks. In addition, acti-              following LA expression, which is meant to mean that “if a
-vated paths are not extended backward when rules relevant to                 person is arrested, then that person is detained.”
-the reasoning task are added to the KB. John Pollock’s OS-
-CAR system uses a different type of BDI (Pollock, 1990),4                    (if (Arrested (every x (Isa x Person)))
-and does not support FR.                                                             (Detained x))
-   The system we present here is capable of performing for-                      Inference Graphs extend propositional graphs. In the tradi-
-ward, forward-in-backward, and backward-in-forward FR. It                    tion of the SNePS family (Shapiro & Rapaport, 1992), propo-
-also allows the addition of new rules once the system is run-                sitional graphs are graphs in which every well-formed expres-
-ning, extending the focused region of the graph. In addition,                sion in the knowledge base, including individual constants,
-it does not limit the functionality of the graph in other ways –             functional terms, atomic formulas, or non-atomic formulas
-other inference tasks can be performed as usual. In effect, our              (which we will refer to as “rules”), is represented by a node in
-system has none of the limitations of RETE nets, or ACGs,                    the graph. A rule is represented in the graph as a node for the
-while being a more powerful FR tool.                                         rule itself (henceforth, a rule node), nodes for the argument
-                                                                             formulas, and arcs emanating from the rule node, terminating
-    3     Background: LA and Inference Graphs                                at the argument nodes. Arcs are labeled with an indication of
-LA is a first order logic designed for use as the logic of a                 the role (e.g., antecedent or consequent) the argument plays in
-KR system for natural language understanding, and for com-                   the rule, itself. Every node is labeled with an identifier. Nodes
-monsense reasoning (Shapiro, 2004). The logic is sound                       representing individual constants, proposition symbols, func-
-and complete, using natural deduction and subsumption in-                    tion symbols, or relation symbols are labeled with the symbol
-ference. Throughout this paper we will assume the deduc-                     itself. Nodes representing functional terms or non-atomic for-
-tive rules implemented are the standard rules of inference for               mulas are labeled wfti, for some integer, i. Every SNePS
-FOL, though the actual implementation uses set-oriented con-                 expression is a term, denoting a mental entity, hence wft
-nectives (Shapiro, 2010), which subsume the standard rules.                  instead of wff. An exclamation mark, “!”, is appended to
-   The logic makes use of arbitrary and indefinite terms (col-               the label if it represents a proposition that is asserted in the
-lectively, quantified terms) instead of the universally and ex-              KB. Nodes representing arbitrary terms are labeled arbj, for
-istentially quantified formulas familiar in first order predicate            some integer, j. No two nodes represent syntactically iden-
-logic (FOPL).5 That is, instead of reasoning about all mem-                  tical expressions; rather, if there are multiple occurrences of
-bers of a class, LA reasons about a single arbitrary member                  one subexpression in one or more other expressions, the same
-of a class. There are no two arbitrary terms representing the                node is used in all cases. Propositional graphs are built incre-
-same arbitrary entity. For indefinite members, it need not be                mentally as terms are added to the knowledge base, which
-known which member is being reasoned about, the indefinite                   can happen at any time.6
-    4 Pollock’s BDI is distinct from that of (Shapiro et al., 1982). The
-                                                                                 To propositional graphs, IGs add channels within rules,
-premise of Pollock’s BDI is that there are inference rules useful in         within generic terms, and between terms which match each
-forward reasoning, and others for backward reasoning, and as such,           other (that is, unify, and satisfy certain subsumption and type
-to reach some meeting point between premises and goals, you must             relationships). Channels carry messages, and represent paths
+have not done significant study on these applications yet.
+
+Focused Reasoning
+
+Humans often consider problems they may not yet have answers for, and push those problems to the “back of their
+mind.” In this state, a human is still looking for a solution
+to a problem, but is doing so somewhat passively – allowing
+the environment and new information to influence the problem solving process, and hopefully eventually reaching some
+conclusion. That is, the examination of the problem persists
+beyond the time when it is actively being worked on.3 We
+wish to add a similar capability to a reasoning system.
+There are three types of FR possible within a reasoning
+system: forward FR, where all possible derivations are performed only from some specific new piece of knowledge,
+and continued upon the addition of relevant rules to the KB;
+forward-in-backward FR, in which backward inference occurs to try to answer a query, and as new facts or rules relevant to the query are added to the KB, they are used in attempting to answer the query; and backward-in-forward FR,
+which combines the previous two FR mechanisms.
+Forward FR can be thought of as a kind of full-forward
+reasoning carried out only for a single asserted term. Fullforward reasoning is used most notably in production systems, and especially RETE networks (Forgy, 1979, 1982). In
+a RETE net, all new information is filtered through a graph
+generated from a set of production rules. Nodes in the graph
+perform comparisons against accepted values, and combine
+pieces of compatible information together. When a piece of
+information reaches some leaf node in the graph, the rule that
+leaf node represents is said to have matched. Full-forward
+inference produces the logical closure of a KB, but this is
+horribly wasteful in both time and space, so we favor doing
+2 Portions of the material in Sections 2 and 3 are adapted from
+(Schlegel & Shapiro, 2013a, 2014).
+3 Understanding this type of problem solving in humans is still
+active research, what has been discussed is only an intuitive explanation. It is distinct from the “Eureka effect” (Auble, Franks, &
+Soraci, 1979) which deals with insight, and limitations of memory
+recall in humans.
+
+1371
+
+this only when it’s explicitly asked for. RETE nets are also
+limited in that no new rules can be added once the system is
+started, which is not the case with IGs.
+For reasoning systems capable of backward and bidirectional inference (BDI), the issue of FR is seldom tackled. SNePS 2’s Active Connection Graph (ACG) (McKay &
+Shapiro, 1981) has a concept of “activating” a path of nodes
+when backward inference does not result in an answer. Later
+assertions meant to use this path must be asserted with forward inference (that is, the new term is asserted, and forward
+inference is carried out for that term only), and that forward
+inference process will use activated paths exclusively whenever they are available (Shapiro et al., 1982). The ACG is unable to later deactivate the path of nodes, so the conflation of
+the specialized forward inference using activated paths with
+the usual forward inference which ignores activated paths results in the need to occasionally throw the graph away as it
+could interfere with future inference tasks. In addition, activated paths are not extended backward when rules relevant to
+the reasoning task are added to the KB. John Pollock’s OSCAR system uses a different type of BDI (Pollock, 1990),4
+and does not support FR.
+The system we present here is capable of performing forward, forward-in-backward, and backward-in-forward FR. It
+also allows the addition of new rules once the system is running, extending the focused region of the graph. In addition,
+it does not limit the functionality of the graph in other ways –
+other inference tasks can be performed as usual. In effect, our
+system has none of the limitations of RETE nets, or ACGs,
+while being a more powerful FR tool.
+
+3
+
+member itself can be reasoned about. Indefinite individuals
+are essentially Skolem functions, replacing FOPL’s existential quantifier. We will only deal with arbitrary terms for the
+remainder of this paper.
+Quantified terms are structured – they consist of a quantifier indicating whether they are arbitrary or indefinite, a
+syntactic variable, and a set of restrictions. The range of
+a quantified term is dictated by its set of restrictions, taken
+conjunctively. A quantified term qi has a set of restrictions
+R(qi ) = {ri1 , . . . , rik }, each of which make use of qi ’s variable, vi . The syntax used throughout this paper for LA will
+be a version of CLIF (ISO/IEC, 2007). We will write an arbitrary term as (every vi R(qi )). Quantified terms take wide
+scope, meaning within a logical expression vi may be used
+instead of re-defining a quantified term. For example, the
+arbitrary Person, written (every x (Isa x Person)), can
+be referred to later within the same rule by using x, as in the
+following LA expression, which is meant to mean that “if a
+person is arrested, then that person is detained.”
+(if (Arrested (every x (Isa x Person)))
+(Detained x))
+
+Background: LA and Inference Graphs
+
+LA is a first order logic designed for use as the logic of a
+KR system for natural language understanding, and for commonsense reasoning (Shapiro, 2004). The logic is sound
+and complete, using natural deduction and subsumption inference. Throughout this paper we will assume the deductive rules implemented are the standard rules of inference for
+FOL, though the actual implementation uses set-oriented connectives (Shapiro, 2010), which subsume the standard rules.
+The logic makes use of arbitrary and indefinite terms (collectively, quantified terms) instead of the universally and existentially quantified formulas familiar in first order predicate
+logic (FOPL).5 That is, instead of reasoning about all members of a class, LA reasons about a single arbitrary member
+of a class. There are no two arbitrary terms representing the
+same arbitrary entity. For indefinite members, it need not be
+known which member is being reasoned about, the indefinite
+4 Pollock’s BDI is distinct from that of (Shapiro et al., 1982). The
+premise of Pollock’s BDI is that there are inference rules useful in
+forward reasoning, and others for backward reasoning, and as such,
+to reach some meeting point between premises and goals, you must
 reason backward from the goals, and forward from the premises.
-The BDI of Shapiro, et al. adopted here, assumes some procedure              inference might take through the graph.
-which has linked related terms in a graph so that arbitrary forward              A channel contains a valve, a filter, and a switch. Valves
+The BDI of Shapiro, et al. adopted here, assumes some procedure
+which has linked related terms in a graph so that arbitrary forward
 reasoning from premises is never necessary in backward inference.
-    5 See (Shapiro, 2004) for a translation between FOPL and L .                  6 See (Schlegel & Shapiro, 2012) for the logic/graph mapping.
-                                                                    A
-                                                                         1372
+5 See (Shapiro, 2004) for a translation between FOPL and L .
+A
 
-control inference by allowing or preventing message flow             swer is forthcoming. Later, P is asserted (without forward
-through the channels. When a valve is open, messages pass            inference). Since the appropriate valves are already open, R
-to the filter and switch unimpeded, otherwise they wait in a         is derived immediately, without needing to pose the question
-queue until the channel is opened. When a valve in a chan-           again. Note that Q is not derived, since valves involving (if
-nel is open or closed, we call the channel open or closed ac-        P Q) were not opened during backward inference.7
-cordingly. Messages carry substitutions. Filters discard mes-           In a somewhat more complex example from the COIN do-
-sages with substitutions incompatible with the destination,          main, consider the following initial knowledge base:
-and switches adjust the variable context of message substi-
-                                                                     ;; Azam is a person
-tutions which pass through them to ensure the substitutions
-                                                                     (Isa Azam Person)
+Inference Graphs extend propositional graphs. In the tradition of the SNePS family (Shapiro & Rapaport, 1992), propositional graphs are graphs in which every well-formed expression in the knowledge base, including individual constants,
+functional terms, atomic formulas, or non-atomic formulas
+(which we will refer to as “rules”), is represented by a node in
+the graph. A rule is represented in the graph as a node for the
+rule itself (henceforth, a rule node), nodes for the argument
+formulas, and arcs emanating from the rule node, terminating
+at the argument nodes. Arcs are labeled with an indication of
+the role (e.g., antecedent or consequent) the argument plays in
+the rule, itself. Every node is labeled with an identifier. Nodes
+representing individual constants, proposition symbols, function symbols, or relation symbols are labeled with the symbol
+itself. Nodes representing functional terms or non-atomic formulas are labeled wfti, for some integer, i. Every SNePS
+expression is a term, denoting a mental entity, hence wft
+instead of wff. An exclamation mark, “!”, is appended to
+the label if it represents a proposition that is asserted in the
+KB. Nodes representing arbitrary terms are labeled arbj, for
+some integer, j. No two nodes represent syntactically identical expressions; rather, if there are multiple occurrences of
+one subexpression in one or more other expressions, the same
+node is used in all cases. Propositional graphs are built incrementally as terms are added to the knowledge base, which
+can happen at any time.6
+To propositional graphs, IGs add channels within rules,
+within generic terms, and between terms which match each
+other (that is, unify, and satisfy certain subsumption and type
+relationships). Channels carry messages, and represent paths
+inference might take through the graph.
+A channel contains a valve, a filter, and a switch. Valves
+6 See
+
+1372
+
+(Schlegel & Shapiro, 2012) for the logic/graph mapping.
+
+control inference by allowing or preventing message flow
+through the channels. When a valve is open, messages pass
+to the filter and switch unimpeded, otherwise they wait in a
+queue until the channel is opened. When a valve in a channel is open or closed, we call the channel open or closed accordingly. Messages carry substitutions. Filters discard messages with substitutions incompatible with the destination,
+and switches adjust the variable context of message substitutions which pass through them to ensure the substitutions
 are able to be understood by the destination of the channel.
-   Messages of several types are transmitted through the IG’s
-                                                                     ;; If a person is arrested, they are detained.
-channels, serving two purposes: to relay newly derived in-
-                                                                     (if (Arrested (every x (Isa x Person)))
-formation, and to control the inference process. We’ll con-
-                                                                            (Detained x))
-cern ourselves only with four types here: i-infer and
+Messages of several types are transmitted through the IG’s
+channels, serving two purposes: to relay newly derived information, and to control the inference process. We’ll concern ourselves only with four types here: i-infer and
 u-infer messages, which carry newly derived information
-                                                                     ;; A person is either detained or free.
-– i-infer messages relay substitutions found for the orig-
-                                                                     (xor (Detained (every x (Isa x Person)))
-inator of the message which the destination may be inter-
-                                                                             (Free x))
-ested in, and u-infer messages relay substitutions found for
-the destination of the message; backward-infer messages,             It is then asked by a user, “who are the detained persons?”:
-which pass backward through the graph opening valves; and            (Detained (?x (Isa ?x Person)). The top graph in Fig-
-cancel-infer messages, which pass backward through the               ure 1 shows the IG for this KB. The query is shown as wft20,
-graph closing valves.                                                using a qvar – a type of quantified term which acts much like
-   Inference operations take place primarily in the rule nodes.      an arbitrary, but is only for answering “wh-” style questions.
-When a message arrives at a rule node it is combined with            The system recursively opens channels backward stemming
-messages which have previously arrived if the messages are           from the query, but is unable to produce an answer, since
-compatible (i.e., have arrived from different antecedents, and       none exists in the graph. The channels drawn with heavier
-have compatible substitutions). By determining if a combined         weight are those which have been opened during backward
-message has been produced from the proper number of an-              inference. Notice that two routes are tried – A person might
-tecedents, it can be determined if a rule node’s inference rules     be detained if they are not free, or a person might be detained
-can be applied.                                                      if they have been arrested. At some later time, it is added to
-   An IG stores all results which it has derived, allowing later     the KB that Azam was arrested: (Arrested Azam). The sys-
-queries to be answered without repeating already completed           tem knows that backward inference was in progress,8 so upon
-derivations. What has been discussed is a simplified version         the addition of the channel from wft6! to wft1, backward
-of IGs only complex enough to present FR, we leave many of           inference is continued back to wft6!, opening that channel.
-the details of IGs to other papers.                                  Since wft6! is asserted, this information immediately flows
-                                                                     forward through the graph along open channels, and Azam
-            4   Types of Focused Reasoning                           is produced as an answer to the previously added query au-
-In the following three subsections, we will introduce three          tomatically. This is shown in the bottom half of Figure 1,
-types of FR: forward-in-backward, forward, and backward-             where the heavier weight channels indicate the flow of mes-
-in-forward. For each type of FR, we will first describe what         sages from wft6! forward through the open channels. It’s
-the common use case is for that type, and provide a small ex-        important to note that while this KB entails that Azam is not
-ample which requires that type of FR. We will then describe          free, it does not derive this fact in this case since the channels
-a more concrete example inspired by the counter-insurgence           from wft2 to wft5! and wft5! to wft4 were not opened by
-(COIN) domain, complete with figures showing the associ-             the backward inference process. So, derivations which are ir-
-ated IGs. These will each be described semi-formally for ease        relevant to reaching the desired conclusion are not performed
-of understanding. In a later subsection, we will provide an al-      – we say inference is focused toward the query.
-gorithm which combines all the types of FR and makes their               7 Prolog with tabling can suspend paths of inference which can-
-operation more formal.                                               not complete, and resume them if useful facts are found via the ex-
-                                                                     ploration of other paths within the same inference procedure (Swift
-4.1    Forward-In-Backward Focused Reasoning                         & Warren, 2012). Focused reasoning is different, allowing auto-
-                                                                     matic continuation of inference at the time when related terms are
-The most common use of FR is when wondering about some-              added to the KB, persisting beyond the run time of a single infer-
-thing which cannot yet be answered by the system using               ence procedure.
-backward inference. For example, consider a knowledge base               8 How does it know? In many cases, it is possible to tell by which
-containing only (if P R) and (if P Q). Then, the user asks           channels are open. But, there are cases where this doesn’t work
-                                                                     (such as initiating backward inference on a term with no incoming
-about R. Backward inference is set up (i.e., valves in the ap-       channels) so it makes more sense to maintain a set of in-progress
-propriate channels through (if P R) are opened) but no an-           processes or a flag as detailed later.
-                                                                 1373
+– i-infer messages relay substitutions found for the originator of the message which the destination may be interested in, and u-infer messages relay substitutions found for
+the destination of the message; backward-infer messages,
+which pass backward through the graph opening valves; and
+cancel-infer messages, which pass backward through the
+graph closing valves.
+Inference operations take place primarily in the rule nodes.
+When a message arrives at a rule node it is combined with
+messages which have previously arrived if the messages are
+compatible (i.e., have arrived from different antecedents, and
+have compatible substitutions). By determining if a combined
+message has been produced from the proper number of antecedents, it can be determined if a rule node’s inference rules
+can be applied.
+An IG stores all results which it has derived, allowing later
+queries to be answered without repeating already completed
+derivations. What has been discussed is a simplified version
+of IGs only complex enough to present FR, we leave many of
+the details of IGs to other papers.
 
-                    ant             cq                                                 duced, but are unhelpful for ongoing inference processes.
-       wft1                 wft3!                wft2
-              arr                              ed        xo                               Consider our COIN example again with a slightly different
-                 est                        n
-                    ed                   tai                r
-                                    de                                                 set of terms initially asserted:
-                            arb1                                   wft5!
-                 restrict           fre                    r                           ;; A person is either detained or free.
-                              member
-                                        e               xo
-                                                                            wft20      (xor (Detained (every x (Isa x Person)))
-                            wft8!                wft4                      ne
-      Azam                                                             tai
-                                                                             d              (Free x))
-                      class                                           de
-member                                                                                 It is then asserted with forward inference that Azam is a
-                                    class wft12! member
-      wft9! class Person                                           qvar1               person, and has been arrested: (Isa Azam Person), and
-                                                        restrict                       (Arrested Azam). The top of Figure 2 shows the result-
-                    ant             cq                                                 ing knowledge base. It is determined that Azam satisfies the
-       wft1                 wft3!                wft2                                  restriction of arb1 (that is, Azam is a Person, through the
-              arr                               d       xo
-                 est                       ine             r
-                    ed
-                                    d   eta                                            channel from wft9! to wft8!), but no new knowledge is de-
-                            arb1                                                       rived. Later, as in the bottom of Figure 2, the rule that if a
-                                                                   wft5!
-      wft6!      restrict           fre                    r
-                                                                                       person is arrested then they have been detained is added:
-         arrested             member
-                                        e               xo
-                                                                            wft20
-      Azam                  wft8!                wft4
-                                                                           d
-                                                                           ne
-                                                                                       (if (Arrested (every x (Isa x Person)))
-                      class                                           de                   (Detained x))
-member                                                                  tai
-                                                                                       Since wft6! was added with forward inference, when the
-      wft9! class Person            class wft12! member            qvar1
-                                                                                       new outgoing channel to wft1 is added, forward inference
-                                                        restrict
-                                                                                       continues. This allows the derivations that Azam is de-
-                                                                                       tained: (Detained Azam), and Azam is not free: (not
-Figure 1: The IGs for the forward-in-backward FR exam-                                 (Free Azam)).
-ple. Dashed lines represent channels. Restrictions have dot-
-ted arcs labeled “restrict”. Channels drawn with a heavier
-                                                                                                                                         wft2
-weight are involved in the illustrated inference process. In                                                                           d        xo
-                                                                                                                                   ine            r
-the top graph, it has been asked “who are the detained per-                                                                d   eta
-sons?” (wft20), and backward inference has commenced.
-                                                                                                                   arb1                                wft5!
-In the bottom graph, the fact that Azam has been arrested,                                   wft6!      restrict                 fre               r
-wft6!, is added to the KB, and flows through the already                                        arrested               member
-                                                                                                                                     e          xo
+4
+
+Types of Focused Reasoning
+
+In the following three subsections, we will introduce three
+types of FR: forward-in-backward, forward, and backwardin-forward. For each type of FR, we will first describe what
+the common use case is for that type, and provide a small example which requires that type of FR. We will then describe
+a more concrete example inspired by the counter-insurgence
+(COIN) domain, complete with figures showing the associated IGs. These will each be described semi-formally for ease
+of understanding. In a later subsection, we will provide an algorithm which combines all the types of FR and makes their
+operation more formal.
+
+4.1
+
+Forward-In-Backward Focused Reasoning
+
+The most common use of FR is when wondering about something which cannot yet be answered by the system using
+backward inference. For example, consider a knowledge base
+containing only (if P R) and (if P Q). Then, the user asks
+about R. Backward inference is set up (i.e., valves in the appropriate channels through (if P R) are opened) but no an-
+
+swer is forthcoming. Later, P is asserted (without forward
+inference). Since the appropriate valves are already open, R
+is derived immediately, without needing to pose the question
+again. Note that Q is not derived, since valves involving (if
+P Q) were not opened during backward inference.7
+In a somewhat more complex example from the COIN domain, consider the following initial knowledge base:
+;; Azam is a person
+(Isa Azam Person)
+;; If a person is arrested, they are detained.
+(if (Arrested (every x (Isa x Person)))
+(Detained x))
+;; A person is either detained or free.
+(xor (Detained (every x (Isa x Person)))
+(Free x))
+It is then asked by a user, “who are the detained persons?”:
+(Detained (?x (Isa ?x Person)). The top graph in Figure 1 shows the IG for this KB. The query is shown as wft20,
+using a qvar – a type of quantified term which acts much like
+an arbitrary, but is only for answering “wh-” style questions.
+The system recursively opens channels backward stemming
+from the query, but is unable to produce an answer, since
+none exists in the graph. The channels drawn with heavier
+weight are those which have been opened during backward
+inference. Notice that two routes are tried – A person might
+be detained if they are not free, or a person might be detained
+if they have been arrested. At some later time, it is added to
+the KB that Azam was arrested: (Arrested Azam). The system knows that backward inference was in progress,8 so upon
+the addition of the channel from wft6! to wft1, backward
+inference is continued back to wft6!, opening that channel.
+Since wft6! is asserted, this information immediately flows
+forward through the graph along open channels, and Azam
+is produced as an answer to the previously added query automatically. This is shown in the bottom half of Figure 1,
+where the heavier weight channels indicate the flow of messages from wft6! forward through the open channels. It’s
+important to note that while this KB entails that Azam is not
+free, it does not derive this fact in this case since the channels
+from wft2 to wft5! and wft5! to wft4 were not opened by
+the backward inference process. So, derivations which are irrelevant to reaching the desired conclusion are not performed
+– we say inference is focused toward the query.
+7 Prolog with tabling can suspend paths of inference which cannot complete, and resume them if useful facts are found via the exploration of other paths within the same inference procedure (Swift
+& Warren, 2012). Focused reasoning is different, allowing automatic continuation of inference at the time when related terms are
+added to the KB, persisting beyond the run time of a single inference procedure.
+8 How does it know? In many cases, it is possible to tell by which
+channels are open. But, there are cases where this doesn’t work
+(such as initiating backward inference on a term with no incoming
+channels) so it makes more sense to maintain a set of in-progress
+processes or a flag as detailed later.
+
+1373
+
+ant
+arr
+est
+ed
+
+wft1
+
+wft3!
+
+cq
+
+wft2
+
+n
+
+tai
+
+de
+
+ed
+
+xo
+r
+
+arb1
+
+wft5!
+
+fre
+e
+member
+
+wft8!
+
+r
+xo
+
+wft4
+
+ne
+d
+
+Azam
+
+de
+
+class
+
+member
+
+;; A person is either detained or free.
+(xor (Detained (every x (Isa x Person)))
+(Free x))
+
+wft20
+tai
+
+restrict
+
+duced, but are unhelpful for ongoing inference processes.
+Consider our COIN example again with a slightly different
+set of terms initially asserted:
+
+wft9! class Person
+
+class wft12! member
+
+It is then asserted with forward inference that Azam is a
+person, and has been arrested: (Isa Azam Person), and
+(Arrested Azam). The top of Figure 2 shows the resulting knowledge base. It is determined that Azam satisfies the
+restriction of arb1 (that is, Azam is a Person, through the
+channel from wft9! to wft8!), but no new knowledge is derived. Later, as in the bottom of Figure 2, the rule that if a
+person is arrested then they have been detained is added:
+
+qvar1
+
+restrict
+
+ant
+arr
+est
+ed
+
+wft1
+
+member
+
+wft2
+
+d
+
+d
+
+ine
+eta
+
+xo
+r
+
+arb1
+
+wft5!
+
+fre
+e
+member
+
+wft4
+
+class
+
+wft9! class Person
+
+wft20
+
+(if (Arrested (every x (Isa x Person)))
+(Detained x))
+
+d
+
+wft8!
+
+r
+xo
+
+ne
+
+restrict
+
+arrested
+
+Azam
+
+cq
+
+de
+tai
+
+wft6!
+
+wft3!
+
+class wft12! member
+
+Since wft6! was added with forward inference, when the
+new outgoing channel to wft1 is added, forward inference
+continues. This allows the derivations that Azam is detained: (Detained Azam), and Azam is not free: (not
+(Free Azam)).
+
+qvar1
+
+restrict
+
+Figure 1: The IGs for the forward-in-backward FR example. Dashed lines represent channels. Restrictions have dotted arcs labeled “restrict”. Channels drawn with a heavier
+weight are involved in the illustrated inference process. In
+the top graph, it has been asked “who are the detained persons?” (wft20), and backward inference has commenced.
+In the bottom graph, the fact that Azam has been arrested,
+wft6!, is added to the KB, and flows through the already
 open channels, deriving the result that Azam is detained.
-                                                                                            Azam                   wft8!                 wft4
-                                                                                                               class
-                                                                                       member
-4.2   Forward Focused Reasoning
-A second type of FR can occur when a user wishes to perform                                  wft9! class Person
-forward inference on a term, but the knowledge base is not yet
-                                                                                                            ant            cq
-fully constructed. For example, consider an empty knowledge                                    wft1                wft3!                 wft2
-                                                                                                     arr                             d          xo
-base where the user asserts Q with forward inference. Nothing                                           e                          ne
-                                                                                                         ste                    tai               r
-new is derived, as the KB is otherwise empty. Later, (if Q                                                  d              de
-R) is asserted. Since Q was asserted with forward inference,                                                       arb1                                wft5!
-as soon as additional outgoing channels are connected to it,                                 wft6!      restrict                 fre              r
-its assertional status flows forward through the graph, and R                                   arrested               member
-                                                                                                                                    e           xo
-is derived. This derivation happens, again, without needing to
-                                                                                            Azam                   wft8!                 wft4
-reassert Q. One can think about this as a limited form of full-
-                                                                                                               class
-forward inference. Instead of adopting full-forward inference                          member
-for all terms which are added to the KB, only Q has this prop-                               wft9! class Person
-erty. Automatic inference in the graph is focused on what
-can be derived from Q, while unrelated terms (e.g., (if S T)
-and S) may be added but without resulting in any automatic                             Figure 2: IGs for the forward FR example. In the top graph,
-inference.                                                                             Azam is a person, and has been arrested, wft6! and wft9!,
-   It’s worth recognizing that all our inference mechanisms                            are asserted with forward inference. In the bottom graph, the
-only follow existing channels, and do not create new terms                             rule that if a person is arrested, they have been detained is
-which are possibly irrelevant to the knowledge base. For ex-                           added, allowing inference to continue, and for it to be derived
-ample, from the original KB with only Q asserted, there are                            that Azam is detained and not free.
-an infinite number of true disjunctions which could be intro-
-                                                                                    1374
 
-4.3   Backward-In-Forward Focused Reasoning                                                                                             cq
-                                                                                                 ant
-                                                                               wft1                          wft3!                 wft2
-A combination of the above two FR techniques is also pos-                              PO                                           e
-                                                                                                                                    c
-                                                                                             I                                   lan          xo
-                                                                                                                            eil                 r
-sible. Consider a user who again asserts Q with forward in-                 ant                                      s   urv
-ference into an empty knowledge base. Later, (if P (if Q                                                     arb1                                             wft5
-R)) is asserted. As with forward FR, Q recognizes that it has                wft16!                                        sou
-                                                                                                                      g                         r
-                                                                                                                                             xo
-new outgoing channels, and sends its assertional status to (if                                    restrict     member ht
-                                                                                       t
-                                                                                   ta rg
-                                                                             cq          e               wft8!
-Q R). But, (if Q R) is not yet asserted, so backward infer-                                                                        wft4                         wft14!
-ence attempts to derive (if Q R), but fails. Later again, P is                                    class                                                            not
-asserted (without forward inference). Inference then occurs                  wft17
-                                                                      interested
-as in forward-in-backward FR, (if Q R) is derived, then R                                          Person                                                          wft13
-                                                                                                                                                            n ce
-is.                                                                        INSCOM                                                                      illa
-                                                                                                  class                                             rve
-    From the COIN domain again, consider the KB:                                                                     member                    su
-                                                                                                  wft10!                           Ahmad
-;; Ahmad is a person.                                                                                                                   cq
-                                                                                                 ant
-(Isa Ahmad Person)                                                             wft1                          wft3!                 wft2
-                                                                                                                                    e
-                                                                                       PO                                        nc          xo
-                                                                                             I                            e  illa              r
-;; If a person is a person of interest (POI),                               ant                                      sur v
-;; they are either under surveillance, or                                                                    arb1                                             wft5
-                                                                             wft16!                                        sou
-;;   being sought out.                                                                                                g                         r
-                                                                                                                                             xo
-(if (POI (every x (Isa x Person)))                                                  rg et         restrict     member ht
-                                                                             cq                         wft8!                      wft4                         wft14!
-                                                                                   ta
-    (xor (UnderSurveillance x)
-         (BeingSoughtOut x)))                                                                     class                                                            not
-                                                                             wft17
-                                                                      interested
-;; If a person is a POI, they are of                                                               Person                                                    e
-                                                                                                                                                                   wft13
-                                                                           INSCOM                                                                        lanc
-;; interest to INSCOM                                                                             class                                              eil
-                                                                                                                                              s   urv
-(if (POI (every x (Isa x Person)))                                                                                   member
-                                                                                                  wft10!                           Ahmad
-    (ofInterestTo x INSCOM))
-                                                                                             POI
-Now, it is asserted with forward inference that Ahmad is not          wft15!
+4.2
+
+wft2
+
+d
+restrict
+
+arrested
+
+fre
+e
+
+r
+xo
+
+member
+
+wft8!
+
+Azam
+
+wft5!
+wft4
+
+class
+
+member
+
+A second type of FR can occur when a user wishes to perform
+forward inference on a term, but the knowledge base is not yet
+fully constructed. For example, consider an empty knowledge
+base where the user asserts Q with forward inference. Nothing
+new is derived, as the KB is otherwise empty. Later, (if Q
+R) is asserted. Since Q was asserted with forward inference,
+as soon as additional outgoing channels are connected to it,
+its assertional status flows forward through the graph, and R
+is derived. This derivation happens, again, without needing to
+reassert Q. One can think about this as a limited form of fullforward inference. Instead of adopting full-forward inference
+for all terms which are added to the KB, only Q has this property. Automatic inference in the graph is focused on what
+can be derived from Q, while unrelated terms (e.g., (if S T)
+and S) may be added but without resulting in any automatic
+inference.
+It’s worth recognizing that all our inference mechanisms
+only follow existing channels, and do not create new terms
+which are possibly irrelevant to the knowledge base. For example, from the original KB with only Q asserted, there are
+an infinite number of true disjunctions which could be intro-
+
+xo
+r
+
+arb1
+
+wft6!
+
+Forward Focused Reasoning
+
+d
+ine
+eta
+
+wft9! class Person
+ant
+
+wft1
+
+arr
+e
+
+wft3!
+
+ste
+
+wft6!
+
+member
+
+wft2
+
+d
+ne
+tai
+
+xo
+r
+
+fre
+e
+
+r
+xo
+
+de
+
+d
+
+arb1
+restrict
+
+arrested
+
+Azam
+
+cq
+
+member
+
+wft8!
+
+wft5!
+wft4
+
+class
+
+wft9! class Person
+Figure 2: IGs for the forward FR example. In the top graph,
+Azam is a person, and has been arrested, wft6! and wft9!,
+are asserted with forward inference. In the bottom graph, the
+rule that if a person is arrested, they have been detained is
+added, allowing inference to continue, and for it to be derived
+that Azam is detained and not free.
+
+1374
+
+wft1
+
+A combination of the above two FR techniques is also possible. Consider a user who again asserts Q with forward inference into an empty knowledge base. Later, (if P (if Q
+R)) is asserted. As with forward FR, Q recognizes that it has
+new outgoing channels, and sends its assertional status to (if
+Q R). But, (if Q R) is not yet asserted, so backward inference attempts to derive (if Q R), but fails. Later again, P is
+asserted (without forward inference). Inference then occurs
+as in forward-in-backward FR, (if Q R) is derived, then R
+is.
+From the COIN domain again, consider the KB:
+
+c
+
+xo
+r
+
+g
+member ht
+
+r
+xo
+
+arb1
+t
+
+ta
+rg
+e
+PO
+
+In order to perform FR using IGs, two requirements must be
+fulfilled. Nodes must track whether they are part of a FR
+task (which one, and in which direction(s)), and whenever a
+channel is added to the graph it must be determined if forward
+or backward inference must continue along that channel.
+We start by augmenting each node with two sets, initially
+empty, f BR and f FwR for focused inference tasks requiring
+future backward reasoning at that node, and focused inference tasks requiring future forward reasoning at that node,
+
+restrict
+
+su
+
+nc
+illa
+
+e
+ur v
+
+wft5
+
+sou
+
+r
+xo
+
+wft4
+
+wft14!
+not
+
+Person
+
+e
+nc
+
+class
+POI
+
+wft13
+
+xo
+r
+
+s
+
+class
+
+wft10!
+
+A Unifying Algorithm
+
+ce
+
+n
+illa
+
+cq
+
+wft2
+e
+
+g
+member ht
+
+wft8!
+
+interested
+
+INSCOM
+
+Ahmad
+
+wft3!
+arb1
+
+rg
+et
+
+wft17
+
+member
+
+I
+
+wft16!
+
+wft15!
+
+wft14!
+
+rve
+
+class
+
+ant
+
+ant
+
+Now, it is asserted with forward inference that Ahmad is not
 under surveillance: (not (UnderSurveillance Ahmad)),
 shown in the top of Figure 3. If the xor (wft5) were asserted,
-                                                                   Figure 3: The IGs for the backward-in-forward FR example.
 it could be derived that (BeingSoughtOut Ahmad) through
-                                                                   In the top IG, it is asserted with forward inference that Azam
-forward inference, but it is not. So, the system initiates back-
-                                                                   is not under surveillance, wft14!. Forward inference pro-
-ward inference to attempt to derive the xor, by checking
-                                                                   ceeds to the unasserted xor rule of wft5, then backward in-
+forward inference, but it is not. So, the system initiates backward inference to attempt to derive the xor, by checking
 whether Ahmad is a POI. Since the system has no answer
-                                                                   ference tries to derive that rule, but is unable to at the present
 for that, inference halts. Sometime later, shown in the bottom
-                                                                   time. In the bottom IG, Ahmad is a POI (wft15!) is added to
 half of Figure 3, (POI Ahmad) is added to the KB. The xor
-                                                                   the KB, which allows the rule wft5 to be used, and the fact
-receives a message saying it is able to be used for the substi-
-                                                                   that Ahmad is sought to be derived.
-tution of Ahmad for arb1 (but not in general), and the initial
+receives a message saying it is able to be used for the substitution of Ahmad for arb1 (but not in general), and the initial
 forward inference task resumes, deriving (BeingSoughtOut
-Ahmad). Here again it’s worth noting that even though the          respectively. As backward-infer messages propagate back-
-IG entails that Ahmad is of interest to INSCOM, that was           ward through the graph opening channels, they add the goal
-not derived since it was of no use to the backward inference       of the backward reasoning task to the f BR set in each node.
-task attempting to derive wft5, and it does not follow directly    When forward inference is initiated, nodes reached have their
-from the fact that Ahmad is not under surveillance, which was       f FwR set augmented with the origin of the forward infer-
-the assertion made with forward inference.                         ence task. Unlike IGs described in previous papers, we allow
-                                                                   backward-infer messages to travel backward along already
-4.4   A Unifying Algorithm
-                                                                   open channels if these sets need to be updated. Tracking
-In order to perform FR using IGs, two requirements must be         which nodes are involved in each type of focused inference
-fulfilled. Nodes must track whether they are part of a FR          task allows one focused inference task to later be canceled
-task (which one, and in which direction(s)), and whenever a        without affecting the others.9 To cancel these tasks, we use
-channel is added to the graph it must be determined if forward     cancel-infer messages, which will only close a channel if
-or backward inference must continue along that channel.
-   We start by augmenting each node with two sets, initially           9 If one wanted to simply cancel all or no FR tasks, these sets
-empty, f BR and f FwR for focused inference tasks requiring        could be replaced with flags. Some book keeping is still required
-                                                                   since it is impossible to tell whether forward or backward infer-
-future backward reasoning at that node, and focused infer-         ence has been initiated from a node otherwise disconnected from
-ence tasks requiring future forward reasoning at that node,        the graph without some marker.
-                                                               1375
+Ahmad). Here again it’s worth noting that even though the
+IG entails that Ahmad is of interest to INSCOM, that was
+not derived since it was of no use to the backward inference
+task attempting to derive wft5, and it does not follow directly
+from the fact that Ahmad is not under surveillance, which was
+the assertion made with forward inference.
 
-it’s not needed for any more focused inference tasks, but can      Forgy, C. (1982). Rete: A fast algorithm for the many pat-
-travel backward though the graph removing an entry from the              tern/many object pattern match problem. Artificial In-
-nodes sets of future inference tasks.                                    telligence, 19, 17–37.
-   When a new channel is added to the graph, the contents of       ISO/IEC.        (2007, October).         Information technol-
-its origin’s f FwR or destination’s f BR set determine whether           ogy — Common Logic (CL): a framework
-or not to continue a FR task. If a new channel is created,               for a family of logic-based languages, iso/iec
-and it’s origin’s f FwR set is non-empty, forward inference is           24707:2007(e)        (First   ed.)    [Computer     soft-
-continued along that new channel (and recursively forward),              ware manual].          Switzerland.      (available from
-and the contents of the f FwR set is propagated forward. If a            http://standards.iso/ittf/license.html)
-new channel has a destination with a non-empty f BR set, then      McKay, D. P., & Shapiro, S. C. (1981). Using active con-
-backward inference starts at the new channel (and continues              nection graphs for reasoning with recursive rules. In
-recursively), and the contents of the f BR set is propagated             Proceedings of the seventh IJCAI (pp. 368–374). Los
-backward. These routines combine to allow for forward-in-                Altos, CA: Morgan Kaufmann.
-backward FR, and forward FR.                                       Pollock, J. L. (1990). Interest driven suppositional reasoning.
-   The final aspect of the algorithm occurs when a rule is not           Journal of Automated Reasoning, 6(4), 419–461.
-asserted, but receives an i-infer message via forward in-          Schlegel, D. R., & Shapiro, S. C. (2012). Visually interacting
-ference, indicating an attempt to use that rule. In this case,           with a knowledge base using frames, logic, and propo-
-that node attempts to have itself derived in general or for a            sitional graphs. In M. Croitoru, S. Rudolph, N. Wil-
-specific substitution by beginning a backward reasoning task,            son, J. Howse, & O. Corby (Eds.), Graph structures for
-adding itself to it’s f BR set, and propagating that set back-           knowledge representation and reasoning, lecture notes
-ward. Once the rule has been derived, it recursively sends               in artificial intelligence 7205 (p. 188-207). Berlin:
-messages canceling the backward reasoning task backward                  Springer-Verlag.
-through the graph, since it’s purpose has been fulfilled. This     Schlegel, D. R., & Shapiro, S. C. (2013a). Concurrent rea-
-allows for backward-in-forward FR.                                       soning with inference graphs (student abstract). In Pro-
-                                                                         ceedings of AAAI-13 (p. 1637-1638). Menlo Park, CA:
-                       5   Conclusion                                    AAAI Press/The MIT Press.
-Focused reasoning is a useful method for continuing infer-         Schlegel, D. R., & Shapiro, S. C. (2013b, December). In-
-ence tasks as new information is added to a knowledge base.              ference graphs: A roadmap. In Poster collection of
-We have presented three types of FR: forward-in-backward,                the second annual conference on advances in cognitive
-forward, and backward-in-forward, building upon Inference                systems (pp. 217–234).
-Graphs – a concurrent graph-based inference mechanism al-          Schlegel, D. R., & Shapiro, S. C. (2014). Concurrent reason-
-ready capable of forward, backward, and bi-directional infer-            ing with inference graphs. In M. Croitoru, S. Rudolph,
-ence. Each type of FR obviates the need to repeat completed              S. Woltran, & C. Gonzales (Eds.), Graph structures
-inference, re-pose queries, or perform unnecessary inference.            for knowledge representation and reasoning, lecture
-In addition, determining if FR should commence uses very                 notes in artificial intelligence (Vol. 8323, p. 138-164).
-few computational resources above those used normally to                 Switzerland: Springer International Publishing.
-add a term to a knowledge base.                                    Shapiro, S. C. (2004). A logic of arbitrary and indefinite
-                                                                         objects. In D. Dubois, C. Welty, & M. Williams (Eds.),
-                 6    Acknowledgements                                   Proceedings of KR2004 (pp. 565–575). Menlo Park,
-This work has been supported by a Multidisciplinary Univer-              CA: AAAI Press.
-sity Research Initiative (MURI) grant (Number W911NF-09-           Shapiro, S. C. (2010). Set-oriented logical connectives:
-1-0392) for “Unified Research on Network-based Hard/Soft                 Syntax and semantics. In F. Lin, U. Sattler, &
-Information Fusion”, issued by the US Army Research Office               M. Truszczynski (Eds.), Proceedings of KR2010 (pp.
-(ARO) under the program management of Dr. John Lavery.                   593–595). AAAI Press.
-                                                                   Shapiro, S. C., Martins, J. P., & McKay, D. P. (1982). Bi-
-                         References                                      directional inference. In Proceedings of the fourth
-Auble, P. M., Franks, J. J., & Soraci, S. A. (1979). Effort              CogSci (pp. 90–93). Ann Arbor, MI: the Program in
-       toward comprehension: Elaboration or “aha”? Memory                Cognitive Science of The University of Chicago and
-       & Cognition, 7(6), 426–434.                                       The University of Michigan.
-eBay, Inc.            (2013).        Saving your searches.         Shapiro, S. C., & Rapaport, W. J. (1992, January–March).
-       (http://pages.ebay.com/help/buy/searches-                         The SNePS family. Computers & Mathematics with
-       follow.html)                                                      Applications, 23(2–5), 243–275.
-Forgy, C. (1979). On the efficient implementation of pro-          Swift, T., & Warren, D. S. (2012). XSB: Extending prolog
-       duction systems. Unpublished doctoral dissertation,               with tabled logic programming. Theory and Practice
-       Carnegie-Mellon University, Department of Computer                of Logic Programming, 12(1-2), 157–187.
-       Science, Pittsburgh, PA, USA.
-                                                               1376
+wft4
 
+not
+
+wft10!
+
+;; If a person is a POI, they are of
+;; interest to INSCOM
+(if (POI (every x (Isa x Person)))
+(ofInterestTo x INSCOM))
+
+wft5
+
+sou
+
+Person
+
+INSCOM
+
+cq
+
+s
+
+class
+
+interested
+
+;; If a person is a person of interest (POI),
+;; they are either under surveillance, or
+;;
+being sought out.
+(if (POI (every x (Isa x Person)))
+(xor (UnderSurveillance x)
+(BeingSoughtOut x)))
+
+eil
+urv
+
+wft8!
+
+wft17
+
+wft1
+
+wft2
+e
+
+lan
+
+I
+
+wft16!
+cq
+
+cq
+
+wft3!
+
+PO
+
+ant
+
+;; Ahmad is a person.
+(Isa Ahmad Person)
+
+4.4
+
+ant
+
+restrict
+
+Backward-In-Forward Focused Reasoning
+
+ta
+
+4.3
+
+member
+
+Ahmad
+
+s
+
+wft13
+
+la
+eil
+urv
+
+Figure 3: The IGs for the backward-in-forward FR example.
+In the top IG, it is asserted with forward inference that Azam
+is not under surveillance, wft14!. Forward inference proceeds to the unasserted xor rule of wft5, then backward inference tries to derive that rule, but is unable to at the present
+time. In the bottom IG, Ahmad is a POI (wft15!) is added to
+the KB, which allows the rule wft5 to be used, and the fact
+that Ahmad is sought to be derived.
+respectively. As backward-infer messages propagate backward through the graph opening channels, they add the goal
+of the backward reasoning task to the f BR set in each node.
+When forward inference is initiated, nodes reached have their
+f FwR set augmented with the origin of the forward inference task. Unlike IGs described in previous papers, we allow
+backward-infer messages to travel backward along already
+open channels if these sets need to be updated. Tracking
+which nodes are involved in each type of focused inference
+task allows one focused inference task to later be canceled
+without affecting the others.9 To cancel these tasks, we use
+cancel-infer messages, which will only close a channel if
+9 If one wanted to simply cancel all or no FR tasks, these sets
+could be replaced with flags. Some book keeping is still required
+since it is impossible to tell whether forward or backward inference has been initiated from a node otherwise disconnected from
+the graph without some marker.
+
+1375
+
+it’s not needed for any more focused inference tasks, but can
+travel backward though the graph removing an entry from the
+nodes sets of future inference tasks.
+When a new channel is added to the graph, the contents of
+its origin’s f FwR or destination’s f BR set determine whether
+or not to continue a FR task. If a new channel is created,
+and it’s origin’s f FwR set is non-empty, forward inference is
+continued along that new channel (and recursively forward),
+and the contents of the f FwR set is propagated forward. If a
+new channel has a destination with a non-empty f BR set, then
+backward inference starts at the new channel (and continues
+recursively), and the contents of the f BR set is propagated
+backward. These routines combine to allow for forward-inbackward FR, and forward FR.
+The final aspect of the algorithm occurs when a rule is not
+asserted, but receives an i-infer message via forward inference, indicating an attempt to use that rule. In this case,
+that node attempts to have itself derived in general or for a
+specific substitution by beginning a backward reasoning task,
+adding itself to it’s f BR set, and propagating that set backward. Once the rule has been derived, it recursively sends
+messages canceling the backward reasoning task backward
+through the graph, since it’s purpose has been fulfilled. This
+allows for backward-in-forward FR.
+
+5
+
+Conclusion
+
+Focused reasoning is a useful method for continuing inference tasks as new information is added to a knowledge base.
+We have presented three types of FR: forward-in-backward,
+forward, and backward-in-forward, building upon Inference
+Graphs – a concurrent graph-based inference mechanism already capable of forward, backward, and bi-directional inference. Each type of FR obviates the need to repeat completed
+inference, re-pose queries, or perform unnecessary inference.
+In addition, determining if FR should commence uses very
+few computational resources above those used normally to
+add a term to a knowledge base.
+
+6
+
+Acknowledgements
+
+This work has been supported by a Multidisciplinary University Research Initiative (MURI) grant (Number W911NF-091-0392) for “Unified Research on Network-based Hard/Soft
+Information Fusion”, issued by the US Army Research Office
+(ARO) under the program management of Dr. John Lavery.
+
+References
+Auble, P. M., Franks, J. J., & Soraci, S. A. (1979). Effort
+toward comprehension: Elaboration or “aha”? Memory
+& Cognition, 7(6), 426–434.
+eBay, Inc.
+(2013).
+Saving your searches.
+(http://pages.ebay.com/help/buy/searchesfollow.html)
+Forgy, C. (1979). On the efficient implementation of production systems. Unpublished doctoral dissertation,
+Carnegie-Mellon University, Department of Computer
+Science, Pittsburgh, PA, USA.
+
+Forgy, C. (1982). Rete: A fast algorithm for the many pattern/many object pattern match problem. Artificial Intelligence, 19, 17–37.
+ISO/IEC.
+(2007, October).
+Information technology — Common Logic (CL): a framework
+for a family of logic-based languages, iso/iec
+24707:2007(e)
+(First
+ed.)
+[Computer
+software manual].
+Switzerland.
+(available from
+http://standards.iso/ittf/license.html)
+McKay, D. P., & Shapiro, S. C. (1981). Using active connection graphs for reasoning with recursive rules. In
+Proceedings of the seventh IJCAI (pp. 368–374). Los
+Altos, CA: Morgan Kaufmann.
+Pollock, J. L. (1990). Interest driven suppositional reasoning.
+Journal of Automated Reasoning, 6(4), 419–461.
+Schlegel, D. R., & Shapiro, S. C. (2012). Visually interacting
+with a knowledge base using frames, logic, and propositional graphs. In M. Croitoru, S. Rudolph, N. Wilson, J. Howse, & O. Corby (Eds.), Graph structures for
+knowledge representation and reasoning, lecture notes
+in artificial intelligence 7205 (p. 188-207). Berlin:
+Springer-Verlag.
+Schlegel, D. R., & Shapiro, S. C. (2013a). Concurrent reasoning with inference graphs (student abstract). In Proceedings of AAAI-13 (p. 1637-1638). Menlo Park, CA:
+AAAI Press/The MIT Press.
+Schlegel, D. R., & Shapiro, S. C. (2013b, December). Inference graphs: A roadmap. In Poster collection of
+the second annual conference on advances in cognitive
+systems (pp. 217–234).
+Schlegel, D. R., & Shapiro, S. C. (2014). Concurrent reasoning with inference graphs. In M. Croitoru, S. Rudolph,
+S. Woltran, & C. Gonzales (Eds.), Graph structures
+for knowledge representation and reasoning, lecture
+notes in artificial intelligence (Vol. 8323, p. 138-164).
+Switzerland: Springer International Publishing.
+Shapiro, S. C. (2004). A logic of arbitrary and indefinite
+objects. In D. Dubois, C. Welty, & M. Williams (Eds.),
+Proceedings of KR2004 (pp. 565–575). Menlo Park,
+CA: AAAI Press.
+Shapiro, S. C. (2010). Set-oriented logical connectives:
+Syntax and semantics. In F. Lin, U. Sattler, &
+M. Truszczynski (Eds.), Proceedings of KR2010 (pp.
+593–595). AAAI Press.
+Shapiro, S. C., Martins, J. P., & McKay, D. P. (1982). Bidirectional inference. In Proceedings of the fourth
+CogSci (pp. 90–93). Ann Arbor, MI: the Program in
+Cognitive Science of The University of Chicago and
+The University of Michigan.
+Shapiro, S. C., & Rapaport, W. J. (1992, January–March).
+The SNePS family. Computers & Mathematics with
+Applications, 23(2–5), 243–275.
+Swift, T., & Warren, D. S. (2012). XSB: Extending prolog
+with tabled logic programming. Theory and Practice
+of Logic Programming, 12(1-2), 157–187.
+
+1376
+
+
