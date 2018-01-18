@@ -4,15 +4,15 @@ library(rio)
 
 dd <- rio::import("year_doc_topic.csv") %>% as_data_frame
 
+# topic labels
+topic_labels <- unique(dd$topic_label)  # same ordering as in python
+
 dd$year <- dd$year+2000
 
 # year labels for x-axis
 years <- 2000:2017
 year_labels <- years
 year_labels[-seq(1, 18, 4)] <- ""
-
-# topic labels
-topic_labels <- unique(dd$topic_label)  # same ordering as in python
 
 # for each year, aggregate topic probability across documents
 ee <- dd %>% 
