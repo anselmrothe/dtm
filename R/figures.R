@@ -59,7 +59,7 @@ ggsave("figures/topics-2.png", width = 11, height = 5)  # double plot
 # tsne --------------------------------------------------------------------
 
 library(Rtsne)
-set.seed(12)
+set.seed(12345)
 x <- dd %>%
   filter(year == 2017) %>% 
   select(-year) %>%
@@ -70,8 +70,8 @@ x <- dd %>%
   ungroup
 x
 tsne <- Rtsne(as.matrix(x %>% select(-doc_id, -my_topic)))
-plot(tsne$Y, type = "n")
-text(tsne$Y, labels = x$my_topic, col = x$my_topic)
+# plot(tsne$Y, type = "n")
+# text(tsne$Y, labels = x$my_topic, col = x$my_topic)
 
 dd <- tsne$Y %>% 
   as_data_frame %>% 
@@ -86,7 +86,7 @@ dd
 dd %>% 
   ggplot(aes(V1, V2, label = my_topic, color = topic_label)) +
   geom_text(size = 3) +
-  geom_label_repel(data = dd %>% filter(i == 3), aes(label = topic_label), segment.alpha = 0) +
+  geom_label_repel(data = dd %>% filter(i == 12), aes(label = topic_label), segment.alpha = 0) +
   theme_classic() +
   theme(legend.position = "none") +
   ggtitle("2017") +
