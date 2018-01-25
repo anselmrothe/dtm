@@ -77,8 +77,8 @@ d$postID <- 0
 #   dd
 # }
 # d <- cogsci_text()  # about 1 minute
-# d %>% write_rds('cogsci_text.rds')
-d <- read_rds('R/rds/cogsci_text.rds')
+# d %>% write_rds('output/rds/cogsci_text.rds')
+d <- read_rds('output/rds/cogsci_text.rds')
 
 # tidy_pmi <- d %>%
 #   unnest_tokens(word, text) %>%
@@ -87,13 +87,13 @@ d <- read_rds('R/rds/cogsci_text.rds')
 #   select(-n) %>%
 #   slide_windows(quo(postID), 8) %>%
 #   pairwise_pmi(word, window_id)
-# tidy_pmi %>% write_rds("tidy_pmi.rds")  # several minutes
-tidy_pmi <- read_rds('R/rds/tidy_pmi.rds')
+# tidy_pmi %>% write_rds("output/rds/tidy_pmi.rds")  # several minutes
+tidy_pmi <- read_rds('output/rds/tidy_pmi.rds')
 
 # tidy_word_vectors <- tidy_pmi %>%
 #   widely_svd(item1, item2, pmi, nv = 256, maxit = 1000)
-# tidy_word_vectors %>% write_rds("tidy_word_vectors.rds")
-tidy_word_vectors <- read_rds('R/rds/tidy_word_vectors.rds')
+# tidy_word_vectors %>% write_rds("output/rds/tidy_word_vectors.rds")
+tidy_word_vectors <- read_rds('output/rds/tidy_word_vectors.rds')
 
 ## inspect
 

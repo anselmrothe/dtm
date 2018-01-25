@@ -4,7 +4,7 @@ library(Rtsne)
 library(ggrepel)
 
 
-dd <- rio::import("year_doc_topic.csv") %>% as_data_frame
+dd <- rio::import("output/csv/year_doc_topic.csv") %>% as_data_frame
 dd$year <- dd$year+2000
 
 # topic labels

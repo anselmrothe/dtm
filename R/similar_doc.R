@@ -61,9 +61,9 @@ lines_similar_doc <- function(docID) {
 
 # script ------------------------------------------------------------------
 
-df.docnames <- rio::import('doc_names.csv') %>% as_data_frame
+df.docnames <- rio::import('output/csv/doc_names.csv') %>% as_data_frame
 
-dd <- rio::import("year_doc_topic.csv") %>% as_data_frame
+dd <- rio::import("output/csv/year_doc_topic.csv") %>% as_data_frame
 dd$year <- dd$year+2000
 
 x <- dd %>% 

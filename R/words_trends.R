@@ -4,12 +4,12 @@ library(broom)
 library(ggrepel)
 
 add_topic_label <- function(x) {
-  dd <- rio::import("year_doc_topic.csv") %>% as_data_frame
+  dd <- rio::import("output/csv/year_doc_topic.csv") %>% as_data_frame
   label <- dd %>% select(topic, topic_label) %>% unique  # same ordering as in python
   x %>% left_join(label, by = 'topic')
 }
 
-cc <- rio::import("year_topic_word.csv") %>% as_data_frame
+cc <- rio::import("output/csv/year_topic_word.csv") %>% as_data_frame
 dd <- add_topic_label(cc)
 dd
 

@@ -5,11 +5,11 @@ library(matrixStats)
 ## TODO: need a function to go from PDF to bag of words
 
 # only to get topic labels ------------------------------------------------
-dd <- rio::import("year_doc_topic.csv") %>% as_data_frame
+dd <- rio::import("output/csv/year_doc_topic.csv") %>% as_data_frame
 labels <- dd %>% select(topic, topic_label) %>% unique
 
 # script ------------------------------------------------------------------
-dd <- rio::import('year_topic_word.csv') %>% as_data_frame
+dd <- rio::import('output/csv/year_topic_word.csv') %>% as_data_frame
 ee <- dd %>% left_join(labels, by = 'topic')
 ff <- ee %>% filter(year == 2017)
 
