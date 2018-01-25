@@ -4,6 +4,10 @@ library(lsa)
 library(stringdist)
 library(knitr)
 library(pbapply)
+library(testthat)
+library(entropy)
+
+
 
 # intro -------------------------------------------------------------------
 
@@ -23,20 +27,18 @@ cosine(matrix)
 
 # functions ---------------------------------------------------------------
 
-similar_docs <- function(docID, x, n = 6) {
-  target_doc_vector <- x[,docID]
-  doc_ids <- 1:ncol(x)
-  similarity <- numeric(length(doc_ids))
-  for (i in doc_ids) {
-    similarity[i] <- lsa::cosine(target_doc_vector, x[,i])
-  }
-  data_frame(docID, doc_id = doc_ids, cosine = similarity) %>% 
-    # arrange(-cosine) %>% 
-    arrange(cosine) %>% 
+similar_docs <- function(docID, dd, n = 6) {
+  target_vector <- dd %>% filter(doc_id == docID) %>% .$prob
+  dd %>% 
+    group_by(doc_id) %>% 
+    summarize(docID,
+              cosine = lsa::cosine(target_vector, prob)) %>% 
+    select(docID, everything()) %>% 
+    arrange(-cosine) %>% 
     filter(docID != doc_id) %>% 
-    head(n) %>% 
-    select(-docID, cosine, everything())
+    head(n)
 }
+
 
 find_doc_id <- function(docname, df.docnames, n = 1, return_just_id = FALSE) {
   out <- df.docnames %>%
@@ -49,8 +51,8 @@ find_doc_id <- function(docname, df.docnames, n = 1, return_just_id = FALSE) {
   else return(out)
 }
 
-lines_similar_doc <- function(docID) {
-  dd <- similar_docs(docID, x)
+lines_similar_doc <- function(docID, dd, df.docnames) {
+  dd <- similar_docs(docID, dd)
   ee <- dd %>% left_join(df.docnames, by ='doc_id')
   docname <- df.docnames %>% filter(doc_id == docID) %>% .$doc_name
   ff <- ee %>% select(-doc_name_short) %>% knitr::kable()
@@ -66,26 +68,30 @@ df.docnames <- rio::import('output/csv/doc_names.csv') %>% as_data_frame
 dd <- rio::import("output/csv/year_doc_topic.csv") %>% as_data_frame
 dd$year <- dd$year+2000
 
-x <- dd %>% 
-  arrange(doc_id) %>% 
-  select(doc_id, topic_label, prob) %>% 
-  spread(topic_label, prob) %>% 
-  select(-doc_id) %>% 
-  as.matrix %>% 
-  t
-# x[1:6,1:6]
-# x %>% str
-
-# ## all papers
-# sim <- lsa::cosine(x[,1:10])  # takes long with all papers (sim is a 6920*6920 matrix)
-
 ## target paper
-similar_docs(docID = 100, x)
+similar_docs(docID = 100, dd)
 
-docIDs <- c(6010, 3674, 5329, 5169, gureckislab_ids)
-lines <- docIDs %>% pbapply::pblapply(lines_similar_doc) %>% unlist
+# docIDs <- c(5329)
+docIDs <- c(6010, 3674, 5329, 5169, 5913, 6524,
+            6812, 6685, 6010, 6298, 6094, 6088, 5427, 5329, 5782, 4885, 
+            5169, 4905, 3462, 4270, 3704, 3964, 3755, 3963, 3581, 3494, 3269, 
+            3031, 2870, 2799, 2266, 2516, 2155, 2102, 4711)
+lines <- docIDs %>% pbapply::pblapply(lines_similar_doc, dd, df.docnames) %>% unlist
 readr::write_lines(lines, 'result/similar_doc.txt')
 
+
+# debug -------------------------------------------------------------------
+
+alex <- dd %>% filter(doc_id %in% c(5329)) %>% arrange(topic) %>% .$prob
+simi <- dd %>% filter(doc_id %in% c(1797)) %>% arrange(topic) %>% .$prob
+lsa::cosine(alex, simi)
+
+dd %>% filter(doc_id %in% c(5329, 1797)) %>% 
+  ggplot(aes(topic_label, prob, fill = doc_id, group = doc_id)) +
+  theme(legend.position = 'none') + ylab('') + xlab('') +
+  coord_flip() +
+  facet_wrap(~doc_id, nrow = 1) +
+  geom_bar(stat = 'identity')
 
 
 # find doc ids -------------------------------------------------------------
@@ -94,6 +100,8 @@ find_doc_id("Asking and evaluating natural language questions", df.docnames)  # 
 find_doc_id("Causal Status meets Coherence The Explanatory Role of Causal Models in Categorization", df.docnames)  # 3674
 find_doc_id("The attentional learning trap and how to avoid it", df.docnames)  # 5329
 find_doc_id("The value of approaching bad things", df.docnames)  # 5169
+find_doc_id("Evaluating Causal Hypotheses: The Curious Case of Correlated Cues", df.docnames)  # 5913
+find_doc_id("The Causal Sampler: A Sampling Approach to Causal Representation, Reasoning, and Learning", df.docnames)  # 6524
 
 gureckislab <- c('Information selection in categorization with stimulus uncertainty',
                  'Beliefs about sparsity affect casual experimentation',
@@ -123,5 +131,5 @@ gureckislab <- c('Information selection in categorization with stimulus uncertai
                  'The emergence of Collective Structure through Individual Interactions',
                  'Modeling category intuitiveness',
                  'The effect of the internal structure of categories on perception')
-
 gureckislab_ids <- gureckislab %>% pbapply::pblapply(find_doc_id, df.docnames, return_just_id = TRUE) %>% unlist
+dput(gureckislab_ids %>% as.numeric)
