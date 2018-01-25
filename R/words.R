@@ -1,51 +1,32 @@
 library(tidyverse)
 library(rio)
-library(broom)
-library(ggrepel)
 
 add_topic_label <- function(x) {
   dd <- rio::import("year_doc_topic.csv") %>% as_data_frame
-  topic_labels <- dd %>% select(topic, topic_label) %>% unique  # same ordering as in python
-  x %>% left_join(topic_labels, by = 'topic')
+  label <- dd %>% select(topic, topic_label) %>% unique  # same ordering as in python
+  x %>% left_join(label, by = 'topic')
 }
 
 cc <- rio::import("year_topic_word.csv") %>% as_data_frame
 dd <- add_topic_label(cc)
 dd
 
-ee <- dd %>% 
-  group_by(topic_label, word) %>% 
-  do(fit = lm(frequency ~ year, .))
-ff <- ee %>% 
-  broom::tidy(fit)
-gg <- ff %>% 
-  filter(term == 'year') %>% 
-  group_by(word) %>% 
-  summarize(min = min(estimate),
-            max = max(estimate),
-            range = max - min) %>% 
-  arrange(-range) %>% 
-  head(30)
+words <- c('rehder', 'murphy', 'gureckis', 'tenenbaum', 'griffith')
+ee <- dd %>%
+  filter(word %in% words) %>% 
+  group_by(word, topic_label) %>% 
+  summarize(frequency = sum(frequency)) %>% 
+  ungroup
+labels_ordered <- ee %>% filter(word == 'gureckis') %>% arrange(frequency) %>% .$topic_label %>% unique
+ee$topic_label <- factor(ee$topic_label, levels = labels_ordered)
+ee$word <- factor(ee$word, levels = words)
+ee %>% 
+  ggplot(aes(topic_label, frequency, fill = word, group = word)) +
+  theme(legend.position = 'none') + ylab('') + xlab('') +
+  coord_flip() +
+  facet_wrap(~word, nrow = 1, labeller = label_both) +
+  geom_bar(stat = 'identity') +
+  ggtitle("Appearance of a word in topics\n(not in vocabulary: griffiths, coenen)")
 
-extract_data <- function(i, ff, gg) {
-  wordx <- gg$word[i]
-  topics <- ff %>% filter(term == 'year', word == wordx) %>% arrange(-estimate) %>% ungroup %>% do(rbind(head(.,1),tail(.,1))) %>% .$topic_label
-  dd %>% filter(word == wordx, topic_label %in% topics)
-}
+ggsave("figures/words.pdf", width = 10, height = 4)
 
-hh <- 1:9 %>% map_df(extract_data, ff, gg)
-hh$word <- factor(hh$word, levels = unique(hh$word))
-hh %>% 
-  ggplot(aes(year, frequency, colour = topic_label)) +
-  facet_wrap(~word, labeller = label_both, scales = 'free_y') +
-  theme(legend.position = "none", panel.background = element_rect(fill = 'white'),
-        panel.border = element_rect(fill = NA, colour = 'black'),
-        strip.text = element_text(colour = 'black'),
-        strip.background = element_rect(fill = 'gray', colour = 'black'),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank()) + 
-  xlab("Year") + ylab("Estimated frequency") +
-  geom_line() +
-  geom_text_repel(data = hh %>% filter(year == 2010),
-                  aes(label = topic_label), point.padding = 2.5, nudge_x = 0, nudge_y = 0.0002, direction = "both", segment.alpha = 0, size = 3)
-ggsave("figures/words.pdf", width = 7, height = 7)

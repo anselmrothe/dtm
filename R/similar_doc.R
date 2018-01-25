@@ -31,7 +31,8 @@ similar_docs <- function(docID, x, n = 6) {
     similarity[i] <- lsa::cosine(target_doc_vector, x[,i])
   }
   data_frame(docID, doc_id = doc_ids, cosine = similarity) %>% 
-    arrange(-cosine) %>% 
+    # arrange(-cosine) %>% 
+    arrange(cosine) %>% 
     filter(docID != doc_id) %>% 
     head(n) %>% 
     select(-docID, cosine, everything())
@@ -81,7 +82,7 @@ x <- dd %>%
 ## target paper
 similar_docs(docID = 100, x)
 
-docIDs <- c(6010, 5329, 5169, gureckislab_ids)
+docIDs <- c(6010, 3674, 5329, 5169, gureckislab_ids)
 lines <- docIDs %>% pbapply::pblapply(lines_similar_doc) %>% unlist
 readr::write_lines(lines, 'result/similar_doc.txt')
 
@@ -90,6 +91,7 @@ readr::write_lines(lines, 'result/similar_doc.txt')
 # find doc ids -------------------------------------------------------------
 
 find_doc_id("Asking and evaluating natural language questions", df.docnames)  # 6010
+find_doc_id("Causal Status meets Coherence The Explanatory Role of Causal Models in Categorization", df.docnames)  # 3674
 find_doc_id("The attentional learning trap and how to avoid it", df.docnames)  # 5329
 find_doc_id("The value of approaching bad things", df.docnames)  # 5169
 

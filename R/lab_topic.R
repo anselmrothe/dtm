@@ -7,12 +7,12 @@ f <- function(name) {
   dd
 }
 
-dd <- c('alex', 'anselm', 'gureckis') %>% map_df(f)
-topics <- dd %>% filter(name == 'gureckis') %>% arrange(freq) %>% .$topic
+dd <- c('alex', 'anselm', 'gureckis', 'm_frank', 'Murphy') %>% map_df(f)
+topics <- dd %>% filter(name == 'gureckis') %>% arrange(prob) %>% .$topic
 dd$topic <- factor(dd$topic, levels = topics)
 dd %>% 
-  ggplot(aes(topic, freq, fill = name, group = name)) +
-  theme(legend.position = 'none') + ylab('') +
+  ggplot(aes(topic, prob, fill = name, group = name)) +
+  theme(legend.position = 'none') + ylab('') + xlab('') +
   coord_flip() +
   facet_wrap(~name, nrow = 1) +
   geom_bar(stat = 'identity')
