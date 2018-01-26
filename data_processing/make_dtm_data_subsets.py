@@ -11,12 +11,12 @@ seq = [int(s.strip()) for s in seq][1:]
 def generate_data_to_year(y):
     n_up_to_year = sum(seq[:y])
     n_including_year = sum(seq[:(y+1)])
-    max_included_word = -1
+
+    wordcounts = [0] * 10000
     for d in words[:n_up_to_year]:
-        last_word_id = d[-1][0]
-        if last_word_id > max_included_word:
-            max_included_word = last_word_id
-    words_new = [[w for w in d if w[0] <= max_included_word]
+        for w in d:
+            wordcounts[w[0]] += 1
+    words_new = [[w for w in d if wordcounts[w[0]] > 0]
                  for d in words[:n_including_year]]
     strings = [list_to_string(d) for d in words_new]
     with open('../dtm_input_data/dtm_input_upto_{}-mult.dat'.format(y), 'w') as f:
