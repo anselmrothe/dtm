@@ -18,12 +18,40 @@ Especially, they could interpret a topic as "Framing topic" and say things like 
 - relations between topics via PCA /tsne -- zhiwei
 - what topics are gureckis lab talking about?
 
-# work log:
-# Nov 23
+## 1. Obtaining CogSci papers
+## 2. Preprocessing
+
+```
+doc_word_freq.ipynb
+- input: dtm_input_data/dtm_input-mult.dat
+- output: output/csv/doc_word_freq.csv
+```
+
+## 3. Modeling
+
+## 4. Postprocessing
+
+Exporting data from model output
+
+```
+pickle_to_csv.ipynb
+- input: output/dtm_processed_output.p
+- output: output/csv/year_doc_topic.csv
+- output: output/csv/topicnames.csv
+- output: output/csv/year_topic_word.csv
+```
+
+
+## 5. Analyis
+
+
+
+# work log
+## Nov 23
 
 - Text reading and cleaning procedure (using the 3 months' news data as testing data). --zhiwei
 - Feed the cleaned text into dtm and plot the topic drifting over time. --zhiwei
-## TODO
+### TODO
 
 - transform current code from jupyter notebook into .py
 - my computer can't even run the full news data -- must parallelize the dtm and put them onto cluster when we deal with real data
@@ -32,11 +60,11 @@ Especially, they could interpret a topic as "Framing topic" and say things like 
 
 
 
-# Nov 22
+## Nov 22
 
 - Initial implementation of gensim: transform BoW to DTMcorpus; feed DTMcorpus into ldaseqmodel to get the topic evolution; visualize word composition of topics given a time point -- anselm
 
-# Nov 15 
+## Nov 15 
 
 - Batch downloading - alex
 
