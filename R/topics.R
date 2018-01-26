@@ -38,21 +38,47 @@ fit <- fit %>%
   mutate(trend = if_else(prob[year==2000] < prob[year==2017], "rising", "falling"))
 fit$trend <- factor(fit$trend, levels = c("rising", "falling"))
 
-# plot topics.png
-fit %>% 
-  ggplot(aes(year, prob, colour = topic_label)) +
-  facet_wrap(~trend) +  # enable this line for double plot
+## word positions
+df.word <- fit %>% 
+  group_by(topic_label, trend) %>% 
+  summarize(year = 2018) %>% 
+  arrange(topic_label)
+df.word$prob <- seq(from = max(fit$prob), to = min(fit$prob), length.out = nrow(df.word))
+
+## gray lines to words
+df.gray <- fit %>% filter(year == max(year)) %>% bind_rows(df.word)
+
+g <- fit %>% 
+  ggplot(aes(year, prob, colour = topic_label, group = topic_label)) +
   geom_line() +
   geom_vline(xintercept = max(fit$year), colour = "gray") +
-  geom_text_repel(data = fit %>% filter(year == max(year)),
-                   aes(label = topic_label), force = 2, nudge_x = 2, direction = "y", segment.alpha = .2, size = 3, segment.color = "gray") +
-  coord_cartesian(xlim = c(min(fit$year) + 0.75, max(fit$year) + 1.5)) +
+  geom_line(data = df.gray, colour = 'gray', linetype = 'longdash') +
+  geom_text(data = df.word, aes(label = topic_label), hjust = 0, size = 3) +
   scale_x_continuous(breaks = years, labels = year_labels) +
   xlab("Year") + ylab("Estimated frequency") +
   theme_classic() +  
-  theme(panel.border = element_rect(fill = NA, colour = 'black')) +  # enable this line for double plot
   theme(legend.position = "none")
 
-# ggsave("figures/topics.png", width = 9, height = 6)  # single plot
-ggsave("figures/topics-2.png", width = 11, height = 5)  # double plot
+# g <- fit %>% 
+#   ggplot(aes(year, prob, colour = topic_label)) +
+#   geom_line() +
+#   geom_vline(xintercept = max(fit$year), colour = "gray") +
+#   geom_text_repel(data = fit %>% filter(year == max(year)),
+#                    aes(label = topic_label), force = 10, nudge_x = 13, direction = "y", segment.alpha = .2, size = 3, segment.color = "gray") +
+#   scale_x_continuous(breaks = years, labels = year_labels) +
+#   xlab("Year") + ylab("Estimated frequency") +
+#   theme_classic() +  
+#   theme(legend.position = "none")
+
+## single plot
+g + coord_cartesian(xlim = c(min(fit$year) + 0.75, max(fit$year) + 7))
+ggsave("figures/topics.png", width = 9, height = 6)
+
+## double plot
+g + coord_cartesian(xlim = c(min(fit$year) + 0.75, max(fit$year) + 14)) +
+  theme(panel.border = element_rect(fill = NA, colour = 'black')) +
+  facet_wrap(~trend)
+ggsave("figures/topics-2.png", width = 11, height = 5)
+
+
 
