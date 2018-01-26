@@ -23,7 +23,7 @@ def generate_data_to_year(y):
         f.writelines(strings[:n_up_to_year])
     with open('../dtm_input_data/dtm_input_incl_{}-mult.dat'.format(y), 'w') as f:
         f.writelines(strings)
-    with open('../dtm_input_data/dtm_input_{}-seq.dat'.format(y), 'w') as f:
+    with open('../dtm_input_data/dtm_input_incl_{}-seq.dat'.format(y), 'w') as f:
         strings = [str(y+1)+'\n'] + [str(n)+'\n' for n in seq[:(y+1)]]
         f.writelines(strings)
 
