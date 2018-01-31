@@ -33,11 +33,11 @@ extract_data <- function(i, ff, gg) {
   dd %>% filter(word == wordx, topic_label %in% topics)
 }
 
-hh <- 1:9 %>% map_df(extract_data, ff, gg)
+hh <- 1:8 %>% map_df(extract_data, ff, gg)
 hh$word <- factor(hh$word, levels = unique(hh$word))
 hh %>% 
   ggplot(aes(year, frequency, colour = topic_label)) +
-  facet_wrap(~word, labeller = label_both, scales = 'free_y') +
+  facet_wrap(~word, ncol = 4, labeller = label_both, scales = 'free_y') +
   theme(legend.position = "none", panel.background = element_rect(fill = 'white'),
         panel.border = element_rect(fill = NA, colour = 'black'),
         strip.text = element_text(colour = 'black'),
@@ -48,5 +48,5 @@ hh %>%
   geom_line() +
   geom_text_repel(data = hh %>% filter(year == 2010),
                   aes(label = topic_label), point.padding = 2.5, nudge_x = 0, nudge_y = 0.0002, direction = "both", segment.alpha = 0, size = 3)
-ggsave("figures/words_trends.pdf", width = 7, height = 7)
+ggsave("figures/words_trends.pdf", width = 8, height = 6)
 

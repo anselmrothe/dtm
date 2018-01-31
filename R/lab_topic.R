@@ -8,9 +8,12 @@ f <- function(name) {
 }
 
 dd <- c('alex', 'anselm', 'gureckis', 'm_frank', 'Murphy') %>% map_df(f)
+dd <- c('gureckis', 'm_frank') %>% map_df(f)
 topics <- dd %>% filter(name == 'gureckis') %>% arrange(prob) %>% .$topic
 dd$topic <- factor(dd$topic, levels = topics)
-dd %>% 
+ee <- dd %>% mutate(name = replace(name, name == 'gureckis', 'Gureckis lab'),
+                    name = replace(name, name == 'm_frank', 'Frank lab'))
+ee %>% 
   ggplot(aes(topic, prob, fill = name, group = name)) +
   theme(legend.position = 'none') + ylab('') + xlab('') +
   coord_flip() +

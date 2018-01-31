@@ -51,11 +51,15 @@ find_doc_id <- function(docname, df.docnames, n = 1, return_just_id = FALSE) {
   else return(out)
 }
 
-lines_similar_doc <- function(docID, dd, df.docnames) {
+lines_similar_doc <- function(docID, dd, df.docnames, latex = FALSE) {
   dd <- similar_docs(docID, dd)
   ee <- dd %>% left_join(df.docnames, by ='doc_id')
   docname <- df.docnames %>% filter(doc_id == docID) %>% .$doc_name
-  ff <- ee %>% select(-doc_name_short) %>% knitr::kable()
+  if (latex) {
+    ff <- ee %>% select(-doc_name_short) %>% knitr::kable(format = "latex", booktabs = TRUE, digits = 3)
+  } else {
+    ff <- ee %>% select(-doc_name_short) %>% knitr::kable()
+  }
   lines <- c(docname, ff, '\n\n')
   lines
 }
@@ -78,6 +82,8 @@ docIDs <- c(6010, 3674, 5329, 5169, 5913, 6524,
             3031, 2870, 2799, 2266, 2516, 2155, 2102, 4711)
 lines <- docIDs %>% pbapply::pblapply(lines_similar_doc, dd, df.docnames) %>% unlist
 readr::write_lines(lines, 'result/similar_doc.txt')
+lines <- docIDs %>% pbapply::pblapply(lines_similar_doc, dd, df.docnames, latex = TRUE) %>% unlist
+readr::write_lines(lines, 'result/similar_doc_latex.txt')
 
 
 # debug -------------------------------------------------------------------
