@@ -14,9 +14,9 @@ insert_line_break_after_n_characters <- function(x, n, insert_string = "\n") {
 dd <- rio::import('output/csv/topic_topic_cor.csv') %>% as_data_frame
 mm <- dd[,-1] %>% as.matrix
 v <- median(mm) / 2
-mm[mm < v] <- v  # filter negative correlations
+mm[mm < v] <- v  # filter too small (negative) correlations
 # normalize
-mm <- mm - min(mm)  # avoid negative weights for now
+mm <- mm - min(mm)
 diag(mm) <- 0
 mm <- mm / max(mm)
 mm <- mm * 20  # max line width
