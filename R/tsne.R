@@ -66,7 +66,7 @@ all_years <- function(dd) {
   set.seed(12345)
   # tsne <- Rtsne(as.matrix(x %>% select(-doc_id, -my_topic, -year)), check_duplicates = FALSE, theta = 0)  # takes 12 minutes
   # write_rds(tsne, 'output/rds/tsne_all_years.rds')
-  tsne <- load_rds('output/rds/tsne_all_years.rds')
+  tsne <- read_rds('output/rds/tsne_all_years.rds')
   # plot(tsne$Y, type = "n")
   # text(tsne$Y, labels = x$my_topic, col = x$my_topic)
   
@@ -90,7 +90,7 @@ all_years <- function(dd) {
     theme(legend.position = "none") +
     theme(plot.title = element_text(hjust = 0.5))
   
-  ggsave("figures/tsne/all_years.png", width = 9, height = 9)
+  ggsave("figures/tsne/tsne_all_years.pdf", width = 15, height = 9)
   
   
   source('R/animations.R')
