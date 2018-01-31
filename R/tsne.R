@@ -106,7 +106,7 @@ all_years <- function(dd) {
   gganimate(a, 'figures/tsne/all_years.gif')
   
 }
-
+all_years()
 
 
 # PCA ---------------------------------------------------------------------

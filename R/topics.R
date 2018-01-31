@@ -61,7 +61,6 @@ g <- fit %>%
 
 ## single plot
 g + coord_cartesian(xlim = c(min(fit$year) + 0.75, max(fit$year) + 7))
-ggsave("figures/topics.png", width = 9, height = 6)
 ggsave("figures/topics.pdf", width = 9, height = 5)
 
 
@@ -70,7 +69,7 @@ g <- fit %>%
   geom_line() +
   geom_vline(xintercept = max(fit$year), colour = "gray") +
   geom_text_repel(data = fit %>% filter(year == max(year)),
-                  aes(label = topic_label), force = 1, nudge_x = 13, direction = "y", segment.alpha = .2, size = 3, segment.color = "gray") +
+                  aes(label = topic_label), force = 1, nudge_x = 8, direction = "y", segment.alpha = .2, size = 3, segment.color = "gray") +
   scale_x_continuous(breaks = years, labels = year_labels) +
   xlab("Year") + ylab("Estimated frequency") +
   theme_classic() +
@@ -79,8 +78,10 @@ g <- fit %>%
 ## double plot
 g + coord_cartesian(xlim = c(min(fit$year) + 0.75, max(fit$year) + 14)) +
   theme(panel.border = element_rect(fill = NA, colour = 'black')) +
-  facet_wrap(~trend)
-ggsave("figures/topics-2.pdf", width = 11, height = 3)
+  # facet_wrap(~trend)
+  facet_wrap(~trend, ncol = 1)
+# ggsave("figures/topics-2.pdf", width = 11, height = 3)
+ggsave("figures/topics-2.pdf", width = 6, height = 6)
 
 
 

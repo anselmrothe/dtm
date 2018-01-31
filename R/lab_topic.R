@@ -19,4 +19,4 @@ ee %>%
   coord_flip() +
   facet_wrap(~name, nrow = 1) +
   geom_bar(stat = 'identity')
-ggsave('figures/lab_topic.png', height = 3.5, width = 9)
+ggsave('figures/lab_topic.pdf', height = 3.5, width = 9)
