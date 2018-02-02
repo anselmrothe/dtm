@@ -11,11 +11,12 @@ dd <- c('alex', 'anselm', 'gureckis', 'm_frank', 'Murphy') %>% map_df(f)
 dd <- c('gureckis', 'm_frank') %>% map_df(f)
 topics <- dd %>% filter(name == 'gureckis') %>% arrange(prob) %>% .$topic
 dd$topic <- factor(dd$topic, levels = topics)
-ee <- dd %>% mutate(name = replace(name, name == 'gureckis', 'Gureckis lab'),
-                    name = replace(name, name == 'm_frank', 'Frank lab'))
+ee <- dd %>% mutate(name = replace(name, name == 'gureckis', 'NYU Computation and Cognition Lab'),
+                    name = replace(name, name == 'm_frank', 'Stanford Language and Cognition Lab'))
 ee %>% 
   ggplot(aes(topic, prob, fill = name, group = name)) +
   theme(legend.position = 'none') + ylab('') + xlab('') +
+  scale_fill_brewer(palette = 'Set1') +
   coord_flip() +
   facet_wrap(~name, nrow = 1) +
   geom_bar(stat = 'identity')
