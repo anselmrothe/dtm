@@ -1,3 +1,5 @@
+This project aims to uncover the trends and topics of the annual Cognitive Science Society conference using dynamic topic modeling. This is a work in process, but initial unpublished results are available [here](doc/cogsci_submission.pdf).
+
 # Potential expansions of current work
 - sanity check: is our result robust to different number of topics?
 
