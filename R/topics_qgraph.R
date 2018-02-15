@@ -26,7 +26,7 @@ mm %>% str
 
 labels <- dd$V1
 labels <- labels %>% map_chr(insert_line_break_after_n_characters, 12)
-  
+
 set.seed(12345)
 qgraph(mm, layout = "spring", directed = FALSE, posCol = "darkred", labels = labels,
        title = '', width = 15, height = 9,
