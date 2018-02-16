@@ -21,8 +21,8 @@ dd$year <- dd$year+2000
 export_similar_papers_to_json <- function(docID, dd) {
   ee <- similar_docs(docID, dd)
   ff <- ee %>% left_join(df.docnames, by = 'doc_id')
-  gg <- ff %>% mutate(Similarity = cosine %>% round(3) %>% as.character, Title = doc_name)
-  hh <- gg %>% select(Similarity, Title)  # later add also 'year'
+  gg <- ff %>% mutate(Similarity = cosine %>% round(3) %>% as.character, Title = doc_name, Year = year)
+  hh <- gg %>% select(Similarity, Title, Year)
   docname <- df.docnames %>% filter(doc_id == docID) %>% .$doc_name
   filename <- sprintf('docs/data/similar_papers/%s.json', docname)
   rio::export(hh, filename)
