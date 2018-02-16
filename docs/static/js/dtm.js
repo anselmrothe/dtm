@@ -1,26 +1,10 @@
 $(document).ready(function() {
 
-    var substringMatcher = function(strs) {
-        return function findMatches(q, cb) {
-            var matches, substringRegex;
+    // ============ general functions ============
 
-            // an array that will be populated with substring matches
-            matches = [];
 
-            // regex used to determine if a string contains the substring `q`
-            substrRegex = new RegExp(q, 'i');
 
-            // iterate through the pool of strings and for any string that
-            // contains the substring `q`, add it to the `matches` array
-            $.each(strs, function(i, str) {
-                if (substrRegex.test(str)) {
-                    matches.push(str);
-                }
-            });
-
-            cb(matches);
-        };
-    };
+    // ============ search field ============
 
     // "static/lib/bootstrap3-typeahead.min.js"
     // https://github.com/bassjobsen/Bootstrap-3-Typeahead
@@ -58,88 +42,31 @@ $(document).ready(function() {
             // }
         });
 
-        console.log("klaus");
-
-
-
-        // $('#searchfield').bind('typeahead:select', function(ev, suggestion) {
-        //     console.log(suggestion);
-        // };
-
-        // $('#searchfield .typeahead').bind('typeahead:selected', function (d) {
-        //     alert(JSON.stringify(d)); 
-        // });
-
     }, 'json');
 
-    console.log('123');
+    var substringMatcher = function(strs) {
+        return function findMatches(q, cb) {
+            var matches, substringRegex;
 
-    $('#searchfield').bind('typeahead:select', function(ev, suggestion) {
-        console.log('Selection: ' + suggestion);
-        console.log('klauklaus');
-        //     var chosen = $('.btn-group label.active input').attr('id');
-    });
+            // an array that will be populated with substring matches
+            matches = [];
 
-    $('.typeahead').bind('typeahead: open', function() {
-        console.log('open');
-    });
+            // regex used to determine if a string contains the substring `q`
+            substrRegex = new RegExp(q, 'i');
 
+            // iterate through the pool of strings and for any string that
+            // contains the substring `q`, add it to the `matches` array
+            $.each(strs, function(i, str) {
+                if (substrRegex.test(str)) {
+                    matches.push(str);
+                }
+            });
 
-
-    // $('#searchfield').bind('typeahead:select', function(ev, suggestion) {
-    //     showGroup(searchtype, suggestion.id);
-    //     $('#searchfield').typeahead('destroy');
-    //     $('#searchfield').val('');
-    //     var chosen = $('.btn-group label.active input').attr('id');
-    //     if(searchtype !== 'keywords') {
-    //         build_typeahead(suggestions[searchtype]);
-    //     }
-    // });
-
-    // ============ search field test ============
-
-
-
-    var debug = function() {
-        document.getElementById("choose").style.backgroundColor = "#d6eaf8";
-
-        var p = d3.select("#debug")
-            .selectAll("div")
-            .data([1, 2, 3])
-            .enter()
-            .append("div")
-            .text(function(d) { return d; });
-
-        d3.json("data/paper_titles.json", function(error, data) {
-            var choose = d3.select("#debug")
-                .selectAll("x")
-                .data(data)
-                .enter()
-                .append("div")
-                .text(function(d) { return d; })
-                .attr("id", "klaus");
-        });
+            cb(matches);
+        };
     };
 
-    var populate_paper_dropdown_list = function() {
-        d3.json("data/paper_titles.json", function(error, data) {
-            var choose = d3.select("#paper_dropdown_list")
-                .selectAll("a")
-                .data(data)
-                .enter()
-                .append("a")
-                .text(function(d) { return d; })
-                .attr("class", "dropdown-item")
-                // .attr("href", "javascript:return false;")
-                .attr("href", "#paper_dropdown_list")
-                .on('click', function(d) {
-                    populate_similar_papers_table(d);
-                });
-        });
-    };
-
-    populate_paper_dropdown_list();
-    debug()
+    // ============ similar papers table ============
 
     var populate_similar_papers_table = function(paper_title) {
 
@@ -154,8 +81,9 @@ $(document).ready(function() {
                 var table = d3.select('#similar_papers_table')
                     .append('table')
                     .attr("class", "table")
+                    .attr("id", paper_title);
 
-                var thead = table.append('thead')
+                var thead = table.append('thead');
                 var tbody = table.append('tbody');
 
                 // append the header row
@@ -187,6 +115,49 @@ $(document).ready(function() {
 
             // render the table(s)
             tabulate(data, ['Similarity', 'Year', 'Title']); // 2 column table
+        });
+    };
+
+    // ============ debug ============
+
+    var debug = function() {
+        document.getElementById("choose").style.backgroundColor = "#d6eaf8";
+
+        var p = d3.select("#debug")
+            .selectAll("div")
+            .data([1, 2, 3])
+            .enter()
+            .append("div")
+            .text(function(d) { return d; });
+
+        d3.json("data/paper_titles.json", function(error, data) {
+            var choose = d3.select("#debug")
+                .selectAll("x")
+                .data(data)
+                .enter()
+                .append("div")
+                .text(function(d) { return d; })
+                .attr("id", "klaus");
+        });
+    };
+    // debug();
+
+    // ============ outdated ============
+
+    var populate_paper_dropdown_list = function() {
+        d3.json("data/paper_titles.json", function(error, data) {
+            var choose = d3.select("#paper_dropdown_list")
+                .selectAll("a")
+                .data(data)
+                .enter()
+                .append("a")
+                .text(function(d) { return d; })
+                .attr("class", "dropdown-item")
+                // .attr("href", "javascript:return false;")
+                .attr("href", "#paper_dropdown_list")
+                .on('click', function(d) {
+                    populate_similar_papers_table(d);
+                });
         });
     };
 
