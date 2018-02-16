@@ -6,7 +6,8 @@ library(tidyverse)
 library(purrr)
 library(rio)
 library(jsonlite)
-library(pbapply)
+library(pbmcapply)
+options(mc.cores = (parallel::detectCores() - 1))
 
 source('R/similar_doc_functions.R')
 
@@ -28,8 +29,10 @@ export_similar_papers_to_json <- function(docID, dd) {
   rio::export(hh, filename)
 }
 ## begin with first 10 docs
-docIDs <- df.docnames[1:10,]$doc_id
-docIDs %>% pblapply(export_similar_papers_to_json, dd) %>% length
+# docIDs <- df.docnames[1:10,]$doc_id
+## all docs
+docIDs <- df.docnames$doc_id
+docIDs %>% pbmcapply::pbmclapply(export_similar_papers_to_json, dd) %>% length
 
 ## export docnames to paper_titles.json
 paper_titles <- df.docnames %>% filter(doc_id %in% docIDs) %>% .$doc_name
