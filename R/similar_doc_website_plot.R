@@ -24,36 +24,45 @@ df.docnames <- rio::import('output/csv/doc_names.csv') %>% as_data_frame
 dd <- rio::import("output/csv/year_doc_topic.csv") %>% as_data_frame
 dd$year <- dd$year+2000
 
-## start with only 4 papers
-docIDs <- df.docnames[1:4,]$doc_id
+## for document x, create x.json with the top 5 papers
+compute_cosine <- function(docID, dd) {
+  target_vector <- dd %>% filter(doc_id == docID) %>% .$prob
+  dd %>% 
+    group_by(doc_id) %>% 
+    summarize(docID,
+              cosine = lsa::cosine(target_vector, prob))
+}
 
-source <- c()
-target <- c()
-ii <- seq_along(docIDs)
-for (i in ii) {
-  for (j in ii[i:length(ii)]) {
-    source <- c(source, i)
-    target <- c(target, j)
+## start with only n papers
+# docIDs <- df.docnames[1:5,]$doc_id %>% unique
+# docIDs <- df.docnames[1:100,]$doc_id %>% unique
+docIDs <- df.docnames$doc_id %>% unique
+
+if (0) {
+  if (0) {
+    ## takes about 5 minutes (with 7 cores):
+    df.cosine <- docIDs %>% pbmcapply::pbmclapply(compute_cosine, dd) %>% bind_rows
+    df.cosine %>% rio::export('output/rds/df.cosine.rds')
   }
+  df.cosine <- rio::import('output/rds/df.cosine.rds') %>% as_data_frame
+  
+  ff <- df.cosine %>% 
+    select(target = docID,
+           source = doc_id,
+           value = cosine)
+  
+  ## cosine(id1, id2) == cosine(id2, id1) -> only keep one
+  ## unique combinations:
+  n <- length(docIDs)
+  mat <- combn(x = n, m = 2) %>% t
+  ee <- data_frame(source = mat[,1], target = mat[,2])
+  links <- ee %>% left_join(ff, by = c("source", "target"))  # takes several minutes
+  links %>% rio::export('output/rds/links.rds')
 }
-data_frame(source, target)
+links <- rio::import('output/rds/links.rds')
 
-
-dd <- dd %>% filter(doc_id %in% df.docnames$doc_id)
-
-
-
-links <- function(docID, dd) {
-  ee <- similar_docs(docID, dd)
-  ee$cosine <- ee$cosine %>% round(3)
-  ee
-}
-## begin with first 10 docs
-# docIDs <- df.docnames[1:10,]$doc_id
-## all docs
-docIDs <- df.docnames$doc_id
-docIDs %>% pbmcapply::pbmclapply(export_similar_papers_to_json, dd) %>% length
-
-## export docnames to paper_titles.json
-paper_titles <- df.docnames %>% filter(doc_id %in% docIDs) %>% .$doc_name
-jsonlite::write_json(paper_titles, 'docs/data/paper_titles.json')
+nrow(links)
+nodes <- data_frame(id = docIDs, group = 1)
+forceplot <- list(nodes = nodes, 
+                  links = links %>% top_n(800, value))
+jsonlite::write_json(forceplot, 'docs/data/forceplot.json', pretty = TRUE)

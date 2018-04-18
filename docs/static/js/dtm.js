@@ -165,7 +165,7 @@ $(document).ready(function() {
 
     var experimental_forceplot = function() {
 
-      var data_file = 'data/experimental_forceplot.json';
+      var data_file = 'data/forceplot.json';
 
       var svg = d3.select("svg"),
           width = +svg.attr("width"),
@@ -193,7 +193,7 @@ $(document).ready(function() {
           .selectAll("circle")
           .data(graph.nodes)
           .enter().append("circle")
-            .attr("r", 5)
+            .attr("r", 3)
             .attr("fill", function(d) { return color(d.group); })
             .call(d3.drag()
                 .on("start", dragstarted)
