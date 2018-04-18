@@ -165,7 +165,7 @@ $(document).ready(function() {
 
     var experimental_forceplot = function() {
 
-      var data_file = 'experimental_forceplot.json';
+      var data_file = 'data/experimental_forceplot.json';
 
       var svg = d3.select("svg"),
           width = +svg.attr("width"),
