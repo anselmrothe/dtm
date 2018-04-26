@@ -1,27 +1,59 @@
-This project aims to uncover the trends and topics of the annual Cognitive Science Society conference using dynamic topic modeling. This is a work in process, but initial unpublished results are available [here](doc/cogsci_submission.pdf).
+# Topics and Trends in Cognitive Science
 
-# Potential expansions of current work
-- sanity check: is our result robust to different number of topics?
+This project aims to uncover the trends and topics of the annual Cognitive Science Society conference using dynamic topic modeling.
 
-- better demonstration of topics: show the papers with highest weights of this topic.
+## Results
 
-- see if we get results that agree with the previous work (i.e. Cohen Priva & Austerweil paper)
+Paper: [*Topics and Trends in Cognitive Science (2000-2017)*](doc/cogsci_submission.pdf) - to be published in the *Proceedings of the 40th Annual Conference of the Cognitive Science Society*.
 
-Especially, they could interpret a topic as "Framing topic" and say things like "over time Cognition turned from abstract theorizing to more experimental approaches." This is a small innovation compared to traditional TM analysis.
+Website: [Find similar papers!](https://anselmrothe.github.io/dtm/)
 
-- study the diversity of the field by measuring topic entropy [see this linguistic paper](http://web.stanford.edu/~jurafsky/hallemnlp08.pdf)
 
-- study how much the year-to-year publication has changed (e.g. is there some years very different from the previous year) by measuring KL-divergence over years. [this paper studying Charles Darwin's reading](https://arxiv.org/pdf/1509.07175.pdf)
+## Workflow
 
-# Workflow
 
-- model comparison with static topic model -- alex
-- topic popularity change over years; hotest topics in recent years; most changed topic over the years -- anselm
-- relations between topics via PCA /tsne -- zhiwei
-- what topics are gureckis lab talking about?
+### 1. Obtaining CogSci papers
 
-## 1. Obtaining CogSci papers
-## 2. Preprocessing
+Download PDFs from [ Archives of the Cognitive Science Society Conference Proceedings
+](http://www.cognitivesciencesociety.org/conference/)
+
+Copy PDFs into `text_data_new/`
+
+### 2. Preprocessing
+
+Process PDFs:
+
+```
+generate_dtm_input.py
+- input:	PDFs in text_data_new/volume_{}/
+- output:	dtm_input_data/dtm_input-mult.dat
+ 			dtm_input_data/dtm_input-seq.dat
+
+```
+
+### 3. Modeling
+
+Use our DTM version: [alexanderrich/dtm](https://github.com/alexanderrich/dtm)
+
+Talk to your local High Performance Cluster correspondent how to set everything up.
+
+Run the script `run_all.s`
+
+### 4. Postprocessing
+
+@Alex: How did you create `dtm_processed_output.p`?
+
+Exporting model output into csv tables:
+
+```
+pickle_to_csv.ipynb
+- input:	output/dtm_processed_output.p
+- output:	output/csv/year_doc_topic.csv
+  			output/csv/topicnames.csv
+ 			output/csv/year_topic_word.csv
+```
+
+Exporting original data into csv tables:
 
 ```
 doc_word_freq.ipynb
@@ -29,52 +61,13 @@ doc_word_freq.ipynb
 - output: output/csv/doc_word_freq.csv
 ```
 
-## 3. Modeling
+### 5. Analysis & Figures
 
-## 4. Postprocessing
+See R scripts in the folder `R`. The R scripts save all figures into the folder `figures`.
 
-Exporting data from model output
-
-```
-pickle_to_csv.ipynb
-- input: output/dtm_processed_output.p
-- output: output/csv/year_doc_topic.csv
-- output: output/csv/topicnames.csv
-- output: output/csv/year_topic_word.csv
-```
-
-
-## 5. Analyis
+Due to the exploratory nature of this project there are several scripts and figures that did not make their way into the paper.
 
 
 
-# work log
-## Nov 23
 
-- Text reading and cleaning procedure (using the 3 months' news data as testing data). --zhiwei
-- Feed the cleaned text into dtm and plot the topic drifting over time. --zhiwei
-### TODO
-
-- transform current code from jupyter notebook into .py
-- my computer can't even run the full news data -- must parallelize the dtm and put them onto cluster when we deal with real data
-- clearning parameters to be adjusted based on real data. current parameters could give weird results (e.g. too many non-informative words. maybe not a big problem with bigger dataset).
-- better visualization over temporal change of topics
-
-
-
-## Nov 22
-
-- Initial implementation of gensim: transform BoW to DTMcorpus; feed DTMcorpus into ldaseqmodel to get the topic evolution; visualize word composition of topics given a time point -- anselm
-
-## Nov 15 
-
-- Batch downloading - alex
-
-done? output?
-
-- Text to BoW - anselm
-
-output: pdf_clean_text.ipynb
-
-**to-do**: eliminate hyphens at line breaks?
 
