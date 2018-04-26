@@ -25,9 +25,9 @@ Process PDFs:
 
 ```
 generate_dtm_input.py
-- input:	PDFs in text_data_new/volume_{}/
-- output:	dtm_input_data/dtm_input-mult.dat
- 			dtm_input_data/dtm_input-seq.dat
+- input:  PDFs in text_data_new/volume_{}/
+- output: dtm_input_data/dtm_input-mult.dat
+          dtm_input_data/dtm_input-seq.dat
 
 ```
 
@@ -47,17 +47,17 @@ Exporting model output into csv tables:
 
 ```
 pickle_to_csv.ipynb
-- input:	output/dtm_processed_output.p
-- output:	output/csv/year_doc_topic.csv
-  			output/csv/topicnames.csv
- 			output/csv/year_topic_word.csv
+- input:  output/dtm_processed_output.p
+- output: output/csv/year_doc_topic.csv
+          output/csv/topicnames.csv
+          output/csv/year_topic_word.csv
 ```
 
 Exporting original data into csv tables:
 
 ```
 doc_word_freq.ipynb
-- input: dtm_input_data/dtm_input-mult.dat
+- input:  dtm_input_data/dtm_input-mult.dat
 - output: output/csv/doc_word_freq.csv
 ```
 
