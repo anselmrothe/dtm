@@ -9,7 +9,21 @@ add_topic_label <- function(x) {
 
 cc <- rio::import("output/csv/year_topic_word.csv") %>% as_data_frame
 dd <- add_topic_label(cc)
-dd
+
+# 1 -----------------------------------------------------------------------
+plot_topic_words <- function(topic_labelX, dd) {
+  gg <- dd %>% filter(topic_label == topic_labelX) %>% group_by(word) %>% summarize(freq = mean(frequency)) %>% arrange(-freq) %>% 
+    head(10)
+  gg$word <- gg$word %>% factor(rev(gg$word))
+  gg %>% ggplot(aes(word, freq)) + geom_bar(stat = 'identity') + ylim(0,NA) + coord_flip() + theme_classic() + xlab('') + ylab('') + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.line.x = element_blank())
+  ggsave(sprintf('figures/words_%s.pdf', topic_labelX), width = 2.5, height = 2.5)
+}
+plot_topic_words('Probabilistic modeling', dd)
+plot_topic_words('Decision making', dd)
+plot_topic_words('Educational psychology', dd)
+plot_topic_words('Memory', dd)
+
+# 2 -----------------------------------------------------------------------
 
 words <- c('rehder', 'murphy', 'gureckis', 'tenenbaum', 'griffith')
 ee <- dd %>%

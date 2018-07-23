@@ -22,5 +22,11 @@ ee %>% filter(entropy %in% c(min(ee$entropy), max(ee$entropy))) %>% arrange(entr
 dd %>% filter(doc_id == 2952) %>% arrange(-prob) %>% head()
 dd %>% filter(doc_id == 3846) %>% arrange(-prob) %>% head()
 
-## 2010: 'Illusions of consistency in quantified assertions' has strong assignemnt to topic 'Reasoning' (it's a Johnson-Laird mental models paper)
-## 2012: 'Modelling the IAT Implicit Association Test Reflects Shallow Linguistic Environment and not Deep Personal Attitudes' has the weakest topic profile => most domain general
+## 2952 - 2010: 'Illusions of consistency in quantified assertions' has strong assignemnt to topic 'Reasoning' (it's a Johnson-Laird mental models paper)
+## 3846 - 2012: 'Modelling the IAT Implicit Association Test Reflects Shallow Linguistic Environment and not Deep Personal Attitudes' has the weakest topic profile => most domain general
+
+
+# typical ‘probabilistic modeling’ paper ----------------------------------
+
+dd %>% filter(topic_label == 'Probabilistic modeling') %>% arrange(-prob) %>% head(2)
+# 2484 Convergence Bounds for Language Evolution by Iterated Learning  2009    17 Probabilistic modeling 0.9434537

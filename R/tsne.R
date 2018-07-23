@@ -4,12 +4,97 @@ library(Rtsne)
 library(ggrepel)
 
 
+theme_no_axes <- theme_classic() + theme(axis.line=element_blank(),axis.text.x=element_blank(),
+                                         axis.text.y=element_blank(),axis.ticks=element_blank(),
+                                         axis.title.x=element_blank(),
+                                         axis.title.y=element_blank(),legend.position="none",
+                                         panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
+                                         panel.grid.minor=element_blank(),plot.background=element_blank())
+
 dd <- rio::import("output/csv/year_doc_topic.csv") %>% as_data_frame
 dd$year <- dd$year+2000
 
 # topic labels
 labels <- unique(dd$topic_label)  # same ordering as in python
 
+
+# all years ---------------------------------------------------------------
+
+x <- dd %>%
+  select(doc_id, year, topic, topic_label, prob) %>%
+  group_by(doc_id) %>% 
+  mutate(my_topic = topic[which.max(prob)]) %>%  # assing document to its max prob topic
+  select(-topic) %>% 
+  spread(topic_label, prob) %>% 
+  ungroup
+x
+set.seed(12345)
+# tsne <- Rtsne(as.matrix(x %>% select(-doc_id, -my_topic, -year)), check_duplicates = FALSE, theta = 0)  # takes 12 minutes
+# write_rds(tsne, 'output/rds/tsne_all_years.rds')
+tsne <- read_rds('output/rds/tsne_all_years.rds')
+# plot(tsne$Y, type = "n")
+# text(tsne$Y, labels = x$my_topic, col = x$my_topic)
+
+tt <- tsne$Y %>% 
+  as_data_frame %>% 
+  cbind(my_topic = x$my_topic,
+        year = x$year,
+        doc_id = x$doc_id) %>%  
+  group_by(my_topic) %>% 
+  rowwise %>% 
+  mutate(topic_label = labels[my_topic + 1])
+tt
+
+label_locations <- tt %>% ungroup %>% group_by(topic_label) %>% summarize(V1 = median(V1),
+                                                                          V2 = median(V2))
+# plot
+tt %>% 
+  ggplot(aes(V1, V2, label = my_topic, color = topic_label)) +
+  geom_text(size = 3) +
+  geom_label_repel(data = label_locations, aes(label = topic_label), segment.alpha = 0) +
+  theme_no_axes +
+  theme(legend.position = "none") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave("figures/tsne/tsne_all_years.pdf", width = 15, height = 9)
+
+### highlights
+tt %>% 
+  mutate(visible = if_else(topic_label == 'Probabilistic modeling', 1, 0.01)) %>% 
+  ggplot(aes(V1, V2, label = my_topic, color = topic_label, alpha = visible)) +
+  geom_text(size = 3) +
+  geom_label_repel(data = label_locations %>% mutate(visible = if_else(topic_label == 'Probabilistic modeling', 1, 0.01)), aes(label = topic_label), segment.alpha = 0) +
+  theme_no_axes +
+  theme(legend.position = "none") +
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave("figures/tsne/tsne_highlight_probabilistic_modeling.pdf", width = 15, height = 9)
+
+tt %>% 
+  mutate(visible = if_else(doc_id == 2484, 1, 0.01)) %>% 
+  ggplot(aes(V1, V2, label = my_topic, color = topic_label, alpha = visible, size = visible)) +
+  geom_text(size = 3) +
+  geom_label_repel(data = label_locations %>% mutate(visible = 0.5), aes(label = topic_label), segment.alpha = 0) +
+  theme_no_axes +
+  theme(legend.position = "none") +
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave("figures/tsne/tsne_highlight_2484.pdf", width = 15, height = 9)
+
+
+
+### animation
+source('R/animations.R')
+
+a <- tt %>% 
+  ggplot(aes(V1, V2, label = my_topic, color = topic_label, frame = year)) +
+  geom_text(size = 3) +
+  # geom_label_repel(data = label_locations, aes(label = topic_label), segment.alpha = 0) +
+  theme_no_axes + 
+  theme(legend.position = "none") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+gganimate(a, 'figures/tsne/all_years.gif')
+
+# other plots -------------------------------------------------------------
 
 tsne_plot_saved <- function(yearX) {
   x <- dd %>%
@@ -42,7 +127,7 @@ tsne_plot_saved <- function(yearX) {
     ggplot(aes(V1, V2, label = my_topic, color = topic_label)) +
     geom_text(size = 3) +
     geom_label_repel(data = label_locations, aes(label = topic_label), segment.alpha = 0) +
-    theme_classic() +
+    theme_no_axes +
     theme(legend.position = "none") +
     ggtitle(yearX) +
     theme(plot.title = element_text(hjust = 0.5))
@@ -50,63 +135,6 @@ tsne_plot_saved <- function(yearX) {
   ggsave(sprintf("figures/tsne/%s.png", yearX), width = 9, height = 9)
 }
 c(2016:2017) %>% walk(tsne_plot_saved)
-
-
-# all years ---------------------------------------------------------------
-
-all_years <- function(dd) {
-  x <- dd %>%
-    select(doc_id, year, topic, topic_label, prob) %>%
-    group_by(doc_id) %>% 
-    mutate(my_topic = topic[which.max(prob)]) %>%  # assing document to its max prob topic
-    select(-topic) %>% 
-    spread(topic_label, prob) %>% 
-    ungroup
-  x
-  set.seed(12345)
-  # tsne <- Rtsne(as.matrix(x %>% select(-doc_id, -my_topic, -year)), check_duplicates = FALSE, theta = 0)  # takes 12 minutes
-  # write_rds(tsne, 'output/rds/tsne_all_years.rds')
-  tsne <- read_rds('output/rds/tsne_all_years.rds')
-  # plot(tsne$Y, type = "n")
-  # text(tsne$Y, labels = x$my_topic, col = x$my_topic)
-  
-  tt <- tsne$Y %>% 
-    as_data_frame %>% 
-    cbind(my_topic = x$my_topic,
-          year = x$year) %>%  
-    group_by(my_topic) %>% 
-    rowwise %>% 
-    mutate(topic_label = labels[my_topic + 1])
-  tt
-  
-  label_locations <- tt %>% ungroup %>% group_by(topic_label) %>% summarize(V1 = median(V1),
-                                                                            V2 = median(V2))
-  # plot
-  tt %>% 
-    ggplot(aes(V1, V2, label = my_topic, color = topic_label)) +
-    geom_text(size = 3) +
-    geom_label_repel(data = label_locations, aes(label = topic_label), segment.alpha = 0) +
-    theme_classic() +
-    theme(legend.position = "none") +
-    theme(plot.title = element_text(hjust = 0.5))
-  
-  ggsave("figures/tsne/tsne_all_years.pdf", width = 15, height = 9)
-  
-  
-  source('R/animations.R')
-  
-  a <- tt %>% 
-    ggplot(aes(V1, V2, label = my_topic, color = topic_label, frame = year)) +
-    geom_text(size = 3) +
-    # geom_label_repel(data = label_locations, aes(label = topic_label), segment.alpha = 0) +
-    theme_classic() +
-    theme(legend.position = "none") +
-    theme(plot.title = element_text(hjust = 0.5))
-  
-  gganimate(a, 'figures/tsne/all_years.gif')
-  
-}
-all_years()
 
 
 # PCA ---------------------------------------------------------------------

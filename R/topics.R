@@ -64,6 +64,30 @@ g + coord_cartesian(xlim = c(min(fit$year) + 0.75, max(fit$year) + 7))
 ggsave("figures/topics.pdf", width = 9, height = 5)
 
 
+topics_highlight <- function(topic_labelX, fit, df.word, df.gray) {
+  fit$visible <- if_else(fit$topic_label == topic_labelX, 1, 0.01)
+  df.word$visible <- if_else(df.word$topic_label == topic_labelX, 1, 0.01)
+  df.gray$visible <- if_else(df.gray$topic_label == topic_labelX, 1, 0.01)
+  g <- fit %>% 
+    ggplot(aes(year, prob, colour = topic_label, group = topic_label, alpha = visible)) +
+    geom_line() +
+    geom_vline(xintercept = max(fit$year), colour = "gray") +
+    geom_line(data = df.gray, colour = 'gray', linetype = 'longdash') +
+    geom_text(data = df.word, aes(label = topic_label), hjust = 0, size = 3) +
+    scale_x_continuous(breaks = years, labels = year_labels) +
+    xlab("Year") + ylab("Estimated frequency") +
+    theme_classic() +  
+    theme(legend.position = "none")
+  
+  ## single plot
+  g + coord_cartesian(xlim = c(min(fit$year) + 0.75, max(fit$year) + 7))
+  ggsave(sprintf("figures/topics_highligh_%s.pdf", topic_labelX), width = 9, height = 5)
+}
+topics_highlight('Probabilistic modeling', fit, df.word, df.gray)
+topics_highlight('Decision making', fit, df.word, df.gray)
+topics_highlight('Educational psychology', fit, df.word, df.gray)
+topics_highlight('Memory', fit, df.word, df.gray)
+
 g <- fit %>%
   ggplot(aes(year, prob, colour = topic_label)) +
   geom_line() +
